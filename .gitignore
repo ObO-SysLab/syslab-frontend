@@ -137,3 +137,29 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# --- SysLab Frontend Custom Settings ---
+
+### Next.js Build Outputs ###
+.next/
+out/
+
+### Secrets & Environment Variables (보안 핵심!) ###
+# API 서버 주소나 보안 키가 담길 환경 변수 파일들입니다.
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+### IDE & OS Specifics ###
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+### Dependency Logs ###
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
