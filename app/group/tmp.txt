@@ -1,0 +1,290 @@
+import Link from "next/link";
+import { Search, Settings, LogOut, User, Menu, Trophy, MessageSquare, Star, Share2, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea"; // 댓글 입력용
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // 표 컴포넌트
+
+export default function ProblemDetailPage() {
+
+  // [Mock Data] 우측 패널용 (Top3 & 최근 댓글)
+  const topRankers = [
+    { rank: 1, name: "Guido", score: 2400 },
+    { rank: 2, name: "Torvalds", score: 2350 },
+    { rank: 3, name: "Gosling", score: 2100 },
+  ];
+  const sidebarComments = [
+    { user: "Hacker1", text: "앙 기모링", time: "10분 전" },
+    { user: "Newbie", text: "쪼아요 쪼아요 물걸레질 쪼아요", time: "1시간 전" },
+  ];
+
+  // [Mock Data] 채점 현황 데이터
+  const submissions = [
+    { id: 1024, result: "맞았습니다!!", memory: "2024 KB", time: "12 ms", lang: "Python3", date: "1분 전", isCorrect: true },
+    { id: 1023, result: "틀렸습니다", memory: "1020 KB", time: "4 ms", lang: "C++", date: "5분 전", isCorrect: false },
+    { id: 1022, result: "시간 초과", memory: "---", time: "2000 ms", lang: "Python3", date: "10분 전", isCorrect: false },
+  ];
+
+  // [Mock Data] 전체 순위 데이터
+  const fullMember = [
+    { rank: 1, user: "Guido", role: "그룹장", tier: "마스터", lang: "Python3", date: "2025.11.12" },
+    { rank: 2, user: "Torvalds", role: "매니저", tier: "다이아", lang: "C", date: "2025.10.04" },
+    { rank: 3, user: "Gosling", role: "매니저", tier: "플래티넘", lang: "Java", date: "2025.09.21" },
+    { rank: 4, user: "DanKook", role: "일반", tier: "골드", lang: "Node.js", date: "2026.01.18" },
+    { rank: 5, user: "Security", role: "일반", tier: "실버", lang: "Python3", date: "2026.01.19" },
+  ];
+
+
+  return (
+    <div className="min-h-screen bg-white text-slate-900 font-sans">
+
+      {/* 1. 헤더 */}
+      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
+          <Link href="/" className="text-xl font-bold tracking-tight text-slate-900">
+            DK-World
+          </Link>
+        </div>
+        <div className="flex-1 max-w-xl px-4">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+            <Input type="search" placeholder="Input text" className="pl-9 bg-slate-50 border-slate-200 rounded-full" />
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <button className="p-2 hover:bg-slate-100 rounded-full"><User className="h-5 w-5 text-slate-600" /></button>
+          <button className="p-2 hover:bg-slate-100 rounded-full"><Settings className="h-5 w-5 text-slate-600" /></button>
+          <button className="p-2 hover:bg-slate-100 rounded-full text-red-500"><LogOut className="h-5 w-5" /></button>
+        </div>
+      </header>
+
+      {/* 2. 메인 레이아웃 (Grid 12분할) */}
+      <main className="container mx-auto max-w-[1600px] pt-6 grid grid-cols-1 md:grid-cols-12 gap-6 px-4 pb-12">
+
+        {/* [A] 좌측 사이드바 (2칸 - 고정) */}
+        <aside className="hidden md:block col-span-2 space-y-2">
+          <div className="p-2 bg-purple-50 rounded-lg text-purple-700 font-bold flex items-center gap-2 mb-4">
+            <Star className="h-4 w-4 fill-current" />
+            <span>카테고리</span>
+          </div>
+          {["대회", "기타", "그룹"].map((item) => (
+            <div key={item} className="p-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg cursor-pointer flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center border">
+                <Star className="h-4 w-4 text-slate-400" />
+              </div>
+              <span className="font-medium">{item}</span>
+            </div>
+          ))}
+        </aside>
+
+        {/* [B] 중앙 콘텐츠 영역 (6칸 - 탭에 따라 변경되는 부분) */}
+        <section className="col-span-12 md:col-span-6 space-y-6">
+
+          {/* 탭 컨트롤러 */}
+          <Tabs defaultValue="main" className="w-full">
+            <TabsList className="grid w-full grid-cols-4 bg-slate-100 p-1 rounded-lg sticky top-16 z-40">
+              <TabsTrigger value="main">메인</TabsTrigger>
+              <TabsTrigger value="member">멤버</TabsTrigger>
+              <TabsTrigger value="comments">댓글</TabsTrigger>
+              <TabsTrigger value="setting">설정</TabsTrigger>
+            </TabsList>
+
+            {/* 1. 메인 탭 */}
+            <TabsContent value="main" className="mt-6 space-y-6 animate-in fade-in-50 duration-300">
+              <div className="flex gap-6 items-start">
+                <div className="w-24 h-24 bg-slate-100 rounded-2xl flex items-center justify-center shrink-0 border border-slate-200">
+                  <div className="grid grid-cols-2 gap-1 opacity-50">
+                    <div className="w-3 h-3 bg-slate-400 rounded-full" />
+                    <div className="w-3 h-3 bg-slate-400 rounded-sm" />
+                    <div className="w-3 h-3 bg-slate-400 rounded-sm" />
+                    <div className="w-3 h-3 bg-slate-400 rounded-full" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h1 className="text-2xl font-bold text-slate-900">알고리즘 기사단</h1>
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    성스러운 알고리즘을 찾아 DK 마왕을 무찌르고 세상을 구원할 마지막 희망.. "알고리즘 기사단"
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button className="bg-slate-800 hover:bg-slate-700">가입 신청하기</Button>
+                <Button variant="outline" size="icon"><Share2 className="h-4 w-4" /></Button>
+              </div>
+              <Separator />
+              <div className="prose prose-slate max-w-none">
+                <p className="text-slate-800">
+                  "알고리즘 기사단"은 알고리즘에 빠져있는 단국대 학생이라면 학과, 학년과 무관하게 우리의 기사단원이 될 기회가 주어집니다.
+                  기사단에 합류하여 성스러운 알고리즘을 찾아 마왕을 무찌를 이세카이 용사가 되어보세요. 
+                </p>
+                <div className="mt-4">
+                  <span className="text-xs font-bold text-slate-500 mb-1 block">&lt;그룹 규칙&gt;</span>
+                  <pre className="bg-slate-50 border border-slate-200 p-4 rounded-lg font-mono text-sm text-slate-800 leading-6">
+{`1. 친목질 X`}
+                  </pre>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* 2. 멤버 탭 */}
+            <TabsContent value="member" className="mt-6 animate-in fade-in-50 duration-300">
+              <h2 className="text-lg font-bold mb-4">그룹 멤버</h2>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-slate-50">
+                    <TableRow>
+                      <TableHead className="w-[60px]">순위</TableHead>
+                      <TableHead>사용자</TableHead>
+                      <TableHead>역할</TableHead>
+                      <TableHead>티어</TableHead>
+                      <TableHead>주 언어</TableHead>
+                      <TableHead className="text-right">가입 날짜</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {fullMember.map((rank) => (
+                      <TableRow key={rank.rank}>
+                        <TableCell className="font-bold">{rank.rank}</TableCell>
+                        <TableCell className="font-medium text-blue-600">{rank.user}</TableCell>
+                        <TableCell className="text-xs text-slate-500">{rank.role}</TableCell>
+                        <TableCell className="text-xs text-slate-500">{rank.tier}</TableCell>
+                        <TableCell className="text-xs"><Badge variant="outline">{rank.lang}</Badge></TableCell>
+                        <TableCell className="text-right text-xs text-slate-400">{rank.date}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            {/* 3. 댓글 탭 */}
+            <TabsContent value="comments" className="mt-6 animate-in fade-in-50 duration-300 space-y-6">
+              {/* 댓글 입력창 */}
+              <div className="space-y-2">
+                <h2 className="text-lg font-bold">댓글 남기기</h2>
+                <Textarea placeholder="댓글을 남겨보아요." className="resize-none min-h-[100px]" />
+                <div className="flex justify-end">
+                  <Button size="sm">등록하기</Button>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* 댓글 목록 */}
+              <div className="space-y-4">
+                {sidebarComments.map((comment, i) => (
+                  <div key={i} className="flex gap-4 p-4 border rounded-lg bg-slate-50/50">
+                    <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+                      <User className="h-5 w-5 text-slate-500" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-slate-900">{comment.user}</span>
+                        <span className="text-xs text-slate-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> {comment.time}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600">{comment.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* 4. 설정 탭 */}
+            <TabsContent value="setting" className="mt-6 animate-in fade-in-50 duration-300">
+              <h2 className="text-lg font-bold mb-4">나의 제출 현황</h2>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-slate-50">
+                    <TableRow>
+                      <TableHead className="w-[100px]">제출 번호</TableHead>
+                      <TableHead>결과</TableHead>
+                      <TableHead>메모리</TableHead>
+                      <TableHead>시간</TableHead>
+                      <TableHead>언어</TableHead>
+                      <TableHead className="text-right">제출 시간</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {submissions.map((sub) => (
+                      <TableRow key={sub.id}>
+                        <TableCell className="font-mono text-xs">{sub.id}</TableCell>
+                        <TableCell>
+                          <Badge variant={sub.isCorrect ? "default" : "destructive"} className={sub.isCorrect ? "bg-green-600 hover:bg-green-700" : ""}>
+                            {sub.isCorrect ? <CheckCircle className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                            {sub.result}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs">{sub.memory}</TableCell>
+                        <TableCell className="text-xs">{sub.time}</TableCell>
+                        <TableCell className="text-xs font-bold text-slate-600">{sub.lang}</TableCell>
+                        <TableCell className="text-right text-xs text-slate-400">{sub.date}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+          </Tabs>
+        </section>
+
+        {/* [C] 우측 정보 패널 (2칸 - 고정) */}
+        <aside className="col-span-12 md:col-span-2 space-y-4">
+          <Card className="shadow-none border-slate-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <Trophy className="h-4 w-4 text-yellow-500" /> Top 3
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {topRankers.map((ranker) => (
+                <div key={ranker.rank} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="h-5 w-5 flex items-center justify-center p-0 rounded-full">
+                      {ranker.rank}
+                    </Badge>
+                    <span className="font-medium text-slate-700">{ranker.name}</span>
+                  </div>
+                  <span className="text-slate-400 text-xs">{ranker.score}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card className="shadow-none border-slate-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-blue-500" /> Recent
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {sidebarComments.map((comment, idx) => (
+                <div key={idx} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700">{comment.user}</span>
+                    <span className="text-[10px] text-slate-400">{comment.time}</span>
+                  </div>
+                  <p className="text-xs text-slate-600 line-clamp-2">{comment.text}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </aside>
+
+        {/* [D] 우측 광고 패널 (2칸 - 고정) */}
+        <aside className="col-span-12 md:col-span-2">
+          <div className="border border-slate-200 rounded-xl bg-slate-50 h-[500px] flex flex-col items-center justify-center sticky top-24">
+            <span className="text-slate-400 text-sm font-medium">AD Area</span>
+          </div>
+        </aside>
+
+      </main>
+    </div>
+  );
+}
