@@ -1,0 +1,208 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { 
+  Menu, Trophy, Settings, LogOut, User, Calendar as CalendarIcon, 
+  Clock, ShieldAlert, Award, Users, Info, Plus, Trash2, Check
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+
+export default function ContestCreatePage() {
+  
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+      
+      {/* 1. 헤더 (관리자 모드 강조) */}
+      <header className="sticky top-0 z-50 w-full border-b bg-slate-900 px-6 h-16 flex items-center justify-between text-white">
+        <div className="flex items-center gap-4">
+          <Menu className="h-6 w-6 text-slate-400 cursor-pointer lg:hidden" />
+          <Link href="/" className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            Diveon <Badge className="bg-amber-500 text-[10px] text-white border-none">CONTEST ADMIN</Badge>
+          </Link>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-sm font-medium text-slate-400">contest_admin@dankook.ac.kr</div>
+          <button className="p-2 hover:bg-slate-800 rounded-full text-red-400"><LogOut className="h-5 w-5" /></button>
+        </div>
+      </header>
+
+      {/* 2. 메인 레이아웃 */}
+      <main className="container mx-auto max-w-[1400px] pt-8 grid grid-cols-1 md:grid-cols-12 gap-8 px-6 pb-20">
+
+        {/* [A] 좌측 안내 섹션 (3칸) */}
+        <aside className="col-span-12 md:col-span-3 space-y-4">
+          <Card className="border-none shadow-xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-2xl overflow-hidden">
+             <CardHeader className="pb-2">
+               <Trophy className="w-10 h-10 text-amber-300 fill-current mb-2" />
+               <CardTitle className="text-xl font-black">새 대회 설계</CardTitle>
+               <CardDescription className="text-indigo-100 text-xs">사용자들을 위한 최상의 경쟁 환경을 구축하세요.</CardDescription>
+             </CardHeader>
+             <CardContent className="space-y-4 pt-4 text-sm font-medium">
+                <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl">
+                  <Clock className="w-4 h-4 text-amber-300" />
+                  <span>정확한 시간 설정 필수</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl">
+                  <ShieldAlert className="w-4 h-4 text-amber-300" />
+                  <span>부정행위 방지 규칙 명시</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl">
+                  <Award className="w-4 h-4 text-amber-300" />
+                  <span>매력적인 보상과 혜택</span>
+                </div>
+             </CardContent>
+          </Card>
+          
+          <div className="p-4 border rounded-2xl bg-white space-y-2">
+             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+               <Info size={14} /> 운영 팁
+             </h4>
+             <p className="text-[11px] text-slate-500 leading-relaxed">
+               대회 시작 전 '예정' 상태로 노출하여 참가자들을 미리 모집하는 것이 좋습니다. 포렌식 대회라면 데이터셋 용량을 미리 확인하세요.
+             </p>
+          </div>
+        </aside>
+
+        {/* [B] 중앙 입력 양식 (9칸) */}
+        <section className="col-span-12 md:col-span-9 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+          
+          {/* 상단 버튼 */}
+          <div className="flex justify-between items-end border-b pb-6">
+             <div className="space-y-1">
+               <h2 className="text-3xl font-black tracking-tighter text-slate-950">Contest Blueprint</h2>
+               <p className="text-slate-500 font-medium">대회의 일정, 보상, 규칙을 상세히 설정합니다.</p>
+             </div>
+             <div className="flex gap-2">
+                <Button variant="outline" className="px-6 rounded-xl">취소</Button>
+                <Button className="bg-slate-950 hover:bg-slate-800 px-8 rounded-xl shadow-lg">대회 생성 확정</Button>
+             </div>
+          </div>
+
+          {/* 1. 대회 기본 정보 */}
+          <Card className="border-slate-200 shadow-sm rounded-2xl">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2"><Trophy className="w-5 h-5 text-amber-500" /> 기본 정보</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid gap-2">
+                <Label htmlFor="contest-title">대회 명칭 <span className="text-red-500">*</span></Label>
+                <Input id="contest-title" placeholder="예: 2026 단국대 사이버 보안 경진대회" className="text-lg font-bold h-12" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>대회 유형</Label>
+                  <Select defaultValue="ctf">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ctf">CTF (Jeopardy)</SelectItem>
+                      <SelectItem value="forensics">Digital Forensics Challenge</SelectItem>
+                      <SelectItem value="algo">Algorithm (PS)</SelectItem>
+                      <SelectItem value="attack-defense">Attack & Defense</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>참여 대상</Label>
+                  <Select defaultValue="all">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">누구나 참여 가능</SelectItem>
+                      <SelectItem value="student">단국대학교 학생 전용</SelectItem>
+                      <SelectItem value="group">특정 그룹 전용</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 2. 일정 및 시간 설정 */}
+          <Card className="border-slate-200 shadow-sm rounded-2xl">
+             <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2"><Clock className="w-5 h-5 text-indigo-500" /> 일정 설정</CardTitle>
+             </CardHeader>
+             <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   <div className="space-y-3">
+                      <Label className="text-indigo-600 font-bold">대회 시작 일시</Label>
+                      <Input type="datetime-local" className="h-11 font-mono" />
+                   </div>
+                   <div className="space-y-3">
+                      <Label className="text-red-600 font-bold">대회 종료 일시</Label>
+                      <Input type="datetime-local" className="h-11 font-mono" />
+                   </div>
+                </div>
+                <div className="p-4 bg-slate-50 rounded-xl border flex items-center gap-3">
+                   <Checkbox id="show-timer" defaultChecked />
+                   <Label htmlFor="show-timer" className="text-sm font-medium cursor-pointer">대회 페이지 상단에 실시간 타이머 노출</Label>
+                </div>
+             </CardContent>
+          </Card>
+
+          {/* 3. 보상 및 규칙 */}
+          <Card className="border-slate-200 shadow-sm rounded-2xl">
+             <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2"><Award className="w-5 h-5 text-emerald-500" /> 보상 및 규칙</CardTitle>
+             </CardHeader>
+             <CardContent className="space-y-5">
+                <div className="space-y-2">
+                   <Label>대회 보상 및 혜택</Label>
+                   <Input placeholder="예: 상금 100만원, 총장 표창, 채용 우대권 등" />
+                </div>
+                <div className="space-y-2">
+                   <Label>참가 규칙 및 주의사항</Label>
+                   <Textarea 
+                     placeholder="대회 중 금지 행위(부정행위, 공격 등)와 순위 산정 기준을 입력하세요." 
+                     className="min-h-[120px] resize-none"
+                   />
+                </div>
+                <div className="flex items-center gap-4 pt-2">
+                   <div className="flex items-center gap-2">
+                     <Checkbox id="rank-reveal" />
+                     <Label htmlFor="rank-reveal" className="text-xs font-bold">실시간 순위 공개</Label>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <Checkbox id="hint-open" />
+                     <Label htmlFor="hint-open" className="text-xs font-bold">시간별 자동 힌트 공개 활성화</Label>
+                   </div>
+                </div>
+             </CardContent>
+          </Card>
+
+          {/* 4. 문제지 구성 (단순화) */}
+          <Card className="border-dashed border-2 border-slate-200 shadow-none bg-slate-50/50 rounded-2xl">
+             <CardContent className="flex flex-col items-center justify-center py-10 space-y-4">
+                <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center border shadow-sm">
+                   <Plus className="text-slate-400" />
+                </div>
+                <div className="text-center">
+                   <p className="font-bold text-slate-700">문제 뱅크에서 문제 불러오기</p>
+                   <p className="text-xs text-slate-400 mt-1">대회에서 사용할 문제들을 선택하거나 새로 출제할 수 있습니다.</p>
+                </div>
+                <Button variant="secondary" size="sm">문제지 구성하기</Button>
+             </CardContent>
+          </Card>
+
+        </section>
+
+      </main>
+    </div>
+  );
+}
+
+// Badge 보조 컴포넌트 (UI 라이브러리에 따라 다를 수 있음)
+function Badge({ children, className }: { children: React.ReactNode, className?: string }) {
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${className}`}>
+      {children}
+    </span>
+  );
+}
