@@ -1,0 +1,59 @@
+// [Mock Data] 문제 목록
+const problems = [
+  { id: 1001, title: "기초 리눅스 명령어", category: "System", level: "Level 1", successRate: "78%", solved: true },
+  { id: 1002, title: "SQL Injection 기초", category: "Web", level: "Level 2", successRate: "45%", solved: false },
+  { id: 1003, title: "이미지 스테가노그래피 분석", category: "Forensics", level: "Level 3", successRate: "32%", solved: true },
+  { id: 1004, title: "Buffer Overflow 입문", category: "Pwnable", level: "Level 4", successRate: "18%", solved: false },
+  { id: 1005, title: "Windows 레지스트리 분석", category: "Forensics", level: "Level 2", successRate: "52%", solved: false },
+];
+
+<div className="border rounded-2xl bg-white shadow-sm overflow-hidden">
+  <Table>
+    <TableHeader className="bg-slate-50/50">
+      <TableRow>
+        <TableHead className="w-[80px] text-center">상태</TableHead>
+        <TableHead className="w-[100px]">번호</TableHead>
+        <TableHead>문제 제목</TableHead>
+        <TableHead>카테고리</TableHead>
+        <TableHead>난이도</TableHead>
+        <TableHead className="text-right pr-6">정답률</TableHead>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      {problems.map((prob) => (
+        <TableRow key={prob.id} className="hover:bg-slate-50/50 cursor-pointer group transition-colors">
+          <TableCell className="text-center">
+            {prob.solved ? (
+              <CheckCircle2 className="h-5 w-5 text-green-500 mx-auto" />
+            ) : (
+              <div className="h-5 w-5 rounded-full border-2 border-slate-200 mx-auto" />
+            )}
+          </TableCell>
+          <TableCell className="font-mono text-slate-400">{prob.id}</TableCell>
+          <TableCell>
+            <Link href={`/problems/${prob.id}`} className="font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">
+              {prob.title}
+            </Link>
+          </TableCell>
+          <TableCell>
+            <Badge variant="secondary" className="font-normal text-[11px] px-2 py-0">
+              {prob.category}
+            </Badge>
+          </TableCell>
+          <TableCell>
+            <span className={`text-xs font-bold ${
+              prob.level === "Level 1" ? "text-green-600" :
+              prob.level === "Level 2" ? "text-blue-600" :
+              prob.level === "Level 3" ? "text-orange-600" : "text-red-600"
+            }`}>
+              {prob.level}
+            </span>
+          </TableCell>
+          <TableCell className="text-right pr-6 font-mono text-slate-500">
+            {prob.successRate}
+          </TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+</div>

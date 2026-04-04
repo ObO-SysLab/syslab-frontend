@@ -47,7 +47,7 @@ export default function ProblemDetailPage() {
         <div className="flex items-center gap-4">
           <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
           <Link href="/" className="text-xl font-bold tracking-tight text-slate-900">
-            DK-World
+            Diveon
           </Link>
         </div>
         <div className="flex-1 max-w-xl px-4">

@@ -1,0 +1,37 @@
+{/* [A] 좌측 사이드바 (2칸) */}
+<aside className="hidden md:block col-span-2 space-y-4">
+    <div className="p-2 bg-indigo-50 rounded-lg text-indigo-700 font-bold flex items-center gap-2 mb-2">
+    <Trophy className="h-4 w-4" />
+    <span>대회 카테고리</span>
+    </div>
+    <nav className="space-y-1">
+    {["전체 대회", "CTF", "알고리즘", "디지털 포렌식"].map((item) => (
+        <div key={item} className="p-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-950 rounded-lg cursor-pointer transition-colors flex items-center justify-between group">
+        <span>{item}</span>
+        <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500">12</span>
+        </div>
+    ))}
+    </nav>
+    <Separator />
+    <div className="p-4 bg-slate-900 rounded-2xl text-white space-y-3">
+        <p className="text-xs font-bold text-indigo-400">나의 랭킹</p>
+        <p className="text-2xl font-black">#158 <span className="text-sm font-normal text-slate-400">/ 5,200</span></p>
+        <Button variant="secondary" size="sm" className="w-full text-xs">내 전적 보기</Button>
+    </div>
+</aside>
+
+<Card className="border-slate-200 shadow-none overflow-hidden">
+    <div className="bg-amber-500 p-4 text-center">
+    <Star className="w-6 h-6 text-white mx-auto fill-current" />
+    <p className="text-white font-black text-sm mt-1 uppercase">Hall of Fame</p>
+    </div>
+    <CardContent className="pt-4 space-y-4">
+    {[1, 2, 3].map((i) => (
+        <div key={i} className="flex items-center gap-3">
+            <span className="text-xs font-bold text-slate-400">{i}st</span>
+            <div className="w-6 h-6 rounded-full bg-slate-200" />
+            <span className="text-xs font-medium text-slate-700">User_{i}234</span>
+        </div>
+    ))}
+    </CardContent>
+</Card>

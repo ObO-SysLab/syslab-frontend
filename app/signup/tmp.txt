@@ -1,0 +1,173 @@
+"use client";
+
+import Link from "next/link";
+import { 
+  ShieldCheck, UserPlus, Mail, Lock, User, 
+  GraduationCap, Check, ArrowRight, Shield 
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+
+export default function SignUpPage() {
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
+      
+      {/* 상단 로고 (메인으로 돌아가기) */}
+      <div className="sm:mx-auto sm:w-full sm:max-w-md mb-8 text-center">
+        <Link href="/" className="inline-flex items-center gap-2">
+          <div className="bg-slate-900 p-1.5 rounded-lg">
+            <Shield className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-3xl font-black tracking-tighter text-slate-900">Diveon</span>
+        </Link>
+        <p className="mt-2 text-sm text-slate-500 font-medium">
+          단국대 기사단의 일원이 되어 성스러운 알고리즘을 수호하세요.
+        </p>
+      </div>
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-[480px]">
+        <Card className="border-none shadow-xl shadow-slate-200/60 rounded-3xl overflow-hidden">
+          <CardHeader className="bg-white border-b border-slate-50 pt-8 pb-6 px-8">
+            <CardTitle className="text-2xl font-black flex items-center gap-2 text-slate-900">
+              <UserPlus className="w-6 h-6 text-indigo-600" /> 계정 생성
+            </CardTitle>
+            <CardDescription className="text-slate-400">
+              모든 항목은 필수 입력 사항입니다.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="p-8 space-y-6">
+            <div className="grid grid-cols-1 gap-6">
+              
+              {/* 1. 기본 인적사항 */}
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="email" className="text-[11px] font-bold uppercase text-slate-400 ml-1">이메일</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                      <Input id="email" type="email" placeholder="example@dankook.ac.kr" className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50" />
+                    </div>
+                    <Button variant="outline" className="h-12 px-4 rounded-xl font-bold text-xs">인증번호 발송</Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="name" className="text-xs font-bold uppercase text-slate-500 tracking-wider">닉네임</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                      <Input id="name" placeholder="홍길동" className="pl-10 h-11" />
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="text-xs font-bold uppercase text-slate-500 tracking-wider">소속</Label>
+                    <Select defaultValue="sw">
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="학과 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sw">소프트웨어학과</SelectItem>
+                        <SelectItem value="cs">컴퓨터공학과</SelectItem>
+                        <SelectItem value="security">정보보호학과</SelectItem>
+                        <SelectItem value="ai">AI융합학과</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="pass" className="text-[11px] font-bold uppercase text-slate-400 ml-1">비밀번호</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                      <Input id="pass" type="password" placeholder="••••••••" className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50" />
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="pass-confirm" className="text-[11px] font-bold uppercase text-slate-400 ml-1">비밀번호 확인</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                      <Input id="pass-confirm" type="password" placeholder="••••••••" className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50" />
+                    </div>
+                  </div>
+                </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* 2. 관심 분야 및 비밀번호 */}
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label className="text-xs font-bold uppercase text-slate-500 tracking-wider">관심 분야</Label>
+                  <Select defaultValue="forensics">
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="분야 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="forensics">디지털 포렌식 (Forensics)</SelectItem>
+                      <SelectItem value="web">웹 해킹 (Web Security)</SelectItem>
+                      <SelectItem value="pwn">시스템 해킹 (Pwnable)</SelectItem>
+                      <SelectItem value="reversing">역공학 (Reversing)</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Label className="text-[11px] font-bold uppercase text-slate-400 ml-1">희망 진로</Label>
+                  <Select defaultValue="backend">
+                    <SelectTrigger className="h-12 rounded-xl border-slate-100 bg-slate-50/50 px-4 font-bold text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="backend">백엔드</SelectItem>
+                      <SelectItem value="frontend">프론트엔드</SelectItem>
+                      <SelectItem value="AI_research">AI 연구원</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* 3. 약관 동의 */}
+              <div className="flex items-start space-x-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <Checkbox id="terms" className="mt-1 data-[state=checked]:bg-indigo-600" />
+                <div className="grid gap-1.5 leading-none">
+                  <label htmlFor="terms" className="text-xs font-bold text-slate-700 leading-normal cursor-pointer">
+                    서비스 이용약관 및 개인정보 처리방침에 동의합니다.
+                  </label>
+                  <p className="text-[10px] text-slate-400">
+                    부정행위 적발 시 계정 사용이 영구 중단될 수 있음을 확인했습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Button className="w-full bg-slate-900 hover:bg-slate-800 h-12 rounded-xl text-base font-bold shadow-lg shadow-slate-200">
+              기사단 합류하기 <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+          </CardContent>
+
+          <CardFooter className="bg-slate-50/50 border-t border-slate-100 py-6 flex justify-center">
+            <p className="text-sm text-slate-500">
+              이미 계정이 있으신가요? <Link href="/signin" className="text-indigo-600 font-bold hover:underline ml-1">로그인</Link>
+            </p>
+          </CardFooter>
+        </Card>
+
+        {/* 하단 보안 뱃지 */}
+        <div className="mt-8 flex justify-center gap-6 opacity-30 grayscale hover:grayscale-0 transition-all cursor-default">
+           <div className="flex items-center gap-1.5">
+             <ShieldCheck size={16} />
+             <span className="text-[10px] font-black tracking-widest uppercase">Secured by DK</span>
+           </div>
+           <div className="flex items-center gap-1.5">
+             <GraduationCap size={16} />
+             <span className="text-[10px] font-black tracking-widest uppercase">Dankook Univ.</span>
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
