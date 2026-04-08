@@ -39,7 +39,7 @@ export default function SettingsPage() {
       }
 
       try {
-        const response = await fetch("https://diveon.com/api/profile/show", {
+        const response = await fetch("https://diveon.net/api/profile/show", {
           method: "GET", 
           headers: {
             "Content-Type": "application/json",
