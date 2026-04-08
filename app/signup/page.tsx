@@ -56,7 +56,7 @@ export default function SignUpPage() {
           password: formData.password,
           nick_name: formData.nickname,
           belong: formData.belong,    
-          interest: interests,        
+          interest: interests.join(","),        
         }),
       });
 
