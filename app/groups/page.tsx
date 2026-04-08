@@ -1,26 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Search, Settings, LogOut, User, Menu, Gamepad2, Code2, FolderLock, Monitor, 
-  Shield, Terminal, SearchCode, Database, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag 
+import { Search, LogOut, Bell, Menu, Code2, Shield, Terminal, SearchCode, Database,
+  LayoutGrid, Users, BarChart3, Trophy, ShoppingBag 
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { groups } from "@/lib/mockData";
 
 
 export default function ProblemListPage() {
-  const groups = [
-    { id: 1, title: "DK-알고리즘 덕후 모임", leader: "박단용", tier: "1" },
-    { id: 2, title: "그룹 이름 1", leader: "조트리버", tier: "1" },
-    { id: 3, title: "그룹 이름 2", leader: "어굿이야", tier: "2" },
-    { id: 4, title: "그룹 이름 3", leader: "백준 씹 고인물", tier: "2" },
-    { id: 5, title: "그룹 이름 4", leader: "오마에와모신데이루", tier: "2" },
-    { id: 6, title: "그룹 이름 5", leader: "아단최", tier: "3" },
-    { id: 7, title: "그룹 이름 6", leader: "아단최", tier: "3" },
-    { id: 8, title: "그룹 이름 7", leader: "아단최", tier: "3" },
-  ];  
+  // 현재 로그인 상태를 관리 (나중에는 실제 토큰 유무로 판단)
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -51,17 +46,43 @@ export default function ProblemListPage() {
           </div>
         </div>
 
-        {/* 우측 아이콘 메뉴 (올바른 Link 사용법 적용) */}
-        <div className="flex items-center gap-2">
-          <Link href="/settings" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <User className="h-5 w-5 text-slate-600" />
-          </Link>
-          <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <Settings className="h-5 w-5 text-slate-600" />
-          </button>
-          <button className="p-2 hover:bg-slate-100 rounded-full text-red-500 transition-colors">
-            <LogOut className="h-5 w-5" />
-          </button>
+        {/* 우측 사용자 영역 (로그인 상태에 따라 가변적) */}
+        <div className="flex items-center gap-3">
+          {isLoggedIn ? (
+            /* --- [A] 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
+            <>
+              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              </button>
+
+              <Link href="/settings">
+                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                  <AvatarImage src="/avatar.png" alt="User" />
+                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                </Avatar>
+              </Link>
+
+              <button 
+                onClick={() => setIsLoggedIn(false)}
+                className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
+              >
+                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              </button>
+            </>
+          ) : (
+            /* --- [B] 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
+            <div className="flex items-center gap-2">
+              <Link href="/signin">
+                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+              </Link>
+              <Link href="/signup">
+                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </header>
 
@@ -129,8 +150,15 @@ export default function ProblemListPage() {
               </Card>
             ))}
           </div>
-        </section>
 
+          <div className="flex justify-center gap-2 pt-6">
+             <Button variant="outline" size="sm" disabled className="rounded-lg">이전</Button>
+             <Button variant="outline" size="sm" className="bg-slate-950 text-white border-slate-950 rounded-lg">1</Button>
+             <Button variant="outline" size="sm" className="rounded-lg">2</Button>
+             <Button variant="outline" size="sm" className="rounded-lg">다음</Button>
+          </div>
+        </section>
+  
         {/* [우측 광고/패널] 2칸 차지 */}
         <aside className="hidden md:block col-span-2">
           <div className="sticky top-24 space-y-4">

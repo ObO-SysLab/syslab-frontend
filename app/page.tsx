@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Search, Settings, LogOut, User, Menu, Target, Zap, ShieldCheck, Flame, BookOpenText, 
+import { Search, LogOut, Bell, Menu, Target, Zap, ShieldCheck, Flame, BookOpenText, 
   LayoutGrid, Users, BarChart3, Trophy, ShoppingBag 
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -9,27 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress"; // [추가] 진행바
+import { Progress } from "@/components/ui/progress"; 
+import { user, featuredProblems } from "@/lib/mockData"
+
 
 export default function HomePage() {
-  
-  // [Mock Data] 현재 로그인한 사용자 정보 (나중에 DB 연동)
-  const user = {
-    name: "박단용",
-    avatar: "/avatar.png",
-    tier: "골드 I",
-    score: 1850,
-    solved: 125,
-    ranking: 158,
-    progress: 85, // 다음 티어까지 85%
-  };
-
-  // [Mock Data] 최신/추천 문제 목록
-  const featuredProblems = [
-    { id: 102, title: "숨겨진 플래그를 찾아라", category: "CTF", difficulty: "중", solvedCount: 1258 },
-    { id: 105, title: "라운드로빈", category: "Process", difficulty: "상", solvedCount: 452 },
-    { id: 108, title: "나만의 MFT", category: "File System", difficulty: "하", solvedCount: 2351 }, // [전공 특화]
-  ];
+  // 현재 로그인 상태를 관리 (나중에는 실제 토큰 유무로 판단)
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
@@ -60,17 +47,43 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* 우측 아이콘 메뉴 (올바른 Link 사용법 적용) */}
-        <div className="flex items-center gap-2">
-          <Link href="/settings" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <User className="h-5 w-5 text-slate-600" />
-          </Link>
-          <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <Settings className="h-5 w-5 text-slate-600" />
-          </button>
-          <button className="p-2 hover:bg-slate-100 rounded-full text-red-500 transition-colors">
-            <LogOut className="h-5 w-5" />
-          </button>
+        {/* 우측 사용자 영역 (로그인 상태에 따라 가변적) */}
+        <div className="flex items-center gap-3">
+          {isLoggedIn ? (
+            /* --- [A] 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
+            <>
+              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              </button>
+
+              <Link href="/settings">
+                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                  <AvatarImage src="/avatar.png" alt="User" />
+                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                </Avatar>
+              </Link>
+
+              <button 
+                onClick={() => setIsLoggedIn(false)}
+                className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
+              >
+                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              </button>
+            </>
+          ) : (
+            /* --- [B] 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
+            <div className="flex items-center gap-2">
+              <Link href="/signin">
+                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+              </Link>
+              <Link href="/signup">
+                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </header>
 
@@ -96,7 +109,7 @@ export default function HomePage() {
             </p>
             <div className="flex gap-3 pt-3">
               <Button size="lg" className="bg-indigo-500 hover:bg-indigo-600 shadow-md">지금 문제 풀기 <Zap size={18} className="ml-2"/></Button>
-              <Button size="lg" variant="outline" className="text-white border-white/20 hover:bg-white/10">내 풀이 기록 보기</Button>
+              <Button size="lg" variant="outline" className="text-indigo-300 border-white/10 hover:bg-white/[0.05] hover:text-white hover:border-white/20 transition-all duration-300">내 풀이 기록 보기</Button>
             </div>
           </div>
           
