@@ -173,4 +173,3 @@ components.json
 eslint.config.mjs
 next-env.d.ts
 screenshots/
-mockData.ts
