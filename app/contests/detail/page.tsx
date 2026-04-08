@@ -13,20 +13,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { contestInfo } from "@/lib/mockData";
+
 
 export default function ContestDetailPage() {
+  // 현재 로그인 상태를 관리 (나중에는 실제 토큰 유무로 판단)
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+
   // [상태 관리] 현재 활성화된 탭 (dashboard, challenges, scoreboard, qa)
   const [activeTab, setActiveTab] = useState("dashboard");
 
-  // [Mock Data] 대회 정보
-  const contestInfo = {
-    title: "제1회 단국대 디지털 포렌식 챌린지",
-    remainingTime: "02:14:35",
-    progress: 65,
-    myRank: 12,
-    myScore: 1450,
-  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">

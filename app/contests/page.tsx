@@ -1,54 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { Search, Settings, LogOut, User, Menu, Trophy, Calendar, Users, Star, Clock, ShieldAlert, Award,
-  LayoutGrid, BarChart3, ShoppingBag
+import { useState } from "react";
+import { Search, Settings, LogOut, User, Menu, Trophy, Calendar, Users, ShieldAlert, Award,
+  LayoutGrid, BarChart3, ShoppingBag, Bell
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { contests } from "@/lib/mockData";
+
 
 export default function ContestListPage() {
-  
-  // [Mock Data] 대회 목록 (상태: 진행 중, 예정, 종료)
-  const contests = [
-    {
-      id: 1,
-      title: "제1회 단국대 디지털 포렌식 챌린지",
-      host: "단국대학교 소프트웨어학과",
-      type: "Forensics",
-      status: "진행 중",
-      date: "2026.04.01 - 2026.04.05",
-      participants: 128,
-      prize: "총 상금 200만원",
-      isHot: true,
-    },
-    {
-      id: 2,
-      title: "Diveon 알고리즘 정기전 (April)",
-      host: "Diveon 운영팀",
-      type: "Algorithm",
-      status: "접수 중",
-      date: "2026.04.10 14:00",
-      participants: 512,
-      prize: "Platinum 티어 포인트",
-      isHot: false,
-    },
-    {
-      id: 3,
-      title: "Spring Security CTF 2026",
-      host: "보안 연구회",
-      type: "CTF",
-      status: "종료",
-      date: "2026.03.15",
-      participants: 1024,
-      prize: "취업 우대권 및 상장",
-      isHot: false,
-    },
-  ];
+  // 현재 로그인 상태를 관리 (나중에는 실제 토큰 유무로 판단)
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
@@ -79,17 +48,43 @@ export default function ContestListPage() {
           </div>
         </div>
 
-        {/* 우측 아이콘 메뉴 (올바른 Link 사용법 적용) */}
-        <div className="flex items-center gap-2">
-          <Link href="/settings" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <User className="h-5 w-5 text-slate-600" />
-          </Link>
-          <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <Settings className="h-5 w-5 text-slate-600" />
-          </button>
-          <button className="p-2 hover:bg-slate-100 rounded-full text-red-500 transition-colors">
-            <LogOut className="h-5 w-5" />
-          </button>
+        {/* 우측 사용자 영역 (로그인 상태에 따라 가변적) */}
+        <div className="flex items-center gap-3">
+          {isLoggedIn ? (
+            /* --- [A] 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
+            <>
+              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              </button>
+
+              <Link href="/settings">
+                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                  <AvatarImage src="/avatar.png" alt="User" />
+                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                </Avatar>
+              </Link>
+
+              <button 
+                onClick={() => setIsLoggedIn(false)}
+                className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
+              >
+                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              </button>
+            </>
+          ) : (
+            /* --- [B] 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
+            <div className="flex items-center gap-2">
+              <Link href="/signin">
+                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+              </Link>
+              <Link href="/signup">
+                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </header>
 

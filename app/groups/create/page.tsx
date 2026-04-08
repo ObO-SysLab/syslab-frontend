@@ -3,13 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { 
-  Menu, Settings, LogOut, User, Users, ShieldCheck, 
-  Globe, Lock, Image as ImageIcon, Plus, Info, Check
+  Menu, LogOut, User, Users, ShieldCheck, 
+  Globe, Lock, Image as ImageIcon, Bell, Info, Check
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -17,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function GroupCreatePage() {
+  // 현재 로그인 상태를 관리 (나중에는 실제 토큰 유무로 판단)
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
   
   // [상태 관리] 가입 승인 방식 제어
   const [isPrivate, setIsPrivate] = useState(false);

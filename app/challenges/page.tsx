@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { 
-  Search, Settings, LogOut, User, Menu, CheckCircle2, 
-  Lock, Code2, Shield, Terminal, SearchCode, Database, 
+  Search, Bell, LogOut,  Menu, CheckCircle2, Code2,  SearchCode, 
   LayoutGrid, Users, BarChart3, ShoppingBag, Trophy 
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -12,27 +11,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { challenges } from "@/lib/mockData"; // 2. [데이터] 문제 리스트 목 데이터
+
 
 export default function ProblemListPage() {
+  // 현재 로그인 상태를 관리 (나중에는 실제 토큰 유무로 판단)
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+
   // 1. [상태 관리] 필터 조건들을 저장하는 상자들
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
-  const [showUnsolved, setShowUnsolved] = useState(false);
-
-  // 2. [데이터] 원본 문제 리스트 (데이터베이스 역할을 하는 Mock Data)
-  const groups = [
-    { id: 1, title: "라운드로빈", author: "박단용", category: "Process", level: "1", successRate: "78%", solved: true },
-    { id: 2, title: "FIFO", author: "조트리버", category: "Process", level: "1", successRate: "75%", solved: true },
-    { id: 3, title: "문제1", author: "어굿이야", category: "Process", level: "2", successRate: "72%", solved: true },
-    { id: 4, title: "문제2", author: "백준 고수", category: "Process", level: "2", successRate: "73%", solved: true },
-    { id: 5, title: "문제3", author: "오마에와모", category: "Process", level: "2", successRate: "32%", solved: false },
-    { id: 6, title: "문제4", author: "아단최", category: "Process", level: "3", successRate: "18%", solved: false },
-    { id: 7, title: "문제5", author: "아단최", category: "Process", level: "3", successRate: "52%", solved: false },
-    { id: 8, title: "문제6", author: "아단최", category: "Process", level: "3", successRate: "10%", solved: false },
-  ];
+  const [showUnsolved, setShowUnsolved] = useState(false);  
 
   // 3. [로직] 상태값에 따라 실시간으로 필터링된 결과 계산 (Derived State)
-  const filteredProblems = groups.filter((prob) => {
+  const filteredProblems = challenges.filter((prob) => {
     const categoryMatch = selectedCategory === "All" || prob.category === selectedCategory;
     const levelMatch = selectedLevel === null || prob.level === selectedLevel;
     const unsolvedMatch = showUnsolved ? prob.solved === false : true;
@@ -66,16 +59,43 @@ export default function ProblemListPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link href="/settings" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <User className="h-5 w-5 text-slate-600" />
-          </Link>
-          <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <Settings className="h-5 w-5 text-slate-600" />
-          </button>
-          <button className="p-2 hover:bg-slate-100 rounded-full text-red-500 transition-colors">
-            <LogOut className="h-5 w-5" />
-          </button>
+        {/* 우측 사용자 영역 (로그인 상태에 따라 가변적) */}
+        <div className="flex items-center gap-3">
+          {isLoggedIn ? (
+            /* --- [A] 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
+            <>
+              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              </button>
+
+              <Link href="/settings">
+                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                  <AvatarImage src="/avatar.png" alt="User" />
+                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                </Avatar>
+              </Link>
+
+              <button 
+                onClick={() => setIsLoggedIn(false)}
+                className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
+              >
+                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              </button>
+            </>
+          ) : (
+            /* --- [B] 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
+            <div className="flex items-center gap-2">
+              <Link href="/signin">
+                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+              </Link>
+              <Link href="/signup">
+                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </header>
 
@@ -142,39 +162,80 @@ export default function ProblemListPage() {
             </div>
           </div>
 
+          {/* [수정된 부분] 중앙 콘텐츠 영역의 문제 리스트 출력부 */}
           <div className="grid gap-3">
             {filteredProblems.length > 0 ? (
-              filteredProblems.map((prob) => (
-                <Card key={prob.id} className="p-4 flex justify-between hover:shadow-md transition-all cursor-pointer group border-slate-100 rounded-xl overflow-hidden">
-                  <div className="flex justify-between gap-4 w-full">
-                    <div className="flex">
-                      <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors">
-                        <Code2 size={20} />
+              filteredProblems.map((prob) => {
+                return (
+                  <Link 
+                    key={prob.id} 
+                    href={`/challenges/detail?id=${prob.id}`} 
+                    className="block group"
+                  >
+                    <Card className="p-4 hover:shadow-md transition-all cursor-pointer border-slate-100 rounded-xl overflow-hidden group-hover:border-indigo-200 group-hover:bg-indigo-50/5">
+                      
+                      {/* Card 내부에 flex-row를 강제하는 div 래퍼 추가 */}
+                      <div className="flex w-full flex-row items-center justify-between">
+                        
+                        {/* [A] 좌측 그룹: 사진(아이콘) + 제목 + 출제자 */}
+                        <div className="flex items-center gap-4">
+                          {/* 1. 좌측 코드 아이콘 박스 (flex-shrink-0 추가하여 찌그러짐 방지) */}
+                          <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors">
+                            <Code2 size={20} />
+                          </div>
+
+                          {/* 2. 제목 및 출제자 정보 */}
+                          <div className="flex flex-col justify-center">
+                            <div className="flex items-center gap-1.5">
+                              <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                {prob.title}
+                              </h3>
+                              {prob.solved && (
+                                <CheckCircle2 className="h-4 w-4 text-emerald-500 fill-emerald-50" />
+                              )}
+                            </div>
+                            <p className="text-[13px] text-slate-400 mt-0.5">
+                              출제자: {prob.author}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* [B] 우측 그룹: 성공률 + 난이도 배지 영역 */}
+                        <div className="flex items-center gap-8">
+                          {/* 성공률 (Success Rate) */}
+                          <div className="text-right min-w-[100px]">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              SUCCESS RATE
+                            </p>
+                            <p className="text-base font-bold text-slate-700">
+                              {prob.successRate}
+                            </p>
+                          </div>
+
+                          {/* 난이도 배지 (레벨에 따른 스타일 분기) */}
+                          <div className="w-16 flex justify-end">
+                            <Badge 
+                              className={`
+                                rounded-full px-3 py-0.5 text-[11px] font-bold border
+                                ${prob.level === "1" ? "bg-white text-slate-600 border-slate-200" : ""}
+                                ${prob.level === "2" ? "bg-slate-900 text-white border-slate-900" : ""}
+                                ${prob.level === "3" ? "bg-white text-red-500 border-red-200" : ""}
+                              `}
+                            >
+                              Lvl {prob.level}
+                            </Badge>
+                          </div>
+                        </div>
+
                       </div>
-                      <div className="px-4">
-                        <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                          {prob.title} {prob.solved && <CheckCircle2 className="inline ml-1 h-3.5 w-3.5 text-green-500" />}
-                        </h3>
-                        <p className="text-xs text-slate-400 font-medium mt-0.5">출제자: {prob.author}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="hidden sm:block text-right">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Success Rate</p>
-                        <p className="text-sm font-mono font-bold text-slate-600">{prob.successRate}</p>
-                      </div>
-                      <Badge variant={prob.level === "3" ? "destructive" : prob.level === "2" ? "default" : "secondary"} className="h-fit">
-                        Lvl {prob.level}
-                      </Badge>
-                    </div>
-                  </div>
-                </Card>
-              ))
+                    </Card>
+                  </Link>
+                );
+              })
             ) : (
-              <div className="text-center py-24 text-slate-400 border-2 border-dashed border-slate-100 rounded-3xl space-y-2">
-                <SearchCode className="mx-auto h-12 w-12 text-slate-200" />
+              <div className="text-center py-24 text-slate-400 border-2 border-dashed border-slate-50 rounded-3xl">
+                <SearchCode className="mx-auto h-12 w-12 text-slate-100 mb-2" />
                 <p className="font-bold">조건에 맞는 문제가 없습니다.</p>
-                <Button variant="link" onClick={() => {setSelectedCategory("All"); setSelectedLevel(null); setShowUnsolved(false);}}>필터 초기화</Button>
               </div>
             )}
           </div>
