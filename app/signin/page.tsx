@@ -29,7 +29,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetch("https://diveon.com/api/auth/login", { // api url
+      const response = await fetch("https://diveon.net/api/auth/login", { // api url
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
