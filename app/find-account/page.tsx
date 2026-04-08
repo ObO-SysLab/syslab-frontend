@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, User, Mail, Phone, ShieldCheck, Fingerprint } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, Fingerprint } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function FindAccountPage() {
@@ -24,7 +24,11 @@ export default function FindAccountPage() {
           <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
           <span className="text-sm font-bold">Back to Login</span>
         </Link>
-        <h1 className="text-2xl font-black tracking-tighter italic">Diveon</h1>
+
+        { /* 우측 로고 영역 (메인 페이지 링크 포함) */ }
+        <Link href="/" className="inline-flex items-center gap-2">
+          <span className="text-3xl font-black tracking-tighter text-slate-900">Diveon</span>
+        </Link>
       </header>
 
       {/* 2. 메인 콘텐츠 */}

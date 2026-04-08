@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Search, Settings, LogOut, User, Menu, MessageSquare, Star, Share2, 
-  CheckCircle, XCircle, Clock, Code2, Shield, Terminal, SearchCode, Database, 
-  LayoutGrid, Users, BarChart3, Trophy, ShoppingBag
+import { useState } from "react";
+import { Search, Settings, LogOut, User, Menu, MessageSquare, Bell, Share2, 
+  CheckCircle, XCircle, Clock, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,35 +13,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea"; // 댓글 입력용
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // 표 컴포넌트
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { topRankers, sidebarComments, submissions, fullRankings } from "@/lib/mockData";
+
 
 export default function ProblemDetailPage() {
-
-  // [Mock Data] 우측 패널용 (Top3 & 최근 댓글)
-  const topRankers = [
-    { rank: 1, name: "Guido", score: 2400 },
-    { rank: 2, name: "Torvalds", score: 2350 },
-    { rank: 3, name: "Gosling", score: 2100 },
-  ];
-  const sidebarComments = [
-    { user: "Hacker1", text: "입력값 범위 확인하세요.", time: "10분 전" },
-    { user: "Newbie", text: "이거 DFS로 풀리나요?", time: "1시간 전" },
-  ];
-
-  // [Mock Data] 채점 현황 데이터
-  const submissions = [
-    { id: 1024, result: "맞았습니다!!", memory: "2024 KB", time: "12 ms", lang: "Python3", date: "1분 전", isCorrect: true },
-    { id: 1023, result: "틀렸습니다", memory: "1020 KB", time: "4 ms", lang: "C++", date: "5분 전", isCorrect: false },
-    { id: 1022, result: "시간 초과", memory: "---", time: "2000 ms", lang: "Python3", date: "10분 전", isCorrect: false },
-  ];
-
-  // [Mock Data] 전체 순위 데이터
-  const fullRankings = [
-    { rank: 1, user: "Guido", memory: "1120 KB", time: "4 ms", lang: "Python3", date: "2025.11.12" },
-    { rank: 2, user: "Torvalds", memory: "980 KB", time: "0 ms", lang: "C", date: "2025.10.04" },
-    { rank: 3, user: "Gosling", memory: "2200 KB", time: "12 ms", lang: "Java", date: "2025.09.21" },
-    { rank: 4, user: "DanKook", memory: "2400 KB", time: "16 ms", lang: "Node.js", date: "2026.01.18" },
-    { rank: 5, user: "Security", memory: "2024 KB", time: "14 ms", lang: "Python3", date: "2026.01.19" },
-  ];
+  // 현재 로그인 상태를 관리 (나중에는 실제 토큰 유무로 판단)
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
 
 
   return (
@@ -73,17 +51,43 @@ export default function ProblemDetailPage() {
           </div>
         </div>
 
-        {/* 우측 아이콘 메뉴 (올바른 Link 사용법 적용) */}
-        <div className="flex items-center gap-2">
-          <Link href="/settings" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <User className="h-5 w-5 text-slate-600" />
-          </Link>
-          <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <Settings className="h-5 w-5 text-slate-600" />
-          </button>
-          <button className="p-2 hover:bg-slate-100 rounded-full text-red-500 transition-colors">
-            <LogOut className="h-5 w-5" />
-          </button>
+        {/* 우측 사용자 영역 (로그인 상태에 따라 가변적) */}
+        <div className="flex items-center gap-3">
+          {isLoggedIn ? (
+            /* --- [A] 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
+            <>
+              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              </button>
+
+              <Link href="/settings">
+                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                  <AvatarImage src="/avatar.png" alt="User" />
+                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                </Avatar>
+              </Link>
+
+              <button 
+                onClick={() => setIsLoggedIn(false)}
+                className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
+              >
+                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              </button>
+            </>
+          ) : (
+            /* --- [B] 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
+            <div className="flex items-center gap-2">
+              <Link href="/signin">
+                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+              </Link>
+              <Link href="/signup">
+                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </header>
 

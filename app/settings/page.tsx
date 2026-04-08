@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
-  Search, Settings, LogOut, User, Menu, Lock, Bell, 
-  Paintbrush, Trash2, Camera, ShieldCheck, Laptop, Moon, Sun, LayoutGrid, Trophy, Users, BarChart3, ShoppingBag 
+  Search, LogOut, User, Menu, Lock, Bell, Paintbrush, Trash2, Camera, ShieldCheck, 
+  Laptop, Moon, Sun, LayoutGrid, Trophy, Users, BarChart3, ShoppingBag 
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,46 @@ import { Badge } from "@/components/ui/badge"
 
 
 export default function SettingsPage() {
+  // 현재 로그인 상태를 관리 (나중에는 실제 토큰 유무로 판단)
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
   // [상태 관리] 현재 활성화된 탭 (profile, security, notifications, appearance)
   const [activeTab, setActiveTab] = useState("profile");
+
+  // [기능 추가] 프로필 데이터를 저장할 상태
+  const [profileData, setProfileData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // [기능 추가] 페이지 로드 시 토큰을 사용하여 데이터 요청
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = localStorage.getItem("token"); // 저장된 토큰 가져오기
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch("https://diveon.com/api/profile/show", {
+          method: "GET", 
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setProfileData(result); // 서버에서 받은 데이터 저장
+        }
+      } catch (error) {
+        console.error("데이터 로드 실패:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
@@ -52,17 +90,43 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* 우측 아이콘 메뉴 (올바른 Link 사용법 적용) */}
-        <div className="flex items-center gap-2">
-          <Link href="/settings" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <User className="h-5 w-5 text-slate-600" />
-          </Link>
-          <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <Settings className="h-5 w-5 text-slate-600" />
-          </button>
-          <button className="p-2 hover:bg-slate-100 rounded-full text-red-500 transition-colors">
-            <LogOut className="h-5 w-5" />
-          </button>
+        {/* 우측 사용자 영역 (로그인 상태에 따라 가변적) */}
+        <div className="flex items-center gap-3">
+          {isLoggedIn ? (
+            /* --- [A] 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
+            <>
+              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              </button>
+
+              <Link href="/settings">
+                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                  <AvatarImage src="/avatar.png" alt="User" />
+                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                </Avatar>
+              </Link>
+
+              <button 
+                onClick={() => setIsLoggedIn(false)}
+                className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
+              >
+                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              </button>
+            </>
+          ) : (
+            /* --- [B] 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
+            <div className="flex items-center gap-2">
+              <Link href="/signin">
+                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+              </Link>
+              <Link href="/signup">
+                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </header>
 
@@ -109,7 +173,15 @@ export default function SettingsPage() {
 
         {/* [B] 우측 메인 콘텐츠 (9칸) - activeTab에 따라 렌더링 */}
         <section className="col-span-12 md:col-span-9">
-          {activeTab === "profile" && <ProfileSection />}
+          {/* {activeTab === "profile" && <ProfileSection />}  */}
+          {/* [수정] 프로필 섹션에 데이터를 넘겨줌 */}
+          {activeTab === "profile" && (
+            isLoading ? (
+              <div className="py-20 text-center text-slate-400 font-bold">프로필 로드 중...</div>
+            ) : (
+              <ProfileSection data={profileData} />
+            )
+          )}
           {activeTab === "security" && <SecuritySection />}
           {activeTab === "notifications" && <NotificationSection />}
           {activeTab === "appearance" && <AppearanceSection />}
@@ -123,7 +195,26 @@ export default function SettingsPage() {
 /* -------------------------------------------------------------------------- */
 /* 1. 프로필 및 개인정보 관리 섹션 */
 /* -------------------------------------------------------------------------- */
-function ProfileSection() {
+function ProfileSection({ data }: { data: any }) {
+  // [기능 수정] API 응답 구조(data.data.user_info)에 맞춰 경로 설정
+  const info = data?.data?.user_info;
+
+  const defaultProfile = {
+    nickname: info?.nick_name || "박단용",
+    avatar: info?.profile_img_url || "/avatar.png",
+    bio: info?.self_comment || "디지털 포렌식 전문가를 꿈꾸는 개발자입니다.",
+    realName: info?.real_name || "박단용",
+    birth: info?.birth_date || "2003년 05월 26일",
+    createdAt: info?.created_at || "2026년 03월 05일",
+    email: info?.email || "dy.park@dankook.ac.kr",
+    phone: info?.phone_number || "010-1234-5678",
+    org: info?.belong || "단국대학교 소프트웨어학과",
+    // 관심 분야가 문자열로 올 경우를 대비해 처리 (배열이 아닐 경우 기본 배열 사용)
+    interests: Array.isArray(info?.interest) 
+      ? info.interest 
+      : (info?.interest ? info.interest.split(',') : ['Digital Forensics', 'Cyber Investigation', 'System Programming', 'Malware Analysis'])
+  };
+
   return (
     <div className="space-y-10 animate-in fade-in-50 duration-300 pb-10">
       
@@ -138,7 +229,8 @@ function ProfileSection() {
         <div className="flex items-center gap-6 p-6 bg-slate-50/50 rounded-3xl border border-slate-100">
           <div className="relative group cursor-pointer">
             <Avatar className="w-24 h-24 border-4 border-white shadow-xl">
-              <AvatarImage src="/avatar.png" />
+              {/* [수정] 아바타 이미지 연결 */}
+              <AvatarImage src={defaultProfile.avatar} />
               <AvatarFallback className="bg-indigo-100 text-indigo-600 font-black text-xl">DY</AvatarFallback>
             </Avatar>
             <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -158,16 +250,18 @@ function ProfileSection() {
         <div className="grid gap-6">
           <div className="grid gap-2">
             <Label htmlFor="nickname" className="font-bold ml-1">닉네임</Label>
-            <Input id="nickname" defaultValue="박단용" className="rounded-xl h-11 border-slate-200" />
+            {/* [수정] 닉네임 연결 */}
+            <Input id="nickname" defaultValue={defaultProfile.nickname} className="rounded-xl h-11 border-slate-200" />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="bio" className="font-bold ml-1">자기소개</Label>
-            <Textarea id="bio" placeholder="디지털 포렌식 전문가를 꿈꾸는 개발자입니다." className="rounded-xl min-h-[100px] border-slate-200" />
+            {/* [수정] 자기소개 연결 */}
+            <Textarea id="bio" defaultValue={defaultProfile.bio} className="rounded-xl min-h-[100px] border-slate-200" />
           </div>
         </div>
       </section>
 
-      {/* (2) 개인정보 및 연락처 (고정 정보 포함) */}
+      {/* (2) 개인정보 및 연락처 */}
       <section className="space-y-6">
         <div className="space-y-1">
           <h3 className="text-xl font-bold">개인정보 및 보안</h3>
@@ -176,13 +270,13 @@ function ProfileSection() {
         <Separator />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* [고정 정보] - 수정 불가 */}
           <div className="space-y-2">
             <Label className="text-slate-400 flex items-center gap-2 ml-1">
               실명 <Lock size={12} />
             </Label>
+            {/* [수정] 실명 연결 */}
             <div className="h-11 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-slate-500 text-sm font-medium cursor-not-allowed">
-              박단용
+              {defaultProfile.realName}
             </div>
           </div>
 
@@ -190,8 +284,9 @@ function ProfileSection() {
             <Label className="text-slate-400 flex items-center gap-2 ml-1">
               생년월일 <Lock size={12} />
             </Label>
+            {/* [수정] 생년월일 연결 */}
             <div className="h-11 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-slate-500 text-sm font-medium cursor-not-allowed">
-              2003년 05월 26일
+              {defaultProfile.birth}
             </div>
           </div>
 
@@ -199,26 +294,28 @@ function ProfileSection() {
             <Label className="text-slate-400 flex items-center gap-2 ml-1">
               계정 생성일 <Lock size={12} />
             </Label>
+            {/* [수정] 계정 생성일 연결 */}
             <div className="h-11 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-slate-500 text-sm font-medium cursor-not-allowed">
-              2026년 03월 05일
+              {defaultProfile.createdAt}
             </div>
           </div>
 
-          {/* [수정 가능 정보] */}
           <div className="space-y-2">
             <Label htmlFor="email" className="font-bold ml-1">이메일</Label>
-            <Input id="email" defaultValue="dy.park@dankook.ac.kr" className="rounded-xl h-11 border-slate-200" />
+            {/* [수정] 이메일 연결 */}
+            <Input id="email" defaultValue={defaultProfile.email} className="rounded-xl h-11 border-slate-200" />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="phone" className="font-bold ml-1">전화번호</Label>
-            <Input id="phone" defaultValue="010-1234-5678" className="rounded-xl h-11 border-slate-200" />
+            {/* [수정] 전화번호 연결 */}
+            <Input id="phone" defaultValue={defaultProfile.phone} className="rounded-xl h-11 border-slate-200" />
           </div>
 
-          {/* [추가 제안] - 소속(대학/직장) */}
           <div className="space-y-2">
             <Label htmlFor="org" className="font-bold ml-1">소속</Label>
-            <Input id="org" defaultValue="단국대학교 소프트웨어학과" className="rounded-xl h-11 border-slate-200" />
+            {/* [수정] 소속 연결 */}
+            <Input id="org" defaultValue={defaultProfile.org} className="rounded-xl h-11 border-slate-200" />
           </div>
         </div>
       </section>
@@ -235,7 +332,8 @@ function ProfileSection() {
           <div className="grid gap-3">
             <Label className="font-bold ml-1">주요 관심 분야</Label>
             <div className="flex flex-wrap gap-2">
-              {['Digital Forensics', 'Cyber Investigation', 'System Programming', 'Malware Analysis'].map(tag => (
+              {/* [수정] 관심 분야 태그 연결 */}
+              {defaultProfile.interests.map((tag: string) => (
                 <Badge key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 cursor-pointer border-none rounded-lg">
                   #{tag}
                 </Badge>
