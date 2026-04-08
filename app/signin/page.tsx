@@ -42,7 +42,7 @@ export default function LoginPage() {
       
       if (response.ok) {
         console.log("로그인 성공:", result);
-        localStorage.setItem("token", result.token); 
+        localStorage.setItem("token", result.data.access_token); 
         router.push("/"); 
       } else {
         setError(result.message || "아이디 또는 비밀번호가 일치하지 않습니다.");
