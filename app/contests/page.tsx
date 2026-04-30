@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { contests } from "@/lib/mockData";
+import { mockContests } from "@/lib/mockData";
 
 
 export default function ContestListPage() {
@@ -33,7 +33,7 @@ export default function ContestListPage() {
           {/* 중앙 네비게이션 메뉴 */}
           <nav className="hidden lg:flex items-center gap-1">
             <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" />
-            <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
+            <NavMenuLink href="/mockContests" icon={<Trophy size={18} />} label="대회" />
             <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
             <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
             <NavMenuLink href="/store" icon={<ShoppingBag size={18} />} label="스토어" />
@@ -111,7 +111,7 @@ export default function ContestListPage() {
         <section className="col-span-12 md:col-span-8 space-y-6">
           <div className="flex items-end justify-between">
             <div className="space-y-1">
-              <h1 className="text-3xl font-black tracking-tighter text-slate-950">Contests</h1>
+              <h1 className="text-3xl font-black tracking-tighter text-slate-950">CONTESTS</h1>
               <p className="text-slate-500">실력을 증명하고 명예로운 칭호를 획득하세요.</p>
             </div>
           </div>
@@ -125,7 +125,7 @@ export default function ContestListPage() {
             </TabsList>
 
             <TabsContent value="all" className="space-y-4 animate-in fade-in-50 duration-500">
-              {contests.map((contest) => (
+              {mockContests.map((contest) => (
                 <Card key={contest.id} className={`overflow-hidden border-slate-200 hover:border-indigo-300 transition-all shadow-sm ${contest.status === "진행 중" ? "ring-1 ring-indigo-500/20" : ""}`}>
                   <CardContent className="p-0">
                     <div className="flex flex-col md:flex-row">

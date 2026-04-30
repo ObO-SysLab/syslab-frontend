@@ -52,7 +52,7 @@ export default function SignUpPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: formData.email,      
-          user_id: formData.id,
+          login_id: formData.id,
           password: formData.password,
           nick_name: formData.nickname,
           belong: formData.belong,    

@@ -164,7 +164,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-### my
+### 추가
 CLAUDE.md
 AGENTS.md
 capture.js
@@ -173,5 +173,4 @@ components.json
 eslint.config.mjs
 next-env.d.ts
 screenshots/
-app/challenges/terminal/
-app/challenges/editor/
+app/test-page/

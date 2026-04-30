@@ -33,7 +33,7 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          user_id: formData.id, 
+          login_id: formData.id, 
           password: formData.password,
         }),
       });
@@ -43,7 +43,7 @@ export default function LoginPage() {
       if (response.ok) {
         console.log("로그인 성공:", result);
         localStorage.setItem("token", result.data.access_token); 
-        router.push("/"); 
+        window.location.href = "/";
       } else {
         setError(result.message || "아이디 또는 비밀번호가 일치하지 않습니다.");
       }
