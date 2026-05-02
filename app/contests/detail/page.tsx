@@ -15,7 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { contestInfo } from "@/lib/mockData";
+import { mockContestInfo } from "@/lib/mockData";
 
 
 export default function ContestDetailPage() {
@@ -37,7 +37,7 @@ export default function ContestDetailPage() {
           </Link>
           <div className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-amber-400" />
-            <span className="font-bold tracking-tight">{contestInfo.title}</span>
+            <span className="font-bold tracking-tight">{mockContestInfo.title}</span>
           </div>
         </div>
         
@@ -45,7 +45,7 @@ export default function ContestDetailPage() {
         <div className="hidden md:flex items-center gap-6 px-6 py-1.5 bg-slate-800 rounded-full border border-slate-700">
           <div className="flex items-center gap-2 text-red-400 font-mono font-bold">
             <Clock size={16} />
-            <span>{contestInfo.remainingTime}</span>
+            <span>{mockContestInfo.remainingTime}</span>
           </div>
           <div className="h-4 w-[1px] bg-slate-700" />
           <div className="text-xs font-medium text-slate-400">남은 시간</div>
@@ -54,7 +54,7 @@ export default function ContestDetailPage() {
         <div className="flex items-center gap-4">
           <div className="hidden sm:block text-right mr-2">
             <p className="text-[10px] text-slate-500 uppercase font-bold">My Rank</p>
-            <p className="text-sm font-black text-indigo-400">#{contestInfo.myRank}</p>
+            <p className="text-sm font-black text-indigo-400">#{mockContestInfo.myRank}</p>
           </div>
           <div className="h-9 w-9 rounded-full bg-indigo-500 border-2 border-slate-700 flex items-center justify-center font-bold text-xs">JD</div>
         </div>
@@ -73,16 +73,16 @@ export default function ContestDetailPage() {
            </nav>
            <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm mt-6">
               <p className="text-xs font-bold text-slate-400 mb-2 uppercase">진행률</p>
-              <Progress value={contestInfo.progress} className="h-2 mb-2" />
-              <p className="text-[10px] text-right text-slate-500 font-mono">{contestInfo.progress}% 진행됨</p>
+              <Progress value={mockContestInfo.progress} className="h-2 mb-2" />
+              <p className="text-[10px] text-right text-slate-500 font-mono">{mockContestInfo.progress}% 진행됨</p>
            </div>
         </aside>
 
         {/* [B] 중앙 콘텐츠 영역 (10칸) - 탭 상태에 따라 컴포넌트 교체 */}
         <section className="col-span-12 md:col-span-10 space-y-6">
-          {activeTab === "dashboard" && <DashboardTab contestInfo={contestInfo} />}
+          {activeTab === "dashboard" && <DashboardTab mockContestInfo={mockContestInfo} />}
           {activeTab === "challenges" && <ChallengesTab />}
-          {activeTab === "scoreboard" && <ScoreboardTab myRank={contestInfo.myRank} />}
+          {activeTab === "scoreboard" && <ScoreboardTab myRank={mockContestInfo.myRank} />}
           {activeTab === "qa" && <QATab />}
         </section>
 
@@ -94,7 +94,7 @@ export default function ContestDetailPage() {
 /* -------------------------------------------------------------------------- */
 /* 1. 대시보드 탭 (기존 구현 내용 포함) */
 /* -------------------------------------------------------------------------- */
-function DashboardTab({ contestInfo }: { contestInfo: any }) {
+function DashboardTab({ mockContestInfo }: { mockContestInfo: any }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
       <div className="lg:col-span-2 space-y-6">
@@ -138,8 +138,8 @@ function DashboardTab({ contestInfo }: { contestInfo: any }) {
           <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl" />
           <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest relative z-10">My Status</p>
           <div className="flex justify-between items-end relative z-10">
-            <div><p className="text-3xl font-black">{contestInfo.myScore}</p><p className="text-[10px] text-slate-400 font-bold uppercase">Points</p></div>
-            <div className="text-right text-indigo-300 font-bold"><p className="text-xl">#{contestInfo.myRank}</p><p className="text-[10px] text-slate-400 uppercase">Rank</p></div>
+            <div><p className="text-3xl font-black">{mockContestInfo.myScore}</p><p className="text-[10px] text-slate-400 font-bold uppercase">Points</p></div>
+            <div className="text-right text-indigo-300 font-bold"><p className="text-xl">#{mockContestInfo.myRank}</p><p className="text-[10px] text-slate-400 uppercase">Rank</p></div>
           </div>
           <Button className="w-full bg-indigo-600 hover:bg-indigo-700 relative z-10">내 풀이 기록</Button>
         </Card>

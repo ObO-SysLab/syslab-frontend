@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { groups } from "@/lib/mockData";
+import { mockGroups } from "@/lib/mockData";
 
 
 export default function ProblemListPage() {
@@ -32,7 +32,7 @@ export default function ProblemListPage() {
           <nav className="hidden lg:flex items-center gap-1">
             <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" />
             <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
-            <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
+            <NavMenuLink href="/mockGroups" icon={<Users size={18} />} label="그룹" />
             <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
             <NavMenuLink href="/store" icon={<ShoppingBag size={18} />} label="스토어" />
           </nav>
@@ -119,13 +119,13 @@ export default function ProblemListPage() {
         <section className="col-span-12 md:col-span-8 space-y-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-3xl font-black tracking-tighter text-slate-950">Groups</h1>
+              <h1 className="text-3xl font-black tracking-tighter text-slate-950">GROUPS</h1>
               <p className="text-slate-500">그룹에 참여해 다른 사람들과 소통하세요.</p>
             </div>
           </div>
           
           <div className="grid gap-3">
-            {groups.map((prob) => (
+            {mockGroups.map((prob) => (
               <Card key={prob.id} className="p-4 flex justify-between hover:shadow-md transition-shadow cursor-pointer group">
                 <div className="flex justify-between gap-4">
                   <div className="flex">

@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { topRankers, sidebarComments, fullMember } from "@/lib/mockData";
+import { mockTopRankers, mockSidebarComments, mockFullMember } from "@/lib/mockData";
 
 
 export default function ProblemDetailPage() {
@@ -102,7 +102,7 @@ export default function ProblemDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-3">
-              {topRankers.map((ranker) => (
+              {mockTopRankers.map((ranker) => (
                 <div key={ranker.rank} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <span className={`font-black ${ranker.rank === 1 ? "text-yellow-500" : "text-slate-300"}`}># {ranker.rank}</span>
@@ -121,7 +121,7 @@ export default function ProblemDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
-              {sidebarComments.map((comment, idx) => (
+              {mockSidebarComments.map((comment, idx) => (
                 <div key={idx} className="border-l-2 border-slate-100 pl-3 py-1">
                   <p className="text-[11px] font-bold text-slate-800">{comment.user}</p>
                   <p className="text-[10px] text-slate-500 line-clamp-1">{comment.text}</p>
@@ -219,7 +219,7 @@ export default function ProblemDetailPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {fullMember.map((rank) => (
+                    {mockFullMember.map((rank) => (
                       <TableRow key={rank.rank} className="hover:bg-slate-50/50 transition-colors">
                         <TableCell className="text-center font-bold text-slate-400">
                           {rank.rank <= 3 ? <span className="text-amber-500">{rank.rank}</span> : rank.rank}
@@ -261,7 +261,7 @@ export default function ProblemDetailPage() {
               </div>
               <Separator />
               <div className="space-y-4">
-                {sidebarComments.map((comment, i) => (
+                {mockSidebarComments.map((comment, i) => (
                   <div key={i} className="flex gap-4 p-4 border border-slate-100 rounded-xl bg-slate-50/30">
                     <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
                       <User className="h-5 w-5 text-slate-500" />

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, LogOut, Bell, Menu, Target, Zap, ShieldCheck, Flame, BookOpenText, 
-  LayoutGrid, Users, BarChart3, Trophy, ShoppingBag 
+  LayoutGrid, BarChart3, Users, Trophy, ShoppingBag 
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,25 +11,58 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress"; 
-import { user, featuredProblems } from "@/lib/mockData"
+import { mockUser, mockFeaturedProblems } from "@/lib/mockData"
 
 
 export default function HomePage() {
   // 현재 로그인 상태를 관리 (나중에는 실제 토큰 유무로 판단)
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false); 
+  const [userName, setUserName] = useState("Guest"); 
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      setIsLoggedIn(true);
+      
+      // 💡 실제로는 아래처럼 로컬스토리지에 저장해 둔 정보를 가져오거나 토큰을 디코딩합니다.
+      // const storedRole = localStorage.getItem("role"); 
+      // const storedName = localStorage.getItem("nickname");
+      
+      // 🚨 임시 테스트용 조건 (실제 서비스에서는 지우고 위 로직 사용)
+      const isTestAdmin = true; 
+
+      if (isTestAdmin /* || storedRole === "admin" */) {
+        setIsAdmin(true);
+      }
+      // setUserName(storedName || mockUser.name);
+      setUserName(mockUser.name); 
+    }
+  }, []);
+
+  // 로그아웃 핸들러
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role"); 
+    localStorage.removeItem("nickname"); 
+    setIsLoggedIn(false);
+    setIsAdmin(false);
+    window.location.reload(); 
+  };
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
       
       {/* 1. 고정 헤더 (기존 디자인 유지) */}
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-8"> {/* gap을 넓혀서 메뉴 공간 확보 */}
+        <div className="flex items-center gap-8"> 
+          {/* [A] Diveon 로고 */}
           <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
           <Link href="/" className="text-2xl font-black tracking-tighter text-slate-900 mr-4">
             Diveon
           </Link>
           
-          {/* 중앙 네비게이션 메뉴 */}
+          {/* [B] 중앙 네비게이션 메뉴 */}
           <nav className="hidden lg:flex items-center gap-1">
             <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" />
             <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
@@ -39,7 +72,7 @@ export default function HomePage() {
           </nav>
         </div>
 
-        {/* 검색창 영역 */}
+        {/* [C] 검색창 영역 */}
         <div className="flex-1 max-w-sm px-4">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
@@ -47,10 +80,10 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* 우측 사용자 영역 (로그인 상태에 따라 가변적) */}
+        {/* [D] 우측 사용자 영역 (로그인 상태에 따라 가변적) */}
         <div className="flex items-center gap-3">
           {isLoggedIn ? (
-            /* --- [A] 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
+            /* --- 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
             <>
               <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
                 <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
@@ -59,7 +92,7 @@ export default function HomePage() {
 
               <Link href="/settings">
                 <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
-                  <AvatarImage src="/avatar.png" alt="User" />
+                  <AvatarImage src="/avatar.png" alt="mockUser" />
                   <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
                 </Avatar>
               </Link>
@@ -72,7 +105,7 @@ export default function HomePage() {
               </button>
             </>
           ) : (
-            /* --- [B] 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
+            /* --- 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
             <div className="flex items-center gap-2">
               <Link href="/signin">
                 <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
@@ -100,12 +133,12 @@ export default function HomePage() {
           
           <div className="col-span-2 space-y-4 relative z-10">
             <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-tight">
-              반갑습니다, <span className="text-indigo-400">{user.name}</span>님!<br />
+              반갑습니다, <span className="text-indigo-400">{mockUser.name}</span>님!<br />
               오늘도 운영체제 바다로 떠나볼까요?
             </h1>
             <p className="text-slate-300 max-w-2xl text-lg">
-              지금까지 <span className="font-bold text-indigo-300">{user.solved}개</span>의 문제를 해결하셨습니다. <br />
-              현재 서버 랭킹 <span className="font-bold text-indigo-300">{user.ranking}위</span>이며, 다음 티어까지 얼마 남지 않았습니다!
+              지금까지 <span className="font-bold text-indigo-300">{mockUser.solved}개</span>의 문제를 해결하셨습니다. <br />
+              현재 서버 랭킹 <span className="font-bold text-indigo-300">{mockUser.ranking}위</span>이며, 다음 티어까지 얼마 남지 않았습니다!
             </p>
             <div className="flex gap-3 pt-3">
               <Button size="lg" className="bg-indigo-500 hover:bg-indigo-600 shadow-md">지금 문제 풀기 <Zap size={18} className="ml-2"/></Button>
@@ -119,12 +152,12 @@ export default function HomePage() {
                <ShieldCheck className="w-20 h-20 text-indigo-400 mx-auto fill-current opacity-80" />
                <div className="space-y-1">
                  <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">현재 티어</p>
-                 <p className="text-3xl font-black text-indigo-300">{user.tier}</p>
-                 <p className="text-sm font-mono text-slate-300">{user.score} points</p>
+                 <p className="text-3xl font-black text-indigo-300">{mockUser.tier}</p>
+                 <p className="text-sm font-mono text-slate-300">{mockUser.score} points</p>
                </div>
                <div className="space-y-1.5 pt-2">
-                 <Progress value={user.progress} className="h-2 bg-white/10" indicatorClassName="bg-indigo-400" />
-                 <p className="text-[11px] text-slate-400 text-right">다음 티어까지 {user.progress}%</p>
+                 <Progress value={mockUser.progress} className="h-2 bg-white/10" indicatorClassName="bg-indigo-400" />
+                 <p className="text-[11px] text-slate-400 text-right">다음 티어까지 {mockUser.progress}%</p>
                </div>
             </CardContent>
           </Card>
@@ -138,10 +171,10 @@ export default function HomePage() {
                이 주의 추천 챌린지
              </h2>
              <Link href="/challenges" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">전체 문제 보기 →</Link>
-          </div>x
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {featuredProblems.map((prob) => (
+            {mockFeaturedProblems.map((prob) => (
               <Card key={prob.id} className="border-slate-100 shadow-sm hover:shadow-lg transition-shadow duration-300 cursor-pointer group rounded-2xl overflow-hidden">
                  {/* 카드 상단 카테고리별 색상 띠 */}
                  <div className={`h-2 ${
