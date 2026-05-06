@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation"; 
-import { 
+import { useSearchParams, useRouter } from "next/navigation";
+import {
   Terminal as TerminalIcon, Shield, RefreshCw, Bell, LogOut, LayoutGrid, Users, BarChart3,
   Trophy, ShoppingBag, Menu, CheckCircle, Zap, Clock
 } from "lucide-react";
@@ -19,7 +19,7 @@ function PracticeContent() {
   const probId = searchParams.get('id') || "1";
 
   // API 연동 스위치 및 동적 상태 선언
-  const USE_API_REQUEST = true; 
+  const USE_API_REQUEST = true;
   const [problemTitle, setProblemTitle] = useState("실습 환경 구성 중...");
   const [osImage, setOsImage] = useState("Ubuntu 22.04 LTS"); // 기본 OS
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -73,7 +73,7 @@ function PracticeContent() {
         if (vmRes.status === 201 || vmRes.status === 200) {
           const vmJson = await vmRes.json();
           setContainerId(vmJson.data.containerId);
-          
+
           if (vmJson.data.expiresAt) {
             const expiresDate = new Date(vmJson.data.expiresAt).getTime();
             const now = new Date().getTime();
@@ -120,7 +120,7 @@ function PracticeContent() {
 
       if (res.ok || res.status === 404) {
         alert("실습 환경이 종료되었습니다.");
-        router.push(`/challenges/detail?id=${probId}`); 
+        router.push(`/challenges/detail?id=${probId}`);
       } else {
         const errorData = await res.json();
         alert(`종료 실패: ${errorData.detail || errorData.message}`);
@@ -150,22 +150,35 @@ function PracticeContent() {
           "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
-          probId: Number(probId),      
-          submissionType: "practice",     
-          answer: flag.trim(),         
-          containerId: null          
+          probId: Number(probId),
+          submissionType: "practice",
+          answer: flag.trim(),
+          containerId: null
         })
       });
 
       if (response.ok) {
-        alert("채점 요청이 접수되었습니다.");
         const json = await response.json();
         const newId = json.data.submissionId;
         sessionStorage.setItem(`pending_sub_${probId}`, newId);
-        // 채점 현황 확인을 위해 문제 상세 페이지로 리다이렉트
-        router.push(`/challenges/detail?id=${probId}`); 
+
+        try {
+          await fetch(`https://diveon.net/api/vm/stop`, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ probId: Number(probId) })
+          });
+        } catch (e) {
+          console.error("VM 자동 종료 요청 중 에러(무시됨):", e);
+        }
+
+        alert("채점 요청이 접수되었습니다. (실습 환경 자동 종료)");
+        // 3. 문제 상세 페이지로 이동
+        router.push(`/challenges/detail?id=${probId}`);
       } else {
-        // 에러 응답 처리
         const errorData = await response.json();
         alert(`제출 실패: ${errorData.message || "오류가 발생했습니다."}`);
       }
@@ -217,7 +230,7 @@ function PracticeContent() {
       term.open(terminalRef.current!);
 
       setTimeout(() => fitAddon.fit(), 50);
-      resizeObserver = new ResizeObserver(() => { try { fitAddon.fit(); } catch {} });
+      resizeObserver = new ResizeObserver(() => { try { fitAddon.fit(); } catch { } });
       resizeObserver.observe(terminalRef.current!);
 
       term.writeln("\x1b[1;34mDIVEON Remote Lab Cloud v2.0.4-LTS\x1b[0m");
@@ -328,8 +341,9 @@ function PracticeContent() {
 
           {/* [B] 터미널 메인 영역 (다크모드 밀봉 유지) */}
           <div className="flex-1 min-h-0 w-full rounded-2xl overflow-hidden border border-slate-800 shadow-lg bg-slate-950 flex flex-col relative">
-            
-            <style dangerouslySetInnerHTML={{ __html: `
+
+            <style dangerouslySetInnerHTML={{
+              __html: `
               .xterm-viewport::-webkit-scrollbar { width: 10px; }
               .xterm-viewport::-webkit-scrollbar-track { background: #020617; }
               .xterm-viewport::-webkit-scrollbar-thumb { background: #334155; border-radius: 5px; }
@@ -338,20 +352,20 @@ function PracticeContent() {
 
             {/* 터미널 헤더 */}
             <div className="h-10 bg-slate-900 border-b border-slate-800 flex items-center px-4 justify-between shrink-0 z-10">
-               <div className="flex items-center gap-2">
-                 <TerminalIcon className="w-4 h-4 text-emerald-400" />
-                 <span className="text-xs font-bold text-slate-400 font-mono tracking-tight">root@diveon: ~</span>
-               </div>
-               <div className="flex gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
-                  <div className="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
-                  <div className="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
-               </div>
+              <div className="flex items-center gap-2">
+                <TerminalIcon className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-bold text-slate-400 font-mono tracking-tight">root@diveon: ~</span>
+              </div>
+              <div className="flex gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+              </div>
             </div>
-            
+
             {/* 실제 터미널 렌더링 영역 */}
             <div className="flex-1 min-h-0 w-full bg-slate-950 pl-4 pt-3 pb-3 pr-1 flex flex-col">
-               <div ref={terminalRef} className="flex-1 min-h-0 w-full bg-slate-950" />
+              <div ref={terminalRef} className="flex-1 min-h-0 w-full bg-slate-950" />
             </div>
           </div>
 
@@ -398,12 +412,12 @@ function NavMenuLink({ href, icon, label, active = false }: { href: string; icon
 
 export default function PracticePage() {
   return (
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-          <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-        </div>
-      }>
-        <PracticeContent />
-      </Suspense>
-    );
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      </div>
+    }>
+      <PracticeContent />
+    </Suspense>
+  );
 }
