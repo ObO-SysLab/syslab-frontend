@@ -19,29 +19,29 @@ import { Separator } from "@/components/ui/separator";
 export default function SignUpPage() {
   const router = useRouter();
 
-  // [기능 수정] 전송할 데이터 상태 확장 (email, belong 추가)
+  // 전송할 데이터 
   const [formData, setFormData] = useState({
     id: "",
     password: "",
     nickname: "",
-    email: "",      // 추가
-    belong: ""      // 추가
+    email: "",      
+    belong: ""      
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  // [기존 UI 유지용 상태]
+  // api 유지용 상태
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [autoData, setAutoData] = useState({ name: "", birth: "" });
   const [interests, setInterests] = useState<string[]>(["디지털 포렌식"]); // interest 데이터 소스
   const [tagInput, setTagInput] = useState("");
 
-  // [기능 추가] 입력 핸들러
+  // 입력 핸들러
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-  // 회원가입 제출 함수 
+  // [API] 회원가입 요청
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -52,9 +52,9 @@ export default function SignUpPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: formData.email,      
-          login_id: formData.id,
+          loginId: formData.id,
           password: formData.password,
-          nick_name: formData.nickname,
+          nickname: formData.nickname,
           belong: formData.belong,    
           interest: interests.join(","),        
         }),
@@ -239,7 +239,7 @@ export default function SignUpPage() {
                     </div>
                   </div>
 
-                  {/* 소속 필드 [기능 연결] */}
+                  {/* 소속 필드 */}
                   <div className="grid gap-2">
                     <Label className="text-xs font-bold text-slate-500 ml-1">소속 (직접 입력)</Label>
                     <div className="relative">

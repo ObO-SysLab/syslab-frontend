@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Search, Settings, LogOut, User, Menu, MessageSquare, Bell, Share2,
-  CheckCircle, XCircle, Clock, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag, Trash2,
+  CheckCircle2, XCircle, Clock, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag, Trash2,
   ChevronLeft, MessageCircle, Edit2, Flame, Zap
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -24,8 +24,9 @@ export default function ProblemDetailPage() {
   // API 연동 스위치
   const USE_API_REQUEST = true;
 
+  // URL에서 가져온 값 상태
   const searchParams = useSearchParams();
-  const probId = searchParams.get('id') || "1"; // URL에서 id 가져오기 (기본값 1)
+  const probId = searchParams.get('id');
 
   // 페이지 상태
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -40,6 +41,10 @@ export default function ProblemDetailPage() {
   const [firstBlood, setFirstBlood] = useState<any>({ user: "", prifile_url: "", date: "" });
   const [ads, setAds] = useState<any[]>([]);
 
+  // 객관식 문제 관련 상태
+  const [selectedChoices, setSelectedChoices] = useState<number[]>([]);
+  const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
+
   // 댓글 관련 상태
   const [selectedComment, setSelectedComment] = useState<any | null>(null);
   const [commentInput, setCommentInput] = useState("");
@@ -48,6 +53,10 @@ export default function ProblemDetailPage() {
   // 댓글 수정 관련 상태
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState("");
+
+  // 채점 데이터 상태
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [isGradingInProgress, setIsGradingInProgress] = useState(false);
 
   // [API] 데이터 초기 로드
   useEffect(() => {
@@ -60,7 +69,7 @@ export default function ProblemDetailPage() {
         setProblemData({
           ...mockChallenge,
           ...foundBase,
-          prob_id: foundBase.id,
+          probId: foundBase.id,
           difficulty: `Lvl ${foundBase.level}`, // "1" -> "Lvl 1" 변환
         });
         setRankings(mockFullRankings.map(r => ({
@@ -78,7 +87,7 @@ export default function ProblemDetailPage() {
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
       try {
-        // [수정] 문제 상세 조회, 랭킹, 광고를 병렬로 호출
+        // 문제 상세 조회, 랭킹, 광고를 병렬로 호출
         const [probRes, rankRes, adRes] = await Promise.all([
           fetch(`https://diveon.net/api/problems/${probId}`, { headers }),
           fetch(`https://diveon.net/api/problems/${probId}/rank?page=0&size=100`, { headers }),
@@ -101,8 +110,8 @@ export default function ProblemDetailPage() {
           else if (adJson.data?.ads) setAds(adJson.data.ads);
         }
 
-        // 3. 메인 댓글 목록 조회
-        fetchComments();
+        fetchComments(); // 메인 댓글 목록 조회
+        fetchSubmissions(); // 제출 탭 데이터 조회
       } catch (error) {
         console.error("데이터 로드 실패:", error);
       } finally {
@@ -111,6 +120,160 @@ export default function ProblemDetailPage() {
     };
     fetchPageData();
   }, [probId]);
+
+  // [API] 채점 탭 데이터 요청
+  const fetchSubmissions = async () => {
+    if (!USE_API_REQUEST) {
+      setSubmissions(mockSubmissions);
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`https://diveon.net/api/problems/${probId}/board?page=1&size=50`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        let items = json.data.submissions || [];
+
+        // 1. 서버 응답 중 아직 채점이 안 끝난(isCorrect가 null인) 항목들은 폴링 대상(_isPending)으로 지정
+        items = items.map((item: any) => {
+          if (item.isCorrect === null || item.submissionStatus === "PENDING" || item.submissionStatus === "JUDGING") {
+            return { ...item, _isPending: true };
+          }
+          return item;
+        });
+
+        // 2. 다른 페이지(에디터/터미널)에서 갓 제출하고 넘어온 ID 처리 (DB 반영 지연 방어)
+        const pendingId = sessionStorage.getItem(`pending_sub_${probId}`);
+        if (pendingId) {
+          const exists = items.find((s: any) => String(s.submissionId) === String(pendingId));
+          
+          if (!exists) {
+            // DB에 아직 안 나타났다면 가짜 행 추가
+            items.unshift({
+              submissionId: pendingId,
+              nickname: localStorage.getItem("nickname") || "내 제출", // 
+              submissionStatus: "PENDING",
+              progress: 0,
+              submittedAt: new Date().toISOString(),
+              _isPending: true
+            });
+          } else {
+            // 서버 보드에 정상적으로 등장했다면 스토리지 비우기!
+            sessionStorage.removeItem(`pending_sub_${probId}`);
+          }
+        }
+
+        setSubmissions(items);
+      }
+    } catch (e) {
+      console.error("채점 보드 로드 실패:", e);
+    }
+  };
+
+  // [API] 채점 상태 폴링 
+  useEffect(() => {
+    const pendingItems = submissions.filter((sub) => sub._isPending);
+    if (pendingItems.length === 0) return;
+
+    const timer = setTimeout(async () => {
+      const token = localStorage.getItem("token");
+      let needsBoardRefresh = false;
+
+      const results = await Promise.all(
+        pendingItems.map(async (item) => {
+          try {
+            const res = await fetch(`https://diveon.net/api/submissions/${item.submissionId}/status`, {
+              headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const json = await res.json();
+              return json.data;
+            }
+          } catch (e) { }
+          return null;
+        })
+      );
+
+      setSubmissions((prev) =>
+        prev.map((sub) => {
+          if (!sub._isPending) return sub;
+
+          const updatedData = results.find((r) => r && String(r.submissionId) === String(sub.submissionId));
+
+          if (updatedData) {
+            // 채점이 끝났다면?
+            if (updatedData.submissionStatus === "COMPLETED" || updatedData.submissionStatus === "FAILED") {
+              needsBoardRefresh = true; 
+              return { ...sub, progress: 100, submissionStatus: updatedData.submissionStatus };
+            }
+            return { ...sub, progress: updatedData.progress, submissionStatus: updatedData.submissionStatus };
+          }
+          return sub;
+        })
+      );
+
+      // 하나라도 'COMPLETED'가 떨어졌다면 보드 갱신
+      if (needsBoardRefresh) {
+        fetchSubmissions();
+      }
+
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [submissions]);
+
+  // [API] 객관식 답안 제출
+  const handleObjectiveSubmit = async () => {
+    if (selectedChoices.length === 0) {
+      alert("답안을 최소 하나 이상 선택해주세요.");
+      return;
+    }
+
+    setIsSubmittingAnswer(true);
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`https://diveon.net/api/submissions/grade`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({
+          probId: Number(probId),
+          answer: selectedChoices
+        })
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+
+        // 제출 API 명세서 기준 submissionId 추출
+        const newSubmissionId = json.data.submissionId;
+
+        alert("채점 요청이 접수되었습니다!");
+
+        // 1. 보드 전체를 갱신하지 않고, 화면에 띄울 '임시 대기 항목'을 맨 위에 추가
+        const pendingSub = {
+          submissionId: newSubmissionId,
+          nickname: localStorage.getItem("nickname") || "내 제출",
+          submissionStatus: json.data.submission_status, // "PENDING"
+          progress: 0,
+          submittedAt: new Date().toISOString(),
+          _isPending: true // 폴링 봇이 추적할 타겟이라는 표시!
+        };
+
+        setSubmissions(prev => [pendingSub, ...prev]);
+
+      } else {
+        const err = await res.json();
+        alert(`제출 실패: ${err.detail || err.message || "오류가 발생했습니다."}`);
+      }
+    } catch (e) {
+      alert("서버와 통신 중 오류가 발생했습니다.");
+    } finally {
+      setIsSubmittingAnswer(false);
+    }
+  };
 
   // [API] 댓글 목록 새로고침
   const fetchComments = async () => {
@@ -141,6 +304,13 @@ export default function ProblemDetailPage() {
     } catch (e) {
       console.error("댓글 파싱/네트워크 에러:", e);
     }
+  };
+
+  // 객관식 보기 선택 핸들러
+  const handleChoiceToggle = (index: number) => {
+    setSelectedChoices(prev =>
+      prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
+    );
   };
 
   // [API] 문제 삭제 핸들러
@@ -190,7 +360,7 @@ export default function ProblemDetailPage() {
 
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${comment.comment_id}`, {
+      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${comment.commentId}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const json = await res.json();
@@ -215,9 +385,9 @@ export default function ProblemDetailPage() {
 
     const token = localStorage.getItem("token");
     try {
-      // API 명세에 맞게 is_private 추가 및 parent_id 선택적 할당
-      const payload: any = { content, is_private: false };
-      if (parentId) payload.parent_id = parentId;
+      // API 명세에 맞게 isPrivate 추가 및 parentId 선택적 할당
+      const payload: any = { content, isPrivate: false };
+      if (parentId) payload.parentId = parentId;
 
       const res = await fetch(`https://diveon.net/api/problems/${probId}/comments`, {
         method: "POST",
@@ -271,7 +441,7 @@ export default function ProblemDetailPage() {
       const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${commentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ content: editContent, is_private: false }) // is_private 추가
+        body: JSON.stringify({ content: editContent, isPrivate: false })
       });
       if (res.ok) {
         setEditingCommentId(null);
@@ -284,7 +454,7 @@ export default function ProblemDetailPage() {
     } catch (e) { console.error(e); }
   };
 
-  // [추가] 페이지 로드 시 로그인 상태 확인
+  // 페이지 로드 시 로그인 상태 확인
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -292,7 +462,7 @@ export default function ProblemDetailPage() {
     }
   }, []);
 
-  // [추가] 로그아웃 핸들러
+  // 로그아웃 핸들러
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
@@ -448,11 +618,11 @@ export default function ProblemDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {comments.slice(0, 5).map((comment) => (
-                <div key={comment.comment_id} className="space-y-1">
+                <div key={comment.commentId} className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-700">{comment.author_nickname}</span>
+                    <span className="text-xs font-bold text-slate-700">{comment.authorNickname}</span>
                     <span className="text-[10px] text-slate-400">
-                      {new Date(comment.created_at).toLocaleDateString()}
+                      {new Date(comment.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 line-clamp-2">{comment.content}</p>
@@ -510,8 +680,12 @@ export default function ProblemDetailPage() {
                       </Button>
                     </Link>
                   ) : problemData?.type === "objective" ? (
-                    <Button className="bg-slate-900 hover:bg-slate-800 font-bold">
-                      답안 제출하기
+                    <Button
+                      className="bg-slate-900 hover:bg-slate-800 font-bold disabled:opacity-50"
+                      onClick={handleObjectiveSubmit}
+                      disabled={isSubmittingAnswer || selectedChoices.length === 0} // 선택된 게 없으면 비활성화
+                    >
+                      {isSubmittingAnswer ? "제출 중..." : "답안 제출하기"}
                     </Button>
                   ) : problemData?.type === "practice" ? (
                     <Link href={`/challenges/terminal?id=${probId}`}>
@@ -531,7 +705,7 @@ export default function ProblemDetailPage() {
                 {/* 오른쪽 버튼 그룹 (작성자일 때만 노출) */}
                 {isAuthor && (
                   <div className="flex gap-2">
-                    {/* [추가] 문제 수정 버튼 */}
+                    {/* 문제 수정 버튼 */}
                     <Button
                       variant="outline"
                       className="border-indigo-100 text-indigo-600 hover:bg-indigo-50 shadow-none"
@@ -563,12 +737,27 @@ export default function ProblemDetailPage() {
                 {/* 객관식 보기 동적 렌더링 */}
                 {problemData?.type === "objective" && problemData?.choices && (
                   <div className="mt-6 space-y-2">
-                    {problemData.choices.map((choice: any) => (
-                      <div key={choice.index} className="p-3 border rounded-lg bg-slate-50 flex items-center gap-3 cursor-pointer hover:bg-indigo-50">
-                        <span className="font-bold text-indigo-600">{choice.index}.</span>
-                        <span className="text-sm">{choice.content}</span>
-                      </div>
-                    ))}
+                    {problemData.choices.map((choice: any) => {
+                      // 선택되었는지 확인
+                      const isSelected = selectedChoices.includes(choice.index);
+                      return (
+                        <div
+                          key={choice.index}
+                          onClick={() => handleChoiceToggle(choice.index)}
+                          className={`p-4 border-2 rounded-xl flex items-center gap-3 cursor-pointer transition-all ${isSelected
+                            ? "border-indigo-600 bg-indigo-50 shadow-sm" // 선택 시 스타일
+                            : "border-slate-100 bg-slate-50 hover:border-slate-300 hover:bg-slate-100" // 기본 스타일
+                            }`}
+                        >
+                          <span className={`font-black ${isSelected ? "text-indigo-600" : "text-slate-400"}`}>
+                            {choice.index}.
+                          </span>
+                          <span className={`text-sm ${isSelected ? "text-indigo-900 font-bold" : "text-slate-700"}`}>
+                            {choice.content}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -653,49 +842,123 @@ export default function ProblemDetailPage() {
                       )}
 
                       <TableHead className="text-right">제출 시간</TableHead>
+                      {/* 상세 보기 액션 버튼을 위한 헤더 */}
+                      <TableHead className="text-center w-[160px]">상세 보기</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* 임시 필터: 실제 API에서는 백엔드에 쿼리를 다르게 보내거나 응답에 isMine 플래그가 필요합니다. */}
-                    {mockSubmissions
-                      .filter(sub => !showMySubmissions || sub.isMine)
-                      .map((sub: any) => (
-                        <TableRow
-                          key={sub.id}
-                          onClick={() => {
-                            // 코딩 문제일 때만 행 클릭 시 코드 페이지로 이동
-                            if (problemData?.type === "coding") {
-                              window.location.href = `/submissions/${sub.id}`;
-                            }
-                          }}
-                          className={problemData?.type === "coding" ? "cursor-pointer hover:bg-slate-50 transition-colors" : ""}
-                        >
-                          <TableCell className="font-mono text-xs">{sub.id}</TableCell>
-                          <TableCell className="font-bold text-slate-700">{sub.nickname || "User"}</TableCell>
-                          <TableCell>
-                            <Badge variant={sub.isCorrect ? "default" : "destructive"} className={sub.isCorrect ? "bg-green-600 hover:bg-green-700" : ""}>
-                              {sub.isCorrect ? <CheckCircle className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
-                              {sub.result}
-                            </Badge>
-                          </TableCell>
+                    {/* API 데이터인 submissions 배열을 매핑 */}
+                    {submissions
+                      .filter(sub => !showMySubmissions || sub.nickname === localStorage.getItem("nickname"))
+                      .map((sub: any) => {
+                        const isCoding = problemData?.type === "coding";
 
-                          {/* 코딩 문제 전용 데이터 */}
-                          {problemData?.type === "coding" && (
-                            <>
-                              <TableCell className="text-xs">{sub.memory}</TableCell>
-                              <TableCell className="text-xs">{sub.time}</TableCell>
-                              <TableCell className="text-xs font-bold text-slate-600">{sub.lang}</TableCell>
-                            </>
-                          )}
+                        // 렌더링 상태 판별
+                        const isPending = sub._isPending ||
+                          sub.isCorrect === null ||
+                          sub.submissionStatus === "PENDING" ||
+                          sub.submissionStatus === "JUDGING";
+                        const isSuccess = sub.isCorrect === true; 
+                        const isFailed = sub.submissionStatus === "FAILED";
 
-                          {/* 실습 문제 전용 데이터 */}
-                          {problemData?.type === "practice" && (
-                            <TableCell className="text-xs">{sub.solveTime || "00:15:23"}</TableCell>
-                          )}
+                        let resultText = "결과 대기";
+                        if (isFailed) resultText = "시스템 오류";
+                        else if (isPending) resultText = `채점 중 (${sub.progress || 0}%)`;
+                        else resultText = isSuccess ? "정답" : "오답";
 
-                          <TableCell className="text-right text-xs text-slate-400">{sub.date}</TableCell>
-                        </TableRow>
-                      ))}
+                        return (
+                          <TableRow
+                            key={sub.submissionId}
+                            // 행 전체 클릭(onClick) 제거 (버튼을 따로 둘 것이므로 오작동 방지)
+                            className="hover:bg-slate-50 transition-colors"
+                          >
+                            <TableCell className="font-mono text-xs">{sub.submissionId}</TableCell>
+                            <TableCell className="font-bold text-slate-700">{sub.nickname || "User"}</TableCell>
+                            
+                            {/* 결과 배지 컬럼 */}
+                            <TableCell>
+                              {isPending ? (
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant="outline" className="text-indigo-600 border-indigo-200 bg-indigo-50 w-fit">
+                                    <div className="w-3 h-3 mr-1 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                                    {resultText}
+                                  </Badge>
+                                  {sub.progress !== undefined && (
+                                    <div className="w-24 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-indigo-500 transition-all duration-500"
+                                        style={{ width: `${sub.progress}%` }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <Badge
+                                  variant={isSuccess ? "default" : "destructive"}
+                                  className={isSuccess ? "bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm shadow-indigo-100" : "font-bold"}
+                                >
+                                  {isSuccess ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                                  {resultText}
+                                </Badge>
+                              )}
+                            </TableCell>
+
+                            {/* 코딩 문제 전용 데이터 */}
+                            {isCoding && (
+                              <>
+                                <TableCell className="text-xs text-slate-500">{!isPending && sub.memoryUsage !== undefined ? `${sub.memoryUsage} MB` : "-"}</TableCell>
+                                <TableCell className="text-xs text-slate-500">{!isPending && sub.runtime !== undefined ? `${sub.runtime} ms` : "-"}</TableCell>
+                                <TableCell className="text-xs font-bold text-slate-600">{!isPending ? (sub.language || "-") : "-"}</TableCell>
+                              </>
+                            )}
+
+                            {/* 실습 문제 전용 데이터 */}
+                            {problemData?.type === "practice" && (
+                              <TableCell className="text-xs text-slate-300">-</TableCell>
+                            )}
+
+                            {/* 제출 시간 */}
+                            <TableCell className="text-right text-xs text-slate-400">
+                              {new Date(sub.submittedAt).toLocaleString()}
+                            </TableCell>
+
+                            {/* 상세 보기 액션 버튼 컬럼 */}
+                            <TableCell className="text-center">
+                              {/* 1. 객관식: OBO 페이지로 이동 */}
+                              {problemData?.type === "objective" && !isPending && (
+                                <Button variant="outline" size="sm" className="h-7 text-xs font-bold text-slate-600" asChild>
+                                  <Link href={`/challenges/obo?id=${sub.submissionId}`}>결과 확인</Link>
+                                </Button>
+                              )}
+
+                              {/* 2. 코딩: 코드 보기 / OBO 보기 2가지 버튼 제공 */}
+                              {problemData?.type === "coding" && !isPending && (
+                                <div className="flex justify-center gap-1.5">
+                                  <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold text-slate-600" asChild>
+                                    <Link href={`/challenges/submissions?id=${sub.submissionId}`}>코드</Link>
+                                  </Button>
+                                  <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50" asChild>
+                                    <Link href={`/challenges/obo?id=${sub.submissionId}`}>OBO</Link>
+                                  </Button>
+                                </div>
+                              )}
+
+                              {/* 3. 실습: 버튼 없음 (또는 채점 중일 때 대기 상태 표시) */}
+                              {(problemData?.type === "practice" || isPending) && (
+                                <span className="text-xs text-slate-300">-</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+
+                    {submissions.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-slate-400">
+                          아직 제출된 답안이 없습니다.
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -725,7 +988,7 @@ export default function ProblemDetailPage() {
                         <TableCell className="text-xs text-slate-500">-</TableCell>
                         <TableCell className="text-xs"><Badge variant="outline">{rank.score}점</Badge></TableCell>
                         <TableCell className="text-right text-xs text-slate-400">
-                          {new Date(rank.solved_at).toLocaleString()}
+                          {new Date(rank.solvedAt).toLocaleString()}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -760,8 +1023,8 @@ export default function ProblemDetailPage() {
                   <div className="space-y-4">
                     {comments.map((comment) => (
                       <div
-                        key={comment.comment_id}
-                        onClick={() => { if (editingCommentId !== comment.comment_id) handleSelectComment(comment); }}
+                        key={comment.commentId}
+                        onClick={() => { if (editingCommentId !== comment.commentId) handleSelectComment(comment); }}
                         className="flex gap-4 p-4 border rounded-xl bg-white hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer group"
                       >
                         <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-indigo-50 transition-colors">
@@ -769,21 +1032,21 @@ export default function ProblemDetailPage() {
                         </div>
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-sm text-slate-900">{comment.author_nickname}</span>
+                            <span className="font-bold text-sm text-slate-900">{comment.authorNickname}</span>
                             <div className="flex items-center gap-3">
                               <span className="text-xs text-slate-400 flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {new Date(comment.created_at).toLocaleDateString()}
+                                <Clock className="w-3 h-3" /> {new Date(comment.createdAt).toLocaleDateString()}
                               </span>
                               {/* 수정 버튼 */}
                               <button
-                                onClick={(e) => { e.stopPropagation(); setEditingCommentId(comment.comment_id); setEditContent(comment.content); }}
+                                onClick={(e) => { e.stopPropagation(); setEditingCommentId(comment.commentId); setEditContent(comment.content); }}
                                 className="text-slate-300 hover:text-indigo-500 transition-colors"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
                               {/* 삭제 버튼 */}
                               <button
-                                onClick={(e) => handleDeleteComment(e, comment.comment_id)}
+                                onClick={(e) => handleDeleteComment(e, comment.commentId)}
                                 className="text-slate-300 hover:text-red-500 transition-colors"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -792,7 +1055,7 @@ export default function ProblemDetailPage() {
                           </div>
 
                           {/* 내용 표시 or 수정 모드 입력창 */}
-                          {editingCommentId === comment.comment_id ? (
+                          {editingCommentId === comment.commentId ? (
                             <div className="space-y-2 mt-2" onClick={(e) => e.stopPropagation()}>
                               <Textarea
                                 value={editContent}
@@ -801,7 +1064,7 @@ export default function ProblemDetailPage() {
                               />
                               <div className="flex justify-end gap-2">
                                 <Button size="sm" variant="ghost" onClick={() => setEditingCommentId(null)}>취소</Button>
-                                <Button size="sm" onClick={(e) => handleUpdateComment(e, comment.comment_id, false)}>저장</Button>
+                                <Button size="sm" onClick={(e) => handleUpdateComment(e, comment.commentId, false)}>저장</Button>
                               </div>
                             </div>
                           ) : (
@@ -842,9 +1105,9 @@ export default function ProblemDetailPage() {
                     </div>
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="font-black text-base text-slate-900">{selectedComment.author_nickname}</span>
+                        <span className="font-black text-base text-slate-900">{selectedComment.authorNickname}</span>
                         <span className="text-xs font-medium text-slate-400">
-                          {new Date(selectedComment.created_at).toLocaleString()}
+                          {new Date(selectedComment.createdAt).toLocaleString()}
                         </span>
                       </div>
                       <p className="text-base text-slate-700 leading-relaxed">{selectedComment.content}</p>
@@ -858,11 +1121,11 @@ export default function ProblemDetailPage() {
                     <Textarea
                       value={replyInput}
                       onChange={(e) => setReplyInput(e.target.value)}
-                      placeholder={`${selectedComment.author_nickname}님에게 답글 남기기...`}
+                      placeholder={`${selectedComment.authorNickname}님에게 답글 남기기...`}
                       className="resize-none min-h-[80px] bg-slate-50 focus:bg-white"
                     />
                     <Button
-                      onClick={() => handleCreateComment(selectedComment.comment_id)}
+                      onClick={() => handleCreateComment(selectedComment.commentId)}
                       className="shrink-0 h-[80px]"
                     >
                       답글<br />등록
@@ -872,27 +1135,27 @@ export default function ProblemDetailPage() {
                   {/* 대댓글 목록 */}
                   <div className="space-y-3 pl-6 border-l-2 border-slate-100 ml-6">
                     {selectedComment.replies && selectedComment.replies.map((reply: any) => (
-                      <div key={reply.comment_id} className="flex gap-3 p-4 border rounded-xl bg-white group">
+                      <div key={reply.commentId} className="flex gap-3 p-4 border rounded-xl bg-white group">
                         <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
                           <User className="h-4 w-4 text-slate-400" />
                         </div>
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-sm text-slate-900">{reply.author_nickname}</span>
+                            <span className="font-bold text-sm text-slate-900">{reply.authorNickname}</span>
                             <div className="flex items-center gap-3">
                               <span className="text-[10px] text-slate-400">
-                                {new Date(reply.created_at).toLocaleString()}
+                                {new Date(reply.createdAt).toLocaleString()}
                               </span>
                               {/* 대댓글 수정 버튼 */}
                               <button
-                                onClick={() => { setEditingCommentId(reply.comment_id); setEditContent(reply.content); }}
+                                onClick={() => { setEditingCommentId(reply.commentId); setEditContent(reply.content); }}
                                 className="text-slate-300 hover:text-indigo-500 transition-colors opacity-0 group-hover:opacity-100"
                               >
                                 <Edit2 className="w-3 h-3" />
                               </button>
                               {/* 대댓글 삭제 버튼 */}
                               <button
-                                onClick={(e) => handleDeleteComment(e, reply.comment_id, true)}
+                                onClick={(e) => handleDeleteComment(e, reply.commentId, true)}
                                 className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                               >
                                 <Trash2 className="w-3 h-3" />
@@ -901,7 +1164,7 @@ export default function ProblemDetailPage() {
                           </div>
 
                           {/* 대댓글 내용 표시 or 수정 모드 */}
-                          {editingCommentId === reply.comment_id ? (
+                          {editingCommentId === reply.commentId ? (
                             <div className="space-y-2 mt-2">
                               <Textarea
                                 value={editContent}
@@ -910,7 +1173,7 @@ export default function ProblemDetailPage() {
                               />
                               <div className="flex justify-end gap-2">
                                 <Button size="sm" variant="ghost" onClick={() => setEditingCommentId(null)}>취소</Button>
-                                <Button size="sm" onClick={(e) => handleUpdateComment(e, reply.comment_id, true)}>저장</Button>
+                                <Button size="sm" onClick={(e) => handleUpdateComment(e, reply.commentId, true)}>저장</Button>
                               </div>
                             </div>
                           ) : (
@@ -951,7 +1214,7 @@ export default function ProblemDetailPage() {
   );
 }
 
-// 2. 헤더 메뉴 전용 보조 컴포넌트 [추가]
+// 2. 헤더 메뉴 전용 보조 컴포넌트
 function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
     <Link

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-// 💡 [추가] URL 파라미터와 라우팅을 위해 추가
 import { useSearchParams, useRouter } from "next/navigation"; 
 import { 
   Terminal as TerminalIcon, Shield, RefreshCw, Bell, LogOut, LayoutGrid, Users, BarChart3,
@@ -23,69 +22,159 @@ export default function PracticePage() {
   const USE_API_REQUEST = true; 
   const [problemTitle, setProblemTitle] = useState("실습 환경 구성 중...");
   const [osImage, setOsImage] = useState("Ubuntu 22.04 LTS"); // 기본 OS
-
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<any>(null);
   const [flag, setFlag] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(2700); // 45분 (초 단위)
 
-  // 페이지 로드 시 API를 호출하여 문제 제목과 OS 정보를 가져오기
+  // API 연동 스위치 및 동적 상태 선언 아래에 추가
+  const [containerId, setContainerId] = useState<string | null>(null);
+  const [isVmLoading, setIsVmLoading] = useState(true); // VM 생성 로딩 상태
+
+  const hasFetched = useRef(false);
+
+  // [API] 페이지 로드 시 API를 호출하여 문제 제목과 OS 정보를 가져오기
   useEffect(() => {
-    const fetchProblemData = async () => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
+    const fetchProblemDataAndCreateVm = async () => {
       if (!USE_API_REQUEST) {
         setProblemTitle(`MOCK 데이터 실습 문제 #${probId}`);
+        setIsVmLoading(false);
         return;
       }
 
       const token = localStorage.getItem("token");
-      try {
-        const res = await fetch(`https://diveon.net/api/problems/${probId}`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
-          }
-        });
+      const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      };
 
-        if (res.ok) {
-          const json = await res.json();
+      try {
+        // 1. 문제 정보 조회
+        const probRes = await fetch(`https://diveon.net/api/problems/${probId}`, { headers });
+        if (probRes.ok) {
+          const json = await probRes.json();
           setProblemTitle(json.data.title);
-          // VM 정보가 있다면 OS 이름도 업데이트
-          if (json.data.vm_info?.os_image) {
-            setOsImage(json.data.vm_info.os_image);
-          }
+          if (json.data.vmInfo?.osImage) setOsImage(json.data.vmInfo.osImage);
         } else {
           setProblemTitle("알 수 없는 실습 문제");
         }
+
+        // 2. VM 생성 요청 (POST /api/vm/create)
+        const vmRes = await fetch(`https://diveon.net/api/vm/create`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ probId: Number(probId) }) // API 명세 키값 매핑
+        });
+
+        if (vmRes.status === 201 || vmRes.status === 200) {
+          const vmJson = await vmRes.json();
+          setContainerId(vmJson.data.containerId);
+          
+          if (vmJson.data.expiresAt) {
+            const expiresDate = new Date(vmJson.data.expiresAt).getTime();
+            const now = new Date().getTime();
+            const diffSeconds = Math.floor((expiresDate - now) / 1000);
+            setTimeLeft(diffSeconds > 0 ? diffSeconds : 0);
+          }
+        } else {
+          const errJson = await vmRes.json();
+          alert(`VM 환경을 구성할 수 없습니다: ${errJson.detail || errJson.message}`);
+          router.push(`/challenges/detail?id=${probId}`); // 실패 시 강제 퇴장
+        }
       } catch (error) {
-        console.error("문제 정보 로드 실패:", error);
-        setProblemTitle("문제 정보를 불러오지 못했습니다.");
+        console.error("통신 에러:", error);
+        alert("서버와 통신을 실패했습니다.");
+      } finally {
+        setIsVmLoading(false);
       }
     };
 
-    fetchProblemData();
-  }, [probId]);
+    fetchProblemDataAndCreateVm();
+  }, [probId]); // router 의존성 추가
 
   //  실습 종료 시 문제 상세 페이지로 복귀
-  const handleEndPractice = () => {
-    if (confirm("실습을 종료하시겠습니까? 진행 중인 모든 데이터가 초기화됩니다.")) {
-      router.push(`/challenges/detail?id=${probId}`); 
+  const handleEndPractice = async () => {
+    if (!confirm("실습을 종료하시겠습니까? 진행 중인 모든 데이터가 삭제(초기화)됩니다.")) {
+      return;
+    }
+
+    if (!USE_API_REQUEST) {
+      router.push(`/challenges/detail?id=${probId}`);
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`https://diveon.net/api/vm/stop`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ probId: Number(probId) }) // API 명세 키값 매핑
+      });
+
+      if (res.ok || res.status === 404) {
+        alert("실습 환경이 종료되었습니다.");
+        router.push(`/challenges/detail?id=${probId}`); 
+      } else {
+        const errorData = await res.json();
+        alert(`종료 실패: ${errorData.detail || errorData.message}`);
+      }
+    } catch (error) {
+      console.error("VM 종료 에러:", error);
+      alert("서버와 통신 중 오류가 발생했습니다.");
     }
   };
 
-  //  FLAG 제출 성공 시 문제 상세 페이지로 복귀
-  const handleFlagSubmit = () => {
+  // [API] FLAG 제출 성공 시 문제 상세 페이지로 복귀
+  const handleFlagSubmit = async () => {
+    if (!flag.trim()) {
+      alert("플래그를 입력해주세요.");
+      return;
+    }
+
     setIsSubmitting(true);
-    setTimeout(() => {
-      if (flag === "DK{fake_flag_for_test}") {
-        alert("Correct Flag! 실습을 완료했습니다.");
-        router.push(`/challenges/detail?id=${probId}`);
+    const token = localStorage.getItem("token");
+
+    try {
+      // API 명세: POST /api/submissions/grade
+      const response = await fetch(`https://diveon.net/api/submissions/grade`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          probId: Number(probId),      
+          submissionType: "practice",     
+          answer: flag.trim(),         
+          containerId: null          
+        })
+      });
+
+      if (response.ok) {
+        alert("채점 요청이 접수되었습니다.");
+        const json = await response.json();
+        const newId = json.data.submissionId;
+        sessionStorage.setItem(`pending_sub_${probId}`, newId);
+        // 채점 현황 확인을 위해 문제 상세 페이지로 리다이렉트
+        router.push(`/challenges/detail?id=${probId}`); 
       } else {
-        alert("Wrong Flag. Try again.");
+        // 에러 응답 처리
+        const errorData = await response.json();
+        alert(`제출 실패: ${errorData.message || "오류가 발생했습니다."}`);
       }
+    } catch (error) {
+      console.error("제출 에러:", error);
+      alert("서버와 통신 중 오류가 발생했습니다.");
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   // 타이머 로직
@@ -102,50 +191,58 @@ export default function PracticePage() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 터미널 초기화 로직
+  // [API] 터미널 초기화 및 웹소켓 연결
   useEffect(() => {
-    if (!terminalRef.current) return;
+    if (!terminalRef.current || !containerId) return;
 
     let term: any;
     let resizeObserver: ResizeObserver;
+    let ws: WebSocket;
 
     const initTerminal = async () => {
       const { Terminal } = await import("xterm");
       const { FitAddon } = await import("xterm-addon-fit");
+      const { AttachAddon } = await import("xterm-addon-attach"); // Attach Addon 추가
       await import("xterm/css/xterm.css");
 
       term = new Terminal({
         cursorBlink: true,
         fontSize: 15,
         fontFamily: '"Fira Code", monospace',
-        theme: {
-          background: "#020617",
-          foreground: "#f8fafc",
-          cursor: "#818cf8",
-        },
+        theme: { background: "#020617", foreground: "#f8fafc", cursor: "#818cf8" },
       });
 
       const fitAddon = new FitAddon();
-
       term.loadAddon(fitAddon);
       term.open(terminalRef.current!);
 
-      setTimeout(() => {
-        fitAddon.fit();
-      }, 50);
-
-      resizeObserver = new ResizeObserver(() => {
-        try {
-          fitAddon.fit();
-        } catch { }
-      });
-
+      setTimeout(() => fitAddon.fit(), 50);
+      resizeObserver = new ResizeObserver(() => { try { fitAddon.fit(); } catch {} });
       resizeObserver.observe(terminalRef.current!);
 
       term.writeln("\x1b[1;34mDIVEON Remote Lab Cloud v2.0.4-LTS\x1b[0m");
-      term.writeln(`Connected to instance for Problem #${probId}`);
-      term.writeln("Type \x1b[1;33m'help'\x1b[0m to see available commands.\r\n");
-      term.write("\x1b[1;32mroot@diveon\x1b[0m:\x1b[1;34m~\x1b[0m# ");
+      term.writeln("Connecting to server...");
+
+      // WebSocket 연결 (명세서의 /ws/terminal 사용)
+      const token = localStorage.getItem("token");
+      // 프로토콜을 wss(https) 또는 ws(http)로 설정
+      const wsUrl = `wss://diveon.net/ws/terminal?container_id=${containerId}&token=${token}`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        term.writeln("\x1b[1;32mConnection established.\x1b[0m\r\n");
+        // AttachAddon을 이용해 웹소켓과 터미널을 양방향 파이프로 연결
+        const attachAddon = new AttachAddon(ws);
+        term.loadAddon(attachAddon);
+      };
+
+      ws.onerror = () => {
+        term.writeln("\x1b[1;31mConnection error. Please try again.\x1b[0m");
+      };
+
+      ws.onclose = () => {
+        term.writeln("\r\n\x1b[1;33mConnection closed.\x1b[0m");
+      };
     };
 
     initTerminal();
@@ -153,8 +250,9 @@ export default function PracticePage() {
     return () => {
       resizeObserver?.disconnect();
       term?.dispose();
+      ws?.close(); // 컴포넌트가 사라지면 소켓 연결도 끊기
     };
-  }, [probId]);
+  }, [probId, containerId]);
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden w-full font-sans text-slate-900">

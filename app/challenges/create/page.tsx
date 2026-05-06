@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Menu, LogOut, CheckCircle2, Target, Zap, Code2, PlusCircle, Eye,
-  StickyNote, Bell
+  StickyNote, Bell, Trash2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,7 @@ export default function ProblemCreatePage() {
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState(""); // 스토리를 summary로 매핑
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState("kernel");
   const [difficulty, setDifficulty] = useState("1");
   const [visibility, setVisibility] = useState("public");
 
@@ -57,19 +57,78 @@ export default function ProblemCreatePage() {
   const [inputDesc, setInputDesc] = useState("");
   const [testcases, setTestcases] = useState([{ index: 1, input: "", output: "", is_sample: true }]);
   const [outputDesc, setOutputDesc] = useState("");
+  const [allowedLanguages, setAllowedLanguages] = useState<string[]>(["c", "cpp", "python"]);
 
   // [상태 관리] 실습(CTF) 문제 전용
   const [flag, setFlag] = useState("");
+  const [dockerfile, setDockerfile] = useState<File | null>(null);
+  const [osImage, setOsImage] = useState("ubuntu:22.04");
+  const [cpuLimit, setCpuLimit] = useState(0.5);
+  const [vmMemoryLimit, setVmMemoryLimit] = useState("512m");
+  const [allowedCommandsInput, setAllowedCommandsInput] = useState("ls, cat, grep, find");
 
   // [상태 관리] 객관식 문제 전용
   const [choices, setChoices] = useState([
     { index: 1, content: "" }, { index: 2, content: "" }, { index: 3, content: "" }, { index: 4, content: "" }
   ]);
   const [answerIdx, setAnswerIdx] = useState(1);
+  const [selectedAnswers, setSelectedAnswers] = useState<number[]>([1]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // API 제출 핸들러
+  // 2. 객관식 정답 토글 핸들러
+  const toggleAnswer = (idx: number) => {
+    const val = idx + 1;
+    if (selectedAnswers.includes(val)) {
+      if (selectedAnswers.length <= 1) {
+        alert("최소 하나의 정답은 선택해야 합니다.");
+        return;
+      }
+      setSelectedAnswers(selectedAnswers.filter((a) => a !== val));
+    } else {
+      setSelectedAnswers([...selectedAnswers, val].sort((a, b) => a - b));
+    }
+  };
+
+  // 3. 코딩 문제 테스트케이스 삭제 핸들러
+  const removeTestcase = (indexToRemove: number) => {
+    if (testcases.length <= 1) {
+      alert("최소 하나의 테스트케이스가 필요합니다.");
+      return;
+    }
+    const newTc = testcases
+      .filter((_, idx) => idx !== indexToRemove)
+      .map((tc, idx) => ({ ...tc, index: idx + 1 })); // 인덱스 재정렬
+    setTestcases(newTc);
+  };
+
+  const removeChoice = (indexToRemove: number) => {
+    if (choices.length <= 2) {
+      alert("객관식 보기는 최소 2개 이상이어야 합니다.");
+      return;
+    }
+
+    const choiceNum = indexToRemove + 1; // 삭제되는 보지의 번호 (1부터 시작)
+
+    // 1. 보기 목록 필터링 및 인덱스 재정렬
+    const newChoices = choices
+      .filter((_, idx) => idx !== indexToRemove)
+      .map((choice, idx) => ({
+        ...choice,
+        index: idx + 1,
+      }));
+    setChoices(newChoices);
+
+    // 2. [핵심] 정답 배열(selectedAnswers) 보정
+    const newAnswers = selectedAnswers
+      .filter((a) => a !== choiceNum) // 삭제된 번호 제거
+      .map((a) => (a > choiceNum ? a - 1 : a)); // 삭제된 번호보다 큰 번호는 1씩 당김
+
+    // 정답이 하나도 남지 않게 되는 경우 방지 (최소 1번은 선택되게)
+    setSelectedAnswers(newAnswers.length > 0 ? newAnswers : [1]);
+  };
+
+  // [API] 제출 핸들러
   const handleSubmit = async () => {
     if (!title || !category || !description) {
       alert("제목, 카테고리, 문제 설명은 필수입니다.");
@@ -78,93 +137,106 @@ export default function ProblemCreatePage() {
 
     setIsSubmitting(true);
     const token = localStorage.getItem("token");
-    const headers = {
-      "Content-Type": "application/json",
+    const method = isEditMode ? "PATCH" : "POST";
+    let endpoint = "";
+
+    // API 호출 시 사용할 본문(body)과 헤더(headers)
+    let bodyData: BodyInit | null = null;
+    let fetchHeaders: Record<string, string> = {
       "Authorization": `Bearer ${token}`
     };
 
-    const method = isEditMode ? "PATCH" : "POST";
-    let endpoint = "";
-    // 문제 유형별 엔드포인트 설정 (수정 시에는 뒤에 id가 붙음)
-    if (problemType === "coding") {
-      endpoint = `https://diveon.net/api/problems/coding${isEditMode ? `/${editId}` : ""}`;
-    } else if (problemType === "ctf" || problemType === "practice") {
-      endpoint = `https://diveon.net/api/problems/practice${isEditMode ? `/${editId}` : ""}`;
-    } else if (problemType === "objective") {
-      endpoint = `https://diveon.net/api/problems/objective${isEditMode ? `/${editId}` : ""}`;
-    }
-
-    let payload: any = {
-      title,
-      summary: summary || title, // 빈 값이면 제목으로 대체
-      description,
-      category,
-      difficulty,
-      visibility,
-    };
-
     try {
-      // 1. 코딩 문제 API 세팅
-      if (problemType === "coding") {
-        endpoint = "https://diveon.net/api/problems/coding";
-        payload = {
-          ...payload,
-          constraints: {
-            time_limit_ms: timeLimit * 1000,
-            memory_limit_mb: memoryLimit,
-            allowed_languages: ["python", "java", "c", "cpp"] // UI에 없어 하드코딩
-          },
-          input_description: inputDesc || "입력 설명을 작성해주세요.",
-          output_description: outputDesc || "출력 설명을 작성해주세요.",
-          testcases: testcases,
-          obo: null,
-          file_url: null
-        };
-      }
-      // 2. 실습(CTF) 문제 API 세팅
-      else if (problemType === "ctf") {
-        endpoint = "https://diveon.net/api/problems/practice";
-        payload = {
-          ...payload,
-          flag,
-          vm_config: { // UI에 없어 기본값 하드코딩
-            os_image: "ubuntu:22.04",
-            allowed_commands: ["ls", "cat", "grep", "find"],
-            cpu_limit: "0.5",
-            memory_limit: "512m"
-          },
-          docker_file_url: null
-        };
-      }
-      // 3. 객관식 문제 API 세팅
-      else if (problemType === "objective") {
-        endpoint = "https://diveon.net/api/problems/objective";
+      // ----------------------------------------------------
+      // [A] 실습형(practice) 문제 처리: multipart/form-data
+      // ----------------------------------------------------
+      if (problemType === "practice") {
+        endpoint = `https://diveon.net/api/problems/practice${isEditMode ? `/${editId}` : ""}`;
 
-        // 빈 보기 필터링 및 이미지 URL null 처리
-        const validChoices = choices
-          .filter(c => c.content.trim() !== "")
-          .map((c, i) => ({ index: i + 1, content: c.content, image_url: null }));
-
-        if (validChoices.length < 2) {
-          alert("객관식 보기는 최소 2개 이상 입력해야 합니다.");
+        if (!dockerfile && !isEditMode) {
+          alert("Dockerfile zip 파일을 업로드해주세요.");
           setIsSubmitting(false);
           return;
         }
 
-        payload = {
-          ...payload,
-          choices: validChoices,
-          answer: [Number(answerIdx)],
-          oboEnabled: false,
-          obo: null
+        const formData = new FormData();
+        // 1. 공통 필드 (Spring DTO 필드명 매핑)
+        formData.append("title", title);
+        formData.append("summary", summary || title);
+        formData.append("description", description);
+        formData.append("category", category);
+
+        // 2. 난이도 및 공개범위 규격화
+        formData.append("difficulty", `${difficulty}`);
+        formData.append("visibility", visibility.toLowerCase());
+
+        // 3. VM 설정 (백엔드 DTO의 CamelCase 필드명 사용)
+        formData.append("osImage", osImage);
+        formData.append("cpuLimit", String(cpuLimit));
+        formData.append("memoryLimit", vmMemoryLimit);
+        formData.append("flag", flag);
+
+        // 4. 허용 명령어 (List<String> 처리)
+        const cmdArray = allowedCommandsInput.split(",").map(c => c.trim()).filter(c => c !== "");
+        cmdArray.forEach(cmd => formData.append("allowedCommands", cmd));
+
+        // 5. 파일 전송
+        if (dockerfile) {
+          formData.append("dockerfile", dockerfile);
+        }
+
+        bodyData = formData;
+      }
+      // ----------------------------------------------------
+      // [B] 코딩형 / 객관식 문제 처리: application/json
+      // ----------------------------------------------------
+      else {
+        fetchHeaders["Content-Type"] = "application/json";
+
+        let payload: any = {
+          title,
+          summary: summary || title,
+          description,
+          category,
+          difficulty: Number(difficulty),
+          visibility,
         };
+
+        if (problemType === "coding") {
+          endpoint = `https://diveon.net/api/problems/coding${isEditMode ? `/${editId}` : ""}`;
+          payload = {
+            ...payload,
+            constraints: {
+              timeLimitMs: timeLimit * 1000,
+              memoryLimitMb: memoryLimit,
+              allowedLanguages: allowedLanguages
+            },
+            inputDescription: inputDesc || "입력 설명",
+            outputDescription: outputDesc || "출력 설명",
+            testcases: testcases.map(tc => ({ ...tc, index: Number(tc.index) })),
+            obo: { enabled: false, initialImageUrl: null },
+            isDraft: false
+          };
+        } else if (problemType === "objective") {
+          endpoint = `https://diveon.net/api/problems/objective${isEditMode ? `/${editId}` : ""}`;
+          const validChoices = choices.filter(c => c.content.trim() !== "").map((c, i) => ({ index: i + 1, content: c.content, image_url: null }));
+          if (validChoices.length < 2) return alert("보기를 2개 이상 입력하세요.");
+
+          payload = {
+            ...payload,
+            choices: validChoices,
+            answer: selectedAnswers,
+            obo: { enabled: false, steps: [] }
+          };
+        }
+        bodyData = JSON.stringify(payload);
       }
 
       // API 전송
       const response = await fetch(endpoint, {
         method: method,
-        headers,
-        body: JSON.stringify(payload)
+        headers: fetchHeaders,
+        body: bodyData
       });
 
       if (response.ok) {
@@ -172,18 +244,11 @@ export default function ProblemCreatePage() {
         window.location.href = isEditMode ? `/challenges/detail?id=${editId}` : "/challenges";
       } else {
         const errorText = await response.text();
-        let errorMessage = "권한이 없거나 입력값이 잘못되었습니다.";
-
-        if (errorText) {
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMessage = errorData.message || errorData.detail || errorMessage;
-          } catch (e) {
-            // JSON 형식이 아닌 일반 텍스트일 경우
-            errorMessage = errorText;
-          }
-        }
-
+        let errorMessage = "입력값이 잘못되었거나 권한이 없습니다.";
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch (e) { errorMessage = errorText; }
         alert(`실패: ${errorMessage}`);
       }
     } catch (error) {
@@ -194,7 +259,7 @@ export default function ProblemCreatePage() {
     }
   };
 
-  // [추가] 수정 모드용 데이터 로드 useEffect
+  // [API] 수정 모드용 데이터 로드 useEffect
   useEffect(() => {
     if (isEditMode) {
       const token = localStorage.getItem("token");
@@ -223,6 +288,15 @@ export default function ProblemCreatePage() {
             setAnswerIdx(data.answer?.[0] || 1);
           } else if (data.type === "practice") {
             setFlag(data.flag || "");
+
+            if (data.vm_config) {
+              setOsImage(data.vm_config.os_image || "ubuntu:22.04");
+              setCpuLimit(data.vm_config.cpu_limit || 0.5);
+              setVmMemoryLimit(data.vm_config.memory_limit || "512m"); // 여기도 수정
+              if (data.vm_config.allowed_commands) {
+                setAllowedCommandsInput(data.vm_config.allowed_commands.join(", "));
+              }
+            }
           }
           setIsInitialLoading(false);
         })
@@ -393,7 +467,6 @@ export default function ProblemCreatePage() {
                 </div>
                 <div className="space-y-2">
                   <Label>공개범위</Label>
-                  {/* API 스펙에 맞게 value 수정 */}
                   <Select value={visibility} onValueChange={setVisibility}>
                     <SelectTrigger><SelectValue placeholder="공개범위 선택" /></SelectTrigger>
                     <SelectContent>
@@ -447,7 +520,7 @@ export default function ProblemCreatePage() {
                   <SelectTrigger className="w-[140px] bg-slate-100"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="coding">코딩 문제</SelectItem>
-                    <SelectItem value="ctf">실습 문제</SelectItem>
+                    <SelectItem value="practice">실습 문제</SelectItem>
                     <SelectItem value="objective">객관식 문제</SelectItem>
                   </SelectContent>
                 </Select>
@@ -468,6 +541,35 @@ export default function ProblemCreatePage() {
                       <Input type="number" value={memoryLimit} onChange={(e) => setMemoryLimit(Number(e.target.value))} className="font-mono" />
                     </div>
                   </div>
+
+                  {/* 허용 언어 선택 영역 */}
+                  <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                    <Label className="text-xs font-bold text-slate-500 uppercase">Allowed Languages</Label>
+                    <div className="flex flex-wrap gap-4">
+                      {["c", "cpp", "python"].map((lang) => (
+                        <div key={lang} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`lang-${lang}`}
+                            checked={allowedLanguages.includes(lang)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setAllowedLanguages([...allowedLanguages, lang]);
+                              } else {
+                                if (allowedLanguages.length <= 1) return alert("최소 하나의 언어는 선택해야 합니다.");
+                                setAllowedLanguages(allowedLanguages.filter((l) => l !== lang));
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <Label htmlFor={`lang-${lang}`} className="text-sm font-bold uppercase cursor-pointer">
+                            {lang === "cpp" ? "C++" : lang}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="grid md:grid-cols-2 gap-5">
                     <div className="space-y-2">
                       <Label>입력 형식 설명</Label>
@@ -488,39 +590,89 @@ export default function ProblemCreatePage() {
                       />
                     </div>
                   </div>
-                  <div className="pt-2 space-y-3">
-                    <Label>테스트케이스</Label>
-                    {testcases.map((tc, idx) => (
-                      <div key={idx} className="grid md:grid-cols-2 gap-4 p-4 bg-slate-50/50 rounded-xl border border-slate-100">
-                        <Textarea
-                          value={tc.input}
-                          onChange={(e) => {
-                            const newTc = [...testcases];
-                            newTc[idx].input = e.target.value;
-                            setTestcases(newTc);
-                          }}
-                          placeholder={`Input Case #${idx + 1}`}
-                          className="min-h-[80px] bg-white resize-none font-mono text-xs"
-                        />
-                        <Textarea
-                          value={tc.output}
-                          onChange={(e) => {
-                            const newTc = [...testcases];
-                            newTc[idx].output = e.target.value;
-                            setTestcases(newTc);
-                          }}
-                          placeholder={`Output Case #${idx + 1}`}
-                          className="min-h-[80px] bg-white resize-none font-mono text-xs"
-                        />
-                      </div>
-                    ))}
-                    <Button
-                      variant="outline" size="sm"
-                      onClick={() => setTestcases([...testcases, { index: testcases.length + 1, input: "", output: "", is_sample: true }])}
-                      className="w-full border-dashed text-slate-500"
-                    >
-                      <PlusCircle size={14} className="mr-2" /> 케이스 추가
-                    </Button>
+                  <div className="space-y-4 pt-2">
+                    <div className="flex justify-between items-center">
+                      <Label className="font-bold flex items-center gap-2">
+                        테스트케이스 설정 <span className="text-[10px] text-slate-400 font-normal">(최소 1개 필수)</span>
+                      </Label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setTestcases([...testcases, { index: testcases.length + 1, input: "", output: "", is_sample: false }])}
+                        className="h-8 rounded-lg border-dashed border-slate-300 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all"
+                      >
+                        <PlusCircle className="w-3 h-3 mr-2" />케이스 추가
+                      </Button>
+                    </div>
+
+                    <div className="space-y-5">
+                      {testcases.map((tc, idx) => (
+                        <div key={idx} className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-4 relative group transition-all hover:border-indigo-200">
+                          {/* 상단 헤더: 번호 및 삭제 버튼 */}
+                          <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="flex items-center justify-center w-6 h-6 bg-slate-900 text-white text-[10px] font-black rounded-md shadow-sm">
+                                #{idx + 1}
+                              </span>
+                              <span className="text-sm font-bold text-slate-700">Testcase</span>
+
+                              {/* 예제 여부 토글 (선택 사항) */}
+                              <label className="ml-3 flex items-center gap-1.5 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={tc.is_sample}
+                                  onChange={(e) => {
+                                    const newTc = [...testcases];
+                                    newTc[idx].is_sample = e.target.checked;
+                                    setTestcases(newTc);
+                                  }}
+                                  className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <span className="text-[11px] font-medium text-slate-500">예제로 공개</span>
+                              </label>
+                            </div>
+
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeTestcase(idx)}
+                              className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+
+                          {/* 입력/출력 텍스트 영역 */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-1.5 ml-1">
+                                <div className="w-1 h-3 bg-indigo-400 rounded-full" />
+                                <Label className="text-[11px] font-black uppercase tracking-tight text-slate-400">Standard Input</Label>
+                              </div>
+                              <Textarea
+                                value={tc.input}
+                                onChange={(e) => { const n = [...testcases]; n[idx].input = e.target.value; setTestcases(n); }}
+                                placeholder="프로그램에 입력될 데이터"
+                                className="min-h-[100px] text-xs font-mono bg-slate-50 border-0 focus-visible:ring-1 focus-visible:ring-indigo-400 rounded-xl p-4 resize-none leading-relaxed"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-1.5 ml-1">
+                                <div className="w-1 h-3 bg-emerald-400 rounded-full" />
+                                <Label className="text-[11px] font-black uppercase tracking-tight text-slate-400">Expected Output</Label>
+                              </div>
+                              <Textarea
+                                value={tc.output}
+                                onChange={(e) => { const n = [...testcases]; n[idx].output = e.target.value; setTestcases(n); }}
+                                placeholder="예상되는 정답 출력값"
+                                className="min-h-[100px] text-xs font-mono bg-slate-50 border-0 focus-visible:ring-1 focus-visible:ring-indigo-400 rounded-xl p-4 resize-none leading-relaxed"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="space-y-2.5 pt-2">
@@ -534,31 +686,90 @@ export default function ProblemCreatePage() {
               )}
 
               {/* [B] 실습 문제일 때 */}
-              {problemType === "ctf" && (
+              {problemType === "practice" && (
                 <div className="space-y-5 animate-in fade-in-30 duration-300">
                   <div className="space-y-2 pt-1">
                     <Label htmlFor="flag">Secret Flag 인증 문자열 <span className="text-red-500">*</span></Label>
                     <Input id="flag" value={flag} onChange={(e) => setFlag(e.target.value)} placeholder="DK{Correct_Flag_Here}" className="font-mono text-sm border-indigo-200" />
                   </div>
 
+                  {/* [추가] VM 환경 설정 입력란 */}
+                  <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-4 mt-2">
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">VM Environment Config</h4>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label>OS 이미지 <span className="text-red-500">*</span></Label>
+                        <Input value={osImage} onChange={(e) => setOsImage(e.target.value)} placeholder="ubuntu:22.04" className="font-mono text-sm bg-white" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>허용 명령어 (쉼표로 구분)</Label>
+                        <Input value={allowedCommandsInput} onChange={(e) => setAllowedCommandsInput(e.target.value)} placeholder="ls, cat, grep" className="font-mono text-sm bg-white" />
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label>CPU 제한 (Core)</Label>
+                        <Input type="number" step="0.1" value={cpuLimit} onChange={(e) => setCpuLimit(Number(e.target.value))} className="font-mono text-sm bg-white" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>메모리 제한</Label>
+                        <Input
+                          value={vmMemoryLimit}
+                          onChange={(e) => setVmMemoryLimit(e.target.value)}
+                          placeholder="512m, 1g"
+                          className="font-mono text-sm bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="space-y-2.5 pt-2">
-                    <Label>첨부 파일 업로드</Label>
-                    <div className="p-5 border-2 border-dashed border-slate-200 rounded-2xl text-center bg-slate-50 hover:bg-slate-100/50 cursor-pointer transition-colors">
+                    <Label>Dockerfile 업로드 (.zip) <span className="text-red-500">*</span></Label>
+                    <div className="relative p-5 border-2 border-dashed border-slate-200 rounded-2xl text-center bg-slate-50 hover:bg-slate-100/50 cursor-pointer transition-colors">
+                      <input
+                        type="file"
+                        accept=".zip"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files.length > 0) {
+                            setDockerfile(e.target.files[0]);
+                          }
+                        }}
+                      />
                       <Zap className="h-6 w-6 text-slate-300 mx-auto fill-current" />
-                      <span className="text-xs font-medium text-slate-500 mt-1 block">Click or Drag & Drop to upload binary/pcap/image</span>
+                      <span className="text-xs font-medium text-slate-500 mt-1 block">
+                        {dockerfile ? dockerfile.name : "Click or Drag & Drop to upload dockerfile.zip"}
+                      </span>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* [C] 객관식 문제일 때 (기존 UI를 확장) */}
+              {/* [C] 객관식 문제일 때 */}
               {problemType === "objective" && (
                 <div className="space-y-5 animate-in fade-in-30 duration-300">
                   <div className="space-y-4 pt-1">
-                    <Label>보기 설정 (최소 2개) <span className="text-red-500">*</span></Label>
+                    <Label className="flex justify-between items-center">
+                      <span>보기 설정 및 정답 선택 <span className="text-red-500">*</span></span>
+                      <span className="text-[10px] text-slate-400">왼쪽 체크박스를 눌러 정답을 고르세요 (중복 가능)</span>
+                    </Label>
+
                     <div className="space-y-3">
                       {choices.map((choice, idx) => (
-                        <div key={idx} className="flex items-center gap-3">
+                        <div key={idx} className="flex items-center gap-3 group">
+                          {/* 정답 토글 버튼 */}
+                          <div
+                            onClick={() => toggleAnswer(idx)}
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${selectedAnswers.includes(idx + 1)
+                              ? "bg-indigo-500 border-indigo-500 text-white"
+                              : "border-slate-200 text-transparent hover:border-indigo-300"
+                              }`}
+                          >
+                            <CheckCircle2 size={14} />
+                          </div>
+
                           <span className="font-bold text-slate-400 w-4">{idx + 1}.</span>
                           <Input
                             value={choice.content}
@@ -568,22 +779,31 @@ export default function ProblemCreatePage() {
                               setChoices(newChoices);
                             }}
                             placeholder={`보기 ${idx + 1} 내용`}
-                            className="flex-1"
+                            className={`flex-1 ${selectedAnswers.includes(idx + 1) ? "border-indigo-200 bg-indigo-50/30" : ""}`}
                           />
+                          {/* 삭제 버튼 */}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeChoice(idx)}
+                            className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
                         </div>
                       ))}
                     </div>
-                  </div>
-                  <div className="space-y-2 pt-4 border-t">
-                    <Label>정답 번호 선택 <span className="text-red-500">*</span></Label>
-                    <Select value={answerIdx.toString()} onValueChange={(val) => setAnswerIdx(Number(val))}>
-                      <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {choices.map((_, idx) => (
-                          <SelectItem key={idx} value={(idx + 1).toString()}>{idx + 1}번이 정답</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setChoices([...choices, { index: choices.length + 1, content: "" }])}
+                      className="w-full border-dashed text-slate-500 mt-2"
+                    >
+                      <PlusCircle className="w-4 h-4 mr-2" /> 보기 추가
+                    </Button>
                   </div>
                 </div>
               )}

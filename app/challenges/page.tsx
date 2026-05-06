@@ -46,7 +46,7 @@ export default function ProblemListPage() {
     "File System": <FileCode2 size={16} />
   };
 
-  // 1. 초기 랭킹 및 광고 데이터 로드 (마운트 시 1회)
+  // [API] 초기 랭킹 및 광고 데이터 로드 (마운트 시 1회)
   useEffect(() => {
     const fetchInitialData = async () => {
       const token = localStorage.getItem("token");
@@ -85,7 +85,7 @@ export default function ProblemListPage() {
     fetchInitialData();
   }, []);
 
-  // 2. 필터 또는 페이지가 변경될 때마다 문제 목록 재조회
+  // [API] 필터 또는 페이지가 변경될 때마다 문제 목록 재조회
   useEffect(() => {
     const fetchProblems = async () => {
       setIsLoading(true);
@@ -151,7 +151,7 @@ export default function ProblemListPage() {
     fetchProblems();
   }, [selectedCategory, selectedLevel, showUnsolved, currentPage]); // 의존성 배열에 파라미터 추가
 
-  // 핸들러: 필터 변경 시 페이지를 1로 리셋
+  // 필터 변경 시 페이지를 1로 리셋
   const handleCategoryChange = (cat: string) => {
     setSelectedCategory(cat);
     setCurrentPage(1);

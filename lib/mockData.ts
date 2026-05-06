@@ -45,12 +45,19 @@ export const mockNotifications = [
 
 // 1. [Challenges] 문제 목록 데이터
 export const mockChallenges = [
-  { id: "1", title: "라운드로빈 스케줄링", author: "박단용", category: "Process", level: "1", successRate: "78%", solved: true, summary: "CPU 스케줄링의 기초인 라운드로빈 알고리즘을 구현해보세요.", type: "coding" },
+  { id: "1", title: "라운드로빈 스케줄링 구현", author: "박단용", category: "Process", level: "1", successRate: "78%", solved: true, summary: "CPU 스케줄링의 기초인 라운드로빈 알고리즘을 코드로 구현해보세요.", type: "coding" },
   { id: "2", title: "FIFO 큐 시뮬레이션", author: "조트리버", category: "Process", level: "1", successRate: "75%", solved: true, summary: "먼저 들어온 데이터가 먼저 나가는 FIFO 구조를 이해합시다.", type: "coding" },
-  { id: "3", title: "커널 메모리 분석", author: "어굿이야", category: "Kernel", level: "2", successRate: "72%", solved: true, summary: "메모리 덤프 파일에서 커널 영역의 데이터를 추출하세요.", type: "coding" },
-  { id: "4", title: "시스템 콜 추적", author: "백준 고수", category: "Kernel", level: "2", successRate: "73%", solved: true, summary: "프로세스가 실행될 때 호출되는 시스템 콜의 순서를 분석합니다.", type: "coding" },
-  { id: "5", title: "MFT 엔트리 구조 분석", author: "오마에와", category: "File System", level: "3", successRate: "32%", solved: false, summary: "MFT 엔트리 헤더의 구조에 대해 올바르게 이해하고 있는지 확인합니다.", type: "objective" },
-  { id: "6", title: "숨겨진 루트킷 파일 찾기", author: "아단최", category: "File System", level: "4", successRate: "18%", solved: false, summary: "제공된 리눅스 서버 환경에서 루트킷에 의해 숨겨진 악성 스크립트를 찾으세요.", type: "practice" },
+  { id: "3", title: "커널 메모리 덤프 분석", author: "어굿이야", category: "Kernel", level: "2", successRate: "72%", solved: true, summary: "메모리 덤프 파일에서 특정 커널 구조체의 데이터를 추출하세요.", type: "coding" },
+  { id: "4", title: "시스템 콜 추적 (ptrace)", author: "백준 고수", category: "Kernel", level: "2", successRate: "73%", solved: true, summary: "프로세스가 실행될 때 호출되는 시스템 콜의 순서를 분석합니다.", type: "coding" },
+  { id: "5", title: "MFT 엔트리 헤더 구조", author: "오마에와", category: "File System", level: "3", successRate: "32%", solved: false, summary: "MFT 엔트리 헤더의 각 필드 의미를 올바르게 연결하세요.", type: "objective" },
+  { id: "6", title: "루트킷 숨김 파일 탐지", author: "아단최", category: "File System", level: "4", successRate: "18%", solved: false, summary: "리눅스 서버 환경에서 LKM 루트킷에 의해 숨겨진 스크립트를 찾으세요.", type: "practice" },
+  { id: "7", title: "식사하는 철학자 문제", author: "병렬마스터", category: "Thread", level: "3", successRate: "45%", solved: false, summary: "데드락(Deadlock) 현상을 방지하는 세마포어 로직을 작성하세요.", type: "coding" },
+  { id: "8", title: "힙 오버플로우 분석", author: "PwnStar", category: "Memory", level: "4", successRate: "21%", solved: false, summary: "동적 할당 영역에서 발생하는 취약점을 분석하여 플래그를 획득하세요.", type: "practice" },
+  { id: "9", title: "좀비 프로세스 청소", author: "유닉스장인", category: "Process", level: "2", successRate: "60%", solved: true, summary: "부모 프로세스가 자식을 제대로 수거하지 않아 생긴 좀비를 처리하세요.", type: "coding" },
+  { id: "10", title: "데드락 탐지 알고리즘", author: "박단용", category: "Thread", level: "3", successRate: "38%", solved: false, summary: "자원 할당 그래프를 통해 데드락 발생 여부를 판별하는 퀴즈입니다.", type: "objective" },
+  { id: "11", title: "페이지 교체 LRU 구현", author: "메모리박사", category: "Memory", level: "2", successRate: "55%", solved: true, summary: "가장 오랫동안 참조되지 않은 페이지를 교체하는 알고리즘을 구현하세요.", type: "coding" },
+  { id: "12", title: "EXT4 저널 복구", author: "포렌식경장", category: "File System", level: "5", successRate: "8%", solved: false, summary: "파손된 EXT4 파일 시스템의 저널 로그를 분석하여 파일을 복구하세요.", type: "practice" },
+  { id: "13", title: "EXT4 저널 복구2", author: "포렌식경장", category: "File System", level: "5", successRate: "8%", solved: false, summary: "파손된 EXT4 파일 시스템의 저널 로그를 분석하여 파일을 복구하세요.", type: "objective" },
 ];
 
 // 2. [Challenges Detail] 기본 문제 상세 데이터
