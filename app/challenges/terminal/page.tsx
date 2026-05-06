@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation"; 
 import { 
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 
-export default function PracticePage() {
+function PracticeContent() {
   // 라우터와 URL 파라미터 가져오기
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -394,4 +394,16 @@ function NavMenuLink({ href, icon, label, active = false }: { href: string; icon
       {label}
     </Link>
   );
+}
+
+export default function PracticePage() {
+  return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+          <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        </div>
+      }>
+        <PracticeContent />
+      </Suspense>
+    );
 }

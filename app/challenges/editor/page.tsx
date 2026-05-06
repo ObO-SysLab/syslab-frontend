@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
 import {
   FileText, Play, LogOut, Bell, LayoutGrid, Users, BarChart3,
@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function MonacoSubmitPage() {
+function MonacoSubmitContent() {
   const CODE_SNIPPETS: Record<string, string> = {
     c: `#include <stdio.h>\n\nint main() {\n    return 0;\n}`,
     cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    return 0;\n}`,
@@ -263,4 +263,16 @@ function NavMenuLink({
       {label}
     </Link>
   );
+}
+
+export default function MonacoSubmitPage() {
+  return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+          <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        </div>
+      }>
+        <MonacoSubmitContent />
+      </Suspense>
+    );
 }

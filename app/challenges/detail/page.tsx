@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Search, Settings, LogOut, User, Menu, MessageSquare, Bell, Share2,
@@ -20,7 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { mockChallenges, mockChallenge, mockAds, mockFullRankings, mockSubmissions, mockComments, mockReplies, mockFirstBlood } from "@/lib/mockData";
 
 
-export default function ProblemDetailPage() {
+function ProblemDetailContent() {
   // API 연동 스위치
   const USE_API_REQUEST = true;
 
@@ -1224,5 +1224,17 @@ function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNod
       <span className="text-slate-400 group-hover:text-slate-900">{icon}</span>
       {label}
     </Link>
+  );
+}
+
+export default function ProblemDetailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      </div>
+    }>
+      <ProblemDetailContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-export default function SubmissionDetailPage() {
+function SubmissionDetailContent() {
   const searchParams = useSearchParams(); // URL 쿼리 파라미터 가져오기
   const router = useRouter();
 
@@ -40,7 +40,7 @@ export default function SubmissionDetailPage() {
       if (token) {
         setIsLoggedIn(true);
       }
-      
+
       try {
         const res = await fetch(`https://diveon.net/api/submissions/${submissionId}/result`, {
           headers: { "Authorization": `Bearer ${token}` }
@@ -288,5 +288,17 @@ function NavMenuLink({ href, icon, label, active = false }: { href: string; icon
       <span>{icon}</span>
       {label}
     </Link>
+  );
+}
+
+export default function SubmissionDetailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      </div>
+    }>
+      <SubmissionDetailContent />
+    </Suspense>
   );
 }
