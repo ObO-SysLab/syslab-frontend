@@ -25,11 +25,11 @@ export default function SettingsPage() {
   // [상태 관리] 현재 활성화된 탭 (profile, security, notifications, appearance)
   const [activeTab, setActiveTab] = useState("profile");
 
-  // [기능 추가] 프로필 데이터를 저장할 상태
+  // 프로필 데이터를 저장할 상태
   const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // [기능 추가] 페이지 로드 시 토큰을 사용하여 데이터 요청
+  // 페이지 로드 시 토큰을 사용하여 데이터 요청
   useEffect(() => {
     const fetchProfile = async () => {
       const token = localStorage.getItem("token"); // 저장된 토큰 가져오기
@@ -197,17 +197,17 @@ export default function SettingsPage() {
 /* -------------------------------------------------------------------------- */
 function ProfileSection({ data }: { data: any }) {
   // [기능 수정] API 응답 구조(data.data.user_info)에 맞춰 경로 설정
-  const info = data?.data?.user_info;
+  const info = data?.data?.userInfo;
 
   const defaultProfile = {
-    nickname: info?.nick_name || "박단용",
-    avatar: info?.profile_img_url || "/avatar.png",
-    bio: info?.self_comment || "디지털 포렌식 전문가를 꿈꾸는 개발자입니다.",
-    realName: info?.real_name || "박단용",
-    birth: info?.birth_date || "2003년 05월 26일",
-    createdAt: info?.created_at || "2026년 03월 05일",
+    nickname: info?.nickname || "박단용",
+    avatar: info?.profileImgUrl || "/avatar.png",
+    bio: info?.selfComment || "디지털 포렌식 전문가를 꿈꾸는 개발자입니다.",
+    realName: info?.realName || "박단용",
+    birth: info?.birthDate || "2003년 05월 26일",
+    createdAt: info?.createdAt || "2026년 03월 05일",
     email: info?.email || "dy.park@dankook.ac.kr",
-    phone: info?.phone_number || "010-1234-5678",
+    phone: info?.phoneNumber || "010-1234-5678",
     org: info?.belong || "단국대학교 소프트웨어학과",
     // 관심 분야가 문자열로 올 경우를 대비해 처리 (배열이 아닐 경우 기본 배열 사용)
     interests: Array.isArray(info?.interest) 

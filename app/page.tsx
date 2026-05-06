@@ -15,7 +15,7 @@ import { mockUser, mockFeaturedProblems } from "@/lib/mockData"
 
 
 export default function HomePage() {
-  // 현재 로그인 상태를 관리 (나중에는 실제 토큰 유무로 판단)
+  // 현재 로그인 상태를 관리
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false); 
   const [userName, setUserName] = useState("Guest"); 
@@ -25,11 +25,11 @@ export default function HomePage() {
     if (token) {
       setIsLoggedIn(true);
       
-      // 💡 실제로는 아래처럼 로컬스토리지에 저장해 둔 정보를 가져오거나 토큰을 디코딩합니다.
+      // 실제로는 아래처럼 로컬스토리지에 저장해 둔 정보를 가져오거나 토큰을 디코딩합니다.
       // const storedRole = localStorage.getItem("role"); 
       // const storedName = localStorage.getItem("nickname");
       
-      // 🚨 임시 테스트용 조건 (실제 서비스에서는 지우고 위 로직 사용)
+      // 임시 테스트용 조건 (실제 서비스에서는 지우고 위 로직 사용)
       const isTestAdmin = true; 
 
       if (isTestAdmin /* || storedRole === "admin" */) {

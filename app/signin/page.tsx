@@ -1,28 +1,28 @@
 "use client";
 
-import { useState } from "react"; // [추가]
-import { useRouter } from "next/navigation"; // [추가] 리다이렉트용
+import { useState } from "react"; //
+import { useRouter } from "next/navigation"; // 리다이렉트용
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react"; // [추가] 로딩 스피너
+import { Loader2 } from "lucide-react"; // 로딩 스피너
 
 export default function LoginPage() {
   const router = useRouter();
 
-  // 1. 입력 데이터 및 상태 관리
+  // 입력 데이터 및 상태 관리
   const [formData, setFormData] = useState({ id: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 2. 입력값 변경 핸들러
+  // 입력값 변경 핸들러
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-  // 3. API 요청 함수
+  // 3. [API] 로그인 요청
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -33,7 +33,7 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          login_id: formData.id, 
+          loginId: formData.id, 
           password: formData.password,
         }),
       });
@@ -42,7 +42,7 @@ export default function LoginPage() {
       
       if (response.ok) {
         console.log("로그인 성공:", result);
-        localStorage.setItem("token", result.data.access_token); 
+        localStorage.setItem("token", result.data.accessToken); 
         window.location.href = "/";
       } else {
         setError(result.message || "아이디 또는 비밀번호가 일치하지 않습니다.");

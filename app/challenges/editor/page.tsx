@@ -7,7 +7,7 @@ import {
   Trophy, ShoppingBag, Menu
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -18,15 +18,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// [템플릿] 언어별 기본 코드
-const CODE_SNIPPETS: Record<string, string> = {
-  c: `#include <stdio.h>\n\nint main() {\n    // 여기에 코드를 작성하세요\n    return 0;\n}`,
-  cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    // 여기에 코드를 작성하세요\n    return 0;\n}`,
-  python: `def solution():\n    # 여기에 코드를 작성하세요\n    pass\n\nif __name__ == "__main__":\n    solution()`,
-};
-
 export default function MonacoSubmitPage() {
+  const CODE_SNIPPETS: Record<string, string> = {
+    c: `#include <stdio.h>\n\nint main() {\n    return 0;\n}`,
+    cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    return 0;\n}`,
+    python: `def solution():\n    pass\n\nif __name__ == "__main__":\n    solution()`, // python -> python
+  };
   const searchParams = useSearchParams();
+  const router = useRouter();
   const probId = searchParams.get('id')
   const USE_API_REQUEST = true;
   const [problemTitle, setProblemTitle] = useState("문제 정보 불러오는 중...");
@@ -83,15 +82,48 @@ export default function MonacoSubmitPage() {
     setCode(CODE_SNIPPETS[lang]);
   };
 
-  // 제출 시뮬레이션
-  const handleSubmit = () => {
-    setIsSubmitting(true);
 
-    // 실제 서버 연동 시 이곳에 API 요청을 작성하세요
-    setTimeout(() => {
-      alert("답안이 성공적으로 제출되었습니다.");
+  // [API] 코드 제출
+  const handleSubmit = async () => {
+    if (!code.trim()) {
+      alert("코드를 입력해주세요.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await fetch(`https://diveon.net/api/submissions/grade`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          probId: Number(probId), // 명세서의 probId (integer)
+          language: language,     // 선택된 언어 (c, cpp, python 등)
+          answer: code            // 작성한 소스 코드
+        })
+      });
+
+      if (response.ok) {
+        alert("채점 요청이 접수되었습니다.");
+        const json = await response.json();
+        const newId = json.data.submissionId;
+        sessionStorage.setItem(`pending_sub_${probId}`, newId);
+        // 채점 현황을 바로 볼 수 있도록 상세 페이지의 채점 탭으로 이동
+        window.location.href = `/challenges/detail/?id=${probId}`;
+      } else {
+        const errorData = await response.json();
+        alert(`제출 실패: ${errorData.message || "오류 발생"}`);
+      }
+    } catch (error) {
+      console.error("제출 에러:", error);
+      alert("서버 통신 오류가 발생했습니다.");
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -158,7 +190,7 @@ export default function MonacoSubmitPage() {
                 <SelectContent>
                   <SelectItem value="c" className="font-mono">C</SelectItem>
                   <SelectItem value="cpp" className="font-mono">C++</SelectItem>
-                  <SelectItem value="python" className="font-mono">Python</SelectItem>
+                  <SelectItem value="python" className="font-mono">python</SelectItem> {/* value 수정 */}
                 </SelectContent>
               </Select>
             </div>
