@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { 
-  Menu, Trophy, Settings, LogOut, User, Calendar as CalendarIcon, 
-  Clock, ShieldAlert, Award, Users, Info, Plus, Trash2, Check
+  Menu, Trophy, Settings, LogOut, Calendar, Clock, ShieldAlert, Award, Info, Plus, Bell,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,23 +13,67 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ContestCreatePage() {
+  // [STATE] 페이지
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
+  // [STATE] 폼 데이터 
+  const [isRewardEnabled, setIsRewardEnabled] = useState(false);
+  const [tags, setTags] = useState("");
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setIsLoggedIn(false);
+    window.location.href = "/";
+  };
   
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       
-      {/* 1. 헤더 (관리자 모드 강조) */}
-      <header className="sticky top-0 z-50 w-full border-b bg-slate-900 px-6 h-16 flex items-center justify-between text-white">
+      {/* 1. 고정 헤더 */}
+      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
+        {/* [A] Diveon 로고 영역 */}
         <div className="flex items-center gap-4">
-          <Menu className="h-6 w-6 text-slate-400 cursor-pointer lg:hidden" />
-          <Link href="/" className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            Diveon <Badge className="bg-amber-500 text-[10px] text-white border-none">CONTEST ADMIN</Badge>
+          <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
+          <Link href="/" className="text-xl font-bold tracking-tight text-slate-900">
+            Diveon<span className="text-[10px] font-black text-indigo-500 ml-1">ADMIN</span>
           </Link>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-sm font-medium text-slate-400">contest_admin@dankook.ac.kr</div>
-          <button className="p-2 hover:bg-slate-800 rounded-full text-red-400"><LogOut className="h-5 w-5" /></button>
+
+        {/* [B] 우측 사용자 영역 */}
+        <div className="flex items-center gap-3">
+          {isLoggedIn ? (
+            /* --- 로그인된 상태: 알림 + 프로필 + 로그아웃 --- */
+            <>
+              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              </button>
+              <Link href="/settings">
+                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 cursor-pointer transition-all">
+                  <AvatarImage src="/avatar.png" alt="User" />
+                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                </Avatar>
+              </Link>
+              <button onClick={handleLogout} className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors">
+                <LogOut className="h-5 w-5" />
+              </button>
+            </>
+          ) : (
+            /* --- 로그아웃된 상태 (보통 리다이렉트 되지만 렌더링 방어용) --- */
+            <div className="flex items-center gap-2">
+              <Link href="/signin">
+                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+              </Link>
+              <Link href="/signup">
+                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </header>
 
@@ -91,36 +134,72 @@ export default function ContestCreatePage() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2"><Trophy className="w-5 h-5 text-amber-500" /> 기본 정보</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-5">
+            <CardContent className="space-y-6">
+              
+              {/* 대회 명칭 */}
               <div className="grid gap-2">
                 <Label htmlFor="contest-title">대회 명칭 <span className="text-red-500">*</span></Label>
-                <Input id="contest-title" placeholder="예: 2026 단국대 사이버 보안 경진대회" className="text-lg font-bold h-12" />
+                <Input id="contest-title" placeholder="..." className="text-lg font-bold h-12" />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              {/* 대회 소개 */}
+              <div className="grid gap-2">
+                <Label htmlFor="contest-desc">대회 소개 <span className="text-red-500">*</span></Label>
+                <Textarea 
+                  id="contest-desc" 
+                  placeholder="대회의 목적, 주제 등 포스터 탭에 노출될 상세한 소개를 입력하세요." 
+                  className="min-h-[100px] resize-none" 
+                />
+              </div>
+
+              {/* 유형 및 대상 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label>대회 유형</Label>
-                  <Select defaultValue="ctf">
+                  <Select defaultValue="official">
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ctf">CTF (Jeopardy)</SelectItem>
-                      <SelectItem value="forensics">Digital Forensics Challenge</SelectItem>
-                      <SelectItem value="algo">Algorithm (PS)</SelectItem>
-                      <SelectItem value="attack-defense">Attack & Defense</SelectItem>
+                      <SelectItem value="official">공식</SelectItem>
+                      <SelectItem value="group">그룹</SelectItem>
+                      <SelectItem value="class">수업</SelectItem>
+                      <SelectItem value="individual">개인</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                {/* 참여 유형 (개인/팀) */}
                 <div className="space-y-2">
-                  <Label>참여 대상</Label>
-                  <Select defaultValue="all">
+                  <Label>참여 유형</Label>
+                  <Select defaultValue="individual">
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">누구나 참여 가능</SelectItem>
-                      <SelectItem value="student">단국대학교 학생 전용</SelectItem>
-                      <SelectItem value="group">특정 그룹 전용</SelectItem>
+                      <SelectItem value="individual">개인전</SelectItem>
+                      <SelectItem value="team">팀전</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* 참여 대상 수정 (공개/그룹) */}
+                <div className="space-y-2">
+                  <Label>참여 대상</Label>
+                  <Select defaultValue="public">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="public">공개 (누구나)</SelectItem>
+                      <SelectItem value="group">그룹 공개 (특정 그룹 전용)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+              {/* 태그 */}
+              <div className="grid gap-2">
+                <Label htmlFor="contest-tags">대회 태그</Label>
+                <Input 
+                  id="contest-tags" 
+                  placeholder="예: 웹해킹, 리버싱, 대학생 (쉼표로 구분하여 입력)" 
+                  value={tags} 
+                  onChange={(e) => setTags(e.target.value)} 
+                />
+              </div>
+
             </CardContent>
           </Card>
 
@@ -130,7 +209,7 @@ export default function ContestCreatePage() {
                 <CardTitle className="text-lg flex items-center gap-2"><Clock className="w-5 h-5 text-indigo-500" /> 일정 설정</CardTitle>
              </CardHeader>
              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                    <div className="space-y-3">
                       <Label className="text-indigo-600 font-bold">대회 시작 일시</Label>
                       <Input type="datetime-local" className="h-11 font-mono" />
@@ -139,11 +218,16 @@ export default function ContestCreatePage() {
                       <Label className="text-red-600 font-bold">대회 종료 일시</Label>
                       <Input type="datetime-local" className="h-11 font-mono" />
                    </div>
+                   {/* 진행 시간 */}
+                   <div className="space-y-3">
+                      <Label className="font-bold text-slate-700">진행 시간</Label>
+                      <Input type="number" placeholder="예: 8" className="h-11 font-mono" />
+                   </div>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-xl border flex items-center gap-3">
+                {/* <div className="p-4 bg-slate-50 rounded-xl border flex items-center gap-3">
                    <Checkbox id="show-timer" defaultChecked />
                    <Label htmlFor="show-timer" className="text-sm font-medium cursor-pointer">대회 페이지 상단에 실시간 타이머 노출</Label>
-                </div>
+                </div> */}
              </CardContent>
           </Card>
 
@@ -152,28 +236,48 @@ export default function ContestCreatePage() {
              <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2"><Award className="w-5 h-5 text-emerald-500" /> 보상 및 규칙</CardTitle>
              </CardHeader>
-             <CardContent className="space-y-5">
-                <div className="space-y-2">
-                   <Label>대회 보상 및 혜택</Label>
-                   <Input placeholder="예: 상금 100만원, 총장 표창, 채용 우대권 등" />
+             <CardContent className="space-y-6">
+                
+                {/* 보상 ON/OFF 로직 */}
+                <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                   <div className="flex items-center gap-2">
+                     <Checkbox 
+                       id="reward-toggle" 
+                       checked={isRewardEnabled} 
+                       onCheckedChange={(checked) => setIsRewardEnabled(checked as boolean)} 
+                     />
+                     <Label htmlFor="reward-toggle" className="font-bold cursor-pointer text-slate-800">
+                       대회 보상 제공 여부
+                     </Label>
+                   </div>
+                   
+                   {/* 토글이 ON일 때만 입력칸 렌더링 */}
+                   {isRewardEnabled && (
+                     <div className="space-y-2 pl-6 animate-in fade-in duration-300">
+                        <Label>보상 및 혜택 내역</Label>
+                        <Input placeholder="예: 상금 100만원, 총장 표창, 채용 우대권 등" className="bg-white" />
+                     </div>
+                   )}
                 </div>
+
                 <div className="space-y-2">
-                   <Label>참가 규칙 및 주의사항</Label>
+                   <Label>참가 규칙 및 주의사항 <span className="text-red-500">*</span></Label>
                    <Textarea 
                      placeholder="대회 중 금지 행위(부정행위, 공격 등)와 순위 산정 기준을 입력하세요." 
                      className="min-h-[120px] resize-none"
                    />
                 </div>
-                <div className="flex items-center gap-4 pt-2">
+
+                {/* <div className="flex items-center gap-4 pt-2">
                    <div className="flex items-center gap-2">
-                     <Checkbox id="rank-reveal" />
-                     <Label htmlFor="rank-reveal" className="text-xs font-bold">실시간 순위 공개</Label>
+                     <Checkbox id="rank-reveal" defaultChecked />
+                     <Label htmlFor="rank-reveal" className="text-sm font-bold cursor-pointer">실시간 순위 공개</Label>
                    </div>
                    <div className="flex items-center gap-2">
                      <Checkbox id="hint-open" />
-                     <Label htmlFor="hint-open" className="text-xs font-bold">시간별 자동 힌트 공개 활성화</Label>
+                     <Label htmlFor="hint-open" className="text-sm font-bold cursor-pointer">시간별 자동 힌트 공개 활성화</Label>
                    </div>
-                </div>
+                </div> */}
              </CardContent>
           </Card>
 
