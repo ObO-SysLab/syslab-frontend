@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import {
@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { mockTopRankers } from "@/lib/mockData";
 
 
-export default function GroupDetailPage() {
+function GroupDetailPage() {
   // [STATE] 페이지
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -1655,5 +1655,17 @@ function PaginationUI({ currentPage, totalPages, onPageChange }: { currentPage: 
         다음
       </Button>
     </div>
+  );
+}
+
+export default function ProblemDetailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      </div>
+    }>
+      <GroupDetailPage />
+    </Suspense>
   );
 }
