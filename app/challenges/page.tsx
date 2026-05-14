@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
-  Search, Bell, LogOut, Menu, CheckCircle2, Code2, SearchCode, 
+import {
+  Search, Bell, LogOut, Menu, CheckCircle2, Code2, SearchCode,
   LayoutGrid, Users, BarChart3, ShoppingBag, Trophy,
   Cpu, Activity, GitBranch, Database, FileCode2, Layers, Plus
 } from "lucide-react";
@@ -19,23 +19,23 @@ export default function ProblemListPage() {
   // API 연동 스위치
   const USE_API_REQUEST = true;
 
-  // 로그인 상태
+  // 페이지 상태
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   // 필터 상태
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
-  const [showUnsolved, setShowUnsolved] = useState(false);  
-  
+  const [showUnsolved, setShowUnsolved] = useState(false);
+
   // 데이터 상태
   const [problems, setProblems] = useState<any[]>([]);
   const [totalProblems, setTotalProblems] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
   const [myRank, setMyRank] = useState<any>(null);
   const [ads, setAds] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const [totalPages, setTotalPages] = useState(1);
 
   const categoryIcons: Record<string, React.ReactNode> = {
     "All": <Layers size={16} />,
@@ -51,7 +51,7 @@ export default function ProblemListPage() {
     const fetchInitialData = async () => {
       const token = localStorage.getItem("token");
       if (token) setIsLoggedIn(true);
-      
+
       // 테스트
       if (!USE_API_REQUEST) {
         setMyRank({ rank: mockMyRanking.ranking, total: mockMyRanking.total });
@@ -85,7 +85,7 @@ export default function ProblemListPage() {
     fetchInitialData();
   }, []);
 
-  // [API] 필터 또는 페이지가 변경될 때마다 문제 목록 재조회
+  // [API] 문제 목록 재조회
   useEffect(() => {
     const fetchProblems = async () => {
       setIsLoading(true);
@@ -123,8 +123,8 @@ export default function ProblemListPage() {
 
       // Query Parameter 구성
       const params = new URLSearchParams();
-      params.append("page", (currentPage).toString()); 
-      params.append("size", "10"); 
+      params.append("page", (currentPage).toString());
+      params.append("size", "10");
       if (selectedCategory !== "All") params.append("category", selectedCategory.toLowerCase());
       if (selectedLevel) params.append("difficulty", selectedLevel);
       if (showUnsolved) params.append("unsolved", "true"); // 백엔드 처리용 플래그
@@ -151,7 +151,7 @@ export default function ProblemListPage() {
     fetchProblems();
   }, [selectedCategory, selectedLevel, showUnsolved, currentPage]); // 의존성 배열에 파라미터 추가
 
-  // 필터 변경 시 페이지를 1로 리셋
+  // [HANDLER] 필터 변경 시 페이지를 1로 리셋
   const handleCategoryChange = (cat: string) => {
     setSelectedCategory(cat);
     setCurrentPage(1);
@@ -172,7 +172,7 @@ export default function ProblemListPage() {
 
       {/* 1. 고정 헤더 */}
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-        { /* [A] Diveon 로고 영역 */ }
+        { /* [A] Diveon 로고 영역 */}
         <div className="flex items-center gap-8">
           <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
           <Link href="/" className="text-2xl font-black tracking-tighter text-slate-900 mr-4">
@@ -188,8 +188,8 @@ export default function ProblemListPage() {
             <NavMenuLink href="/store" icon={<ShoppingBag size={18} />} label="스토어" />
           </nav>
         </div>
-        
-        { /* [C] 검색창 영역 */ }
+
+        { /* [C] 검색창 영역 */}
         <div className="flex-1 max-w-sm px-4">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
@@ -197,7 +197,7 @@ export default function ProblemListPage() {
           </div>
         </div>
 
-        { /* [D] 우측 사용자 영역 */ }
+        { /* [D] 우측 사용자 영역 */}
         <div className="flex items-center gap-3">
           {isLoggedIn ? (
             /* --- 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
@@ -212,7 +212,7 @@ export default function ProblemListPage() {
                   <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
                 </Avatar>
               </Link>
-              <button 
+              <button
                 onClick={() => {
                   localStorage.removeItem("token");
                   setIsLoggedIn(false);
@@ -237,38 +237,37 @@ export default function ProblemListPage() {
           )}
         </div>
       </header>
-      
+
       {/* 2. 메인 컨텐츠 영역 */}
       <main className="container mx-auto max-w-[1500px] pt-8 grid grid-cols-1 md:grid-cols-12 gap-8 px-4 pb-12">
-        
+
         {/* [A] 좌측 사이드바 (2칸) */}
         <aside className="hidden md:block col-span-2 space-y-6">
           <div>
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Categories</h3>
             <nav className="space-y-1">
               {["All", "Kernel", "Process", "Thread", "Memory", "File System"].map((cat) => (
-                <CategoryItem 
+                <CategoryItem
                   key={cat}
-                  icon={categoryIcons[cat] || <Code2 size={16}/>} 
-                  label={cat} 
+                  icon={categoryIcons[cat] || <Code2 size={16} />}
+                  label={cat}
                   active={selectedCategory === cat}
                   onClick={() => handleCategoryChange(cat)}
                 />
               ))}
             </nav>
           </div>
-          
+
           <div className="pt-4 border-t">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Difficulty</h3>
             <div className="flex flex-wrap gap-2">
               {/* 배열을 숫자 문자열로 변경 */}
               {["1", "2", "3", "4", "5"].map(lvl => (
-                <Badge 
-                  key={lvl} 
-                  variant={selectedLevel === lvl ? "default" : "outline"} 
-                  className={`cursor-pointer px-3 py-1 transition-all ${
-                    selectedLevel === lvl ? "bg-slate-900 text-white" : "hover:bg-slate-100"
-                  }`}
+                <Badge
+                  key={lvl}
+                  variant={selectedLevel === lvl ? "default" : "outline"}
+                  className={`cursor-pointer px-3 py-1 transition-all ${selectedLevel === lvl ? "bg-slate-900 text-white" : "hover:bg-slate-100"
+                    }`}
                   onClick={() => handleLevelChange(lvl)}
                 >
                   Lvl {lvl} {/* 보여줄 때만 Lvl을 붙임 */}
@@ -278,19 +277,19 @@ export default function ProblemListPage() {
           </div>
 
           <Separator />
-          
+
           {/* API 연동된 내 랭킹 영역 */}
           {myRank && (
             <div className="p-5 bg-slate-900 rounded-2xl text-white space-y-3 shadow-lg">
-                <p className="text-xs font-bold text-indigo-400 uppercase tracking-tighter">My Ranking</p>
-                <p className="text-2xl font-black italic">#{myRank.rank} <span className="text-sm font-normal text-slate-400">/ {myRank.total}</span></p>
-                <Button variant="secondary" size="sm" className="w-full text-xs font-bold bg-white text-slate-900 hover:bg-slate-200">
-                  내 전적 보기
-                </Button>
+              <p className="text-xs font-bold text-indigo-400 uppercase tracking-tighter">My Ranking</p>
+              <p className="text-2xl font-black italic">#{myRank.rank} <span className="text-sm font-normal text-slate-400">/ {myRank.total}</span></p>
+              <Button variant="secondary" size="sm" className="w-full text-xs font-bold bg-white text-slate-900 hover:bg-slate-200">
+                내 전적 보기
+              </Button>
             </div>
           )}
         </aside>
-        
+
         {/* [B] 중앙 문제 리스트 (8칸) */}
         <section className="col-span-12 md:col-span-8 space-y-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6">
@@ -299,8 +298,8 @@ export default function ProblemListPage() {
               <p className="text-slate-500 font-medium">검색된 문제: {totalProblems}개</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant={showUnsolved ? "default" : "outline"} 
+              <Button
+                variant={showUnsolved ? "default" : "outline"}
                 size="sm"
                 className="rounded-xl font-bold transition-all"
                 onClick={handleUnsolvedToggle}
@@ -308,8 +307,8 @@ export default function ProblemListPage() {
                 {showUnsolved ? "모든 문제 보기" : "미해결 문제만 보기"}
               </Button>
               <Button size="sm" variant="outline" className="rounded-xl font-bold">랜덤 문제</Button>
-              
-              {/* [추가된 문제 생성하기 버튼] */}
+
+              {/* 문제 생성 버튼 */}
               <Link href="/challenges/create">
                 <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md shadow-indigo-200 transition-all">
                   <Plus className="w-4 h-4 mr-1.5" /> 문제 생성하기
@@ -318,16 +317,17 @@ export default function ProblemListPage() {
             </div>
           </div>
 
+          {/* 문제 목록 리스트 */}
           <div className="flex flex-col gap-3 min-h-[400px] relative">
             {isLoading ? (
               <div className="absolute inset-0 flex items-center justify-center">
-                 <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
               </div>
             ) : problems.length > 0 ? (
               problems.map((prob) => (
-                <Link 
-                  key={prob.probId} 
-                  href={`/challenges/detail?id=${prob.probId}`} 
+                <Link
+                  key={prob.probId}
+                  href={`/challenges/detail?id=${prob.probId}`}
                   className="block group"
                 >
                   <Card className="p-4 hover:shadow-md transition-all cursor-pointer border-slate-100 rounded-xl overflow-hidden group-hover:border-indigo-200 group-hover:bg-indigo-50/5">
@@ -355,7 +355,7 @@ export default function ProblemListPage() {
                               출제자: {prob.author}
                             </p>
                             <span className="text-slate-300 text-[10px]">|</span>
-                            
+
                             {/* [수정] 카테고리 뱃지 */}
                             <Badge variant="outline" className="px-2 py-0 h-5 text-[10px] font-bold tracking-tight text-slate-500 bg-white border-slate-200 shrink-0 capitalize">
                               {prob.category}
@@ -363,9 +363,9 @@ export default function ProblemListPage() {
 
                             {/* 문제 유형 뱃지 */}
                             <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-black tracking-tight text-indigo-600 bg-indigo-50 border border-indigo-100 shrink-0">
-                              {prob.type === "objective" ? "객관식" : 
-                               prob.type === "coding" ? "코딩" : 
-                               prob.type === "practice" ? "실습(CTF)" : "기타"}
+                              {prob.type === "objective" ? "객관식" :
+                                prob.type === "coding" ? "코딩" :
+                                  prob.type === "practice" ? "실습(CTF)" : "기타"}
                             </Badge>
                           </div>
                         </div>
@@ -381,7 +381,7 @@ export default function ProblemListPage() {
                           </p>
                         </div>
                         <div className="w-20 flex justify-end">
-                          <Badge 
+                          <Badge
                             className={`
                               rounded-full px-2.5 py-0.5 text-[10px] font-black border uppercase tracking-tight
                               ${prob.difficulty === "1" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : ""}
@@ -406,45 +406,45 @@ export default function ProblemListPage() {
               </div>
             )}
           </div>
-          
+
           {/* API 연동된 페이지네이션 */}
           {totalProblems > 0 && (
             <div className="flex justify-center gap-2 pt-6">
-               <Button 
-                 variant="outline" 
-                 size="sm" 
-                 disabled={currentPage === 1}
-                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                 className="rounded-lg"
-               >
-                 이전
-               </Button>
-               
-               {Array.from({ length: totalPages }).map((_, i) => (
-                 <Button 
-                   key={i}
-                   variant="outline" 
-                   size="sm" 
-                   onClick={() => setCurrentPage(i + 1)}
-                   className={`rounded-lg ${currentPage === i + 1 ? 'bg-slate-950 text-white border-slate-950' : ''}`}
-                 >
-                   {i + 1}
-                 </Button>
-               ))}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                className="rounded-lg"
+              >
+                이전
+              </Button>
 
-               <Button 
-                 variant="outline" 
-                 size="sm" 
-                 disabled={currentPage === totalPages}
-                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                 className="rounded-lg"
-               >
-                 다음
-               </Button>
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <Button
+                  key={i}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`rounded-lg ${currentPage === i + 1 ? 'bg-slate-950 text-white border-slate-950' : ''}`}
+                >
+                  {i + 1}
+                </Button>
+              ))}
+
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                className="rounded-lg"
+              >
+                다음
+              </Button>
             </div>
           )}
         </section>
-          
+
         {/* [C] 우측 광고 패널 (2칸) */}
         <aside className="hidden md:block col-span-2">
           <div className="sticky top-24 space-y-4">
@@ -470,11 +470,10 @@ export default function ProblemListPage() {
 
 function NavMenuLink({ href, icon, label, active = false }: { href: string; icon: React.ReactNode; label: string; active?: boolean }) {
   return (
-    <Link 
-      href={href} 
-      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-        active ? "text-indigo-600 bg-indigo-50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
-      }`}
+    <Link
+      href={href}
+      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active ? "text-indigo-600 bg-indigo-50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+        }`}
     >
       <span>{icon}</span>
       {label}
@@ -484,13 +483,12 @@ function NavMenuLink({ href, icon, label, active = false }: { href: string; icon
 
 function CategoryItem({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick: () => void }) {
   return (
-    <div 
+    <div
       onClick={onClick}
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-        active 
-          ? "bg-slate-950 text-white shadow-lg shadow-slate-200" 
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${active
+          ? "bg-slate-950 text-white shadow-lg shadow-slate-200"
           : "text-slate-500 hover:bg-slate-50 hover:text-slate-950"
-      }`}
+        }`}
     >
       <span className={active ? "text-white" : "text-slate-400 group-hover:text-slate-950"}>{icon}</span>
       <span>{label}</span>

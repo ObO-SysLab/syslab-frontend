@@ -58,6 +58,11 @@ function ProblemDetailContent() {
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [isGradingInProgress, setIsGradingInProgress] = useState(false);
 
+  // [STATE] 그룹 추가 관련 상태
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [myGroups, setMyGroups] = useState<any[]>([]);
+  const [isFetchingGroups, setIsFetchingGroups] = useState(false);
+
   // [API] 데이터 초기 로드
   useEffect(() => {
     const fetchPageData = async () => {
@@ -149,7 +154,7 @@ function ProblemDetailContent() {
         const pendingId = sessionStorage.getItem(`pending_sub_${probId}`);
         if (pendingId) {
           const exists = items.find((s: any) => String(s.submissionId) === String(pendingId));
-          
+
           if (!exists) {
             // DB에 아직 안 나타났다면 가짜 행 추가
             items.unshift({
@@ -206,7 +211,7 @@ function ProblemDetailContent() {
           if (updatedData) {
             // 채점이 끝났다면?
             if (updatedData.submissionStatus === "COMPLETED" || updatedData.submissionStatus === "FAILED") {
-              needsBoardRefresh = true; 
+              needsBoardRefresh = true;
               return { ...sub, progress: 100, submissionStatus: updatedData.submissionStatus };
             }
             return { ...sub, progress: updatedData.progress, submissionStatus: updatedData.submissionStatus };
@@ -303,6 +308,73 @@ function ProblemDetailContent() {
       }
     } catch (e) {
       console.error("댓글 파싱/네트워크 에러:", e);
+    }
+  };
+
+  // [API] 내가 속한 그룹
+  const fetchMyGroup = async () => {
+    const token = localStorage.getItem("token");
+    const headers: HeadersInit = { "Authorization": `Bearer ${token}` };
+
+    try {
+      const res = await fetch(`https://diveon.net/api/groups/me`, { headers });
+
+      if (res.ok) {
+        const json = await res.json();
+        setMyGroups(json.data);
+      }
+    } catch (e) {
+      console.error("댓글 파싱/네트워크 에러:", e);
+    }
+  }
+
+  // [API] 내 그룹 목록 불러오기 (모달 열기)
+  const handleOpenGroupModal = async () => {
+    setShowGroupModal(true);
+    setIsFetchingGroups(true);
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await fetch(`https://diveon.net/api/groups/me`, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        // API 구조에 맞춰 배열 설정 (보통 json.data 형태)
+        setMyGroups(json.data || []);
+      }
+    } catch (e) {
+      console.error("내 그룹 로드 실패:", e);
+    } finally {
+      setIsFetchingGroups(false);
+    }
+  };
+
+  // [API] 선택한 그룹에 문제 추가하기
+  const handleAddToGroup = async (targetGroupId: number) => {
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`https://diveon.net/api/groups/${targetGroupId}/problems`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ problemId: Number(probId) })
+      });
+
+      if (res.status === 201) {
+        alert("문제가 그룹에 추가되었습니다.");
+        setShowGroupModal(false); // 성공 시 모달 닫기
+      } else if (res.status === 409) {
+        alert("이미 그룹에 추가된 문제입니다.");
+      } else {
+        alert("그룹 추가에 실패했습니다.");
+      }
+    } catch (e) {
+      console.error("그룹 추가 오류:", e);
+      alert("서버와 통신 중 오류가 발생했습니다.");
     }
   };
 
@@ -697,6 +769,16 @@ function ProblemDetailContent() {
                     <Button className="bg-slate-800 hover:bg-slate-700">답안 제출하기</Button> // Fallback
                   )}
 
+                  {problemData?.visibility === "public" && (
+                    <Button
+                      variant="outline"
+                      className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold"
+                      onClick={handleOpenGroupModal}
+                    >
+                      <Users className="h-4 w-4 mr-1.5" /> 그룹에 공유
+                    </Button>
+                  )}
+
                   <Button variant="outline" size="icon">
                     <Share2 className="h-4 w-4" />
                   </Button>
@@ -763,11 +845,22 @@ function ProblemDetailContent() {
 
                 {/* 코딩형 입출력 예시 동적 렌더링 */}
                 {problemData?.type === "coding" && problemData?.testcases && problemData.testcases.length > 0 && (
-                  <div className="mt-6">
-                    <span className="text-xs font-bold text-slate-500 mb-1 block">&lt;입력 예시&gt;</span>
-                    <pre className="bg-slate-50 border border-slate-200 p-4 rounded-lg font-mono text-sm text-slate-800 leading-6 whitespace-pre-wrap">
-                      {problemData.testcases[0].input.replace(/\\n/g, "\n")}
-                    </pre>
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* 입력 예시 */}
+                    <div>
+                      <span className="text-xs font-bold text-slate-500 mb-1 block">&lt;입력 예시&gt;</span>
+                      <pre className="bg-slate-50 border border-slate-200 p-4 rounded-lg font-mono text-sm text-slate-800 leading-6 whitespace-pre-wrap min-h-[100px]">
+                        {problemData.testcases[0].input.replace(/\\n/g, "\n")}
+                      </pre>
+                    </div>
+
+                    {/* 출력 예시 */}
+                    <div>
+                      <span className="text-xs font-bold text-slate-500 mb-1 block">&lt;출력 예시&gt;</span>
+                      <pre className="bg-slate-50 border border-slate-200 p-4 rounded-lg font-mono text-sm text-slate-800 leading-6 whitespace-pre-wrap min-h-[100px]">
+                        {problemData.testcases[0].output.replace(/\\n/g, "\n")}
+                      </pre>
+                    </div>
                   </div>
                 )}
               </div>
@@ -858,7 +951,7 @@ function ProblemDetailContent() {
                           sub.isCorrect === null ||
                           sub.submissionStatus === "PENDING" ||
                           sub.submissionStatus === "JUDGING";
-                        const isSuccess = sub.isCorrect === true; 
+                        const isSuccess = sub.isCorrect === true;
                         const isFailed = sub.submissionStatus === "FAILED";
 
                         let resultText = "결과 대기";
@@ -874,7 +967,7 @@ function ProblemDetailContent() {
                           >
                             <TableCell className="font-mono text-xs">{sub.submissionId}</TableCell>
                             <TableCell className="font-bold text-slate-700">{sub.nickname || "User"}</TableCell>
-                            
+
                             {/* 결과 배지 컬럼 */}
                             <TableCell>
                               {isPending ? (
@@ -1208,6 +1301,42 @@ function ProblemDetailContent() {
             )}
           </div>
         </aside>
+
+        {showGroupModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+              <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+                <CardTitle className="text-lg">내 그룹에 추가하기</CardTitle>
+                <Button variant="ghost" size="icon" onClick={() => setShowGroupModal(false)}>
+                  <XCircle className="w-5 h-5 text-slate-500" />
+                </Button>
+              </CardHeader>
+              <CardContent className="pt-4 max-h-[50vh] overflow-y-auto">
+                {isFetchingGroups ? (
+                  <div className="py-8 text-center text-slate-400 text-sm animate-pulse">
+                    가입된 그룹을 불러오는 중입니다...
+                  </div>
+                ) : myGroups.length === 0 ? (
+                  <div className="py-8 text-center text-slate-400 text-sm">
+                    가입된 그룹이 없습니다.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {myGroups.map((group) => (
+                      <div key={group.groupId} className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 hover:border-indigo-100 transition-colors">
+                        {/* API 명세에 따라 group.title 또는 group.name 사용 */}
+                        <span className="font-bold text-sm text-slate-800">{group.title || group.name}</span>
+                        <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700" onClick={() => handleAddToGroup(group.groupId)}>
+                          추가
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
       </main>
     </div>

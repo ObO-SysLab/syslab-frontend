@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSearchParams } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 
 function ProblemCreateContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -135,6 +136,17 @@ function ProblemCreateContent() {
       return;
     }
 
+
+    // [임시]
+    // if (visibility === "group" && selectedGroups.length === 0) {
+    //   alert("공개할 그룹을 최소 1개 이상 선택해주세요.");
+    //   return;
+    // }
+    if (visibility === "group" && !selectedGroupId) {
+      alert("공개할 그룹을 선택해주세요.");
+      return;
+    }
+
     setIsSubmitting(true);
     const token = localStorage.getItem("token");
     const method = isEditMode ? "PATCH" : "POST";
@@ -162,13 +174,21 @@ function ProblemCreateContent() {
         const formData = new FormData();
         // 1. 공통 필드 (Spring DTO 필드명 매핑)
         formData.append("title", title);
-        formData.append("summary", summary || title);
+        formData.append("summary", summary);
         formData.append("description", description);
         formData.append("category", category);
 
         // 2. 난이도 및 공개범위 규격화
         formData.append("difficulty", `${difficulty}`);
         formData.append("visibility", visibility.toLowerCase());
+
+        // [임시]
+        // if (visibility === "group") {
+        //   selectedGroups.forEach(id => formData.append("groupIds", String(id)));
+        // }
+        if (visibility === "group" && selectedGroupId) {
+          formData.append("groupId", String(selectedGroupId)); // 
+        }
 
         // 3. VM 설정 (백엔드 DTO의 CamelCase 필드명 사용)
         formData.append("osImage", osImage);
@@ -201,6 +221,14 @@ function ProblemCreateContent() {
           difficulty: Number(difficulty),
           visibility,
         };
+
+        // [임시]
+        // if (visibility === "group") {
+        //   payload.groupIds = selectedGroups;
+        // }
+        if (visibility === "group" && selectedGroupId) {
+          payload.groupId = selectedGroupId;
+        }
 
         if (problemType === "coding") {
           endpoint = `https://diveon.net/api/problems/coding${isEditMode ? `/${editId}` : ""}`;
@@ -306,6 +334,30 @@ function ProblemCreateContent() {
         });
     }
   }, [editId]);
+
+  // [상태 관리] 그룹 공개용
+  const [myGroups, setMyGroups] = useState<any[]>([]);
+  // [임시]
+  // const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [isFetchingGroups, setIsFetchingGroups] = useState(false);
+
+  // [API] 공개 범위가 'group'일 때 내 그룹 목록 불러오기
+  useEffect(() => {
+    if (visibility === "group" && myGroups.length === 0) {
+      setIsFetchingGroups(true);
+      const token = localStorage.getItem("token");
+      fetch("https://diveon.net/api/groups/me", {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(json => {
+          if (json.data) setMyGroups(json.data); // API 구조에 따라 json.data.groups 일 수 있음
+        })
+        .catch(err => console.error("그룹 목록 로드 실패:", err))
+        .finally(() => setIsFetchingGroups(false));
+    }
+  }, [visibility]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -477,6 +529,86 @@ function ProblemCreateContent() {
                   </Select>
                 </div>
               </div>
+
+              {visibility === "group" && (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 animate-in fade-in duration-300 mt-4">
+
+                  { /* [임시] */}
+                  {/* <Label className="font-bold flex items-center gap-2">
+                    공개할 그룹 선택 <span className="text-red-500">*</span>
+                    <span className="text-[10px] text-slate-400 font-normal">여러 그룹을 선택할 수 있습니다.</span>
+                  </Label>
+
+                  {isFetchingGroups ? (
+                    <div className="text-sm text-slate-400 animate-pulse">그룹 목록을 불러오는 중...</div>
+                  ) : myGroups.length === 0 ? (
+                    <div className="text-sm text-slate-400">가입되거나 관리 중인 그룹이 없습니다.</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {myGroups.map((group) => {
+                        const groupId = group.groupId || group.id; // API 명세에 따라 맞춤
+                        const isSelected = selectedGroups.includes(groupId);
+
+                        return (
+                          <Badge
+                            key={groupId}
+                            variant={isSelected ? "default" : "outline"}
+                            className={`cursor-pointer px-3 py-1.5 text-xs transition-all ${isSelected
+                              ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                              : "bg-white hover:bg-slate-100 text-slate-600"
+                              }`}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedGroups(selectedGroups.filter(id => id !== groupId));
+                              } else {
+                                setSelectedGroups([...selectedGroups, groupId]);
+                              }
+                            }}
+                          >
+                            {isSelected && <CheckCircle2 className="w-3 h-3 mr-1.5 inline-block" />}
+                            {group.title || group.name}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )} */}
+
+                  <Label className="font-bold flex items-center gap-2">
+                    공개할 그룹 선택 <span className="text-red-500">*</span>
+                    <span className="text-[10px] text-slate-400 font-normal">문제를 공개할 1개의 그룹을 선택해주세요.</span>
+                  </Label>
+
+                  {isFetchingGroups ? (
+                    <div className="text-sm text-slate-400 animate-pulse">그룹 목록을 불러오는 중...</div>
+                  ) : myGroups.length === 0 ? (
+                    <div className="text-sm text-slate-400">가입되거나 관리 중인 그룹이 없습니다.</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {myGroups.map((group) => {
+                        const groupId = group.groupId || group.id;
+                        const isSelected = selectedGroupId === groupId; 
+
+                        return (
+                          <Badge
+                            key={groupId}
+                            variant={isSelected ? "default" : "outline"}
+                            className={`cursor-pointer px-3 py-1.5 text-xs transition-all ${isSelected
+                              ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                              : "bg-white hover:bg-slate-100 text-slate-600"
+                              }`}
+                            onClick={() => {
+                              setSelectedGroupId(isSelected ? null : groupId);
+                            }}
+                          >
+                            {isSelected && <CheckCircle2 className="w-3 h-3 mr-1.5 inline-block" />}
+                            {group.title || group.name}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -817,12 +949,12 @@ function ProblemCreateContent() {
 
 export default function ProblemCreatePage() {
   return (
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-          <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-        </div>
-      }>
-        <ProblemCreateContent />
-      </Suspense>
-    );
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      </div>
+    }>
+      <ProblemCreateContent />
+    </Suspense>
+  );
 }
