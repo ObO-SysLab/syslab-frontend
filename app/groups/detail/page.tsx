@@ -676,7 +676,6 @@ function GroupDetailPage() {
             Diveon
           </Link>
 
-
           {/* 중앙 네비게이션 메뉴 */}
           <nav className="hidden lg:flex items-center gap-1">
             <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" />
@@ -713,7 +712,6 @@ function GroupDetailPage() {
               </Link>
 
               <button
-              <button
                 onClick={() => setIsLoggedIn(false)}
                 className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
               >
@@ -740,7 +738,6 @@ function GroupDetailPage() {
       <main className="container mx-auto max-w-[1600px] pt-6 grid grid-cols-1 md:grid-cols-12 gap-6 px-4 pb-12">
 
         {/* [A] 좌측 정보 패널 (2칸) */}
-        {/* [A] 좌측 정보 패널 (2칸) */}
         <aside className="col-span-12 md:col-span-2 space-y-4">
           <Card className="shadow-none border-slate-200 overflow-hidden">
             <CardHeader className="bg-slate-50 pb-3">
@@ -761,7 +758,6 @@ function GroupDetailPage() {
             </CardContent>
           </Card>
 
-
           <Card className="shadow-none border-slate-200">
             <CardHeader className="pb-2 border-b">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -769,15 +765,7 @@ function GroupDetailPage() {
               </CardTitle>
             </CardHeader>
             {/* 최근 활동 패널 */}
-            {/* 최근 활동 패널 */}
             <CardContent className="pt-4 space-y-4">
-              {posts.slice(0, 5).map((post) => (
-                <div key={post.postId} className="border-l-2 border-indigo-200 pl-3 py-1 cursor-pointer hover:bg-slate-50">
-                  <p className="text-[11px] font-bold text-slate-800 flex items-center justify-between">
-                    {post.author}
-                    {post.type === "notice" && <Badge className="text-[8px] h-4 px-1 py-0 bg-purple-100 text-purple-700">공지</Badge>}
-                  </p>
-                  <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">{post.title}</p>
               {posts.slice(0, 5).map((post) => (
                 <div key={post.postId} className="border-l-2 border-indigo-200 pl-3 py-1 cursor-pointer hover:bg-slate-50">
                   <p className="text-[11px] font-bold text-slate-800 flex items-center justify-between">
@@ -796,18 +784,13 @@ function GroupDetailPage() {
 
           <Tabs defaultValue="main" className="w-full">
             <TabsList className="grid w-full grid-cols-5 bg-slate-100 p-1 rounded-lg sticky top-16 z-40">
-            <TabsList className="grid w-full grid-cols-5 bg-slate-100 p-1 rounded-lg sticky top-16 z-40">
               <TabsTrigger value="main">메인</TabsTrigger>
-              <TabsTrigger value="activity">챌린지/대회</TabsTrigger>
               <TabsTrigger value="activity">챌린지/대회</TabsTrigger>
               <TabsTrigger value="member">멤버</TabsTrigger>
               <TabsTrigger value="board">게시판</TabsTrigger>
               {isGroupLeader && <TabsTrigger value="setting">설정</TabsTrigger>}
-              <TabsTrigger value="board">게시판</TabsTrigger>
-              {isGroupLeader && <TabsTrigger value="setting">설정</TabsTrigger>}
             </TabsList>
 
-            {/* 1. 메인 탭 */}
             {/* 1. 메인 탭 */}
             <TabsContent value="main" className="mt-6 space-y-6 animate-in fade-in-50 duration-300">
               <div className="flex gap-6 items-start">
@@ -816,8 +799,6 @@ function GroupDetailPage() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <h1 className="text-3xl font-bold text-slate-900">{groupData?.title}</h1>
-                    {/* <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">Official</Badge> */}
                     <h1 className="text-3xl font-bold text-slate-900">{groupData?.title}</h1>
                     {/* <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">Official</Badge> */}
                   </div>
@@ -832,41 +813,25 @@ function GroupDetailPage() {
                       </Badge>
                     ))}
                   </div>
-                    {groupData?.description}
-                  </p>
-                  {/* 그룹 태그 */}
-                  <div className="flex gap-2">
-                    {groupTags.map(tag => (
-                      <Badge key={tag} variant="secondary" className="bg-indigo-50 text-indigo-600 border-indigo-100">
-                        #{tag}
-                      </Badge>
-                    ))}
-                  </div>
                 </div>
               </div>
 
-              {/* 그룹 통계 */}
               {/* 그룹 통계 */}
               <div className="grid grid-cols-3 gap-4">
                 <Card className="bg-slate-50 border-none shadow-none">
                   <CardContent className="p-4 text-center">
                     <p className="text-xs text-slate-500 uppercase font-bold">멤버 수</p>
                     <p className="text-2xl font-black text-slate-900">{groupData?.stats?.memberCount}</p>
-                    <p className="text-2xl font-black text-slate-900">{groupData?.stats?.memberCount}</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-slate-50 border-none shadow-none">
                   <CardContent className="p-4 text-center">
                     <p className="text-xs text-slate-500 uppercase font-bold">문제 수</p>
                     <p className="text-2xl font-black text-slate-900">{groupData?.stats?.problemCount}</p>
-                    <p className="text-xs text-slate-500 uppercase font-bold">문제 수</p>
-                    <p className="text-2xl font-black text-slate-900">{groupData?.stats?.problemCount}</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-slate-50 border-none shadow-none">
                   <CardContent className="p-4 text-center">
-                    <p className="text-xs text-slate-500 uppercase font-bold">대회 수</p>
-                    <p className="text-2xl font-black text-slate-900">-</p>
                     <p className="text-xs text-slate-500 uppercase font-bold">대회 수</p>
                     <p className="text-2xl font-black text-slate-900">-</p>
                   </CardContent>
@@ -874,29 +839,7 @@ function GroupDetailPage() {
               </div>
 
               {/* 가입/철회/탈퇴 동적 버튼 */}
-              {/* 가입/철회/탈퇴 동적 버튼 */}
               <div className="flex gap-2">
-                {isGroupLeader ? (
-                  <Badge className="h-10 px-4 py-0 bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 flex items-center gap-2">
-                    <Crown className="w-4 h-5 text-amber-500 mx-auto drop-shadow-sm" /> 그룹 리더
-                  </Badge>
-                ) : (
-                  <>
-                    {myStatus === "none" && (
-                      <Button onClick={handleJoin} className="bg-indigo-600 hover:bg-indigo-700 shadow-md">가입 신청하기</Button>
-                    )}
-
-                    {myStatus === "pending" && (
-                      <Button onClick={handleCancel} variant="secondary" className="border-indigo-200 text-indigo-600">가입 신청 철회</Button>
-                    )}
-
-                    {myStatus === "member" && (
-                      <Button onClick={handleLeave} variant="destructive" className="bg-red-50 text-red-600 hover:bg-red-100 border-red-100">탈퇴하기</Button>
-                    )}
-                  </>
-                )}
-
-                {/* 공통 버튼: 공유하기 */}
                 {isGroupLeader ? (
                   <Badge className="h-10 px-4 py-0 bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 flex items-center gap-2">
                     <Crown className="w-4 h-5 text-amber-500 mx-auto drop-shadow-sm" /> 그룹 리더
@@ -926,7 +869,6 @@ function GroupDetailPage() {
               <div className="space-y-4">
                 <h3 className="font-bold text-lg flex items-center gap-2">
                   <Pin className="w-5 h-5 text-red-500 fill-current" /> 그룹 소식 (공지)
-                  <Pin className="w-5 h-5 text-red-500 fill-current" /> 그룹 소식 (공지)
                 </h3>
                 {posts.filter(p => p.type === "notice").map(notice => (
                   <Card key={notice.postId} className="border-l-4 border-l-purple-500 shadow-sm hover:bg-slate-50 transition-colors cursor-pointer">
@@ -937,114 +879,9 @@ function GroupDetailPage() {
                     </CardContent>
                   </Card>
                 ))}
-                {posts.filter(p => p.type === "notice").map(notice => (
-                  <Card key={notice.postId} className="border-l-4 border-l-purple-500 shadow-sm hover:bg-slate-50 transition-colors cursor-pointer">
-                    <CardContent className="p-4">
-                      <p className="text-sm font-bold text-slate-800">{notice.title}</p>
-                      <p className="text-sm text-slate-600 mt-1 line-clamp-1">{notice.content}</p>
-                      <p className="text-xs text-slate-400 mt-2">{notice.createdAt} · {notice.author}</p>
-                    </CardContent>
-                  </Card>
-                ))}
               </div>
             </TabsContent>
 
-            {/* 2. 챌린지/대회 탭 */}
-            <TabsContent value="activity" className="mt-6 animate-in fade-in-50 duration-300 space-y-6">
-
-              {/* 상단 세그먼트 컨트롤 (토글) */}
-              <div className="flex justify-center">
-                <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200">
-                  <button
-                    onClick={() => setContentView("problem")}
-                    className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${contentView === "problem" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                      }`}
-                  >
-                    전용 문제
-                  </button>
-                  <button
-                    onClick={() => setContentView("contest")}
-                    className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${contentView === "contest" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                      }`}
-                  >
-                    전용 대회
-                  </button>
-                </div>
-              </div>
-
-              {/* 선택된 모드에 따른 리스트 렌더링 */}
-              <div className="grid grid-cols-1 gap-3">
-                {contentView === "problem" ? (
-                  /* --- [A] 그룹 전용 문제 리스트 --- */
-                  groupProblems.map(prob => (
-                    <Link
-                      key={prob.problemId}
-                      href={`/challenges/detail?id=${prob.problemId}`}
-                      className="block group"
-                    >
-                      <Card key={prob.problemId} className="p-4 hover:border-indigo-200 transition-all cursor-pointer group">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors">
-                              <Code2 size={20} />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-slate-900">{prob.title}</h3>
-                                {prob.visibility === "group" ? (
-                                  <Badge className="bg-rose-100 text-rose-700 h-5 px-1.5 text-[10px]">GROUP</Badge>
-                                ) : prob.visibility === "public" ? (
-                                  <Badge className="bg-blue-100 text-blue-700 h-5 px-1.5 text-[10px]">PUBLIC</Badge>
-                                ) : null}
-                              </div>
-                              <p className="text-xs text-slate-500 mt-1">작성자: {prob.author} · 해결 {prob.solvedCount}명</p>
-                            </div>
-                          </div>
-                          <Badge variant="outline" className="font-bold border-indigo-100 text-indigo-600">
-                            Lvl {prob.difficulty}
-                          </Badge>
-                        </div>
-                      </Card>
-                    </Link>
-                  ))
-                ) : (
-                  /* --- [B] 그룹 전용 대회 리스트 --- */
-                  groupContests.map(contest => (
-                    <Card key={contest.id} className="p-4 hover:border-purple-200 transition-all cursor-pointer group">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-purple-50 group-hover:text-purple-500 transition-colors">
-                            <Trophy size={20} />
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-slate-900">{contest.title}</h3>
-                            <p className="text-xs text-slate-500">{contest.period}</p>
-                          </div>
-                        </div>
-                        <Badge className={contest.status === "진행 중" ? "bg-emerald-500" : "bg-slate-400"}>
-                          {contest.status}
-                        </Badge>
-                      </div>
-                    </Card>
-                  ))
-                )}
-
-                {/* 데이터가 없을 경우 처리 */}
-                {(contentView === "problem" ? groupProblems : groupContests).length === 0 && (
-                  <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-100">
-                    <p className="text-sm text-slate-400 font-medium">등록된 전용 콘텐츠가 없습니다.</p>
-                  </div>
-                )}
-              </div>
-
-              <PaginationUI
-                currentPage={activityPage}
-                totalPages={activityTotalPages}
-                onPageChange={setActivityPage}
-              />
-            </TabsContent>
-
-            {/* 3. 멤버 탭 */}
             {/* 2. 챌린지/대회 탭 */}
             <TabsContent value="activity" className="mt-6 animate-in fade-in-50 duration-300 space-y-6">
 
@@ -1152,14 +989,6 @@ function GroupDetailPage() {
                 >
                   전체 보기
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-slate-500 hover:text-indigo-600"
-                  onClick={() => setShowAllMembersModal(true)}
-                >
-                  전체 보기
-                </Button>
               </div>
               <div className="border rounded-xl overflow-hidden shadow-sm">
                 <Table>
@@ -1170,7 +999,6 @@ function GroupDetailPage() {
                       <TableHead>역할</TableHead>
                       <TableHead>티어</TableHead>
                       <TableHead className="text-right">가입 날짜</TableHead>
-                      {isGroupLeader && <TableHead className="text-right w-[80px]">관리</TableHead>}
                       {isGroupLeader && <TableHead className="text-right w-[80px]">관리</TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -1258,188 +1086,9 @@ function GroupDetailPage() {
                           </TableRow>
                         );
                       })}
-                    {/* 그룹장 최상단 로직 */}
-                    {[...members]
-                      .sort((a, b) => {
-                        if (a.role === "그룹장") return -1;
-                        if (b.role === "그룹장") return 1;
-                        return a.rank - b.rank; // 나머지는 원래 순위대로
-                      })
-                      .map((member, index) => {
-                        const isLeader = member.role === "그룹장";
-
-                        return (
-                          <TableRow
-                            key={index}
-                            className={`transition-colors ${isLeader ? "bg-amber-50/30" : "hover:bg-slate-50/50"}`}
-                          >
-                            {/* 순위 (그룹장은 왕관) */}
-                            <TableCell className="text-center font-bold text-slate-400">
-                              {isLeader ? (
-                                <Crown className="w-5 h-5 text-amber-500 mx-auto drop-shadow-sm" />
-                              ) : (
-                                member.rank <= 3 ? <span className="text-amber-500">{member.rank}</span> : member.rank
-                              )}
-                            </TableCell>
-
-                            {/* 사용자 정보 */}
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                {/* 그룹장 프로필 사진에 금색 테두리 부여 */}
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${isLeader
-                                  ? "bg-amber-100 text-amber-700 border-2 border-amber-300 shadow-sm"
-                                  : "bg-slate-200 text-slate-600"
-                                  }`}>
-                                  {member.nickname[0]}
-                                </div>
-                                <span className={`font-semibold ${isLeader ? "text-amber-900" : "text-slate-700"}`}>
-                                  {member.nickname}
-                                </span>
-                              </div>
-                            </TableCell>
-
-                            {/* 역할 뱃지 */}
-                            <TableCell>
-                              {isLeader ? (
-                                <Badge className="bg-amber-100 text-amber-700 border-amber-300 shadow-sm hover:bg-amber-100 font-black">
-                                  그룹장
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="font-normal text-[10px]">
-                                  {member.role}
-                                </Badge>
-                              )}
-                            </TableCell>
-
-                            {/* 티어 */}
-                            <TableCell>
-                              <span className={`text-xs font-bold ${member.tier === "마스터" ? "text-purple-600" : "text-slate-500"}`}>
-                                {member.tier}
-                              </span>
-                            </TableCell>
-
-                            {/* 가입 날짜 */}
-                            <TableCell className="text-right text-xs text-slate-400 font-mono">
-                              {member.joinedAt?.split("T")[0]}
-                            </TableCell>
-
-                            {/* 강퇴 버튼 (현재 접속자가 그룹장 && 대상이 그룹장이 아닐 때만 노출) */}
-                            {isGroupLeader && (
-                              <TableCell className="text-right">
-                                {!isLeader && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 px-2 text-slate-400 hover:text-red-600 hover:bg-red-50"
-                                    onClick={() => handleResign(member)}
-                                  >
-                                    <UserMinus className="w-3.5 h-3.5 mr-1" /> 강퇴
-                                  </Button>
-                                )}
-                              </TableCell>
-                            )}
-                          </TableRow>
-                        );
-                      })}
                   </TableBody>
                 </Table>
               </div>
-
-              {/* 전체 멤버 보기 모달창 */}
-              {showAllMembersModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-                  <Card className="w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
-
-                    {/* 모달 헤더 */}
-                    <CardHeader className="flex flex-row items-center justify-between border-b pb-4 shrink-0 bg-white rounded-t-xl">
-                      <div className="space-y-1">
-                        <CardTitle className="text-lg">전체 멤버</CardTitle>
-                        <CardDescription>그룹에 가입된 모든 멤버를 확인하고 관리하세요.</CardDescription>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setShowAllMembersModal(false);
-                          setMemberSearchQuery(""); // 닫을 때 검색어 초기화
-                        }}
-                      >
-                        <X className="w-5 h-5 text-slate-500" />
-                      </Button>
-                    </CardHeader>
-
-                    {/* 멤버 검색창 */}
-                    <div className="p-4 border-b bg-slate-50 shrink-0">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                        <Input
-                          placeholder="멤버 닉네임 검색..."
-                          value={memberSearchQuery}
-                          onChange={(e) => setMemberSearchQuery(e.target.value)}
-                          className="pl-9 bg-white"
-                        />
-                      </div>
-                    </div>
-
-                    {/* 모달 스크롤 바디 (기존 테이블 재사용 및 필터링) */}
-                    <CardContent className="overflow-y-auto p-0 flex-1 hide-scrollbar">
-                      <Table>
-                        <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
-                          <TableRow>
-                            <TableHead className="w-[60px] text-center pl-4">순위</TableHead>
-                            <TableHead>사용자</TableHead>
-                            <TableHead>역할</TableHead>
-                            <TableHead>티어</TableHead>
-                            {isGroupLeader && <TableHead className="text-right pr-4">관리</TableHead>}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {[...members]
-                            // 검색어 필터링
-                            .filter(m => m.nickname.includes(memberSearchQuery))
-                            // 그룹장 위로 정렬
-                            .sort((a, b) => {
-                              if (a.role === "그룹장") return -1;
-                              if (b.role === "그룹장") return 1;
-                              return a.rank - b.rank;
-                            })
-                            .map((member, index) => {
-                              const isLeader = member.role === "그룹장";
-                              return (
-                                <TableRow key={index} className={isLeader ? "bg-amber-50/30" : ""}>
-                                  {/* ... (이전 단계에서 작성한 TableCell 내용들 그대로 복사/붙여넣기) ... */}
-                                  <TableCell className="text-center font-bold text-slate-400 pl-4">
-                                    {isLeader ? <Crown className="w-4 h-4 text-amber-500 mx-auto" /> : member.rank}
-                                  </TableCell>
-                                  <TableCell className="font-semibold text-slate-700">{member.nickname}</TableCell>
-                                  <TableCell><Badge variant="secondary" className="text-[10px]">{member.role}</Badge></TableCell>
-                                  <TableCell><span className="text-xs font-bold text-slate-500">{member.tier}</span></TableCell>
-
-                                  {isGroupLeader && (
-                                    <TableCell className="text-right pr-4">
-                                      {!isLeader && (
-                                        <Button variant="ghost" size="sm" className="h-7 text-red-500 hover:bg-red-50" onClick={() => handleResign(member)}>
-                                          강퇴
-                                        </Button>
-                                      )}
-                                    </TableCell>
-                                  )}
-                                </TableRow>
-                              );
-                            })}
-                        </TableBody>
-                      </Table>
-
-                      {/* 검색 결과가 없을 때 */}
-                      {members.filter(m => m.nickname.includes(memberSearchQuery)).length === 0 && (
-                        <div className="py-12 text-center text-slate-400 text-sm">
-                          검색 결과가 없습니다.
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
 
               {/* 전체 멤버 보기 모달창 */}
               {showAllMembersModal && (
@@ -1777,7 +1426,6 @@ function GroupDetailPage() {
             </TabsContent>
 
             {/* 5. 설정 탭 */}
-            {/* 5. 설정 탭 */}
             <TabsContent value="setting" className="mt-6 animate-in fade-in-50 duration-300 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* 일반 설정 */}
@@ -1789,7 +1437,6 @@ function GroupDetailPage() {
                   <CardContent className="space-y-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-500">그룹 이름</label>
-                      <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-9 text-sm" />
                       <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-9 text-sm" />
                     </div>
                     <div className="space-y-1">
@@ -1826,8 +1473,6 @@ function GroupDetailPage() {
                     <CardDescription className="text-xs">가입 승인 및 권한을 설정합니다.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-
-                    {/* 비공개 그룹 토글 */}
 
                     {/* 비공개 그룹 토글 */}
                     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
@@ -1888,7 +1533,6 @@ function GroupDetailPage() {
                     <p className="text-sm font-bold">그룹 폐쇄</p>
                     <p className="text-xs text-slate-500">모든 멤버 정보와 데이터가 삭제됩니다.</p>
                   </div>
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteGroup()}>그룹 폐쇄</Button>
                   <Button variant="destructive" size="sm" onClick={() => handleDeleteGroup()}>그룹 폐쇄</Button>
                 </CardContent>
               </Card>
@@ -1967,11 +1611,8 @@ function GroupDetailPage() {
 }
 
 // [보조 컴포넌트] 헤더 메뉴 전용 
-// [보조 컴포넌트] 헤더 메뉴 전용 
 function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
-    <Link
-      href={href}
     <Link
       href={href}
       className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all active:scale-95"
