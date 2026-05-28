@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import {
@@ -22,6 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { mockTopRankers } from "@/lib/mockData";
 
 
+function GroupDetailPage() {
 function GroupDetailPage() {
   // [STATE] 페이지
   const router = useRouter();
