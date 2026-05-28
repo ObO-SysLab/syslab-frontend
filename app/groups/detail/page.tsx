@@ -8,7 +8,7 @@ import {
   Search, Settings, LogOut, Menu, Trophy, Star, Share2, ChevronLeft,
   ShieldCheck, Users, Bell, Trash2, LayoutGrid, BarChart3, ShoppingBag,
   FileText, Edit2, MessageSquare, Crown, UserMinus, ChevronRight, Code2, Pin,
-  X, Eye
+  X, Eye, Flag
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,7 @@ function GroupDetailPage() {
   const [boardTotalPages, setBoardTotalPages] = useState(1);
   const [commentPage, setCommentPage] = useState(1);
   const [commentTotalPages, setCommentTotalPages] = useState(1);
+  const [commentTotalCount, setCommentTotalCount] = useState(0);
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editCommentContent, setEditCommentContent] = useState("");
@@ -182,8 +183,29 @@ function GroupDetailPage() {
   };
 
   // [API] 그룹 전용 대회 목록 조회
-  const fetchGroupContests = async () => {
+  const fetchGroupContests = async (page = activityPage) => {
     const token = localStorage.getItem("token");
+
+    const params = new URLSearchParams();
+    params.append("page", page.toString());
+    // params.append("size", "10");
+
+    try {
+      const res = await fetch(`https://diveon.net/api/groups/${groupId}/contests?${params.toString()}`, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        setGroupContests(json.data.contests || []);
+        setActivityPage(json.data.currentPage);
+        setActivityTotalPages(json.data.totalPages);
+      }
+
+    } catch (error) {
+      console.error("그룹 전용 대회 로드 실패:", error);
+    }
   };
 
   // [API] 멤버 목록 조회 
@@ -249,7 +271,7 @@ function GroupDetailPage() {
 
       if (res.ok) {
         const json = await res.json();
-        fetchComments();
+        fetchComments(1);
         setPostDetail(json.data);
       }
 
@@ -274,6 +296,7 @@ function GroupDetailPage() {
         setComments(json.data.comments);
         const total = json.data.totalPages || Math.ceil(json.data.totalElements / 10);
         setCommentTotalPages(total);
+        setCommentTotalCount(json.data.totalElements || 0);
       }
     } catch (error) {
       console.error("댓글 로드 실패:", error);
@@ -506,7 +529,8 @@ function GroupDetailPage() {
       if (res.ok) {
         alert("댓글이 생성 되었습니다.");
         setNewComment("");
-        fetchBoardDetail();
+        fetchComments(1);
+        setCommentPage(1);
       }
     } catch (error) {
       console.error("댓글 생성 실패:", error);
@@ -534,7 +558,7 @@ function GroupDetailPage() {
       if (res.ok) {
         alert("댓글이 수정 되었습니다.");
         setEditingCommentId(null);
-        fetchBoardDetail();
+        fetchComments(commentPage);
       }
     } catch (error) {
       console.error("댓글 수정 실패:", error);
@@ -553,7 +577,7 @@ function GroupDetailPage() {
 
       if (res.ok) {
         alert("댓글이 삭제 되었습니다.");
-        fetchBoardDetail();
+        fetchComments(commentPage);
       }
     } catch (error) {
       console.error("댓글 삭제 실패:", error);
@@ -665,6 +689,13 @@ function GroupDetailPage() {
     );
   };
 
+  // [HANDLER] 로그아웃
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setIsLoggedIn(false);
+    window.location.href = "/";
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
 
@@ -678,7 +709,7 @@ function GroupDetailPage() {
 
           {/* 중앙 네비게이션 메뉴 */}
           <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" />
+            <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
             <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
             <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
             <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
@@ -833,7 +864,7 @@ function GroupDetailPage() {
                 <Card className="bg-slate-50 border-none shadow-none">
                   <CardContent className="p-4 text-center">
                     <p className="text-xs text-slate-500 uppercase font-bold">대회 수</p>
-                    <p className="text-2xl font-black text-slate-900">-</p>
+                    <p className="text-2xl font-black text-slate-900">{groupData?.stats?.contestCount}</p>
                   </CardContent>
                 </Card>
               </div>
@@ -943,22 +974,40 @@ function GroupDetailPage() {
                 ) : (
                   /* --- [B] 그룹 전용 대회 리스트 --- */
                   groupContests.map(contest => (
-                    <Card key={contest.id} className="p-4 hover:border-purple-200 transition-all cursor-pointer group">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-purple-50 group-hover:text-purple-500 transition-colors">
-                            <Trophy size={20} />
+                    <Link
+                      key={contest.contestId}
+                      href={`/contests/detail?id=${contest.contestId}`}
+                      className="block group"
+                    >
+                      <Card className="p-4 hover:border-purple-200 transition-all cursor-pointer bg-white">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-purple-50 group-hover:text-purple-500 transition-colors">
+                              <Trophy size={20} />
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-slate-900 group-hover:text-purple-600 transition-colors">
+                                {contest.title}
+                              </h3>
+                              <p className="text-xs text-slate-500 mt-1">
+                                기간: {contest.startTime?.substring(5, 16).replace('-', '/')} ~ {contest.endTime?.substring(5, 16).replace('-', '/')}
+                                <span className="mx-2 text-slate-200">|</span>
+                                주최자: {contest.author} · 참여: {contest.participantCount}명
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-bold text-slate-900">{contest.title}</h3>
-                            <p className="text-xs text-slate-500">{contest.period}</p>
-                          </div>
+
+                          <Badge className={`font-bold h-6 ${contest.status === "진행 중"
+                            ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                            : contest.status === "접수 중"
+                              ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                              : "bg-slate-400 text-white"
+                            }`}>
+                            {contest.status}
+                          </Badge>
                         </div>
-                        <Badge className={contest.status === "진행 중" ? "bg-emerald-500" : "bg-slate-400"}>
-                          {contest.status}
-                        </Badge>
-                      </div>
-                    </Card>
+                      </Card>
+                    </Link>
                   ))
                 )}
 
@@ -980,7 +1029,7 @@ function GroupDetailPage() {
             {/* 3. 멤버 탭 */}
             <TabsContent value="member" className="mt-6 animate-in fade-in-50 duration-300">
               <div className="flex justify-between items-end mb-4">
-                <h2 className="text-xl font-bold">그룹 멤버 <span className="text-indigo-500 text-sm ml-1">158명</span></h2>
+                <h2 className="text-xl font-bold">그룹 멤버 <span className="text-indigo-500 text-sm ml-1">{groupData?.stats?.memberCount}명</span></h2>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1292,12 +1341,12 @@ function GroupDetailPage() {
                           {/* 댓글 영역 */}
                           <div className="space-y-4">
                             <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                              <MessageSquare className="w-4 h-4 text-indigo-500" /> 댓글 <span className="text-indigo-500">{comments?.length > 0 || 0}</span>
+                              <MessageSquare className="w-4 h-4 text-indigo-500" /> 댓글 <span className="text-indigo-500">{commentTotalCount}</span>
                             </h4>
 
                             <div className="space-y-3">
-                              {postDetail?.comments.map((comment: any) => (
-                                <div key={comment.commentId} className="bg-slate-50 rounded-xl p-4 flex justify-between group border border-slate-100">
+                              {comments?.map((comment: any, index: number) => (
+                                <div key={`${comment.commentId || 'empty'}-${index}`} className="bg-slate-50 rounded-xl p-4 flex justify-between group border border-slate-100">
                                   {/* 수정 모드일 때와 아닐 때 UI 분기 */}
                                   {editingCommentId === comment.commentId ? (
                                     <div className="flex-1 mr-4 space-y-2">
@@ -1400,11 +1449,11 @@ function GroupDetailPage() {
                                 <span className={`font-medium ${post.type === "notice" ? "text-purple-900 font-bold" : "text-slate-700"}`}>
                                   {post.title}
                                 </span>
-                                {post.comments?.length > 0 && (
+                                {/* {post.comments?.length > 0 && (
                                   <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-1.5 rounded-full">
                                     {post.comments.length}
                                   </span>
-                                )}
+                                )} */}
                               </div>
                             </TableCell>
                             <TableCell className="text-center text-xs text-slate-600">{post.author}</TableCell>
@@ -1658,7 +1707,7 @@ function PaginationUI({ currentPage, totalPages, onPageChange }: { currentPage: 
   );
 }
 
-export default function ProblemDetailPage() {
+export default function GroupDetailPageWrapper() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-slate-50">

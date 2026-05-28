@@ -18,7 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const TAGS = [
   { value: "Study", label: "스터디" },
-  { value: "Metoring", label: "멘토링" },
+  { value: "Mentoring", label: "멘토링" },
   { value: "Class", label: "대학 강의" },
   { value: "Networking", label: "친목" },
   { value: "Career", label: "취업" },
@@ -105,6 +105,7 @@ export default function GroupCreatePage() {
     );
   };
 
+  // [HANDLER] 로그아웃
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);

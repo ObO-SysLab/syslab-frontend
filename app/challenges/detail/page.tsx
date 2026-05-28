@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Search, Settings, LogOut, User, Menu, MessageSquare, Bell, Share2,
   CheckCircle2, XCircle, Clock, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag, Trash2,
-  ChevronLeft, MessageCircle, Edit2, Flame, Zap
+  ChevronLeft, MessageCircle, Edit2, Flame, Zap, Flag
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { mockChallenges, mockChallenge, mockAds, mockFullRankings, mockSubmissions, mockComments, mockReplies, mockFirstBlood } from "@/lib/mockData";
 
 
 function ProblemDetailContent() {
@@ -63,29 +62,16 @@ function ProblemDetailContent() {
   const [myGroups, setMyGroups] = useState<any[]>([]);
   const [isFetchingGroups, setIsFetchingGroups] = useState(false);
 
+  // [STATE] 대회 추가 관련 상태
+  const [showContestModal, setShowContestModal] = useState(false);
+  const [myContests, setMyContests] = useState<any[]>([]);
+  const [isFetchingContests, setIsFetchingContests] = useState(false);
+
+
   // [API] 데이터 초기 로드
   useEffect(() => {
     const fetchPageData = async () => {
       setIsLoading(true); // 로딩 시작
-
-      // 테스트
-      if (!USE_API_REQUEST) {
-        const foundBase = mockChallenges.find(c => String(c.id) === String(probId)) || mockChallenges[0];
-        setProblemData({
-          ...mockChallenge,
-          ...foundBase,
-          probId: foundBase.id,
-          difficulty: `Lvl ${foundBase.level}`, // "1" -> "Lvl 1" 변환
-        });
-        setRankings(mockFullRankings.map(r => ({
-          rank: r.rank, nickname: r.user, score: r.score, solved_at: new Date().toISOString()
-        })));
-        setFirstBlood(mockFirstBlood);
-        setAds(mockAds);
-        fetchComments();
-        setIsLoading(false);
-        return;
-      }
 
       const token = localStorage.getItem("token");
       const headers: HeadersInit = { "Content-Type": "application/json" };
@@ -93,10 +79,10 @@ function ProblemDetailContent() {
 
       try {
         // 문제 상세 조회, 랭킹, 광고를 병렬로 호출
-        const [probRes, rankRes, adRes] = await Promise.all([
+        const [probRes] = await Promise.all([
           fetch(`https://diveon.net/api/problems/${probId}`, { headers }),
-          fetch(`https://diveon.net/api/problems/${probId}/rank?page=0&size=100`, { headers }),
-          fetch("https://diveon.net/api/ad/?placement=prob_detail")
+          // fetch(`https://diveon.net/api/problems/${probId}/rank?page=0&size=100`, { headers }),
+          // fetch("https://diveon.net/api/ad/?placement=prob_detail")
         ]);
 
         if (probRes.ok) {
@@ -104,16 +90,16 @@ function ProblemDetailContent() {
           setProblemData(probJson.data);
         }
 
-        if (rankRes.ok) {
-          const rankJson = await rankRes.json();
-          if (rankJson.status === 200) setRankings(rankJson.data.rankings);
-        }
+        // if (rankRes.ok) {
+        //   const rankJson = await rankRes.json();
+        //   if (rankJson.status === 200) setRankings(rankJson.data.rankings);
+        // }
 
-        if (adRes.ok) {
-          const adJson = await adRes.json();
-          if (adJson.ads) setAds(adJson.ads);
-          else if (adJson.data?.ads) setAds(adJson.data.ads);
-        }
+        // if (adRes.ok) {
+        //   const adJson = await adRes.json();
+        //   if (adJson.ads) setAds(adJson.ads);
+        //   else if (adJson.data?.ads) setAds(adJson.data.ads);
+        // }
 
         fetchComments(); // 메인 댓글 목록 조회
         fetchSubmissions(); // 제출 탭 데이터 조회
@@ -128,11 +114,6 @@ function ProblemDetailContent() {
 
   // [API] 채점 탭 데이터 요청
   const fetchSubmissions = async () => {
-    if (!USE_API_REQUEST) {
-      setSubmissions(mockSubmissions);
-      return;
-    }
-
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(`https://diveon.net/api/problems/${probId}/board?page=1&size=50`, {
@@ -282,12 +263,6 @@ function ProblemDetailContent() {
 
   // [API] 댓글 목록 새로고침
   const fetchComments = async () => {
-    // 테스트
-    if (!USE_API_REQUEST) {
-      setComments(mockComments);
-      return;
-    }
-
     const token = localStorage.getItem("token");
     const headers: HeadersInit = { "Authorization": `Bearer ${token}` };
     try {
@@ -310,23 +285,6 @@ function ProblemDetailContent() {
       console.error("댓글 파싱/네트워크 에러:", e);
     }
   };
-
-  // [API] 내가 속한 그룹
-  const fetchMyGroup = async () => {
-    const token = localStorage.getItem("token");
-    const headers: HeadersInit = { "Authorization": `Bearer ${token}` };
-
-    try {
-      const res = await fetch(`https://diveon.net/api/groups/me`, { headers });
-
-      if (res.ok) {
-        const json = await res.json();
-        setMyGroups(json.data);
-      }
-    } catch (e) {
-      console.error("댓글 파싱/네트워크 에러:", e);
-    }
-  }
 
   // [API] 내 그룹 목록 불러오기 (모달 열기)
   const handleOpenGroupModal = async () => {
@@ -351,6 +309,29 @@ function ProblemDetailContent() {
     }
   };
 
+  // [API] 내 대회 목록 불러오기 (모달 열기)
+  const handleOpenContestModal = async () => {
+    setShowContestModal(true);
+    setIsFetchingContests(true);
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await fetch(`https://diveon.net/api/contests/me/owned`, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        // API 구조에 맞춰 배열 설정 (보통 json.data 형태)
+        setMyContests(json.data || []);
+      }
+    } catch (e) {
+      console.error("내 대회 로드 실패:", e);
+    } finally {
+      setIsFetchingContests(false);
+    }
+  };
+
   // [API] 선택한 그룹에 문제 추가하기
   const handleAddToGroup = async (targetGroupId: number) => {
     const token = localStorage.getItem("token");
@@ -364,7 +345,7 @@ function ProblemDetailContent() {
         body: JSON.stringify({ problemId: Number(probId) })
       });
 
-      if (res.status === 201) {
+      if (res.ok) {
         alert("문제가 그룹에 추가되었습니다.");
         setShowGroupModal(false); // 성공 시 모달 닫기
       } else if (res.status === 409) {
@@ -374,6 +355,31 @@ function ProblemDetailContent() {
       }
     } catch (e) {
       console.error("그룹 추가 오류:", e);
+      alert("서버와 통신 중 오류가 발생했습니다.");
+    }
+  };
+
+  // [API] 선택한 대회에 문제 추가하기
+  const handleAddToContest = async (targetContestId: number) => {
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`https://diveon.net/api/contests/${targetContestId}/problems/${probId}/add/0`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        alert("문제가 대회에 추가되었습니다.");
+        setShowContestModal(false); // 성공 시 모달 닫기
+      } else if (res.status === 409) {
+        alert("이미 대회에 추가된 문제입니다.");
+      } else {
+        alert("대회 추가에 실패했습니다.");
+      }
+    } catch (e) {
+      console.error("대회 추가 오류:", e);
       alert("서버와 통신 중 오류가 발생했습니다.");
     }
   };
@@ -388,13 +394,6 @@ function ProblemDetailContent() {
   // [API] 문제 삭제 핸들러
   const handleDeleteProblem = async () => {
     if (!confirm("정말로 이 문제를 삭제하시겠습니까?\n삭제된 문제는 복구할 수 없습니다.")) return;
-
-    // 테스트 모드일 때
-    if (!USE_API_REQUEST) {
-      alert("문제가 삭제되었습니다. (MOCK 모드)");
-      window.location.href = "/challenges";
-      return;
-    }
 
     const token = localStorage.getItem("token");
     try {
@@ -421,15 +420,6 @@ function ProblemDetailContent() {
 
   // [API] 특정 댓글(대댓글 포함) 상세 조회
   const handleSelectComment = async (comment: any) => {
-    // 테스트
-    if (!USE_API_REQUEST) {
-      setSelectedComment({
-        ...comment,
-        replies: mockReplies
-      });
-      return;
-    }
-
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${comment.commentId}`, {
@@ -446,14 +436,6 @@ function ProblemDetailContent() {
   const handleCreateComment = async (parentId?: number) => {
     const content = parentId ? replyInput : commentInput;
     if (!content.trim()) return;
-
-    // 테스트
-    if (!USE_API_REQUEST) {
-      console.log(`[MOCK] ${parentId ? '대댓글' : '댓글'} 등록:`, content);
-      alert("등록되었습니다. (MOCK 모드)");
-      parentId ? setReplyInput("") : setCommentInput("");
-      return;
-    }
 
     const token = localStorage.getItem("token");
     try {
@@ -483,9 +465,6 @@ function ProblemDetailContent() {
     e.stopPropagation(); // 클릭 이벤트 버블링 방지 (상세 창으로 넘어가지 않게)
     if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
 
-    // 테스트
-    if (!USE_API_REQUEST) { alert("완료"); return; }
-
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${commentId}`, {
@@ -504,9 +483,6 @@ function ProblemDetailContent() {
   const handleUpdateComment = async (e: React.MouseEvent, commentId: number, isReply: boolean = false) => {
     e.stopPropagation();
     if (!editContent || !editContent.trim()) return;
-
-    // 테스트
-    if (!USE_API_REQUEST) { alert("완료"); return; }
 
     const token = localStorage.getItem("token");
     try {
@@ -555,7 +531,7 @@ function ProblemDetailContent() {
 
           {/* [B] 중앙 네비게이션 메뉴 영역 */}
           <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" />
+            <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
             <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
             <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
             <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
@@ -776,6 +752,16 @@ function ProblemDetailContent() {
                       onClick={handleOpenGroupModal}
                     >
                       <Users className="h-4 w-4 mr-1.5" /> 그룹에 공유
+                    </Button>
+                  )}
+
+                  {problemData?.visibility === "contest" && (
+                    <Button
+                      variant="outline"
+                      className="border-purple-200 text-purple-600 hover:bg-purple-50 font-bold"
+                      onClick={handleOpenContestModal}
+                    >
+                      <Trophy className="h-4 w-4 mr-1.5" /> 대회에 공유
                     </Button>
                   )}
 
@@ -1169,8 +1155,8 @@ function ProblemDetailContent() {
                               <MessageCircle className="w-3.5 h-3.5" />
                               <span>답글 보기 / 달기</span>
                             </div>
-                            <span className="text-slate-300">|</span>
-                            <span className="text-slate-500 group-hover:text-indigo-600 transition-colors">상세 보기</span>
+                            {/* <span className="text-slate-300">|</span>
+                            <span className="text-slate-500 group-hover:text-indigo-600 transition-colors">상세 보기</span> */}
                           </div>
                         </div>
                       </div>
@@ -1338,6 +1324,40 @@ function ProblemDetailContent() {
           </div>
         )}
 
+        {showContestModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+              <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+                <CardTitle className="text-lg">내 대회에 추가하기</CardTitle>
+                <Button variant="ghost" size="icon" onClick={() => setShowContestModal(false)}>
+                  <XCircle className="w-5 h-5 text-slate-500" />
+                </Button>
+              </CardHeader>
+              <CardContent className="pt-4 max-h-[50vh] overflow-y-auto">
+                {isFetchingContests ? (
+                  <div className="py-8 text-center text-slate-400 text-sm animate-pulse">
+                    내가 생성한 대회 목록을 불러오는 중입니다...
+                  </div>
+                ) : myContests.length === 0 ? (
+                  <div className="py-8 text-center text-slate-400 text-sm">
+                    운영 중인 대회 목록이 없습니다.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {myContests.map((contest) => (
+                      <div key={contest.contestId} className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 hover:border-purple-100 transition-colors">
+                        <span className="font-bold text-sm text-slate-800">{contest.title}</span>
+                        <Button size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={() => handleAddToContest(contest.contestId)}>
+                          추가
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </main>
     </div>
   );

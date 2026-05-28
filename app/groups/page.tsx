@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Search, LogOut, Bell, Menu, Code2, Coffee, SearchCode, BookOpen,
   LayoutGrid, Users, BarChart3, Trophy, ShoppingBag, Plus, CheckCircle2,
-  Layers, GraduationCap, School, Briefcase
+  Layers, GraduationCap, School, Briefcase, Flag
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -98,10 +98,10 @@ export default function GroupListPage() {
         });
 
         if (response.ok) {
-          const result = await response.json();
-          setTotalGroups(result.data.totalElements);
-          setGroups(result.data.groups);
-          setTotalPages(result.data.totalPages);
+          const data = await response.json();
+          setTotalGroups(data.data.totalElements);
+          setGroups(data.data.groups);
+          setTotalPages(data.data.totalPages);
         }
       } catch (error) {
         console.error("데이터 로드 실패:", error);
@@ -131,6 +131,13 @@ export default function GroupListPage() {
     setCurrentPage(1);
   };
 
+  // [HANDLER] 로그아웃
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setIsLoggedIn(false);
+    window.location.href = "/";
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
 
@@ -145,7 +152,7 @@ export default function GroupListPage() {
 
           {/* [B] 중앙 네비게이션 메뉴 영역 */}
           <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" />
+            <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
             <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
             <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" active />
             <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
