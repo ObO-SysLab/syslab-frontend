@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search, Settings, LogOut, User, Menu, Trophy, Calendar, Users, ShieldAlert, Award,
-  LayoutGrid, BarChart3, ShoppingBag, Bell, CheckCircle2, Plus
+  LayoutGrid, BarChart3, ShoppingBag, Bell, CheckCircle2, Plus, Flag
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,44 +17,84 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 export default function ContestListPage() {
   // [STATE] 페이지
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // [STATE] 필터
+  const [keyword, setKeyword] = useState("");
+  const [showEntered, setShowEntered] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<"all" | "ongoing" | "upcoming" | "ended">("all");
 
   // [STATE] 데이터
-  const [contests, setContests] = useState<any[]>([{
-    contestId: "1",
-    title: "대단국 대회입니당",
-    participants: 100,
-    date: "2026.04.10 14:00",
-    type: "개인전",
-    prize: "총 상금 200만원",
-    status: "접수 중",
-    isHot: true,
-    isJoined: true,
-  },
-  {
-    contestId: "2",
-    title: "대단국 대회입니당",
-    participants: 10,
-    date: "2026.04.10 14:00",
-    type: "개인전",
-    prize: "총 상금 200만원",
-    status: "진행 중",
-    isHot: false,
-    isJoined: false,
-  },
-  {
-    contestId: "3",
-    title: "대단국 대회입니당",
-    participants: 10,
-    date: "2026.04.10 14:00",
-    type: "팀전",
-    prize: "총 상금 200만원",
-    status: "종료",
-    isHot: false,
-    isJoined: false,
-  }]);
+  const [contests, setContests] = useState<any[]>([]);
   const [totalContests, setTotalContests] = useState(0);
-  const [showEntered, setShowEntered] = useState(false);
   const [ads, setAds] = useState<any[]>([]);
+
+  // [API] 초기 페이지 데이터 로드
+  useEffect(() => {
+    const fetchInitData = async () => {
+      const token = localStorage.getItem("token");
+      if (token) setIsLoggedIn(true);
+
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      try {
+        // 광고 API
+      } catch (error) {
+        console.error("초기 데이터 로드 실패:", error);
+      }
+    }
+
+    fetchInitData();
+  }, []);
+
+  // [API] 대회 목록 조회
+  useEffect(() => {
+    const fetchGroups = async () => {
+      setIsLoading(true);
+      const token = localStorage.getItem("token");
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      // 쿼리 파라미터 구성
+      const params = new URLSearchParams();
+      params.append("keyword", keyword);
+      params.append("status", selectedStatus);
+      params.append("onlyJoined", showEntered.toString());
+      params.append("page", currentPage.toString());
+      params.append("size", "10");
+
+      try {
+        const response = await fetch(`https://diveon.net/api/contests?${params.toString()}`, {
+          method: "GET",
+          headers,
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setTotalContests(result.data.totalContests);
+          setContests(result.data.contests);
+          setTotalPages(result.data.totalPages);
+        }
+      } catch (error) {
+        console.error("데이터 로드 실패:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchGroups();
+  }, [selectedStatus, showEntered, currentPage, keyword]);
+
+
+  // [HANDLER] 로그아웃
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setIsLoggedIn(false);
+    window.location.href = "/";
+  };
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
@@ -70,7 +110,7 @@ export default function ContestListPage() {
 
           {/* [B] 중앙 네비게이션 메뉴 영역 */}
           <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" />
+            <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
             <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" active />
             <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
             <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
@@ -82,7 +122,16 @@ export default function ContestListPage() {
         <div className="flex-1 max-w-sm px-4">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-            <Input type="search" placeholder="검색..." className="pl-9 bg-slate-50 border-slate-200 rounded-full h-9 text-sm" />
+            <Input
+              type="search"
+              placeholder="검색..."
+              className="pl-9 bg-slate-50 border-slate-200 rounded-full h-9 text-sm"
+              value={keyword}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setKeyword(e.target.value);
+              }}
+            />
           </div>
         </div>
 
@@ -176,10 +225,10 @@ export default function ContestListPage() {
 
           <Tabs defaultValue="all" className="w-full">
             <TabsList className="bg-slate-100 p-1 mb-6">
-              <TabsTrigger value="all">전체</TabsTrigger>
-              <TabsTrigger value="ongoing">진행 중</TabsTrigger>
-              <TabsTrigger value="upcoming">예정</TabsTrigger>
-              <TabsTrigger value="ended">종료</TabsTrigger>
+              <TabsTrigger value="all" onClick={() => { setSelectedStatus("all"); setCurrentPage(1); }}>전체</TabsTrigger>
+              <TabsTrigger value="ongoing" onClick={() => { setSelectedStatus("ongoing"); setCurrentPage(1); }}>진행 중</TabsTrigger>
+              <TabsTrigger value="upcoming" onClick={() => { setSelectedStatus("upcoming"); setCurrentPage(1); }}>예정</TabsTrigger>
+              <TabsTrigger value="ended" onClick={() => { setSelectedStatus("ended"); setCurrentPage(1); }}>종료</TabsTrigger>
             </TabsList>
 
             <TabsContent value="all" className="space-y-4 animate-in fade-in-50 duration-500">
@@ -213,7 +262,7 @@ export default function ContestListPage() {
                             </div>
                             <h3 className="text-xl font-bold text-slate-900">{contest.title}</h3>
                             <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-sm text-slate-500 font-medium">
-                              <span className="flex items-center gap-1.5"><Calendar size={14} /> {contest.date}</span>
+                              <span className="flex items-center gap-1.5"><Calendar size={14} /> {contest.startTime}/{contest.endTime}</span>
                               <span className="flex items-center gap-1.5"><Users size={14} /> {contest.participants}명 참여 중</span>
                               <span className="flex items-center gap-1.5 text-amber-600"><Award size={14} /> {contest.prize}</span>
                             </div>
@@ -231,6 +280,43 @@ export default function ContestListPage() {
               ))}
             </TabsContent>
           </Tabs>
+
+          {/* API 연동된 페이지네이션 */}
+          {totalContests > 0 && (
+            <div className="flex justify-center gap-2 pt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                className="rounded-lg"
+              >
+                이전
+              </Button>
+
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <Button
+                  key={i}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`rounded-lg ${currentPage === i + 1 ? 'bg-slate-950 text-white border-slate-950' : ''}`}
+                >
+                  {i + 1}
+                </Button>
+              ))}
+
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                className="rounded-lg"
+              >
+                다음
+              </Button>
+            </div>
+          )}
         </section>
 
         {/* [C] 우측 광고 패널 (2칸) */}

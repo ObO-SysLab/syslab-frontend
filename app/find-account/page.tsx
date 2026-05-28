@@ -53,7 +53,7 @@ export default function FindAccountPage() {
                     아이디 찾기
                   </TabsTrigger>
                   <TabsTrigger value="pw" className="rounded-xl font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                    비밀번호 재설정
+                    비밀번호 찾기
                   </TabsTrigger>
                 </TabsList>
 
@@ -61,17 +61,10 @@ export default function FindAccountPage() {
                 <TabsContent value="id" className="p-8 pt-6 space-y-6 animate-in fade-in duration-500">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">이름</label>
+                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">이메일</label>
                       <div className="relative">
-                        <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                        <Input placeholder="홍길동" className="pl-11 bg-slate-50 border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-900" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">연락처</label>
-                      <div className="relative">
-                        <Phone className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                        <Input placeholder="010-0000-0000" className="pl-11 bg-slate-50 border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-900" />
+                        <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                        <Input placeholder="diveon@gmail.com" className="pl-11 bg-slate-50 border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-900" />
                       </div>
                     </div>
                   </div>
@@ -84,17 +77,10 @@ export default function FindAccountPage() {
                 <TabsContent value="pw" className="p-8 pt-6 space-y-6 animate-in fade-in duration-500">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">아이디</label>
-                      <div className="relative">
-                        <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                        <Input placeholder="Dankook123" className="pl-11 bg-slate-50 border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-900" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
                       <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">이메일</label>
                       <div className="relative">
                         <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                        <Input type="email" placeholder="name@dankook.ac.kr" className="pl-11 bg-slate-50 border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-900" />
+                        <Input placeholder="diveon@gmail.com" className="pl-11 bg-slate-50 border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-900" />
                       </div>
                     </div>
                   </div>

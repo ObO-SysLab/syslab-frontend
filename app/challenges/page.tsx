@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Search, Bell, LogOut, Menu, CheckCircle2, Code2, SearchCode,
-  LayoutGrid, Users, BarChart3, ShoppingBag, Trophy,
+  LayoutGrid, Users, BarChart3, ShoppingBag, Trophy, Flag,
   Cpu, Activity, GitBranch, Database, FileCode2, Layers, Plus
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { mockChallenges, mockAds, mockMyRanking } from "@/lib/mockData";
 
 export default function ProblemListPage() {
   // API 연동 스위치
@@ -52,13 +51,6 @@ export default function ProblemListPage() {
       const token = localStorage.getItem("token");
       if (token) setIsLoggedIn(true);
 
-      // 테스트
-      if (!USE_API_REQUEST) {
-        setMyRank({ rank: mockMyRanking.ranking, total: mockMyRanking.total });
-        setAds(mockAds);
-        return;
-      }
-
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -72,11 +64,11 @@ export default function ProblemListPage() {
         setMyRank({ rank: "-", total: "-" });
 
         // 광고 가져오기 (배너 규격에 맞게 placement 설정)
-        const adRes = await fetch("https://diveon.net/api/ad/?placement=prob_detail");
-        if (adRes.ok) {
-          const adData = await adRes.json();
-          setAds(adData.data.ads);
-        }
+        // const adRes = await fetch("https://diveon.net/api/ad/?placement=prob_detail");
+        // if (adRes.ok) {
+        //   const adData = await adRes.json();
+        //   setAds(adData.data.ads);
+        // }
       } catch (error) {
         console.error("초기 데이터 로드 실패:", error);
       }
@@ -89,33 +81,6 @@ export default function ProblemListPage() {
   useEffect(() => {
     const fetchProblems = async () => {
       setIsLoading(true);
-
-      if (!USE_API_REQUEST) {
-        setTimeout(() => { // API 통신하는 척 딜레이
-          const MOCK_ITEMS_PER_PAGE = 10;
-          let filtered = mockChallenges.map((c, index) => ({
-            probId: c.id,
-            title: c.title,
-            author: c.author,
-            category: c.category,
-            solved_count: 100 + index * 42,
-            difficulty: `Lvl ${c.level}`,
-            solved: c.solved,
-            type: c.type
-          }));
-
-          if (selectedCategory !== "All") filtered = filtered.filter(p => p.category === selectedCategory);
-          if (selectedLevel) filtered = filtered.filter(p => p.difficulty === selectedLevel);
-          if (showUnsolved) filtered = filtered.filter(p => p.solved === false);
-
-          const startIndex = (currentPage) * MOCK_ITEMS_PER_PAGE;
-          setProblems(filtered.slice(startIndex, startIndex + MOCK_ITEMS_PER_PAGE));
-          setTotalProblems(filtered.length);
-          setTotalPages(Math.max(1, Math.ceil(filtered.length / MOCK_ITEMS_PER_PAGE)));
-          setIsLoading(false);
-        }, 500);
-        return;
-      }
 
       const token = localStorage.getItem("token");
       const headers: HeadersInit = { "Content-Type": "application/json" };
@@ -181,7 +146,7 @@ export default function ProblemListPage() {
 
           {/* [B] 중앙 네비게이션 메뉴 영역 */}
           <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" active />
+            <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" active />
             <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
             <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
             <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />

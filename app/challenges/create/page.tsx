@@ -524,6 +524,7 @@ function ProblemCreateContent() {
                     <SelectContent>
                       <SelectItem value="public" className="text-emerald-600 font-bold">전체 공개</SelectItem>
                       <SelectItem value="group" className="text-blue-600 font-bold">그룹 공개</SelectItem>
+                      <SelectItem value="contest" className="text-purple-600 font-bold">대회 공개</SelectItem>
                       <SelectItem value="private" className="text-amber-600 font-bold">비공개</SelectItem>
                     </SelectContent>
                   </Select>

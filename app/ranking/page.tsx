@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   Search, Bell, LogOut, Menu, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag,
-  Medal, Award, TrendingUp, ChevronLeft, ChevronRight, SearchCode, Crown
+  Medal, Award, TrendingUp, ChevronLeft, ChevronRight, SearchCode, Crown, Flag
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,7 @@ export default function GlobalRankingPage() {
             Diveon
           </Link>
           <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" />
+            <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
             <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
             <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
             <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" active />
