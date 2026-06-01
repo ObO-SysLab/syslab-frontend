@@ -47,7 +47,7 @@ export default function LoginPage() {
       } else {
         setError(result.message || "아이디 또는 비밀번호가 일치하지 않습니다.");
       }
-    } catch (err) {
+    } catch (error) {
       setError("서버와 통신 중 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
