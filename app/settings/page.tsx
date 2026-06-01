@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
-  Search, LogOut, User, Menu, Lock, Bell, Paintbrush, Trash2, Camera, ShieldCheck, 
-  Laptop, Moon, Sun, LayoutGrid, Trophy, Users, BarChart3, ShoppingBag 
+import {
+  Search, LogOut, User, Menu, Lock, Bell, Paintbrush, Trash2, X, ShieldCheck,
+  Laptop, Moon, Sun, LayoutGrid, Trophy, Users, BarChart3, ShoppingBag
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ export default function SettingsPage() {
 
       try {
         const response = await fetch("https://diveon.net/api/profile/show", {
-          method: "GET", 
+          method: "GET",
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
@@ -63,7 +63,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
-      
+
       {/* 1. 고정 헤더 (기존 디자인 유지) */}
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8"> {/* gap을 넓혀서 메뉴 공간 확보 */}
@@ -71,7 +71,7 @@ export default function SettingsPage() {
           <Link href="/" className="text-2xl font-black tracking-tighter text-slate-900 mr-4">
             Diveon
           </Link>
-          
+
           {/* 중앙 네비게이션 메뉴 */}
           <nav className="hidden lg:flex items-center gap-1">
             <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" />
@@ -107,7 +107,7 @@ export default function SettingsPage() {
                 </Avatar>
               </Link>
 
-              <button 
+              <button
                 onClick={() => setIsLoggedIn(false)}
                 className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
               >
@@ -138,29 +138,29 @@ export default function SettingsPage() {
             <h2 className="text-2xl font-black tracking-tighter">Settings</h2>
           </div>
           <nav className="space-y-1">
-            <SettingsNavItem 
-              icon={<User size={18} />} 
-              label="프로필 편집" 
-              active={activeTab === "profile"} 
-              onClick={() => setActiveTab("profile")} 
+            <SettingsNavItem
+              icon={<User size={18} />}
+              label="프로필 편집"
+              active={activeTab === "profile"}
+              onClick={() => setActiveTab("profile")}
             />
-            <SettingsNavItem 
-              icon={<Lock size={18} />} 
-              label="보안 및 계정" 
-              active={activeTab === "security"} 
-              onClick={() => setActiveTab("security")} 
+            <SettingsNavItem
+              icon={<Lock size={18} />}
+              label="보안 및 계정"
+              active={activeTab === "security"}
+              onClick={() => setActiveTab("security")}
             />
-            <SettingsNavItem 
-              icon={<Bell size={18} />} 
-              label="알림 설정" 
-              active={activeTab === "notifications"} 
-              onClick={() => setActiveTab("notifications")} 
+            <SettingsNavItem
+              icon={<Bell size={18} />}
+              label="알림 설정"
+              active={activeTab === "notifications"}
+              onClick={() => setActiveTab("notifications")}
             />
-            <SettingsNavItem 
-              icon={<Paintbrush size={18} />} 
-              label="테마 및 외관" 
-              active={activeTab === "appearance"} 
-              onClick={() => setActiveTab("appearance")} 
+            <SettingsNavItem
+              icon={<Paintbrush size={18} />}
+              label="테마 및 외관"
+              active={activeTab === "appearance"}
+              onClick={() => setActiveTab("appearance")}
             />
           </nav>
           <Separator className="my-6" />
@@ -196,46 +196,91 @@ export default function SettingsPage() {
 /* 1. 프로필 및 개인정보 관리 섹션 */
 /* -------------------------------------------------------------------------- */
 function ProfileSection({ data }: { data: any }) {
-  // [기능 수정] API 응답 구조(data.data.user_info)에 맞춰 경로 설정
   const info = data?.data?.userInfo;
+  const formattedDate = info?.createdAt
+    ? new Date(info.createdAt).toLocaleDateString("ko-KR", { year: 'numeric', month: 'long', day: 'numeric' })
+    : "2026년 3월 5일";
+  const [nickname, setNickname] = useState(info?.nickname || "");
+  const [bio, setBio] = useState(info?.selfComment || "");
+  const [org, setOrg] = useState(info?.belong || "");
+  const [interests, setInterests] = useState<string[]>(
+    Array.isArray(info?.interest)
+      ? info.interest
+      : info?.interest && typeof info.interest === "string"
+        ? info.interest.split(",").map((s: string) => s.trim()).filter(Boolean)
+        : ["Digital Forensics", "Cyber Investigation"] // 기본 예시 데이터 대체
+  );
 
-  const defaultProfile = {
-    nickname: info?.nickname || "박단용",
-    avatar: info?.profileImgUrl || "/avatar.png",
-    bio: info?.selfComment || "디지털 포렌식 전문가를 꿈꾸는 개발자입니다.",
-    realName: info?.realName || "박단용",
-    birth: info?.birthDate || "2003년 05월 26일",
-    createdAt: info?.createdAt || "2026년 03월 05일",
-    email: info?.email || "dy.park@dankook.ac.kr",
-    phone: info?.phoneNumber || "010-1234-5678",
-    org: info?.belong || "단국대학교 소프트웨어학과",
-    // 관심 분야가 문자열로 올 경우를 대비해 처리 (배열이 아닐 경우 기본 배열 사용)
-    interests: Array.isArray(info?.interest) 
-      ? info.interest 
-      : (info?.interest ? info.interest.split(',') : ['Digital Forensics', 'Cyber Investigation', 'System Programming', 'Malware Analysis'])
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [tagInput, setTagInput] = useState("");
+
+  // [HANDLER] 태그 등록
+  const handleAddTag = () => {
+    const trimmed = tagInput.trim();
+    if (!trimmed) return;
+
+    // 중복 태그 방지 가드
+    if (!interests.includes(trimmed)) {
+      setInterests([...interests, trimmed]);
+    }
+    setTagInput(""); // 인풋창 초기화
+  };
+
+  // [HANDLER] 태그 삭제
+  const handleRemoveTag = (tagToRemove: string) => {
+    setInterests(interests.filter((tag) => tag !== tagToRemove));
+  };
+
+  const handleUpdateProfile = async () => {
+    setIsUpdating(true);
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await fetch("https://diveon.net/api/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nickname: nickname,
+          selfComment: bio,
+          belong: org,
+          interest: interests // 명세서 규격 배열 전송
+        })
+      });
+
+      if (res.ok) {
+        alert("프로필이 성공적으로 수정되었습니다.");
+        window.location.reload();
+      } else {
+        alert("프로필 수정에 실패했습니다. 입력값을 확인해주세요.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("서버 통신 중 오류가 발생했습니다.");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
     <div className="space-y-10 animate-in fade-in-50 duration-300 pb-10">
-      
-      {/* (1) 기본 프로필 (아바타, 닉네임, 자기소개) */}
+
+      {/* (1) 기본 프로필 */}
       <section className="space-y-6">
         <div className="space-y-1">
           <h3 className="text-xl font-bold">프로필 편집</h3>
           <p className="text-sm text-slate-500">다른 사용자에게 보여지는 정보를 설정합니다.</p>
         </div>
         <Separator />
-        
+
         <div className="flex items-center gap-6 p-6 bg-slate-50/50 rounded-3xl border border-slate-100">
           <div className="relative group cursor-pointer">
             <Avatar className="w-24 h-24 border-4 border-white shadow-xl">
-              {/* [수정] 아바타 이미지 연결 */}
-              <AvatarImage src={defaultProfile.avatar} />
+              <AvatarImage src={info?.profileImgUrl || "/avatar.png"} />
               <AvatarFallback className="bg-indigo-100 text-indigo-600 font-black text-xl">DY</AvatarFallback>
             </Avatar>
-            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <Camera size={24} className="text-white" />
-            </div>
           </div>
           <div className="space-y-2">
             <p className="text-sm font-bold text-slate-900">프로필 이미지</p>
@@ -243,20 +288,27 @@ function ProfileSection({ data }: { data: any }) {
               <Button size="sm" variant="outline" className="rounded-xl">사진 변경</Button>
               <Button size="sm" variant="ghost" className="text-red-500 hover:bg-red-50">삭제</Button>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">* 5MB 이하의 JPG, PNG 파일만 가능합니다.</p>
           </div>
         </div>
 
         <div className="grid gap-6">
           <div className="grid gap-2">
             <Label htmlFor="nickname" className="font-bold ml-1">닉네임</Label>
-            {/* [수정] 닉네임 연결 */}
-            <Input id="nickname" defaultValue={defaultProfile.nickname} className="rounded-xl h-11 border-slate-200" />
+            <Input
+              id="nickname"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              className="rounded-xl h-11 border-slate-200"
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="bio" className="font-bold ml-1">자기소개</Label>
-            {/* [수정] 자기소개 연결 */}
-            <Textarea id="bio" defaultValue={defaultProfile.bio} className="rounded-xl min-h-[100px] border-slate-200" />
+            <Textarea
+              id="bio"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              className="rounded-xl min-h-[100px] border-slate-200"
+            />
           </div>
         </div>
       </section>
@@ -272,73 +324,87 @@ function ProfileSection({ data }: { data: any }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label className="text-slate-400 flex items-center gap-2 ml-1">
-              실명 <Lock size={12} />
-            </Label>
-            {/* [수정] 실명 연결 */}
-            <div className="h-11 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-slate-500 text-sm font-medium cursor-not-allowed">
-              {defaultProfile.realName}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-slate-400 flex items-center gap-2 ml-1">
-              생년월일 <Lock size={12} />
-            </Label>
-            {/* [수정] 생년월일 연결 */}
-            <div className="h-11 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-slate-500 text-sm font-medium cursor-not-allowed">
-              {defaultProfile.birth}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-slate-400 flex items-center gap-2 ml-1">
               계정 생성일 <Lock size={12} />
             </Label>
-            {/* [수정] 계정 생성일 연결 */}
             <div className="h-11 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-slate-500 text-sm font-medium cursor-not-allowed">
-              {defaultProfile.createdAt}
+              {formattedDate}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="font-bold ml-1">이메일</Label>
-            {/* [수정] 이메일 연결 */}
-            <Input id="email" defaultValue={defaultProfile.email} className="rounded-xl h-11 border-slate-200" />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="phone" className="font-bold ml-1">전화번호</Label>
-            {/* [수정] 전화번호 연결 */}
-            <Input id="phone" defaultValue={defaultProfile.phone} className="rounded-xl h-11 border-slate-200" />
+            <Label className="text-slate-400 flex items-center gap-2 ml-1">이메일 <Lock size={12} /></Label>
+            <div className="h-11 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-slate-500 text-sm font-medium cursor-not-allowed">
+              {info?.email || "dy.park@dankook.ac.kr"}
+            </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="org" className="font-bold ml-1">소속</Label>
-            {/* [수정] 소속 연결 */}
-            <Input id="org" defaultValue={defaultProfile.org} className="rounded-xl h-11 border-slate-200" />
+            <Input
+              id="org"
+              value={org}
+              onChange={(e) => setOrg(e.target.value)}
+              className="rounded-xl h-11 border-slate-200"
+            />
           </div>
         </div>
       </section>
 
-      {/* (3) 추가 구성 요소: 기술 스택 및 관심 분야 */}
+      {/* (3) 관심 분야 태그 렌더링 */}
       <section className="space-y-6">
         <div className="space-y-1">
           <h3 className="text-xl font-bold">커리어 정보</h3>
           <p className="text-sm text-slate-500">포트폴리오나 챌린지 매칭에 활용되는 정보입니다.</p>
         </div>
         <Separator />
-        
+
         <div className="grid gap-6">
           <div className="grid gap-3">
             <Label className="font-bold ml-1">주요 관심 분야</Label>
-            <div className="flex flex-wrap gap-2">
-              {/* [수정] 관심 분야 태그 연결 */}
-              {defaultProfile.interests.map((tag: string) => (
-                <Badge key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 cursor-pointer border-none rounded-lg">
+
+            {/* 태그 입력 폼 패널 */}
+            <div className="flex gap-2 max-w-md mb-1">
+              <Input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault(); // Form 서브밋 방지
+                    handleAddTag();
+                  }
+                }}
+                placeholder="예: Reverse Engineering, Web Hacking"
+                className="rounded-xl h-9 text-xs border-slate-200"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleAddTag}
+                className="h-9 rounded-xl px-4 text-xs font-bold shrink-0"
+              >
+                추가
+              </Button>
+            </div>
+
+            {/* 태그 리스트 렌더링 팩 */}
+            <div className="flex flex-wrap gap-2 min-h-[32px]">
+              {(interests || []).map((tag: string) => (
+                <Badge
+                  key={tag}
+                  className="pl-3 pr-1.5 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100/80 border-none rounded-lg font-bold flex items-center gap-1.5 transition-colors"
+                >
                   #{tag}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(tag)}
+                    className="hover:bg-indigo-200/60 rounded-md p-0.5 transition-colors"
+                  >
+                    <X size={12} className="text-indigo-500 hover:text-indigo-900" />
+                  </button>
                 </Badge>
               ))}
-              <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]">+ 추가</Button>
             </div>
           </div>
         </div>
@@ -346,8 +412,12 @@ function ProfileSection({ data }: { data: any }) {
 
       <div className="flex justify-end gap-3 pt-6">
         <Button variant="outline" className="rounded-xl px-6">취소</Button>
-        <Button className="bg-indigo-600 hover:bg-indigo-700 rounded-xl px-8 shadow-lg shadow-indigo-100 font-bold">
-          모든 변경사항 저장
+        <Button
+          onClick={handleUpdateProfile}
+          disabled={isUpdating}
+          className="bg-indigo-600 hover:bg-indigo-700 rounded-xl px-8 shadow-lg shadow-indigo-100 font-bold"
+        >
+          {isUpdating ? "저장 중..." : "모든 변경사항 저장"}
         </Button>
       </div>
     </div>
@@ -358,6 +428,50 @@ function ProfileSection({ data }: { data: any }) {
 /* 2. 보안 및 계정 섹션 */
 /* -------------------------------------------------------------------------- */
 function SecuritySection() {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [isChanging, setIsChanging] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (!currentPassword.trim() || !newPassword.trim()) {
+      alert("비밀번호 항목을 모두 입력해주세요.");
+      return;
+    }
+
+    setIsChanging(true);
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await fetch("https://diveon.net/api/profile/password", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword: currentPassword,
+          newPassword: newPassword
+        })
+      });
+
+      if (res.ok) {
+        alert("비밀번호가 안전하게 변경되었습니다.");
+        setCurrentPassword("");
+        setNewPassword("");
+      } else if (res.status === 401) {
+        // 명세서 규격: 401 현재 비밀번호 불일치 예외 분기
+        alert("현재 비밀번호가 일치하지 않습니다. 다시 확인해주세요.");
+      } else {
+        alert("비밀번호 변경 실패: 보안 요구 규격을 확인하세요.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("보안 인프라 통신 중 장애가 발생했습니다.");
+    } finally {
+      setIsChanging(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in-50 duration-300">
       <div className="space-y-1">
@@ -365,7 +479,7 @@ function SecuritySection() {
         <p className="text-sm text-slate-500">비밀번호 변경 및 계정 보안 설정을 관리합니다.</p>
       </div>
       <Separator />
-      
+
       <Card>
         <CardHeader>
           <CardTitle className="text-md">비밀번호 변경</CardTitle>
@@ -373,14 +487,33 @@ function SecuritySection() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-2">
-            <Label>현재 비밀번호</Label>
-            <Input type="password" />
+            <Label htmlFor="currentPassword">현재 비밀번호</Label>
+            <Input
+              id="currentPassword"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="현재 설정된 비밀번호 입력"
+            />
           </div>
           <div className="grid gap-2">
-            <Label>새 비밀번호</Label>
-            <Input type="password" />
+            <Label htmlFor="newPassword">새 비밀번호</Label>
+            <Input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="최소 8자 이상의 새 비밀번호 입력"
+            />
           </div>
-          <Button variant="secondary">비밀번호 업데이트</Button>
+          <Button
+            variant="secondary"
+            onClick={handleChangePassword}
+            disabled={isChanging}
+            className="font-bold"
+          >
+            {isChanging ? "처리 중..." : "비밀번호 업데이트"}
+          </Button>
         </CardContent>
       </Card>
 
@@ -466,9 +599,8 @@ function SettingsNavItem({ icon, label, active, onClick }: { icon: any, label: s
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-bold transition-all ${
-        active ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-      }`}
+      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-bold transition-all ${active ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+        }`}
     >
       {icon} <span>{label}</span>
     </button>
@@ -507,8 +639,8 @@ function ThemeCard({ value, label, icon }: { value: string, label: string, icon:
 // 2. 헤더 메뉴 전용 보조 컴포넌트 [추가]
 function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
-    <Link 
-      href={href} 
+    <Link
+      href={href}
       className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all active:scale-95"
     >
       <span className="text-slate-400 group-hover:text-slate-900">{icon}</span>

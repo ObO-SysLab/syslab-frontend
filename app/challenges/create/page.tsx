@@ -618,7 +618,7 @@ function ProblemCreateContent() {
             <Tabs defaultValue="desc">
               <CardHeader className="bg-slate-50/50 pb-0 border-b">
                 <TabsList className="bg-slate-100 p-0.5 h-auto">
-                  <TabsTrigger value="desc" className="px-5 py-2.5 text-xs">문제 설명 (Markdown)</TabsTrigger>
+                  <TabsTrigger value="desc" className="px-5 py-2.5 text-xs">문제 설명 (Markdown) <span className="text-red-500">*</span></TabsTrigger>
                   <TabsTrigger value="prev" className="px-5 py-2.5 text-xs">미리보기 (Preview)</TabsTrigger>
                 </TabsList>
               </CardHeader>

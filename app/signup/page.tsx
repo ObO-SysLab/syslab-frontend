@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  ShieldCheck, UserPlus, Mail, Lock, User, 
-  ArrowRight, Shield, Hash, Briefcase, 
-  Cake, Check, X, Search, Loader2 
+import {
+  ShieldCheck, UserPlus, Mail, Lock, User,
+  ArrowRight, Shield, Hash, Briefcase,
+  Cake, Check, X, Search, Loader2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,44 +19,189 @@ import { Separator } from "@/components/ui/separator";
 export default function SignUpPage() {
   const router = useRouter();
 
-  // 전송할 데이터 
+  // 전송할 데이터 상태 모델 
   const [formData, setFormData] = useState({
     id: "",
     password: "",
     nickname: "",
-    email: "",      
-    belong: ""      
+    email: "",
+    belong: "",
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  // api 유지용 상태
+  // API 및 검증 상태 관리 그룹
   const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const [autoData, setAutoData] = useState({ name: "", birth: "" });
-  const [interests, setInterests] = useState<string[]>(["디지털 포렌식"]); // interest 데이터 소스
+  const [interests, setInterests] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [isIdChecked, setIsIdChecked] = useState(false);
+  const [isNicknameChecked, setIsNicknameChecked] = useState(false);
+  const [emailCode, setEmailCode] = useState(""); // 6자리
+  const [isEmailSent, setIsEmailSent] = useState(false);
 
   // 입력 핸들러
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
+
+    if (id === "id") setIsIdChecked(false);
+    if (id === "nickname") setIsNicknameChecked(false);
+  };
+
+
+  // [API] 아이디 중복 확인
+  const handleCheckId = async () => {
+    if (!formData.id.trim()) {
+      alert("아이디를 입력해주세요.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`https://diveon.net/api/auth/check-loginId?loginId=${encodeURIComponent(formData.id.trim())}`, {
+        method: "GET"
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const result = json?.data;
+
+        if (result === true) {
+          alert("사용 가능한 아이디입니다.");
+          setIsIdChecked(true);
+        } else {
+          alert("이미 사용 중인 아이디입니다.");
+          setIsIdChecked(false);
+        }
+      } else {
+        alert("서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("아이디 중복 검사 중 네트워크 장애가 발생했습니다.");
+    }
+  };
+
+  // [API] 닉네임 중복 확인
+  const handleCheckNickname = async () => {
+    if (!formData.nickname.trim()) {
+      alert("닉네임을 입력해주세요.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`https://diveon.net/api/auth/check-nickname?nickname=${encodeURIComponent(formData.nickname.trim())}`, {
+        method: "GET"
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const result = json?.data;
+
+        if (result === true) {
+          alert("사용 가능한 닉네임입니다.");
+          setIsNicknameChecked(true);
+        } else {
+          alert("이미 사용 중인 닉네임입니다.");
+          setIsNicknameChecked(false);
+        }
+      } else {
+        alert("서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("닉네임 중복 검사 중 네트워크 장애가 발생했습니다.");
+    }
+  };
+
+  /* [API] 이메일 인증코드 발송 */
+  const handleSendEmailCode = async () => {
+    if (!formData.email.trim()) {
+      alert("이메일 주소를 입력해주세요.");
+      return;
+    }
+
+    try {
+      const res = await fetch("https://diveon.net/api/auth/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email.trim() })
+      });
+
+      if (res.ok) {
+        alert("인증 코드가 이메일로 발송되었습니다.");
+        setIsEmailSent(true);
+      } else if (res.status === 409) {
+        alert("이미 가입된 이메일입니다. 다른 이메일을 사용해주세요.");
+      } else {
+        alert("인증 코드 발송에 실패했습니다. 다시 시도해주세요.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("이메일 전송 중 네트워크 장애가 발생했습니다.");
+    }
+  };
+
+  /* [API] 이메일 인증코드 검증 */
+  const handleVerifyEmailCode = async () => {
+    if (!emailCode.trim()) {
+      alert("인증 코드를 입력해주세요.");
+      return;
+    }
+
+    try {
+      const res = await fetch("https://diveon.net/api/auth/email/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          code: emailCode.trim()
+        })
+      });
+
+      if (res.ok) {
+        alert("이메일 인증이 완료되었습니다!");
+        setIsEmailVerified(true);
+      } else if (res.status === 400) {
+        alert("인증 코드가 일치하지 않거나 만료되었습니다. 다시 확인해주세요.");
+      } else {
+        alert("인증 확인 중 서버 오류가 발생했습니다.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("인증 검증 중 네트워크 장애가 발생했습니다.");
+    }
   };
 
   // [API] 회원가입 요청
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 이메일 인증 & 중복 검사 미통과 시 가입 진행 방어
+    if (!isEmailVerified) {
+      alert("이메일 인증을 완료해주세요.");
+      return;
+    }
+    if (!isIdChecked) {
+      alert("아이디 중복 확인을 먼저 완료해주세요.");
+      return;
+    }
+    if (!isNicknameChecked) {
+      alert("닉네임 중복 확인을 먼저 완료해주세요.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await fetch("https://diveon.net/api/auth/signup", { 
+      const response = await fetch("https://diveon.net/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: formData.email,      
+          email: formData.email,
           loginId: formData.id,
           password: formData.password,
           nickname: formData.nickname,
-          belong: formData.belong,    
-          interest: interests.join(","),        
+          belong: formData.belong,
+          interest: interests
         }),
       });
 
@@ -66,8 +211,8 @@ export default function SignUpPage() {
       } else {
         alert("가입 실패: 데이터를 확인해주세요.");
       }
-    } catch (err) {
-      console.error("통신 에러:", err);
+    } catch (error) {
+      console.error("통신 에러:", error);
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +221,6 @@ export default function SignUpPage() {
   const handleVerifyEmail = () => {
     alert("이메일 인증이 완료되었습니다.");
     setIsEmailVerified(true);
-    setAutoData({ name: "박단용", birth: "2003-05-26" });
   };
 
   const addTag = (e: React.KeyboardEvent) => {
@@ -95,7 +239,7 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
-      
+
       <div className="sm:mx-auto sm:w-full sm:max-w-md mb-8 text-center">
         <Link href="/" className="inline-flex items-center gap-2">
           <div className="bg-slate-900 p-1.5 rounded-lg shadow-lg">
@@ -119,69 +263,89 @@ export default function SignUpPage() {
 
           <form onSubmit={handleSignUp}>
             <CardContent className="p-10 space-y-10">
-              
+
               <section className="space-y-6">
                 <div className="flex items-center gap-2 text-indigo-600">
                   <ShieldCheck size={16} />
                   <span className="text-[11px] font-black uppercase tracking-widest">Personal Info & Security</span>
                 </div>
 
-                <div className="grid gap-4">
-                  {/* 이메일 영역 [기능 연결] */}
+                <div className="grid gap-3">
+                  {/* 이메일 구역 */}
                   <div className="grid gap-2">
                     <Label className="text-xs font-bold text-slate-500 ml-1">이메일 인증</Label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                        <Input 
+                        <Input
                           id="email"
                           type="email"
                           value={formData.email}
                           onChange={handleInputChange}
+                          disabled={isEmailVerified}
                           required
-                          placeholder="example@dankook.ac.kr" 
-                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50" 
+                          placeholder="example@dankook.ac.kr"
+                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50 disabled:opacity-60"
                         />
                       </div>
-                      <Button type="button" onClick={handleVerifyEmail} className="h-12 px-5 rounded-xl bg-indigo-600 font-bold text-xs">
-                        {isEmailVerified ? "인증됨" : "인증하기"}
+                      <Button
+                        type="button"
+                        onClick={handleSendEmailCode}
+                        disabled={isEmailVerified}
+                        className={`h-12 px-5 rounded-xl font-bold text-xs transition-all ${isEmailVerified ? "bg-slate-100 text-slate-400 border" : "bg-indigo-600 hover:bg-indigo-700 text-white"}`}
+                      >
+                        {isEmailVerified ? "인증 완결" : isEmailSent ? "코드 재발송" : "인증하기"}
                       </Button>
                     </div>
                   </div>
 
-                  {/* 인증 데이터 (UI 유지) */}
-                  {isEmailVerified && (
-                    <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
-                      <div className="grid gap-2">
-                        <Label className="text-xs font-bold text-slate-400 ml-1">실명 (자동인증)</Label>
-                        <div className="h-12 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-slate-500 font-bold text-sm">
-                          <Check className="w-4 h-4 mr-2 text-green-500" /> {autoData.name}
-                        </div>
+                  { /* 인증코드 입력 */ }
+                  {isEmailSent && !isEmailVerified && (
+                    <div className="flex gap-2 animate-in slide-in-from-top-2 duration-300">
+                      <div className="relative flex-1">
+                        <ShieldCheck className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                        <Input
+                          type="text"
+                          maxLength={6}
+                          value={emailCode}
+                          onChange={(e) => setEmailCode(e.target.value)}
+                          placeholder="인증코드 6자리 입력"
+                          className="pl-11 h-12 rounded-xl border-indigo-100 bg-indigo-50/10 font-mono tracking-widest text-sm font-bold text-slate-800"
+                        />
                       </div>
-                      <div className="grid gap-2">
-                        <Label className="text-xs font-bold text-slate-400 ml-1">생년월일 (자동인증)</Label>
-                        <div className="h-12 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-slate-500 font-bold text-sm">
-                          <Cake className="w-4 h-4 mr-2 text-green-500" /> {autoData.birth}
-                        </div>
-                      </div>
+                      <Button
+                        type="button"
+                        onClick={handleVerifyEmailCode}
+                        className="h-12 px-6 rounded-xl bg-slate-950 text-white font-black text-xs hover:bg-slate-800 shrink-0"
+                      >
+                        코드 확인
+                      </Button>
                     </div>
                   )}
 
+                  {/* 아이디 구역 */}
                   <div className="grid gap-2">
                     <Label className="text-xs font-bold text-slate-500 ml-1">아이디</Label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <Hash className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                        <Input 
-                          id="id" 
-                          value={formData.id} 
-                          onChange={handleInputChange} 
-                          required 
-                          placeholder="아이디" 
-                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50" 
+                        <Input
+                          id="id"
+                          value={formData.id}
+                          onChange={handleInputChange}
+                          required
+                          placeholder="아이디"
+                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50"
                         />
                       </div>
-                      <Button type="button" variant="outline" className="h-12 px-5 rounded-xl border-slate-200 font-bold text-xs hover:bg-slate-50">중복 확인</Button>
+                      <Button
+                        type="button"
+                        variant={isIdChecked ? "secondary" : "outline"}
+                        onClick={handleCheckId}
+                        className={`h-12 px-5 rounded-xl border-slate-200 font-bold text-xs transition-all ${isIdChecked ? "bg-green-50 text-green-600 border-green-200" : "hover:bg-slate-50"}`}
+                      >
+                        {isIdChecked ? "확인 완료" : "중복 확인"}
+                      </Button>
                     </div>
                   </div>
 
@@ -190,14 +354,14 @@ export default function SignUpPage() {
                       <Label className="text-xs font-bold text-slate-500 ml-1">비밀번호</Label>
                       <div className="relative">
                         <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                        <Input 
-                          id="password" 
-                          type="password" 
-                          value={formData.password} 
-                          onChange={handleInputChange} 
-                          required 
-                          placeholder="••••••••" 
-                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50" 
+                        <Input
+                          id="password"
+                          type="password"
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          required
+                          placeholder="••••••••"
+                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50"
                         />
                       </div>
                     </div>
@@ -221,21 +385,29 @@ export default function SignUpPage() {
                 </div>
 
                 <div className="grid gap-4">
+                  {/* 닉네임 구역 */}
                   <div className="grid gap-2">
                     <Label className="text-xs font-bold text-slate-500 ml-1">닉네임</Label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <Hash className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                        <Input 
-                          id="nickname" 
-                          value={formData.nickname} 
-                          onChange={handleInputChange} 
-                          required 
-                          placeholder="사용할 닉네임" 
-                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50" 
+                        <Input
+                          id="nickname"
+                          value={formData.nickname}
+                          onChange={handleInputChange}
+                          required
+                          placeholder="사용할 닉네임"
+                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50"
                         />
                       </div>
-                      <Button type="button" variant="outline" className="h-12 px-5 rounded-xl border-slate-200 font-bold text-xs hover:bg-slate-50">중복 확인</Button>
+                      <Button
+                        type="button"
+                        variant={isNicknameChecked ? "secondary" : "outline"}
+                        onClick={handleCheckNickname}
+                        className={`h-12 px-5 rounded-xl border-slate-200 font-bold text-xs transition-all ${isNicknameChecked ? "bg-green-50 text-green-600 border-green-200" : "hover:bg-slate-50"}`}
+                      >
+                        {isNicknameChecked ? "확인 완료" : "중복 확인"}
+                      </Button>
                     </div>
                   </div>
 
@@ -244,28 +416,28 @@ export default function SignUpPage() {
                     <Label className="text-xs font-bold text-slate-500 ml-1">소속 (직접 입력)</Label>
                     <div className="relative">
                       <Briefcase className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                      <Input 
+                      <Input
                         id="belong"
                         value={formData.belong}
                         onChange={handleInputChange}
-                        placeholder="소속 입력" 
-                        className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50" 
+                        placeholder="소속 입력"
+                        className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50"
                       />
                     </div>
                   </div>
 
-                  {/* 관심 분야 (interests 상태와 연결되어 있음) */}
+                  {/* 관심 분야 */}
                   <div className="grid gap-2">
                     <Label className="text-xs font-bold text-slate-500 ml-1">관심 분야 (Enter로 추가)</Label>
                     <div className="space-y-3">
                       <div className="relative">
                         <Search className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                        <Input 
+                        <Input
                           value={tagInput}
                           onChange={(e) => setTagInput(e.target.value)}
                           onKeyDown={addTag}
-                          placeholder="예: 리버싱, 네트워크 보안" 
-                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50" 
+                          placeholder="예: 리버싱, 네트워크 보안"
+                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50"
                         />
                       </div>
                       <div className="flex flex-wrap gap-2 min-h-[32px]">
@@ -285,19 +457,20 @@ export default function SignUpPage() {
 
               <div className="space-y-6 pt-4">
                 <div className="flex items-start space-x-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <Checkbox id="terms" className="mt-1 data-[state=checked]:bg-indigo-600" />
+                  <Checkbox id="terms" className="mt-1 data-[state=checked]:bg-indigo-600" required />
                   <div className="grid gap-1.5 leading-none">
                     <label htmlFor="terms" className="text-xs font-bold text-slate-700 leading-normal cursor-pointer">
-                      서비스 이용약관 및 개인정보 처리방침에 동의합니다.
+                      <Link href="/signup/terms" target="_blank" className="text-indigo-600 hover:underline">서비스 이용약관</Link> 및{" "}
+                      <Link href="/signup/privacy" target="_blank" className="text-indigo-600 hover:underline">개인정보 처리방침</Link>에 동의합니다. (필수)
                     </label>
                     <p className="text-[10px] text-slate-400">
-                      부정행위 적발 시 계정 사용이 영구 중단될 수 있음을 확인했습니다.
+                      어뷰징, 답안 공유, 플랫폼 대상 공격 등 부정행위 적발 시 계정이 영구 중단되며 소속에 통보될 수 있습니다.
                     </p>
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={isLoading}
                   className="w-full bg-slate-950 hover:bg-slate-800 h-14 rounded-2xl text-lg font-black shadow-xl shadow-slate-200 transition-all active:scale-[0.98]"
                 >

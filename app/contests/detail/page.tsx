@@ -27,6 +27,7 @@ function ContestDetailPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isJoined, setIsJoined] = useState(false);
   const router = useRouter();
+  const [timeLeft, setTimeLeft] = useState<string>("-");
 
   // [STATE] 데이터
   const searchParams = useSearchParams();
@@ -96,6 +97,32 @@ function ContestDetailPage() {
   useEffect(() => {
     if (activeTab === "participants") fetchParticipants();
   }, [participantsCurrentPage, activeTab]);
+
+  // 실시간 카운트 다운 타이머 이팩트
+  useEffect(() => {
+    if (!contestInfo?.endTime) return;
+
+    const calculateTimeLeft = () => {
+      const difference = +new Date(contestInfo.endTime) - +new Date();
+      if (difference <= 0) {
+        setTimeLeft("대회 종료");
+        return;
+      }
+
+      const hours = Math.floor(difference / (1000 * 60 * 60));
+      const minutes = Math.floor((difference / 1000 / 60) % 60);
+      const seconds = Math.floor((difference / 1000) % 60);
+
+      // 한 자리 숫자일 때 앞에 0을 붙여 HH:MM:SS 포맷팅
+      const pad = (n: number) => n < 10 ? `0${n}` : n;
+      setTimeLeft(`${pad(hours)}:${pad(minutes)}:${pad(seconds)}`);
+    };
+
+    calculateTimeLeft(); // 초기 실행
+    const timer = setInterval(calculateTimeLeft, 1000); // 1초마다 반복
+
+    return () => clearInterval(timer);
+  }, [contestInfo?.endTime]);
 
   // [API] 포스터, 유저 정보
   const fetchPosterUser = async () => {
@@ -583,7 +610,7 @@ function ContestDetailPage() {
         <div className="hidden md:flex items-center gap-6 px-6 py-1.5 bg-slate-800 rounded-full border border-slate-700">
           <div className="flex items-center gap-2 text-red-400 font-mono font-bold">
             <Clock size={16} />
-            <span>-</span>
+            <span>{timeLeft}</span>
           </div>
           <div className="h-4 w-[1px] bg-slate-700" />
           <div className="text-xs font-medium text-slate-400">남은 시간</div>
@@ -664,6 +691,7 @@ function ContestDetailPage() {
               isContestHost={isContestHost}
               handleEnterContest={handleEnterContest}
               handleCancelContest={handleCancelContest}
+              challengeCount={allChallenges.length}
             />
           )}
           {activeTab === "dashboard" && (
@@ -769,7 +797,7 @@ function ContestDetailPage() {
 /* -------------------------------------------------------------------------- */
 /* 1. 포스터 탭 */
 /* -------------------------------------------------------------------------- */
-function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, handleCancelContest }: any) {
+function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, handleCancelContest, challengeCount }: any) {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl mx-auto">
       {/* 타이틀 및 헤더 영역 */}
@@ -829,7 +857,7 @@ function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, h
         <Card>
           <CardContent className="p-6 text-center space-y-1">
             <p className="text-slate-500 text-sm font-bold">출제된 문제</p>
-            <p className="text-3xl font-black text-slate-900">-<span className="text-sm text-slate-400 ml-1">문제</span></p>
+            <p className="text-3xl font-black text-slate-900">{challengeCount}<span className="text-sm text-slate-400 ml-1">문제</span></p>
           </CardContent>
         </Card>
       </div>
@@ -852,23 +880,10 @@ function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, h
 /* -------------------------------------------------------------------------- */
 /* 2. 대시보드 탭 (기존 구현 내용 포함) */
 /* -------------------------------------------------------------------------- */
-function DashboardTab({
-  contestInfo,
-  notices = [],
-  allChallenges = [],
-  fullRankings = [],
-  router,
-  setActiveTab,
-  contestId
-}: {
-  contestInfo: any,
-  notices?: any[],
-  allChallenges?: any[],
-  fullRankings?: any[],
-  router: any,
-  setActiveTab: (tab: string) => void,
-  contestId: string | null
+function DashboardTab({ contestInfo, notices = [], allChallenges = [], fullRankings = [], router, setActiveTab, contestId }: {
+  contestInfo: any, notices?: any[], allChallenges?: any[], fullRankings?: any[], router: any, setActiveTab: (tab: string) => void, contestId: string | null
 }) {
+
   const firstBloodChallenge = allChallenges.find(ch => ch.solvedCount === 0) || allChallenges[0];
   const hotChallenge = allChallenges.find(ch => ch.solvedCount > 50) || allChallenges[1];
 
@@ -987,7 +1002,7 @@ function DashboardTab({
               <p className="text-[10px] text-slate-400 uppercase">Rank</p>
             </div>
           </div>
-          {/* 💡 내 풀이기록 버튼 클릭 시 스코어보드 탭으로 워프하도록 핸들링 변경 */}
+          {/* 내 풀이기록 버튼 클릭 시 스코어보드 탭으로 워프하도록 핸들링 변경 */}
           <Button className="w-full bg-indigo-600 hover:bg-indigo-700 relative z-10 font-bold" onClick={() => setActiveTab("scoreboard")}>
             내 풀이 기록 확인
           </Button>
@@ -1002,15 +1017,23 @@ function DashboardTab({
 /* -------------------------------------------------------------------------- */
 function ChallengesTab({ allChallenges, contestId, isContestHost, setShowAddChallengeModal, handleRemoveChallenge, handleChallengePoint, router }: { allChallenges: any[], contestId: string | null, isContestHost: boolean, setShowAddChallengeModal: any, handleRemoveChallenge: any, handleChallengePoint: any, router: any }) {
   const [filter, setFilter] = useState("all");
-
-  // 포인트 수정용 State 추가
   const [editingPointsId, setEditingPointsId] = useState<string | null>(null);
   const [newPoints, setNewPoints] = useState<number | "">("");
 
   const handleSavePoints = async () => {
-    if (newPoints === "" || isNaN(Number(newPoints))) { alert("올바른 점수를 입력해주세요."); return; }
+    if (newPoints === "" || isNaN(Number(newPoints))) {
+      alert("올바른 점수를 입력해주세요.");
+      return;
+    }
+
+    const parsedPoints = Number(newPoints);
+    if (parsedPoints < 0 || parsedPoints > 1000) {
+      alert("배점은 0점부터 1000점 사이만 설정할 수 있습니다.");
+      return;
+    }
+
     if (editingPointsId) {
-      await handleChallengePoint(editingPointsId, newPoints.toString());
+      await handleChallengePoint(editingPointsId, parsedPoints.toString());
       alert("배점이 정상적으로 수정되었습니다.");
       setEditingPointsId(null);
     }
@@ -1071,7 +1094,7 @@ function ChallengesTab({ allChallenges, contestId, isContestHost, setShowAddChal
             }
 
             return (
-              // 💡 1. 문제 카드 전체를 Link로 래핑하여 상세 페이지 이동 경로 연동
+              // 1. 문제 카드 전체를 Link로 래핑하여 상세 페이지 이동 경로 연동
               <Link key={ch.id} href={`/contests/challenge/?probId=${ch.problemId}&contestProblemId=${ch.contestProblemId}&contestId=${contestId}`} className="block">
                 <Card className={`group cursor-pointer hover:shadow-md transition-all border-2 h-full ${cardColorClass}`}>
                   <CardContent className="p-5 flex flex-col h-full">
@@ -1154,13 +1177,26 @@ function ChallengesTab({ allChallenges, contestId, isContestHost, setShowAddChal
             </CardHeader>
             <CardContent className="p-5 space-y-4">
               <div className="space-y-2">
-                <Label>배점 (Points)</Label>
+                <Label>배점 (0 ~ 1000)</Label>
                 <Input
                   type="number"
+                  min={0}
+                  max={1000}
                   value={newPoints}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setNewPoints(val === "" ? "" : Number(val));
+                    if (val === "") {
+                      setNewPoints("");
+                      return;
+                    }
+                    const num = Number(val);
+                    if (num > 1000) {
+                      setNewPoints(1000);
+                    } else if (num < 0) {
+                      setNewPoints(0);
+                    } else {
+                      setNewPoints(num);
+                    }
                   }}
                   className="font-mono text-lg font-bold"
                 />
