@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
+import {
   Search, Bell, LogOut, Menu, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag,
   Coins, Sparkles, UserCircle2, Palette, ShieldCheck, Tag, ShoppingCart, Flag,
   Check, Info, Filter, ArrowUpRight
@@ -39,10 +39,44 @@ export default function StorePage() {
   const [userPoints, setUserPoints] = useState(12500); // 사용자 보유 포인트
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  
+  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+
   // 구매 다이얼로그 상태
   const [isPurchaseOpen, setIsPurchaseOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      setIsLoggedIn(true);
+
+      try {
+        const response = await fetch("https://diveon.net/api/profile/show", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const userInfo = result?.data?.userInfo;
+
+          // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
+          if (userInfo?.profileImgUrl) {
+            setUserImgUrl(userInfo.profileImgUrl);
+          }
+        }
+      } catch (error) {
+        console.error("홈페이지 초기 데이터 로드 실패:", error);
+      }
+    };
+
+    fetchProfileImage();
+  }, []);
 
   // 아이템 필터링 로직
   const filteredItems = STORE_ITEMS.filter(item => {
@@ -67,7 +101,7 @@ export default function StorePage() {
   };
 
   const getRarityColor = (rarity: string) => {
-    switch(rarity) {
+    switch (rarity) {
       case 'Legendary': return 'bg-rose-500 text-white';
       case 'Epic': return 'bg-indigo-500 text-white';
       case 'Rare': return 'bg-blue-500 text-white';
@@ -77,7 +111,7 @@ export default function StorePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      
+
       {/* 1. 고정 헤더 */}
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8">
@@ -105,8 +139,11 @@ export default function StorePage() {
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
               </button>
               <Link href="/settings">
-                <Avatar className="h-9 w-9 border hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
-                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                    {/* 공백 상태 유지 */}
+                  </AvatarFallback>
                 </Avatar>
               </Link>
               <button onClick={() => setIsLoggedIn(false)} className="p-2 hover:bg-red-50 rounded-full text-red-500"><LogOut className="h-5 w-5" /></button>
@@ -122,7 +159,7 @@ export default function StorePage() {
 
       {/* 2. 메인 스토어 컨텐츠 */}
       <main className="container mx-auto max-w-[1200px] pt-10 px-4 pb-20 space-y-10">
-        
+
         {/* 상단 배너 영역 */}
         <section className="relative w-full h-48 rounded-[2.5rem] overflow-hidden bg-slate-900 shadow-2xl flex items-center px-12">
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
@@ -147,8 +184,8 @@ export default function StorePage() {
 
           <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-            <Input 
-              placeholder="아이템 이름 검색..." 
+            <Input
+              placeholder="아이템 이름 검색..."
               className="pl-10 bg-white border-slate-200 rounded-xl h-11"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -177,9 +214,9 @@ export default function StorePage() {
                   <Coins className="w-4 h-4 text-amber-500" />
                   <span className="text-lg font-black text-slate-900">{item.price.toLocaleString()}</span>
                 </div>
-                <Button 
+                <Button
                   onClick={() => handlePurchase(item)}
-                  variant={item.price === 0 ? "outline" : "default"} 
+                  variant={item.price === 0 ? "outline" : "default"}
                   className={`rounded-xl h-10 font-bold ${item.price !== 0 ? 'bg-slate-900 hover:bg-slate-800' : ''}`}
                 >
                   {item.price === 0 ? "무료" : "구매하기"}
@@ -187,7 +224,7 @@ export default function StorePage() {
               </CardFooter>
             </Card>
           ))}
-          
+
           {filteredItems.length === 0 && (
             <div className="col-span-full py-20 text-center space-y-4">
               <SearchCode className="w-12 h-12 text-slate-200 mx-auto" />
@@ -229,11 +266,10 @@ export default function StorePage() {
 // 보조 컴포넌트: 네비게이션 링크
 function NavMenuLink({ href, icon, label, active = false }: { href: string; icon: React.ReactNode; label: string; active?: boolean }) {
   return (
-    <Link 
-      href={href} 
-      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-        active ? "text-indigo-600 bg-indigo-50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
-      }`}
+    <Link
+      href={href}
+      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active ? "text-indigo-600 bg-indigo-50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+        }`}
     >
       <span>{icon}</span>
       {label}
@@ -244,13 +280,13 @@ function NavMenuLink({ href, icon, label, active = false }: { href: string; icon
 // 아이콘: 검색 결과 없음용
 function SearchCode({ className }: { className?: string }) {
   return (
-    <svg 
+    <svg
       className={className}
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" height="24" viewBox="0 0 24 24" 
+      xmlns="http://www.w3.org/2000/svg"
+      width="24" height="24" viewBox="0 0 24 24"
       fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
     >
-      <path d="m18 16 4 4"/><path d="m5 8-3 3 3 3"/><path d="m19 8 3 3-3 3"/><path d="m14 4-4 16"/><circle cx="12" cy="12" r="10"/>
+      <path d="m18 16 4 4" /><path d="m5 8-3 3 3 3" /><path d="m19 8 3 3-3 3" /><path d="m14 4-4 16" /><circle cx="12" cy="12" r="10" />
     </svg>
   );
 }

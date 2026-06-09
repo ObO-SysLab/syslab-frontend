@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import {
   Search, Settings, LogOut, Menu, Trophy, Star, Share2, ChevronLeft,
-  ShieldCheck, Users, Bell, Trash2, LayoutGrid, BarChart3, ShoppingBag,
+  ShieldCheck, Users, Bell, Trash2, BarChart3, ShoppingBag,
   FileText, Edit2, MessageSquare, Crown, UserMinus, ChevronRight, Code2, Pin,
-  X, Eye, Flag
+  X, Eye, Flag, ImageIcon
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,8 @@ function GroupDetailPage() {
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
   const [isGroupLeader, setIsGroupLeader] = useState(false);
   const [myStatus, setMyStatus] = useState<"none" | "pending" | "member">("none");
+  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
 
   // [STATE] 데이터
   const searchParams = useSearchParams();
@@ -80,6 +82,43 @@ function GroupDetailPage() {
   const [pendingMembers, setPendingMembers] = useState<any[]>([]);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDesc] = useState("");
+
+  const groupFileInputRef = useRef<HTMLInputElement>(null);
+  const [groupImgUrl, setGroupImgUrl] = useState("/avatar.png"); // 기본 껍데기 이미지
+  const [isGroupImgUploading, setIsGroupImgUploading] = useState(false);
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      setIsLoggedIn(true);
+
+      try {
+        const response = await fetch("https://diveon.net/api/profile/show", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const userInfo = result?.data?.userInfo;
+
+          // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
+          if (userInfo?.profileImgUrl) {
+            setUserImgUrl(userInfo.profileImgUrl);
+          }
+        }
+      } catch (error) {
+        console.error("홈페이지 초기 데이터 로드 실패:", error);
+      }
+    };
+
+    fetchProfileImage();
+  }, []);
 
   // [API] 페이지 초기 데이터 로드
   useEffect(() => {
@@ -141,15 +180,23 @@ function GroupDetailPage() {
       const grpRes = await fetch(`https://diveon.net/api/groups/${groupId}`, { headers });
       if (grpRes.ok) {
         const grpJson = await grpRes.json();
-        setEditTitle(grpJson.data.title);
-        setEditDesc(grpJson.data.description);
-        setGroupData(grpJson.data);
-        setIsPrivate(grpJson.data.settings.isPrivate);
-        setIsAutoApprove(grpJson.data.settings.isAutoApprove);
-        setGroupTags(grpJson.data.tags);
-        setSelectedSettingsTags(grpJson.data.tags);
-        setIsGroupLeader(grpJson.data.userContext.isLeader);
-        setMyStatus(grpJson.data.userContext.myStatus);
+        const groupInfo = grpJson?.data;
+
+        setEditTitle(groupInfo?.title || "");
+        setEditDesc(groupInfo?.description || "");
+        setGroupData(groupInfo);
+        setIsPrivate(groupInfo?.settings?.isPrivate || false);
+        setIsAutoApprove(groupInfo?.settings?.isAutoApprove || false);
+        setGroupTags(groupInfo?.tags || []);
+        setSelectedSettingsTags(groupInfo?.tags || []);
+        setIsGroupLeader(groupInfo?.userContext?.isLeader || false);
+        setMyStatus(groupInfo?.userContext?.myStatus || "none");
+
+        if (groupId) {
+          setGroupImgUrl(`https://d3ghudecvdi62z.cloudfront.net/profiles/groups/${groupId}?v=${Date.now()}`);
+        } else {
+          setGroupImgUrl("/avatar.png");
+        }
       }
     } catch (error) {
       console.error("그룹 데이터 로드 실패:", error);
@@ -179,6 +226,47 @@ function GroupDetailPage() {
 
     } catch (error) {
       console.error("그룹 전용 문제 로드 실패:", error);
+    }
+  };
+
+  // [API] 그룹 전용 문제 삭제 (그룹장만 가능)
+  const handleDeleteProblem = async (e: React.MouseEvent, problemId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isGroupLeader) {
+      alert("그룹장만 문제를 삭제할 수 있습니다.");
+      return;
+    }
+
+    if (!confirm("이 문제를 그룹에서 삭제하시겠습니까?\n(visibility가 group인 문제는 영구 삭제됩니다.)")) {
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await fetch(`https://diveon.net/api/groups/${groupId}/problems/${problemId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        alert("문제가 삭제되었습니다.");
+        // 현재 페이지의 문제 목록을 새로고침
+        fetchGroupProblems(activityPage);
+      } else if (res.status === 403) {
+        alert("권한이 없습니다. 그룹장만 가능합니다.");
+      } else if (res.status === 404) {
+        alert("그룹 또는 문제를 찾을 수 없습니다.");
+      } else {
+        alert("문제 삭제에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("문제 삭제 실패:", error);
+      alert("네트워크 오류가 발생했습니다.");
     }
   };
 
@@ -651,19 +739,46 @@ function GroupDetailPage() {
     }
   };
 
+  const handleGroupImageLocalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1 * 1024 * 1024) {
+      alert("그룹 이미지 크기는 최대 1MB를 초과할 수 없습니다.");
+      return;
+    }
+
+    const allowedExtensions = ["jpg", "jpeg", "png", "webp"];
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    if (!allowedExtensions.includes(ext)) {
+      alert("허용되지 않는 파일 형식입니다. (jpg, png, webp만 가능)");
+      return;
+    }
+
+    setPendingImageFile(file);
+    setGroupImgUrl(URL.createObjectURL(file));
+  };
+
   // [API] 그룹 설정 수정
   const handleGroupSettings = async () => {
+    if (!editTitle.trim()) {
+      alert("그룹 이름을 입력해 주세요.");
+      return;
+    }
+
+    setIsGroupImgUploading(true);
     const token = localStorage.getItem("token");
 
     const body = {
-      title: editTitle,
-      description: editDescription,
+      title: editTitle.trim(),
+      description: editDescription.trim(),
       tags: selectedSettingsTags,
       isPrivate: isPrivate,
       isAutoApprove: isAutoApprove
     };
 
     try {
+      // 1단계: 텍스트 기본 정보 PATCH 수정 요청
       const res = await fetch(`https://diveon.net/api/groups/${groupId}`, {
         method: "PATCH",
         headers: {
@@ -674,11 +789,35 @@ function GroupDetailPage() {
       });
 
       if (res.ok) {
-        alert("그룹 설정이 저장 되었습니다.");
-        fetchGroupData();
+        // 2단계: 만약 사용자가 수정한 임시 이미지 파일이 캐싱되어 있다면 연속 슛
+        if (pendingImageFile) {
+          const formDataPayload = new FormData();
+          formDataPayload.append("image", pendingImageFile); // 명세서 요구 필드: image
+
+          const imgRes = await fetch(`https://diveon.net/api/groups/${groupId}/image`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${token}`
+            },
+            body: formDataPayload
+          });
+
+          if (!imgRes.ok) {
+            alert("그룹 정보는 수정되었으나, 새 대표 이미지 업로드에 실패했습니다.");
+          }
+        }
+
+        alert("그룹 설정 및 프로필 이미지가 성공적으로 저장되었습니다!");
+        setPendingImageFile(null); // 캐시 비우기
+        window.location.reload(); // 화면 완전 갱신
+      } else {
+        alert("설정 저장에 실패했습니다. 입력값을 확인해 주세요.");
       }
     } catch (error) {
-      console.error("그룹 설정 실패:", error);
+      console.error("그룹 통합 수정 프로세스 장애:", error);
+      alert("서버와 통신 중 문제가 발생했습니다.");
+    } finally {
+      setIsGroupImgUploading(false);
     }
   };
 
@@ -737,8 +876,10 @@ function GroupDetailPage() {
 
               <Link href="/settings">
                 <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
-                  <AvatarImage src="/avatar.png" alt="User" />
-                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                    {/* 공백 상태 유지 */}
+                  </AvatarFallback>
                 </Avatar>
               </Link>
 
@@ -825,13 +966,17 @@ function GroupDetailPage() {
             {/* 1. 메인 탭 */}
             <TabsContent value="main" className="mt-6 space-y-6 animate-in fade-in-50 duration-300">
               <div className="flex gap-6 items-start">
-                <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
-                  <ShieldCheck className="w-12 h-12 text-white" />
-                </div>
+
+                <Avatar className="w-24 h-24 rounded-full shrink-0 shadow-lg border-4 border-white bg-slate-100">
+                  <AvatarImage src={groupImgUrl} className="object-cover w-full h-full" alt="Group Profile" />
+
+                  {/* 이미지 로드 실패 시 투명 처리할 대체 폴백 가드 */}
+                  <AvatarFallback className="bg-transparent rounded-full border-none" />
+                </Avatar>
+
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <h1 className="text-3xl font-bold text-slate-900">{groupData?.title}</h1>
-                    {/* <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">Official</Badge> */}
                   </div>
                   <p className="text-slate-500 leading-relaxed">
                     {groupData?.description}
@@ -964,9 +1109,25 @@ function GroupDetailPage() {
                               <p className="text-xs text-slate-500 mt-1">작성자: {prob.author} · 해결 {prob.solvedCount}명</p>
                             </div>
                           </div>
-                          <Badge variant="outline" className="font-bold border-indigo-100 text-indigo-600">
-                            Lvl {prob.difficulty}
-                          </Badge>
+
+                          {/* 우측 영역: 난이도 레이블 및 그룹장 전용 삭제 버튼 */}
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="font-bold border-indigo-100 text-indigo-600">
+                              Lvl {prob.difficulty}
+                            </Badge>
+
+                            {/* 그룹장일 때만 삭제 버튼을 렌더링 */}
+                            {isGroupLeader && (
+                              <button
+                                onClick={(e) => handleDeleteProblem(e, prob.problemId)}
+                                className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                                title="그룹 문제 삭제"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+
                         </div>
                       </Card>
                     </Link>
@@ -1484,14 +1645,57 @@ function GroupDetailPage() {
                     <CardDescription className="text-xs">그룹의 기본 정보를 수정합니다.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+
+                    {/* 설정창 이미지 편집 패널 (완전 원형 교정 완료) */}
+                    <div className="flex items-center gap-4 pb-2 p-3 bg-slate-50/50 rounded-xl border border-dashed">
+                      <input
+                        type="file"
+                        ref={groupFileInputRef}
+                        onChange={handleGroupImageLocalChange}
+                        accept="image/jpeg, image/png, image/webp"
+                        className="hidden"
+                      />
+                      <Avatar className="w-16 h-16 border rounded-full shadow-sm cursor-pointer" onClick={() => !isGroupImgUploading && groupFileInputRef.current?.click()}>
+                        <AvatarImage src={groupImgUrl} className="object-cover" />
+                        <AvatarFallback className="bg-transparent rounded-full" />
+                      </Avatar>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-slate-800">
+                          {isGroupImgUploading ? "업로드 중..." : "그룹 대표 이미지 변경"}
+                        </p>
+                        <div className="flex gap-1.5">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => groupFileInputRef.current?.click()}
+                            disabled={isGroupImgUploading}
+                            className="h-7 text-[10px] px-2.5 rounded-lg font-bold"
+                          >
+                            파일 선택
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-500">그룹 이름</label>
-                      <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-9 text-sm" />
+                      <Input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="h-9 text-sm focus-visible:ring-indigo-400"
+                      />
                     </div>
+
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-500">그룹 소개</label>
-                      <Textarea value={editDescription} onChange={(e) => setEditDesc(e.target.value)} className="text-sm min-h-[80px]" />
+                      <Textarea
+                        value={editDescription}
+                        onChange={(e) => setEditDesc(e.target.value)}
+                        className="text-sm min-h-[80px] focus-visible:ring-indigo-400 resize-none"
+                      />
                     </div>
+
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500">그룹 활동 목적</label>
                       <div className="flex flex-wrap gap-2">
@@ -1511,7 +1715,7 @@ function GroupDetailPage() {
                         })}
                       </div>
                     </div>
-                    <Button size="sm" className="w-full" onClick={handleGroupSettings}>변경사항 저장</Button>
+                    <Button size="sm" className="w-full font-bold bg-slate-900 hover:bg-slate-800" onClick={handleGroupSettings}>변경사항 저장</Button>
                   </CardContent>
                 </Card>
 

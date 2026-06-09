@@ -20,6 +20,7 @@ export default function ContestListPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
+  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
 
   // [STATE] 필터
   const [keyword, setKeyword] = useState("");
@@ -30,6 +31,40 @@ export default function ContestListPage() {
   const [contests, setContests] = useState<any[]>([]);
   const [totalContests, setTotalContests] = useState(0);
   const [ads, setAds] = useState<any[]>([]);
+
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      setIsLoggedIn(true);
+
+      try {
+        const response = await fetch("https://diveon.net/api/profile/show", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const userInfo = result?.data?.userInfo;
+
+          // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
+          if (userInfo?.profileImgUrl) {
+            setUserImgUrl(userInfo.profileImgUrl);
+          }
+        }
+      } catch (error) {
+        console.error("홈페이지 초기 데이터 로드 실패:", error);
+      }
+    };
+
+    fetchProfileImage();
+  }, []);
 
   // [API] 초기 페이지 데이터 로드
   useEffect(() => {
@@ -146,8 +181,10 @@ export default function ContestListPage() {
               </button>
               <Link href="/settings">
                 <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
-                  <AvatarImage src="/avatar.png" alt="User" />
-                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                    {/* 공백 상태 유지 */}
+                  </AvatarFallback>
                 </Avatar>
               </Link>
               <button
@@ -223,7 +260,7 @@ export default function ContestListPage() {
             </div>
           </div>
 
-          <Tabs defaultValue="all" className="w-full">
+          <Tabs value={selectedStatus} className="w-full">
             <TabsList className="bg-slate-100 p-1 mb-6">
               <TabsTrigger value="all" onClick={() => { setSelectedStatus("all"); setCurrentPage(1); }}>전체</TabsTrigger>
               <TabsTrigger value="ongoing" onClick={() => { setSelectedStatus("ongoing"); setCurrentPage(1); }}>진행 중</TabsTrigger>
@@ -231,14 +268,14 @@ export default function ContestListPage() {
               <TabsTrigger value="ended" onClick={() => { setSelectedStatus("ended"); setCurrentPage(1); }}>종료</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="all" className="space-y-4 animate-in fade-in-50 duration-500">
+            <TabsContent value={selectedStatus} className="space-y-4 animate-in fade-in-50 duration-500">
               {contests.map((contest) => (
                 <Link
                   key={contest.contestId}
                   href={`/contests/detail?id=${contest.contestId}`}
                   className="block group"
                 >
-                  <Card key={contest.conestId} className={`overflow-hidden border-slate-200 hover:border-indigo-300 transition-all shadow-sm ${contest.status === "진행 중" ? "ring-1 ring-indigo-500/20" : ""}`}>
+                  <Card className={`overflow-hidden border-slate-200 hover:border-indigo-300 transition-all shadow-sm ${contest.status === "진행 중" ? "ring-1 ring-indigo-500/20" : ""}`}>
                     <CardContent className="p-0">
                       <div className="flex flex-col md:flex-row">
                         {/* 상태 표시 컬러바 */}
@@ -262,7 +299,7 @@ export default function ContestListPage() {
                             </div>
                             <h3 className="text-xl font-bold text-slate-900">{contest.title}</h3>
                             <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-sm text-slate-500 font-medium">
-                              <span className="flex items-center gap-1.5"><Calendar size={14} /> {contest.startTime}/{contest.endTime}</span>
+                              <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(contest.startTime).toLocaleString()}/{new Date(contest.endTime).toLocaleString()}</span>
                               <span className="flex items-center gap-1.5"><Users size={14} /> {contest.participants}명 참여 중</span>
                               <span className="flex items-center gap-1.5 text-amber-600"><Award size={14} /> {contest.prize}</span>
                             </div>

@@ -24,7 +24,7 @@ function ContestDetailPage() {
   // [STATE] 페이지
   const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [isContestHost, setIsContestHost] = useState(true);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("poster");
   const [isJoined, setIsJoined] = useState(false);
   const router = useRouter();
   const [timeLeft, setTimeLeft] = useState<string>("-");
@@ -810,7 +810,7 @@ function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, h
         <div className="flex justify-center gap-4 pt-6">
           <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 backdrop-blur text-left">
             <p className="text-xs text-slate-400 mb-1">대회 기간</p>
-            <p className="font-bold">{contestInfo.startTime} ~ {contestInfo.endTime}</p>
+            <p className="font-bold">{new Date(contestInfo.startTime).toLocaleString()} ~ {new Date(contestInfo.endTime).toLocaleString()}</p>
           </div>
           <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 backdrop-blur text-left">
             <p className="text-xs text-slate-400 mb-1">현재 상태</p>
@@ -1258,7 +1258,7 @@ function ScoreboardTab({ myRank, fullRankings, scoreBoardTotalPages, scoreBoardC
                 </TableCell>
                 <TableCell className="text-center font-mono font-medium">{user.solvedCount}</TableCell>
                 <TableCell className="text-right font-black text-indigo-600">{user.score.toLocaleString()}</TableCell>
-                <TableCell className="text-right pr-6 text-xs text-slate-400">{user.lastSolvedAt}</TableCell>
+                <TableCell className="text-right pr-6 text-xs text-slate-400">{new Date(user.lastSolvedAt).toLocaleString()}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -1302,7 +1302,7 @@ function ScoreboardTab({ myRank, fullRankings, scoreBoardTotalPages, scoreBoardC
                       </TableCell>
                       <TableCell className="text-center font-mono font-medium">{user.solvedCount}</TableCell>
                       <TableCell className="text-right font-black text-indigo-600">{user.score.toLocaleString()}</TableCell>
-                      <TableCell className="text-right pr-6 text-xs text-slate-400">{user.lastSolvedAt}</TableCell>
+                      <TableCell className="text-right pr-6 text-xs text-slate-400">{new Date(user.lastSolvedAt).toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -1465,7 +1465,7 @@ function QATab({
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-bold text-slate-700">{ans.author || "운영진"}</span>
-                              <span className="text-[10px] text-slate-400">{ans.createdAt}</span>
+                              <span className="text-[10px] text-slate-400">{new Date(ans.createdAt).toLocaleString()}</span>
                             </div>
                             <p className="text-sm text-slate-600 whitespace-pre-wrap">{ans.content || ans.answer}</p>
                           </div>
@@ -1665,7 +1665,7 @@ function NoticeManageTab({
                     <div className="space-y-2 flex-1">
                       <div>
                         <p className="font-bold text-base text-slate-900 mb-0.5">{n.title}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">{n.createdAt}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">{new Date(n.createdAt).toLocaleString()}</p>
                       </div>
                       <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed bg-slate-50/50 p-3 rounded-lg border border-slate-100/70">
                         {n.content}
@@ -1722,7 +1722,7 @@ function ParticipantsManageTab({ participants, handleBan }: { participants: any[
                 <TableCell className="font-bold text-slate-800">
                   {p.nickname} {p.isBanned && <Badge variant="destructive" className="ml-2">BANNED</Badge>}
                 </TableCell>
-                <TableCell className="text-xs text-slate-500">{p.joinedAt}</TableCell>
+                <TableCell className="text-xs text-slate-500">{new Date(p.joinedAt).toLocaleString()}</TableCell>
                 <TableCell className="text-center font-mono font-bold text-indigo-600">{p.score}</TableCell>
                 <TableCell className="text-right">
                   {!p.isBanned ? (

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, LogOut, Bell, Menu, Target, Zap, ShieldCheck, Flame, BookOpenText, 
+import {
+  Search, LogOut, Bell, Menu, Target, Zap, ShieldCheck, Flame, BookOpenText,
   LayoutGrid, BarChart3, Users, Trophy, ShoppingBag, Flag
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -10,58 +11,82 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress"; 
+import { Progress } from "@/components/ui/progress";
 import { mockUser, mockFeaturedProblems } from "@/lib/mockData"
 
 
 export default function HomePage() {
   // 현재 로그인 상태를 관리
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false); 
-  const [userName, setUserName] = useState("Guest"); 
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [userName, setUserName] = useState("Guest");
+  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      setIsLoggedIn(true);
-      
-      // 실제로는 아래처럼 로컬스토리지에 저장해 둔 정보를 가져오거나 토큰을 디코딩합니다.
-      // const storedRole = localStorage.getItem("role"); 
-      // const storedName = localStorage.getItem("nickname");
-      
-      // 임시 테스트용 조건 (실제 서비스에서는 지우고 위 로직 사용)
-      const isTestAdmin = true; 
+    const fetchInitData = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
 
-      if (isTestAdmin /* || storedRole === "admin" */) {
-        setIsAdmin(true);
+      setIsLoggedIn(true);
+
+      try {
+        const response = await fetch("https://diveon.net/api/profile/show", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const userInfo = result?.data?.userInfo;
+
+          // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
+          if (userInfo?.profileImgUrl) {
+            setUserImgUrl(userInfo.profileImgUrl);
+          }
+
+          if (userInfo?.nickname) {
+            setUserName(userInfo.nickname);
+          }
+
+          // 관리자 권한 여부 체크 가드 (기존 기획 조건 유지)
+          const isTestAdmin = true;
+          if (isTestAdmin) {
+            setIsAdmin(true);
+          }
+        }
+      } catch (error) {
+        console.error("홈페이지 초기 데이터 로드 실패:", error);
       }
-      // setUserName(storedName || mockUser.name);
-      setUserName(mockUser.name); 
-    }
+    };
+
+    fetchInitData();
   }, []);
 
   // 로그아웃 핸들러
   const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("role"); 
-    localStorage.removeItem("nickname"); 
+    localStorage.removeItem("role");
+    localStorage.removeItem("nickname");
     setIsLoggedIn(false);
     setIsAdmin(false);
-    window.location.reload(); 
+    window.location.reload();
   };
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
-      
+
       {/* 1. 고정 헤더 (기존 디자인 유지) */}
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-8"> 
+        <div className="flex items-center gap-8">
           {/* [A] Diveon 로고 */}
           <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
           <Link href="/" className="text-2xl font-black tracking-tighter text-slate-900 mr-4">
             Diveon
           </Link>
-          
+
           {/* [B] 중앙 네비게이션 메뉴 */}
           <nav className="hidden lg:flex items-center gap-1">
             <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
@@ -92,12 +117,14 @@ export default function HomePage() {
 
               <Link href="/settings">
                 <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
-                  <AvatarImage src="/avatar.png" alt="mockUser" />
-                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                    {/* 공백 상태 유지 */}
+                  </AvatarFallback>
                 </Avatar>
               </Link>
 
-              <button 
+              <button
                 onClick={() => setIsLoggedIn(false)}
                 className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
               >
@@ -122,7 +149,7 @@ export default function HomePage() {
 
       {/* 2. 메인 콘텐츠 영역 (Grid 시스템 안 씀 - 와이드하게 배치) */}
       <main className="container mx-auto max-w-[1500px] pt-10 px-6 pb-16 space-y-12">
-        
+
         {/* [A] 히로 섹션 (Hero Section) : 환영 및 상태 요약 */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center bg-slate-950 p-10 rounded-3xl text-white shadow-2xl overflow-hidden relative">
           {/* 해커 감성 배경 데코레이션 */}
@@ -130,7 +157,7 @@ export default function HomePage() {
             {`01000100 01001011 00101101 01010111 01101111 01110010 01101100 01100100 
               11001010 11111110 10111010 10111110 01101110 01110101 01101011 01100001`}
           </div>
-          
+
           <div className="col-span-2 space-y-4 relative z-10">
             <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-tight">
               반갑습니다, <span className="text-indigo-400">{mockUser.name}</span>님!<br />
@@ -141,24 +168,24 @@ export default function HomePage() {
               현재 서버 랭킹 <span className="font-bold text-indigo-300">{mockUser.ranking}위</span>이며, 다음 티어까지 얼마 남지 않았습니다!
             </p>
             <div className="flex gap-3 pt-3">
-              <Button size="lg" className="bg-indigo-500 hover:bg-indigo-600 shadow-md">지금 문제 풀기 <Zap size={18} className="ml-2"/></Button>
+              <Button size="lg" className="bg-indigo-500 hover:bg-indigo-600 shadow-md">지금 문제 풀기 <Zap size={18} className="ml-2" /></Button>
               <Button size="lg" variant="outline" className="text-indigo-300 border-white/10 hover:bg-white/[0.05] hover:text-white hover:border-white/20 transition-all duration-300">내 풀이 기록 보기</Button>
             </div>
           </div>
-          
+
           {/* 오른쪽: 티어 시각화 카드 */}
           <Card className="bg-white/5 border-none shadow-xl text-white backdrop-blur relative z-10">
             <CardContent className="pt-6 text-center space-y-4">
-               <ShieldCheck className="w-20 h-20 text-indigo-400 mx-auto fill-current opacity-80" />
-               <div className="space-y-1">
-                 <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">현재 티어</p>
-                 <p className="text-3xl font-black text-indigo-300">{mockUser.tier}</p>
-                 <p className="text-sm font-mono text-slate-300">{mockUser.score} points</p>
-               </div>
-               <div className="space-y-1.5 pt-2">
-                 <Progress value={mockUser.progress} className="h-2 bg-white/10" indicatorClassName="bg-indigo-400" />
-                 <p className="text-[11px] text-slate-400 text-right">다음 티어까지 {mockUser.progress}%</p>
-               </div>
+              <ShieldCheck className="w-20 h-20 text-indigo-400 mx-auto fill-current opacity-80" />
+              <div className="space-y-1">
+                <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">현재 티어</p>
+                <p className="text-3xl font-black text-indigo-300">{mockUser.tier}</p>
+                <p className="text-sm font-mono text-slate-300">{mockUser.score} points</p>
+              </div>
+              <div className="space-y-1.5 pt-2">
+                <Progress value={mockUser.progress} className="h-2 bg-white/10" indicatorClassName="bg-indigo-400" />
+                <p className="text-[11px] text-slate-400 text-right">다음 티어까지 {mockUser.progress}%</p>
+              </div>
             </CardContent>
           </Card>
         </section>
@@ -166,22 +193,21 @@ export default function HomePage() {
         {/* [B] 핵심 챌린지 영역 (Featured Challenges) : 카드 레이아웃 */}
         <section className="space-y-6">
           <div className="flex items-center justify-between">
-             <h2 className="text-2xl font-black text-slate-950 flex items-center gap-3">
-               <Target className="w-6 h-6 text-red-500" />
-               이 주의 추천 챌린지
-             </h2>
-             <Link href="/challenges" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">전체 문제 보기 →</Link>
+            <h2 className="text-2xl font-black text-slate-950 flex items-center gap-3">
+              <Target className="w-6 h-6 text-red-500" />
+              이 주의 추천 챌린지
+            </h2>
+            <Link href="/challenges" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">전체 문제 보기 →</Link>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {mockFeaturedProblems.map((prob) => (
               <Card key={prob.id} className="border-slate-100 shadow-sm hover:shadow-lg transition-shadow duration-300 cursor-pointer group rounded-2xl overflow-hidden">
-                 {/* 카드 상단 카테고리별 색상 띠 */}
-                 <div className={`h-2 ${
-                   prob.category === "Web" ? "bg-sky-400" :
-                   prob.category === "Pwnable" ? "bg-red-400" :
-                   prob.category === "Forensics" ? "bg-emerald-400" : "bg-slate-400"
-                 }`}/>
+                {/* 카드 상단 카테고리별 색상 띠 */}
+                <div className={`h-2 ${prob.category === "Web" ? "bg-sky-400" :
+                  prob.category === "Pwnable" ? "bg-red-400" :
+                    prob.category === "Forensics" ? "bg-emerald-400" : "bg-slate-400"
+                  }`} />
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between mb-2">
                     <Badge variant="secondary" className="font-normal text-[10px]">{prob.category}</Badge>
@@ -194,8 +220,8 @@ export default function HomePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 pb-5 text-xs text-slate-400 flex justify-between items-center">
-                   <p>문제 번호: {prob.id}</p>
-                   <p className="flex items-center gap-1"><ShieldCheck size={14} /> {prob.solvedCount.toLocaleString()}명 해결</p>
+                  <p>문제 번호: {prob.id}</p>
+                  <p className="flex items-center gap-1"><ShieldCheck size={14} /> {prob.solvedCount.toLocaleString()}명 해결</p>
                 </CardContent>
               </Card>
             ))}
@@ -204,42 +230,42 @@ export default function HomePage() {
 
         {/* [C] 하단 영역 (Community & Groups) : 2열 레이아웃 */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-           
-           {/* 최근 활동 (Community Feed) */}
-           <Card className="border-slate-100 shadow-none rounded-2xl">
-              <CardHeader className="pb-3">
-                 <CardTitle className="text-xl font-bold flex items-center gap-2">
-                   <Flame className="w-5 h-5 text-orange-500" /> 최근 활동 로드
-                 </CardTitle>
-                 <CardDescription>플랫폼 내에서 일어나는 실시간 풀이 기록입니다.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-2 font-mono text-sm text-slate-600">
-                 <p>→ <span className="font-bold text-blue-600">DanKook</span>님이 [포렌식 108] 문제를 해결했습니다.</p>
-                 <p>→ <span className="font-bold text-slate-800">Newbie</span>님이 [Web 102]에 댓글을 남겼습니다.</p>
-                 <p>→ <span className="font-bold text-red-600">Security</span>님이 [Pwnable 105]에 제출했습니다. (틀렸습니다)</p>
-                 <p>→ <span className="font-bold text-slate-800">Hacker1</span>님이 '알고리즘 기사단' 그룹에 가입했습니다.</p>
-              </CardContent>
-           </Card>
 
-           {/* 내 그룹 (My Groups) */}
-           <Card className="border-slate-100 shadow-none rounded-2xl">
-              <CardHeader className="pb-3">
-                 <CardTitle className="text-xl font-bold flex items-center gap-2">
-                   <BookOpenText className="w-5 h-5 text-purple-500" /> 내 학습 그룹
-                 </CardTitle>
-                 <CardDescription>소속된 그룹의 소식과 랭킹을 확인합니다.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-2">
-                 <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
-                    <span className="font-bold text-purple-800 text-sm">알고리즘 기사단</span>
-                    <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">Official</Badge>
-                 </div>
-                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
-                    <span className="font-medium text-slate-700 text-sm">단붕이와 함께 춤을</span>
-                    <Badge variant="outline" className="text-slate-500">일반</Badge>
-                 </div>
-              </CardContent>
-           </Card>
+          {/* 최근 활동 (Community Feed) */}
+          <Card className="border-slate-100 shadow-none rounded-2xl">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <Flame className="w-5 h-5 text-orange-500" /> 최근 활동 로드
+              </CardTitle>
+              <CardDescription>플랫폼 내에서 일어나는 실시간 풀이 기록입니다.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-2 font-mono text-sm text-slate-600">
+              <p>→ <span className="font-bold text-blue-600">DanKook</span>님이 [포렌식 108] 문제를 해결했습니다.</p>
+              <p>→ <span className="font-bold text-slate-800">Newbie</span>님이 [Web 102]에 댓글을 남겼습니다.</p>
+              <p>→ <span className="font-bold text-red-600">Security</span>님이 [Pwnable 105]에 제출했습니다. (틀렸습니다)</p>
+              <p>→ <span className="font-bold text-slate-800">Hacker1</span>님이 '알고리즘 기사단' 그룹에 가입했습니다.</p>
+            </CardContent>
+          </Card>
+
+          {/* 내 그룹 (My Groups) */}
+          <Card className="border-slate-100 shadow-none rounded-2xl">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <BookOpenText className="w-5 h-5 text-purple-500" /> 내 학습 그룹
+              </CardTitle>
+              <CardDescription>소속된 그룹의 소식과 랭킹을 확인합니다.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-2">
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
+                <span className="font-bold text-purple-800 text-sm">알고리즘 기사단</span>
+                <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">Official</Badge>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
+                <span className="font-medium text-slate-700 text-sm">단붕이와 함께 춤을</span>
+                <Badge variant="outline" className="text-slate-500">일반</Badge>
+              </div>
+            </CardContent>
+          </Card>
         </section>
 
       </main>
@@ -250,8 +276,8 @@ export default function HomePage() {
 // 2. 헤더 메뉴 전용 보조 컴포넌트 [추가]
 function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
-    <Link 
-      href={href} 
+    <Link
+      href={href}
       className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all active:scale-95"
     >
       <span className="text-slate-400 group-hover:text-slate-900">{icon}</span>

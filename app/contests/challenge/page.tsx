@@ -34,6 +34,7 @@ function ProblemDetailContent() {
 	// 페이지 상태
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
 	const [showMySubmissions, setShowMySubmissions] = useState(false);
+	const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
 
 	// API 연동용 상태
 	const [problemData, setProblemData] = useState<any>(null);
@@ -48,6 +49,39 @@ function ProblemDetailContent() {
 	// 채점 데이터 상태
 	const [submissions, setSubmissions] = useState<any[]>([]);
 	const [isGradingInProgress, setIsGradingInProgress] = useState(false);
+
+	useEffect(() => {
+		const fetchProfileImage = async () => {
+			const token = localStorage.getItem("token");
+			if (!token) return;
+
+			setIsLoggedIn(true);
+
+			try {
+				const response = await fetch("https://diveon.net/api/profile/show", {
+					method: "GET",
+					headers: {
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${token}`
+					}
+				});
+
+				if (response.ok) {
+					const result = await response.json();
+					const userInfo = result?.data?.userInfo;
+
+					// 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
+					if (userInfo?.profileImgUrl) {
+						setUserImgUrl(userInfo.profileImgUrl);
+					}
+				}
+			} catch (error) {
+				console.error("홈페이지 초기 데이터 로드 실패:", error);
+			}
+		};
+
+		fetchProfileImage();
+	}, []);
 
 	// [API] 데이터 초기 로드
 	useEffect(() => {
@@ -140,119 +174,119 @@ function ProblemDetailContent() {
 	};
 
 	// [API] 채점 상태 폴링 
-  useEffect(() => {
-    const pendingItems = submissions.filter((sub) => sub._isPending);
-    if (pendingItems.length === 0) return;
+	useEffect(() => {
+		const pendingItems = submissions.filter((sub) => sub._isPending);
+		if (pendingItems.length === 0) return;
 
-    const timer = setTimeout(async () => {
-      const token = localStorage.getItem("token");
-      let needsBoardRefresh = false;
+		const timer = setTimeout(async () => {
+			const token = localStorage.getItem("token");
+			let needsBoardRefresh = false;
 
-      // 아직 채점 중인 항목들만 모아서 상태값 병렬 병합 조회
-      const results = await Promise.all(
-        pendingItems.map(async (item) => {
-          try {
-            const res = await fetch(`https://diveon.net/api/contests/${contestId}/submissions/${item.submissionId}/status`, {
-              headers: { "Authorization": `Bearer ${token}` }
-            });
-            
-            if (res.ok) {
-              const json = await res.json();
-              return json.data; // 명세서 상의 data 객체 반환 (submissionStatus, progress 인입)
-            }
-          } catch (e) {
-            console.error("폴링 조회 실패:", e);
-          }
-          return null;
-        })
-      );
+			// 아직 채점 중인 항목들만 모아서 상태값 병렬 병합 조회
+			const results = await Promise.all(
+				pendingItems.map(async (item) => {
+					try {
+						const res = await fetch(`https://diveon.net/api/contests/${contestId}/submissions/${item.submissionId}/status`, {
+							headers: { "Authorization": `Bearer ${token}` }
+						});
 
-      // 브라우저 내부 submissions 상태값을 서버 최신 데이터로 동기화 가공
-      setSubmissions((prev) =>
-        prev.map((sub) => {
-          if (!sub._isPending) return sub;
+						if (res.ok) {
+							const json = await res.json();
+							return json.data; // 명세서 상의 data 객체 반환 (submissionStatus, progress 인입)
+						}
+					} catch (e) {
+						console.error("폴링 조회 실패:", e);
+					}
+					return null;
+				})
+			);
 
-          // 현재 순회 중인 제출 건에 매칭되는 최신 백엔드 결과물 탐색
-          const updatedData = results.find((r) => r && String(r.submissionId) === String(sub.submissionId));
+			// 브라우저 내부 submissions 상태값을 서버 최신 데이터로 동기화 가공
+			setSubmissions((prev) =>
+				prev.map((sub) => {
+					if (!sub._isPending) return sub;
 
-          if (updatedData) {
-            if (updatedData.submissionStatus === "COMPLETED" || updatedData.submissionStatus === "FAILED") {
-              needsBoardRefresh = true; // 채점 완료 시 전체 리스트 새로고침 플래그 On
-              
-              return { 
-                ...sub, 
-                progress: 100, 
-                submissionStatus: updatedData.submissionStatus,
-                isCorrect: updatedData.isCorrect, // 정답 여부 주입
-                _isPending: false
-              };
-            }
-            // 아직 PENDING / JUDGING인 경우 진행률(progress)만 계속 실시간 업데이트
-            return { 
-              ...sub, 
-              progress: updatedData.progress ?? 0, 
-              submissionStatus: updatedData.submissionStatus 
-            };
-          }
-          return sub;
-        })
-      );
+					// 현재 순회 중인 제출 건에 매칭되는 최신 백엔드 결과물 탐색
+					const updatedData = results.find((r) => r && String(r.submissionId) === String(sub.submissionId));
 
-      // 하나라도 채점 완료(COMPLETED) 신호가 수신되었다면 히스토리 보드 전면 새로고침
-      if (needsBoardRefresh) {
-        fetchSubmissions();
-      }
+					if (updatedData) {
+						if (updatedData.submissionStatus === "COMPLETED" || updatedData.submissionStatus === "FAILED") {
+							needsBoardRefresh = true; // 채점 완료 시 전체 리스트 새로고침 플래그 On
 
-    }, 1500); // 1.5초 주기 무한 루프 틱 가동
+							return {
+								...sub,
+								progress: 100,
+								submissionStatus: updatedData.submissionStatus,
+								isCorrect: updatedData.isCorrect, // 정답 여부 주입
+								_isPending: false
+							};
+						}
+						// 아직 PENDING / JUDGING인 경우 진행률(progress)만 계속 실시간 업데이트
+						return {
+							...sub,
+							progress: updatedData.progress ?? 0,
+							submissionStatus: updatedData.submissionStatus
+						};
+					}
+					return sub;
+				})
+			);
 
-    return () => clearTimeout(timer);
-  }, [submissions, contestId]); // contestId 의존성 체인 추가
+			// 하나라도 채점 완료(COMPLETED) 신호가 수신되었다면 히스토리 보드 전면 새로고침
+			if (needsBoardRefresh) {
+				fetchSubmissions();
+			}
+
+		}, 1500); // 1.5초 주기 무한 루프 틱 가동
+
+		return () => clearTimeout(timer);
+	}, [submissions, contestId]); // contestId 의존성 체인 추가
 
 	// [API] 객관식 답안 제출
-  const handleObjectiveSubmit = async () => {
-    if (selectedChoices.length === 0) {
-      alert("답안을 최소 하나 이상 선택해주세요.");
-      return;
-    }
+	const handleObjectiveSubmit = async () => {
+		if (selectedChoices.length === 0) {
+			alert("답안을 최소 하나 이상 선택해주세요.");
+			return;
+		}
 
-    if (!contestId || contestId === "null") {
-      alert("대회 식별 정보가 올바르지 않습니다. 대시보드에서 문제를 다시 클릭해주세요.");
-      return;
-    }
+		if (!contestId || contestId === "null") {
+			alert("대회 식별 정보가 올바르지 않습니다. 대시보드에서 문제를 다시 클릭해주세요.");
+			return;
+		}
 
-    setIsSubmittingAnswer(true);
-    const token = localStorage.getItem("token");
-    const finalAnswer = selectedChoices[0]?.toString() || "";
+		setIsSubmittingAnswer(true);
+		const token = localStorage.getItem("token");
+		const finalAnswer = selectedChoices[0]?.toString() || "";
 
-    try {
-      const res = await fetch(`https://diveon.net/api/contests/${contestId}/problems/${contestProbId}/submit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          submissionType: "OBJECTIVE",
-          answer: finalAnswer
-        })
-      });
+		try {
+			const res = await fetch(`https://diveon.net/api/contests/${contestId}/problems/${contestProbId}/submit`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": `Bearer ${token}`
+				},
+				body: JSON.stringify({
+					submissionType: "OBJECTIVE",
+					answer: finalAnswer
+				})
+			});
 
-      if (res.ok) {
-        // const json = await res.json();
+			if (res.ok) {
+				// const json = await res.json();
 				alert("정답을 제출하였습니다.");
-      } else if (res.status === 429) {
-        alert("제출 쿨다운 제한 시간(30초)이 걸려있습니다. 잠시 후 다시 시도해 주세요.");
-      } else {
-        const err = await res.json();
-        alert(`제출 실패: ${err.message || "오류가 발생했습니다."}`);
-      }
-    } catch (e: any) {
-      console.error("프론트엔드 파싱/자바스크립트 에러 디버깅:", e);
-      alert("응답 데이터를 처리하는 중 오류가 발생했습니다. 개발자 도구 콘솔을 확인하세요.");
-    } finally {
-      setIsSubmittingAnswer(false);
-    }
-  };
+			} else if (res.status === 429) {
+				alert("제출 쿨다운 제한 시간(30초)이 걸려있습니다. 잠시 후 다시 시도해 주세요.");
+			} else {
+				const err = await res.json();
+				alert(`제출 실패: ${err.message || "오류가 발생했습니다."}`);
+			}
+		} catch (e: any) {
+			console.error("프론트엔드 파싱/자바스크립트 에러 디버깅:", e);
+			alert("응답 데이터를 처리하는 중 오류가 발생했습니다. 개발자 도구 콘솔을 확인하세요.");
+		} finally {
+			setIsSubmittingAnswer(false);
+		}
+	};
 
 	// 객관식 보기 선택 핸들러
 	const handleChoiceToggle = (index: number) => {
@@ -318,8 +352,10 @@ function ProblemDetailContent() {
 
 							<Link href="/settings">
 								<Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
-									<AvatarImage src="/avatar.png" alt="User" />
-									<AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+									<AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
+									<AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+										{/* 공백 상태 유지 */}
+									</AvatarFallback>
 								</Avatar>
 							</Link>
 

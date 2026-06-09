@@ -21,7 +21,8 @@ export default function ContestCreatePage() {
 
   // [STATE] 페이지
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [groupId, setGroupId] = useState("1");
+  const [groupId, setGroupId] = useState("");
+  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
 
   // [STATE] 폼 데이터 
   const [isRewardEnabled, setIsRewardEnabled] = useState(false);
@@ -36,6 +37,39 @@ export default function ContestCreatePage() {
   const [endTime, setEndTime] = useState("");
   const [duration, setDuration] = useState<string>("");
   const [rules, setRules] = useState("");
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      setIsLoggedIn(true);
+
+      try {
+        const response = await fetch("https://diveon.net/api/profile/show", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const userInfo = result?.data?.userInfo;
+
+          // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
+          if (userInfo?.profileImgUrl) {
+            setUserImgUrl(userInfo.profileImgUrl);
+          }
+        }
+      } catch (error) {
+        console.error("홈페이지 초기 데이터 로드 실패:", error);
+      }
+    };
+
+    fetchProfileImage();
+  }, []);
 
   // [API] 페이지 초기 데이터 로드
   useEffect(() => {
@@ -180,9 +214,11 @@ export default function ContestCreatePage() {
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
               </button>
               <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 cursor-pointer transition-all">
-                  <AvatarImage src="/avatar.png" alt="User" />
-                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                    {/* 공백 상태 유지 */}
+                  </AvatarFallback>
                 </Avatar>
               </Link>
               <button onClick={handleLogout} className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors">
@@ -269,7 +305,7 @@ export default function ContestCreatePage() {
                 <Label htmlFor="contest-title">대회 명칭 <span className="text-red-500">*</span></Label>
                 <Input
                   id="contest-title"
-                  value={title} 
+                  value={title}
                   placeholder="대회 이름을 입력하세요."
                   className="text-lg font-bold h-12"
                   onChange={(e) => setTitle(e.target.value)}
