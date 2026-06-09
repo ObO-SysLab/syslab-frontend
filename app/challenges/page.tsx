@@ -26,14 +26,18 @@ export default function ProblemListPage() {
 
   // 필터 상태
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedType, setSelectedType] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [showUnsolved, setShowUnsolved] = useState(false);
+  const [showMyProblems, setShowMyProblems] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // 데이터 상태
   const [problems, setProblems] = useState<any[]>([]);
   const [totalProblems, setTotalProblems] = useState(0);
   const [myRank, setMyRank] = useState<any>(null);
   const [ads, setAds] = useState<any[]>([]);
+  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
 
 
   const categoryIcons: Record<string, React.ReactNode> = {
@@ -55,6 +59,27 @@ export default function ProblemListPage() {
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
       try {
+        const response = await fetch("https://diveon.net/api/profile/show", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const userInfo = result?.data?.userInfo;
+
+          // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
+          if (userInfo?.profileImgUrl) {
+            setUserImgUrl(userInfo.profileImgUrl);
+          }
+
+          // if (userInfo?.nickname) {
+          //   setUserName(userInfo.nickname);
+          // }
+        }
         // 내 랭킹 가져오기
         // const rankRes = await fetch("https://diveon.net/api/problems/rank", { headers });
         // if (rankRes.ok) {
@@ -90,9 +115,12 @@ export default function ProblemListPage() {
       const params = new URLSearchParams();
       params.append("page", (currentPage).toString());
       params.append("size", "10");
+      if (searchTerm.trim()) params.append("title", searchTerm.trim());
+      if (selectedType !== "All") params.append("type", selectedType);
       if (selectedCategory !== "All") params.append("category", selectedCategory.toLowerCase());
       if (selectedLevel) params.append("difficulty", selectedLevel);
-      if (showUnsolved) params.append("unsolved", "true"); // 백엔드 처리용 플래그
+      if (showUnsolved) params.append("onlyUnsolved", "true");
+      if (showMyProblems) params.append("onlyMine", "true");
 
       try {
         const response = await fetch(`https://diveon.net/api/problems?${params.toString()}`, {
@@ -114,11 +142,16 @@ export default function ProblemListPage() {
     };
 
     fetchProblems();
-  }, [selectedCategory, selectedLevel, showUnsolved, currentPage]); // 의존성 배열에 파라미터 추가
+  }, [selectedCategory, selectedType, selectedLevel, showUnsolved, showMyProblems, searchTerm, currentPage]);
 
   // [HANDLER] 필터 변경 시 페이지를 1로 리셋
   const handleCategoryChange = (cat: string) => {
     setSelectedCategory(cat);
+    setCurrentPage(1);
+  };
+
+  const handleTypeChange = (type: string) => {
+    setSelectedType(selectedType === type ? "All" : type);
     setCurrentPage(1);
   };
 
@@ -129,6 +162,11 @@ export default function ProblemListPage() {
 
   const handleUnsolvedToggle = () => {
     setShowUnsolved(!showUnsolved);
+    setCurrentPage(1);
+  };
+
+  const handleMyProblemsToggle = () => {
+    setShowMyProblems(!showMyProblems);
     setCurrentPage(1);
   };
 
@@ -158,7 +196,16 @@ export default function ProblemListPage() {
         <div className="flex-1 max-w-sm px-4">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-            <Input type="search" placeholder="검색..." className="pl-9 bg-slate-50 border-slate-200 rounded-full h-9 text-sm" />
+            <Input
+              type="search"
+              placeholder="검색..."
+              className="pl-9 bg-slate-50 border-slate-200 rounded-full h-9 text-sm"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
           </div>
         </div>
 
@@ -173,8 +220,10 @@ export default function ProblemListPage() {
               </button>
               <Link href="/settings">
                 <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
-                  <AvatarImage src="/avatar.png" alt="User" />
-                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                    {/* 공백 상태 유지 */}
+                  </AvatarFallback>
                 </Avatar>
               </Link>
               <button
@@ -208,6 +257,7 @@ export default function ProblemListPage() {
 
         {/* [A] 좌측 사이드바 (2칸) */}
         <aside className="hidden md:block col-span-2 space-y-6">
+          { /* 카테고리 */}
           <div>
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Categories</h3>
             <nav className="space-y-1">
@@ -223,6 +273,33 @@ export default function ProblemListPage() {
             </nav>
           </div>
 
+          { /* 챌린지 유형 */}
+          <div className="pt-4 border-t">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Type</h3>
+            <div className="flex flex-col gap-1.5">
+              {[
+                { key: "objective", label: "객관식" },
+                { key: "coding", label: "코딩" },
+                { key: "practice", label: "실습(CTF)" },
+              ].map((type) => (
+                <div
+                  key={type.key}
+                  onClick={() => handleTypeChange(type.key)}
+                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${selectedType === type.key
+                    ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-950"
+                    }`}
+                >
+                  <span>{type.label}</span>
+                  {selectedType === type.key && (
+                    <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          { /* 레벨 */}
           <div className="pt-4 border-t">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Difficulty</h3>
             <div className="flex flex-wrap gap-2">
@@ -271,7 +348,14 @@ export default function ProblemListPage() {
               >
                 {showUnsolved ? "모든 문제 보기" : "미해결 문제만 보기"}
               </Button>
-              <Button size="sm" variant="outline" className="rounded-xl font-bold">랜덤 문제</Button>
+              <Button
+                size="sm"
+                variant={showMyProblems ? "default" : "outline"}
+                className="rounded-xl font-bold"
+                onClick={handleMyProblemsToggle}
+              >
+                {showMyProblems ? "모든 문제 보기" : "내 문제 보기"}
+              </Button>
 
               {/* 문제 생성 버튼 */}
               <Link href="/challenges/create">
@@ -309,7 +393,7 @@ export default function ProblemListPage() {
                             </h3>
 
                             {/* 해결 여부 체크 아이콘 복구 */}
-                            {prob.solved && (
+                            {prob.isSolved && (
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 fill-emerald-50 shrink-0" />
                             )}
                           </div>
@@ -342,7 +426,7 @@ export default function ProblemListPage() {
                             SOLVED
                           </p>
                           <p className="text-base font-bold text-slate-700">
-                            {(prob.solved_count || 0).toLocaleString()}명
+                            {(prob.solvedCount || 0).toLocaleString()}명
                           </p>
                         </div>
                         <div className="w-20 flex justify-end">
@@ -451,8 +535,8 @@ function CategoryItem({ icon, label, active, onClick }: { icon: React.ReactNode;
     <div
       onClick={onClick}
       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${active
-          ? "bg-slate-950 text-white shadow-lg shadow-slate-200"
-          : "text-slate-500 hover:bg-slate-50 hover:text-slate-950"
+        ? "bg-slate-950 text-white shadow-lg shadow-slate-200"
+        : "text-slate-500 hover:bg-slate-50 hover:text-slate-950"
         }`}
     >
       <span className={active ? "text-white" : "text-slate-400 group-hover:text-slate-950"}>{icon}</span>

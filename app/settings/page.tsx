@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Search, LogOut, User, Menu, Lock, Bell, Paintbrush, Trash2, X, ShieldCheck,
-  Laptop, Moon, Sun, LayoutGrid, Trophy, Users, BarChart3, ShoppingBag
+  Laptop, Moon, Sun, Flag, Trophy, Users, BarChart3, ShoppingBag, Camera
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,41 @@ export default function SettingsPage() {
   // 프로필 데이터를 저장할 상태
   const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      setIsLoggedIn(true);
+
+      try {
+        const response = await fetch("https://diveon.net/api/profile/show", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const userInfo = result?.data?.userInfo;
+
+          // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
+          if (userInfo?.profileImgUrl) {
+            setUserImgUrl(userInfo.profileImgUrl);
+          }
+        }
+      } catch (error) {
+        console.error("홈페이지 초기 데이터 로드 실패:", error);
+      }
+    };
+
+    fetchProfileImage();
+  }, [userImgUrl]);
 
   // 페이지 로드 시 토큰을 사용하여 데이터 요청
   useEffect(() => {
@@ -74,7 +109,7 @@ export default function SettingsPage() {
 
           {/* 중앙 네비게이션 메뉴 */}
           <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" />
+            <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
             <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
             <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
             <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
@@ -102,8 +137,10 @@ export default function SettingsPage() {
 
               <Link href="/settings">
                 <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
-                  <AvatarImage src="/avatar.png" alt="User" />
-                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                    {/* 공백 상태 유지 */}
+                  </AvatarFallback>
                 </Avatar>
               </Link>
 
@@ -179,7 +216,11 @@ export default function SettingsPage() {
             isLoading ? (
               <div className="py-20 text-center text-slate-400 font-bold">프로필 로드 중...</div>
             ) : (
-              <ProfileSection data={profileData} />
+              <ProfileSection
+                data={profileData}
+                pendingImageFile={pendingImageFile}
+                setPendingImageFile={setPendingImageFile}
+              />
             )
           )}
           {activeTab === "security" && <SecuritySection />}
@@ -195,14 +236,25 @@ export default function SettingsPage() {
 /* -------------------------------------------------------------------------- */
 /* 1. 프로필 및 개인정보 관리 섹션 */
 /* -------------------------------------------------------------------------- */
-function ProfileSection({ data }: { data: any }) {
+function ProfileSection({ 
+  data, 
+  pendingImageFile, 
+  setPendingImageFile 
+}: { 
+  data: any; 
+  pendingImageFile: File | null;
+  setPendingImageFile: React.Dispatch<React.SetStateAction<File | null>>;
+}) {
   const info = data?.data?.userInfo;
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const formattedDate = info?.createdAt
     ? new Date(info.createdAt).toLocaleDateString("ko-KR", { year: 'numeric', month: 'long', day: 'numeric' })
-    : "2026년 3월 5일";
+    : "0000년 00월 00일";
   const [nickname, setNickname] = useState(info?.nickname || "");
   const [bio, setBio] = useState(info?.selfComment || "");
   const [org, setOrg] = useState(info?.belong || "");
+  const [profileImgUrl, setProfileImgUrl] = useState(info?.profileImgUrl || "/avatar.png");
+  const [isImageUploading, setIsImageUploading] = useState(false);
   const [interests, setInterests] = useState<string[]>(
     Array.isArray(info?.interest)
       ? info.interest
@@ -231,11 +283,36 @@ function ProfileSection({ data }: { data: any }) {
     setInterests(interests.filter((tag) => tag !== tagToRemove));
   };
 
+  // 파일 선택 시 서버 전송을 차단하고 로컬 가상 주소(Blob)로 미리보기만 동기화
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 명세서 제한 규격 체크 (최대 1MB)
+    if (file.size > 1 * 1024 * 1024) {
+      alert("파일 크기는 최대 1MB를 초과할 수 없습니다.");
+      return;
+    }
+
+    // 명세서 허용 확장자 체크
+    const allowedExtensions = ["jpg", "jpeg", "png", "webp", "gif"];
+    const fileExtension = file.name.split(".").pop()?.toLowerCase() || "";
+    if (!allowedExtensions.includes(fileExtension)) {
+      alert("허용되지 않는 파일 형식입니다. (jpg, png, webp만 가능)");
+      return;
+    }
+
+    // 핵심: 파일 객체는 주머니(pendingImageFile)에 보관하고, 화면 마크업만 임시 전환
+    setPendingImageFile(file);
+    setProfileImgUrl(URL.createObjectURL(file));
+  };
+
   const handleUpdateProfile = async () => {
     setIsUpdating(true);
     const token = localStorage.getItem("token");
 
     try {
+      // 1단계: 닉네임, 자기소개, 소속 등 일반 텍스트 정보 PATCH 수정
       const res = await fetch("https://diveon.net/api/profile", {
         method: "PATCH",
         headers: {
@@ -246,13 +323,34 @@ function ProfileSection({ data }: { data: any }) {
           nickname: nickname,
           selfComment: bio,
           belong: org,
-          interest: interests // 명세서 규격 배열 전송
+          interest: interests
         })
       });
 
       if (res.ok) {
-        alert("프로필이 성공적으로 수정되었습니다.");
-        window.location.reload();
+        // 2단계: 텍스트 수정 성공 직후, 주머니에 대기 중인 임시 프로필 사진이 있다면 연속 업로드 개시!
+        if (pendingImageFile) {
+          const formDataPayload = new FormData();
+          formDataPayload.append("image", pendingImageFile); // 명세서 매핑 키: image
+
+          const imgRes = await fetch("https://diveon.net/api/users/me/profile-image", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${token}` // Multipart 전송이므로 Content-Type 명시 금지
+            },
+            body: formDataPayload
+          });
+
+          if (!imgRes.ok) {
+            alert("텍스트 정보는 반영되었으나, 프로필 이미지 업로드 중 서버 에러가 발생했습니다.");
+          }
+        }
+
+        alert("모든 프로필 변경사항 및 이미지가 안전하게 저장되었습니다!");
+        setPendingImageFile(null); // 전송 완료 후 주머니 비우기
+
+        // 3단계: 헤더 및 메인 레이아웃에 캐시 잔상 없이 굳히기 위해 쿼리스트링 리로드 동기화
+        window.location.href = `/settings?v=${Date.now()}`;
       } else {
         alert("프로필 수정에 실패했습니다. 입력값을 확인해주세요.");
       }
@@ -276,18 +374,60 @@ function ProfileSection({ data }: { data: any }) {
         <Separator />
 
         <div className="flex items-center gap-6 p-6 bg-slate-50/50 rounded-3xl border border-slate-100">
-          <div className="relative group cursor-pointer">
-            <Avatar className="w-24 h-24 border-4 border-white shadow-xl">
-              <AvatarImage src={info?.profileImgUrl || "/avatar.png"} />
-              <AvatarFallback className="bg-indigo-100 text-indigo-600 font-black text-xl">DY</AvatarFallback>
+
+          {/* 숨겨진 File Input 컴포넌트 가드 주입 */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImageUpload}
+            accept="image/jpeg, image/png, image/webp"
+            className="hidden"
+          />
+
+          <div
+            className="relative group cursor-pointer"
+            onClick={() => !isImageUploading && fileInputRef.current?.click()} // 클릭 시 파일창 트리거
+          >
+            <Avatar className="w-24 h-24 border-4 border-white shadow-xl transition-transform active:scale-95">
+              {/* 기 가공된 profileImgUrl 상태 소스 연결 */}
+              <AvatarImage src={profileImgUrl} />
+              <AvatarFallback className="bg-indigo-100 text-indigo-600 font-black text-xl">
+                {isImageUploading ? "..." : "DY"}
+              </AvatarFallback>
             </Avatar>
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-bold text-slate-900">프로필 이미지</p>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" className="rounded-xl">사진 변경</Button>
-              <Button size="sm" variant="ghost" className="text-red-500 hover:bg-red-50">삭제</Button>
+            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera size={24} className="text-white" />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-bold text-slate-900">
+              {isImageUploading ? "이미지 업로드 중..." : "프로필 이미지"}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()} // 버튼 연동 마감
+                disabled={isImageUploading}
+                className="rounded-xl font-bold"
+              >
+                사진 변경
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setPendingImageFile(null);   // 킵해둔 파일 아웃 처리
+                  setProfileImgUrl("/avatar.png"); // 기본 프레임 스킨 복원
+                }}
+                disabled={isImageUploading}
+                className="text-red-500 hover:bg-red-50 font-bold"
+              >
+                삭제
+              </Button>
+            </div>
+            <p className="text-[11px] text-slate-400 font-medium">* 1MB 이하의 JPG, PNG, WEBP 파일만 허용됩니다.</p>
           </div>
         </div>
 

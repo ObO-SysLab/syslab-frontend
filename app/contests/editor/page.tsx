@@ -35,6 +35,41 @@ function MonacoSubmitContent() {
   const [code, setCode] = useState(CODE_SNIPPETS.c);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const editorRef = useRef(null);
+  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      setIsLoggedIn(true);
+
+      try {
+        const response = await fetch("https://diveon.net/api/profile/show", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const userInfo = result?.data?.userInfo;
+
+          // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
+          if (userInfo?.profileImgUrl) {
+            setUserImgUrl(userInfo.profileImgUrl);
+          }
+        }
+      } catch (error) {
+        console.error("홈페이지 초기 데이터 로드 실패:", error);
+      }
+    };
+
+    fetchProfileImage();
+  }, []);
 
   useEffect(() => {
     const fetchProblemTitle = async () => {
@@ -104,8 +139,8 @@ function MonacoSubmitContent() {
         },
         body: JSON.stringify({
           submissionType: "CODING",
-          language: language, 
-          code: code  
+          language: language,
+          code: code
         })
       });
 
@@ -152,21 +187,43 @@ function MonacoSubmitContent() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="p-2 hover:bg-slate-100 rounded-full relative group">
-            <Bell className="h-5 w-5 text-slate-500" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-          </button>
+          {isLoggedIn ? (
+            /* --- 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
+            <>
+              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              </button>
 
-          <Link href="/settings">
-            <Avatar className="h-9 w-9 border border-slate-200 cursor-pointer">
-              <AvatarImage src="/avatar.png" alt="User" />
-              <AvatarFallback>DY</AvatarFallback>
-            </Avatar>
-          </Link>
+              <Link href="/settings">
+                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                    {/* 공백 상태 유지 */}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
 
-          <button className="p-2 hover:bg-red-50 rounded-full text-red-500">
-            <LogOut className="h-5 w-5" />
-          </button>
+              <button
+                onClick={() => setIsLoggedIn(false)}
+                className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
+              >
+                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              </button>
+            </>
+          ) : (
+            /* --- 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
+            <div className="flex items-center gap-2">
+              <Link href="/signin">
+                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+              </Link>
+              <Link href="/signup">
+                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </header>
 
@@ -269,12 +326,12 @@ function NavMenuLink({
 
 export default function MonacoSubmitPage() {
   return (
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-          <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-        </div>
-      }>
-        <MonacoSubmitContent />
-      </Suspense>
-    );
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      </div>
+    }>
+      <MonacoSubmitContent />
+    </Suspense>
+  );
 }

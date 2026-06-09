@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
+import {
   Search, Bell, LogOut, Menu, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag,
   Medal, Award, TrendingUp, ChevronLeft, ChevronRight, SearchCode, Crown, Flag
 } from "lucide-react";
@@ -23,10 +23,44 @@ export default function GlobalRankingPage() {
   // [API 연동 지점] 추후 useEffect를 사용하여 /api/rankings 데이터를 불러오세요.
   const [top3, setTop3] = useState(mockTop3);
   const [rankings, setRankings] = useState(mockRankings);
+  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      setIsLoggedIn(true);
+
+      try {
+        const response = await fetch("https://diveon.net/api/profile/show", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const userInfo = result?.data?.userInfo;
+
+          // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
+          if (userInfo?.profileImgUrl) {
+            setUserImgUrl(userInfo.profileImgUrl);
+          }
+        }
+      } catch (error) {
+        console.error("홈페이지 초기 데이터 로드 실패:", error);
+      }
+    };
+
+    fetchProfileImage();
+  }, []);
 
   // 티어별 색상 반환 함수
   const getTierColor = (tier: string) => {
-    switch(tier.toLowerCase()) {
+    switch (tier.toLowerCase()) {
       case 'master': return 'bg-rose-50 text-rose-600 border-rose-200';
       case 'diamond': return 'bg-cyan-50 text-cyan-600 border-cyan-200';
       case 'platinum': return 'bg-emerald-50 text-emerald-600 border-emerald-200';
@@ -38,7 +72,7 @@ export default function GlobalRankingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      
+
       {/* 1. 고정 헤더 */}
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8">
@@ -64,11 +98,13 @@ export default function GlobalRankingPage() {
               </button>
               <Link href="/settings">
                 <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
-                  <AvatarImage src="/avatar.png" alt="User" />
-                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                    {/* 공백 상태 유지 */}
+                  </AvatarFallback>
                 </Avatar>
               </Link>
-              <button 
+              <button
                 onClick={() => setIsLoggedIn(false)}
                 className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
               >
@@ -86,7 +122,7 @@ export default function GlobalRankingPage() {
 
       {/* 2. 메인 컨텐츠 영역 */}
       <main className="container mx-auto max-w-[1200px] pt-10 px-4 pb-20 space-y-12">
-        
+
         {/* 상단 타이틀 및 필터 */}
         <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-slate-200 pb-6">
           <div className="space-y-2">
@@ -95,12 +131,12 @@ export default function GlobalRankingPage() {
             </h1>
             <p className="text-slate-500 font-medium">Diveon 최고의 개발자들과 순위를 경쟁하세요.</p>
           </div>
-          
+
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <Input 
-                placeholder="유저 검색..." 
+              <Input
+                placeholder="유저 검색..."
                 className="pl-10 bg-white border-slate-200 rounded-xl"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -230,11 +266,10 @@ export default function GlobalRankingPage() {
 // 보조 컴포넌트: 네비게이션 링크
 function NavMenuLink({ href, icon, label, active = false }: { href: string; icon: React.ReactNode; label: string; active?: boolean }) {
   return (
-    <Link 
-      href={href} 
-      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-        active ? "text-indigo-600 bg-indigo-50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
-      }`}
+    <Link
+      href={href}
+      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active ? "text-indigo-600 bg-indigo-50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+        }`}
     >
       <span>{icon}</span>
       {label}

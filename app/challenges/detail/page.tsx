@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { form } from "framer-motion/client";
 
 
 function ProblemDetailContent() {
@@ -29,8 +30,9 @@ function ProblemDetailContent() {
 
   // 페이지 상태
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAuthor, setIsAuthor] = useState(true);
+  const [isOwner, setIsOwner] = useState(false);
   const [showMySubmissions, setShowMySubmissions] = useState(false);
+  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
 
   // API 연동용 상태
   const [problemData, setProblemData] = useState<any>(null);
@@ -62,11 +64,38 @@ function ProblemDetailContent() {
   const [myGroups, setMyGroups] = useState<any[]>([]);
   const [isFetchingGroups, setIsFetchingGroups] = useState(false);
 
-  // [STATE] 대회 추가 관련 상태
-  const [showContestModal, setShowContestModal] = useState(false);
-  const [myContests, setMyContests] = useState<any[]>([]);
-  const [isFetchingContests, setIsFetchingContests] = useState(false);
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
 
+      setIsLoggedIn(true);
+
+      try {
+        const response = await fetch("https://diveon.net/api/profile/show", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const userInfo = result?.data?.userInfo;
+
+          // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
+          if (userInfo?.profileImgUrl) {
+            setUserImgUrl(userInfo.profileImgUrl);
+          }
+        }
+      } catch (error) {
+        console.error("홈페이지 초기 데이터 로드 실패:", error);
+      }
+    };
+
+    fetchProfileImage();
+  }, []);
 
   // [API] 데이터 초기 로드
   useEffect(() => {
@@ -88,6 +117,7 @@ function ProblemDetailContent() {
         if (probRes.ok) {
           const probJson = await probRes.json();
           setProblemData(probJson.data);
+          setIsOwner(probJson.data.isOwner);
         }
 
         // if (rankRes.ok) {
@@ -293,7 +323,7 @@ function ProblemDetailContent() {
     const token = localStorage.getItem("token");
 
     try {
-      const res = await fetch(`https://diveon.net/api/groups/me`, {
+      const res = await fetch(`https://diveon.net/api/groups/me?problemId=${probId}`, {
         method: "GET",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -306,29 +336,6 @@ function ProblemDetailContent() {
       console.error("내 그룹 로드 실패:", e);
     } finally {
       setIsFetchingGroups(false);
-    }
-  };
-
-  // [API] 내 대회 목록 불러오기 (모달 열기)
-  const handleOpenContestModal = async () => {
-    setShowContestModal(true);
-    setIsFetchingContests(true);
-    const token = localStorage.getItem("token");
-
-    try {
-      const res = await fetch(`https://diveon.net/api/contests/me/owned`, {
-        method: "GET",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const json = await res.json();
-        // API 구조에 맞춰 배열 설정 (보통 json.data 형태)
-        setMyContests(json.data || []);
-      }
-    } catch (e) {
-      console.error("내 대회 로드 실패:", e);
-    } finally {
-      setIsFetchingContests(false);
     }
   };
 
@@ -359,36 +366,15 @@ function ProblemDetailContent() {
     }
   };
 
-  // [API] 선택한 대회에 문제 추가하기
-  const handleAddToContest = async (targetContestId: number) => {
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch(`https://diveon.net/api/contests/${targetContestId}/problems/${probId}/add/0`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
-
-      if (res.ok) {
-        alert("문제가 대회에 추가되었습니다.");
-        setShowContestModal(false); // 성공 시 모달 닫기
-      } else if (res.status === 409) {
-        alert("이미 대회에 추가된 문제입니다.");
-      } else {
-        alert("대회 추가에 실패했습니다.");
-      }
-    } catch (e) {
-      console.error("대회 추가 오류:", e);
-      alert("서버와 통신 중 오류가 발생했습니다.");
-    }
-  };
-
   // 객관식 보기 선택 핸들러
   const handleChoiceToggle = (index: number) => {
-    setSelectedChoices(prev =>
-      prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
-    );
+    setSelectedChoices((prev) => {
+      if (prev.includes(index)) {
+        return prev.filter((i) => i !== index);
+      } else {
+        return [...prev, index];
+      }
+    });
   };
 
   // [API] 문제 삭제 핸들러
@@ -559,8 +545,10 @@ function ProblemDetailContent() {
 
               <Link href="/settings">
                 <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
-                  <AvatarImage src="/avatar.png" alt="User" />
-                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                    {/* 공백 상태 유지 */}
+                  </AvatarFallback>
                 </Avatar>
               </Link>
 
@@ -619,7 +607,7 @@ function ProblemDetailContent() {
                     </span>
                   </div>
                   <span className="text-[11px] text-slate-400 font-medium tracking-tight">
-                    {new Date(firstBlood.date).toLocaleDateString()}
+                    {firstBlood.date}
                   </span>
                 </div>
               ) : (
@@ -670,7 +658,7 @@ function ProblemDetailContent() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-700">{comment.authorNickname}</span>
                     <span className="text-[10px] text-slate-400">
-                      {new Date(comment.createdAt).toLocaleDateString()}
+                      {formatTime(comment.createdAt, true)}
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 line-clamp-2">{comment.content}</p>
@@ -755,23 +743,13 @@ function ProblemDetailContent() {
                     </Button>
                   )}
 
-                  {problemData?.visibility === "contest" && (
-                    <Button
-                      variant="outline"
-                      className="border-purple-200 text-purple-600 hover:bg-purple-50 font-bold"
-                      onClick={handleOpenContestModal}
-                    >
-                      <Trophy className="h-4 w-4 mr-1.5" /> 대회에 공유
-                    </Button>
-                  )}
-
                   <Button variant="outline" size="icon">
                     <Share2 className="h-4 w-4" />
                   </Button>
                 </div>
 
                 {/* 오른쪽 버튼 그룹 (작성자일 때만 노출) */}
-                {isAuthor && (
+                {isOwner && (
                   <div className="flex gap-2">
                     {/* 문제 수정 버튼 */}
                     <Button
@@ -998,7 +976,7 @@ function ProblemDetailContent() {
 
                             {/* 제출 시간 */}
                             <TableCell className="text-right text-xs text-slate-400">
-                              {new Date(sub.submittedAt).toLocaleString()}
+                              {formatTime(sub.submittedAt, false)}
                             </TableCell>
 
                             {/* 상세 보기 액션 버튼 컬럼 */}
@@ -1114,7 +1092,7 @@ function ProblemDetailContent() {
                             <span className="font-bold text-sm text-slate-900">{comment.authorNickname}</span>
                             <div className="flex items-center gap-3">
                               <span className="text-xs text-slate-400 flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {new Date(comment.createdAt).toLocaleDateString()}
+                                <Clock className="w-3 h-3" /> {formatTime(comment.createdAt, false)}
                               </span>
                               {/* 수정 버튼 */}
                               <button
@@ -1186,7 +1164,7 @@ function ProblemDetailContent() {
                       <div className="flex items-center justify-between">
                         <span className="font-black text-base text-slate-900">{selectedComment.authorNickname}</span>
                         <span className="text-xs font-medium text-slate-400">
-                          {new Date(selectedComment.createdAt).toLocaleString()}
+                          {formatTime(selectedComment.createdAt, false)}
                         </span>
                       </div>
                       <p className="text-base text-slate-700 leading-relaxed">{selectedComment.content}</p>
@@ -1223,7 +1201,7 @@ function ProblemDetailContent() {
                             <span className="font-bold text-sm text-slate-900">{reply.authorNickname}</span>
                             <div className="flex items-center gap-3">
                               <span className="text-[10px] text-slate-400">
-                                {new Date(reply.createdAt).toLocaleString()}
+                                {formatTime(reply.createdAt, false)}
                               </span>
                               {/* 대댓글 수정 버튼 */}
                               <button
@@ -1310,45 +1288,15 @@ function ProblemDetailContent() {
                   <div className="space-y-2">
                     {myGroups.map((group) => (
                       <div key={group.groupId} className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 hover:border-indigo-100 transition-colors">
-                        {/* API 명세에 따라 group.title 또는 group.name 사용 */}
-                        <span className="font-bold text-sm text-slate-800">{group.title || group.name}</span>
-                        <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700" onClick={() => handleAddToGroup(group.groupId)}>
-                          추가
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                        <span className="font-bold text-sm text-slate-800">{group.title}</span>
 
-        {showContestModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
-              <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
-                <CardTitle className="text-lg">내 대회에 추가하기</CardTitle>
-                <Button variant="ghost" size="icon" onClick={() => setShowContestModal(false)}>
-                  <XCircle className="w-5 h-5 text-slate-500" />
-                </Button>
-              </CardHeader>
-              <CardContent className="pt-4 max-h-[50vh] overflow-y-auto">
-                {isFetchingContests ? (
-                  <div className="py-8 text-center text-slate-400 text-sm animate-pulse">
-                    내가 생성한 대회 목록을 불러오는 중입니다...
-                  </div>
-                ) : myContests.length === 0 ? (
-                  <div className="py-8 text-center text-slate-400 text-sm">
-                    운영 중인 대회 목록이 없습니다.
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {myContests.map((contest) => (
-                      <div key={contest.contestId} className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 hover:border-purple-100 transition-colors">
-                        <span className="font-bold text-sm text-slate-800">{contest.title}</span>
-                        <Button size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={() => handleAddToContest(contest.contestId)}>
-                          추가
+                        <Button
+                          size="sm"
+                          disabled={group.alreadyAdded}
+                          className={group.alreadyAdded ? "bg-slate-100 text-slate-400 border border-slate-200" : "bg-indigo-600 hover:bg-indigo-700 text-white"}
+                          onClick={() => handleAddToGroup(group.groupId)}
+                        >
+                          {group.alreadyAdded ? "추가됨" : "추가"}
                         </Button>
                       </div>
                     ))}
@@ -1386,4 +1334,19 @@ export default function ProblemDetailPage() {
       <ProblemDetailContent />
     </Suspense>
   );
+}
+
+function formatTime(serverTime: string, onlyDate: boolean) {
+  const date = new Date(serverTime);
+
+  // 한국 시간대 기준(KST) 시차 반영을 위한 꼼수 포맷팅
+  const offset = date.getTimezoneOffset() * 60000;
+  const localIso = new Date(date.getTime() - offset).toISOString();
+
+  // localIso는 "2026-06-04T13:10:24.168Z" 형태가 됩니다.
+  const datePart = localIso.split('T')[0];          // "2026-06-04"
+  const timePart = localIso.split('T')[1].slice(0, 8); // "13:10:24"
+
+  if (onlyDate) return `${datePart}`;
+  else return `${datePart} ${timePart}`;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Mail, Lock, Fingerprint, ShieldCheck } from "lucide-react";
@@ -21,6 +21,8 @@ export default function FindAccountPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetCode, setResetCode] = useState("");
   const router = useRouter();
+  const [timeLeft, setTimeLeft] = useState(600);
+  const [isTimerActive, setIsTimerActive] = useState(false);
 
   // [API] 아이디 찾기 요청
   const handleFindId = async () => {
@@ -71,6 +73,8 @@ export default function FindAccountPage() {
       if (res.ok) {
         alert("비밀번호 재설정 코드가 발송되었습니다. 이메일을 확인 후 새 비밀번호를 입력해 주세요.");
         setIsResetMode(true);
+        setTimeLeft(600);
+        setIsTimerActive(true);
       } else if (res.status === 404) {
         alert("가입되지 않은 이메일 주소입니다.");
       } else {
@@ -85,6 +89,11 @@ export default function FindAccountPage() {
   };
 
   const handleVerifyResetCode = async () => {
+    if (timeLeft <= 0) {
+      alert("인증 시간이 만료되었습니다. 인증 코드를 다시 발송해 주세요.");
+      return;
+    }
+
     if (!resetCode.trim()) {
       alert("이메일로 발송된 인증 코드를 입력해 주세요.");
       return;
@@ -104,6 +113,7 @@ export default function FindAccountPage() {
       if (res.ok) {
         alert("이메일 인증이 완료되었습니다! 이제 새 비밀번호를 설정할 수 있습니다.");
         setIsCodeVerified(true);
+        setIsTimerActive(false);
       } else if (res.status === 400) {
         alert("인증 코드가 일치하지 않거나 만료되었습니다. 다시 확인해 주세요.");
       } else {
@@ -156,6 +166,27 @@ export default function FindAccountPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+
+    if (isTimerActive && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      setIsTimerActive(false); // 0초가 되면 타이머 정지
+    }
+
+    return () => clearInterval(timer);
+  }, [isTimerActive, timeLeft]);
+
+  // [추가] 초 단위를 MM:SS 포맷으로 변환하는 함수
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
   return (
@@ -258,14 +289,27 @@ export default function FindAccountPage() {
                     </div>
                   )}
 
-                  {/* [2단계] 인증 코드 입력 화면 (서버 실제 연동 버전) */}
+                  {/* [2단계] 인증 코드 입력 화면  */}
                   {isResetMode && !isCodeVerified && (
                     <div className="space-y-6 animate-in slide-in-from-right duration-300">
                       <div className="p-4 bg-slate-50 rounded-2xl text-xs font-semibold text-slate-600 leading-normal border">
                         <span className="underline font-mono font-bold text-slate-900">{emailForPw}</span> 계정으로 비밀번호 재설정 코드를 보냈습니다.
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">인증 코드 (6자리)</label>
+                        {/* 라벨 영역에 타이머 정보 우측 정렬 배치 */}
+                        <div className="flex justify-between items-center ml-1">
+                          <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">인증 코드 (6자리)</label>
+                          {timeLeft > 0 ? (
+                            <span className="text-xs font-bold text-red-500 font-mono">
+                              남은 시간 {formatTime(timeLeft)}
+                            </span>
+                          ) : (
+                            <span className="text-xs font-bold text-red-500">
+                              인증 시간 만료
+                            </span>
+                          )}
+                        </div>
+
                         <div className="relative">
                           <Fingerprint className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                           <Input
@@ -273,8 +317,10 @@ export default function FindAccountPage() {
                             maxLength={6}
                             value={resetCode}
                             onChange={(e) => setResetCode(e.target.value)}
-                            placeholder="123456"
-                            className="pl-11 bg-slate-50 border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-900 font-mono tracking-widest font-bold text-slate-800"
+                            placeholder="인증코드"
+                            // 시간 만료 시 입력 칸 비활성화 처리
+                            disabled={timeLeft <= 0}
+                            className="pl-11 bg-slate-50 border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-900 font-mono tracking-widest font-bold text-slate-800 disabled:opacity-50"
                           />
                         </div>
                       </div>
@@ -282,14 +328,18 @@ export default function FindAccountPage() {
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => setIsResetMode(false)}
+                          onClick={() => {
+                            setIsResetMode(false);
+                            setIsTimerActive(false); // 탭 전환 혹은 이전으로 갈 때 타이머 정지
+                          }}
                           className="h-12 px-4 rounded-xl text-slate-500 text-xs font-bold"
                         >
                           이전으로
                         </Button>
                         <Button
                           onClick={handleVerifyResetCode}
-                          disabled={isLoading}
+                          // [수정] 시간 만료 시 확인 버튼도 비활성화
+                          disabled={isLoading || timeLeft <= 0}
                           className="flex-1 h-12 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg transition-all active:scale-[0.98]"
                         >
                           {isLoading ? "확인 중..." : "코드 확인"}
@@ -298,7 +348,7 @@ export default function FindAccountPage() {
                     </div>
                   )}
 
-                  {/* [3단계] 비밀번호 변경 화면 (비밀번호 확인 필드 추가 버전) */}
+                  {/* [3단계] 비밀번호 변경 화면 */}
                   {isCodeVerified && (
                     <div className="space-y-6 animate-in zoom-in-95 duration-300">
                       <div className="p-4 bg-green-50 border border-green-100 rounded-2xl text-xs font-bold text-green-800 leading-normal flex items-center gap-2">

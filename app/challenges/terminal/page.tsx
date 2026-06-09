@@ -138,56 +138,54 @@ function PracticeContent() {
       return;
     }
 
-    setIsSubmitting(true);
     const token = localStorage.getItem("token");
+    const targetFlag = flag.trim();
 
-    try {
-      // API 명세: POST /api/submissions/grade
-      const response = await fetch(`https://diveon.net/api/submissions/grade`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          probId: Number(probId),
-          submissionType: "practice",
-          answer: flag.trim(),
-          containerId: null
-        })
-      });
+    // 1. 사용자 화면은 지체 없이 즉시 문제 상세(메인) 페이지로 이동 시킵니다.
+    alert("채점 요청이 접수되었습니다. 결과는 챌린지 리스트에서 확인하실 수 있습니다!");
+    router.push(`/challenges/detail?id=${probId}`);
 
-      if (response.ok) {
-        const json = await response.json();
-        const newId = json.data.submissionId;
-        sessionStorage.setItem(`pending_sub_${probId}`, newId);
+    // 2. 이후 백엔드 통신은 await로 사용자를 붙잡지 않고 백그라운드에서 조용히 실행합니다.
+    (async () => {
+      try {
+        // [비동기 1단계] 백그라운드 채점 서버 노크
+        const response = await fetch(`https://diveon.net/api/submissions/grade`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            probId: Number(probId),
+            submissionType: "practice",
+            answer: targetFlag,
+            containerId: null
+          })
+        });
 
-        try {
-          await fetch(`https://diveon.net/api/vm/stop`, {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify({ probId: Number(probId) })
-          });
-        } catch (e) {
-          console.error("VM 자동 종료 요청 중 에러(무시됨):", e);
+        if (response.ok) {
+          const json = await response.json();
+          const newId = json?.data?.submissionId;
+          if (newId) {
+            sessionStorage.setItem(`pending_sub_${probId}`, newId);
+          }
         }
 
-        alert("채점 요청이 접수되었습니다. (실습 환경 자동 종료)");
-        // 3. 문제 상세 페이지로 이동
-        router.push(`/challenges/detail?id=${probId}`);
-      } else {
-        const errorData = await response.json();
-        alert(`제출 실패: ${errorData.message || "오류가 발생했습니다."}`);
+        // [비동기 2단계] 채점 요청 끝났으니 사용하던 컨테이너(VM) 정지 요청
+        await fetch(`https://diveon.net/api/vm/stop`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({ probId: Number(probId) })
+        });
+
+      } catch (error) {
+        // 이미 사용자는 메인 페이지로 나갔으므로 alert를 띄우지 않고 콘솔에만 조용히 에러를 남깁니다.
+        console.error("백그라운드 채점/VM종료 파이프라인 에러:", error);
       }
-    } catch (error) {
-      console.error("제출 에러:", error);
-      alert("서버와 통신 중 오류가 발생했습니다.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    })();
   };
 
   // 타이머 로직

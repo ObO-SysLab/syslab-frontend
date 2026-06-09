@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -37,6 +37,8 @@ export default function SignUpPage() {
   const [isNicknameChecked, setIsNicknameChecked] = useState(false);
   const [emailCode, setEmailCode] = useState(""); // 6자리
   const [isEmailSent, setIsEmailSent] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(600);
+  const [isTimerActive, setIsTimerActive] = useState(false);
 
   // 입력 핸들러
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,6 +131,8 @@ export default function SignUpPage() {
       if (res.ok) {
         alert("인증 코드가 이메일로 발송되었습니다.");
         setIsEmailSent(true);
+        setTimeLeft(600);
+        setIsTimerActive(true);
       } else if (res.status === 409) {
         alert("이미 가입된 이메일입니다. 다른 이메일을 사용해주세요.");
       } else {
@@ -142,6 +146,11 @@ export default function SignUpPage() {
 
   /* [API] 이메일 인증코드 검증 */
   const handleVerifyEmailCode = async () => {
+    if (timeLeft <= 0) {
+      alert("인증 시간이 만료되었습니다. 인증 코드를 다시 발송해 주세요.");
+      return;
+    }
+
     if (!emailCode.trim()) {
       alert("인증 코드를 입력해주세요.");
       return;
@@ -160,6 +169,7 @@ export default function SignUpPage() {
       if (res.ok) {
         alert("이메일 인증이 완료되었습니다!");
         setIsEmailVerified(true);
+        setIsTimerActive(false);
       } else if (res.status === 400) {
         alert("인증 코드가 일치하지 않거나 만료되었습니다. 다시 확인해주세요.");
       } else {
@@ -237,6 +247,28 @@ export default function SignUpPage() {
     setInterests(interests.filter(tag => tag !== tagToRemove));
   };
 
+  // 1초마다 남은 시간을 감소시키는 타이머 useEffect
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+
+    if (isTimerActive && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      setIsTimerActive(false); // 0초가 되면 타이머 정지
+    }
+
+    return () => clearInterval(timer);
+  }, [isTimerActive, timeLeft]);
+
+  // [추가] 초 단위를 MM:SS 포맷으로 변환하는 함수
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
 
@@ -299,27 +331,44 @@ export default function SignUpPage() {
                     </div>
                   </div>
 
-                  { /* 인증코드 입력 */ }
+                  { /* 인증코드 입력 */}
                   {isEmailSent && !isEmailVerified && (
-                    <div className="flex gap-2 animate-in slide-in-from-top-2 duration-300">
-                      <div className="relative flex-1">
-                        <ShieldCheck className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                        <Input
-                          type="text"
-                          maxLength={6}
-                          value={emailCode}
-                          onChange={(e) => setEmailCode(e.target.value)}
-                          placeholder="인증코드 6자리 입력"
-                          className="pl-11 h-12 rounded-xl border-indigo-100 bg-indigo-50/10 font-mono tracking-widest text-sm font-bold text-slate-800"
-                        />
+                    <div className="space-y-2 animate-in slide-in-from-top-2 duration-300 w-full">
+                      <div className="flex justify-between items-center px-1">
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400">인증 코드 입력</Label>
+                        {timeLeft > 0 ? (
+                          <span className="text-xs font-bold text-red-500 font-mono">
+                            남은 시간 {formatTime(timeLeft)}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-bold text-red-500">
+                            인증 시간 만료
+                          </span>
+                        )}
                       </div>
-                      <Button
-                        type="button"
-                        onClick={handleVerifyEmailCode}
-                        className="h-12 px-6 rounded-xl bg-slate-950 text-white font-black text-xs hover:bg-slate-800 shrink-0"
-                      >
-                        코드 확인
-                      </Button>
+
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <ShieldCheck className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                          <Input
+                            type="text"
+                            maxLength={6}
+                            value={emailCode}
+                            onChange={(e) => setEmailCode(e.target.value)}
+                            placeholder="인증코드 6자리 입력"
+                            disabled={timeLeft <= 0}
+                            className="pl-11 h-12 rounded-xl border-indigo-100 bg-indigo-50/10 font-mono tracking-widest text-sm font-bold text-slate-800 disabled:opacity-50"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={handleVerifyEmailCode}
+                          disabled={timeLeft <= 0}
+                          className="h-12 px-6 rounded-xl bg-slate-950 text-white font-black text-xs hover:bg-slate-800 shrink-0 disabled:opacity-50"
+                        >
+                          코드 확인
+                        </Button>
+                      </div>
                     </div>
                   )}
 
@@ -396,7 +445,7 @@ export default function SignUpPage() {
                           value={formData.nickname}
                           onChange={handleInputChange}
                           required
-                          placeholder="사용할 닉네임"
+                          placeholder="닉네임"
                           className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50"
                         />
                       </div>
@@ -436,7 +485,7 @@ export default function SignUpPage() {
                           value={tagInput}
                           onChange={(e) => setTagInput(e.target.value)}
                           onKeyDown={addTag}
-                          placeholder="예: 리버싱, 네트워크 보안"
+                          placeholder="예: 백엔드, AI"
                           className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50"
                         />
                       </div>

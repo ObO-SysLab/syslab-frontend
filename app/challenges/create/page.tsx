@@ -24,6 +24,7 @@ function ProblemCreateContent() {
   const editId = searchParams.get("id"); // URL의 ?id=... 값을 가져옴
   const isEditMode = !!editId; // id가 있으면 수정 모드(true)
   const [isInitialLoading, setIsInitialLoading] = useState(isEditMode);
+  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -136,12 +137,6 @@ function ProblemCreateContent() {
       return;
     }
 
-
-    // [임시]
-    // if (visibility === "group" && selectedGroups.length === 0) {
-    //   alert("공개할 그룹을 최소 1개 이상 선택해주세요.");
-    //   return;
-    // }
     if (visibility === "group" && !selectedGroupId) {
       alert("공개할 그룹을 선택해주세요.");
       return;
@@ -149,10 +144,10 @@ function ProblemCreateContent() {
 
     setIsSubmitting(true);
     const token = localStorage.getItem("token");
+
+    // 상태 변수 정의
     const method = isEditMode ? "PATCH" : "POST";
     let endpoint = "";
-
-    // API 호출 시 사용할 본문(body)과 헤더(headers)
     let bodyData: BodyInit | null = null;
     let fetchHeaders: Record<string, string> = {
       "Authorization": `Bearer ${token}`
@@ -160,107 +155,121 @@ function ProblemCreateContent() {
 
     try {
       // ----------------------------------------------------
-      // [A] 실습형(practice) 문제 처리: multipart/form-data
+      // [CASE 1] 문제 수정 모드 (PATCH) - 모든 유형 공통 규격
       // ----------------------------------------------------
-      if (problemType === "practice") {
-        endpoint = `https://diveon.net/api/problems/practice${isEditMode ? `/${editId}` : ""}`;
-
-        if (!dockerfile && !isEditMode) {
-          alert("Dockerfile zip 파일을 업로드해주세요.");
-          setIsSubmitting(false);
-          return;
-        }
-
-        const formData = new FormData();
-        // 1. 공통 필드 (Spring DTO 필드명 매핑)
-        formData.append("title", title);
-        formData.append("summary", summary);
-        formData.append("description", description);
-        formData.append("category", category);
-
-        // 2. 난이도 및 공개범위 규격화
-        formData.append("difficulty", `${difficulty}`);
-        formData.append("visibility", visibility.toLowerCase());
-
-        // [임시]
-        // if (visibility === "group") {
-        //   selectedGroups.forEach(id => formData.append("groupIds", String(id)));
-        // }
-        if (visibility === "group" && selectedGroupId) {
-          formData.append("groupId", String(selectedGroupId)); // 
-        }
-
-        // 3. VM 설정 (백엔드 DTO의 CamelCase 필드명 사용)
-        formData.append("osImage", osImage);
-        formData.append("cpuLimit", String(cpuLimit));
-        formData.append("memoryLimit", vmMemoryLimit);
-        formData.append("flag", flag);
-
-        // 4. 허용 명령어 (List<String> 처리)
-        const cmdArray = allowedCommandsInput.split(",").map(c => c.trim()).filter(c => c !== "");
-        cmdArray.forEach(cmd => formData.append("allowedCommands", cmd));
-
-        // 5. 파일 전송
-        if (dockerfile) {
-          formData.append("dockerfile", dockerfile);
-        }
-
-        bodyData = formData;
-      }
-      // ----------------------------------------------------
-      // [B] 코딩형 / 객관식 문제 처리: application/json
-      // ----------------------------------------------------
-      else {
+      if (isEditMode) {
         fetchHeaders["Content-Type"] = "application/json";
+        endpoint = `https://diveon.net/api/problems/${problemType.toLocaleLowerCase()}/${editId}`;
 
-        let payload: any = {
+        const patchPayload = {
           title,
           summary: summary || title,
           description,
-          category,
-          difficulty: Number(difficulty),
-          visibility,
+          difficulty: difficulty
         };
 
-        // [임시]
-        // if (visibility === "group") {
-        //   payload.groupIds = selectedGroups;
-        // }
-        if (visibility === "group" && selectedGroupId) {
-          payload.groupId = selectedGroupId;
-        }
+        bodyData = JSON.stringify(patchPayload);
+      }
+      // ----------------------------------------------------
+      // [CASE 2] 신규 문제 등록 모드 (POST) - 기존 로직 유지
+      // ----------------------------------------------------
+      else {
+        // 실습형(practice)은 multipart/form-data 처리
+        if (problemType === "practice") {
+          endpoint = `https://diveon.net/api/problems/practice`;
 
-        if (problemType === "coding") {
-          endpoint = `https://diveon.net/api/problems/coding${isEditMode ? `/${editId}` : ""}`;
-          payload = {
-            ...payload,
-            constraints: {
-              timeLimitMs: timeLimit * 1000,
-              memoryLimitMb: memoryLimit,
-              allowedLanguages: allowedLanguages
-            },
-            inputDescription: inputDesc || "입력 설명",
-            outputDescription: outputDesc || "출력 설명",
-            testcases: testcases.map(tc => ({ ...tc, index: Number(tc.index) })),
-            obo: { enabled: false, initialImageUrl: null },
-            isDraft: false
-          };
-        } else if (problemType === "objective") {
-          endpoint = `https://diveon.net/api/problems/objective${isEditMode ? `/${editId}` : ""}`;
-          const validChoices = choices.filter(c => c.content.trim() !== "").map((c, i) => ({ index: i + 1, content: c.content, image_url: null }));
-          if (validChoices.length < 2) return alert("보기를 2개 이상 입력하세요.");
+          if (!dockerfile) {
+            alert("Dockerfile zip 파일을 업로드해주세요.");
+            setIsSubmitting(false);
+            return;
+          }
 
-          payload = {
-            ...payload,
-            choices: validChoices,
-            answer: selectedAnswers,
-            obo: { enabled: false, steps: [] }
-          };
+          const formData = new FormData();
+          formData.append("title", title);
+          formData.append("summary", summary || title);
+          formData.append("description", description);
+          formData.append("category", category);
+          formData.append("difficulty", difficulty);
+          formData.append("visibility", visibility.toLowerCase());
+
+          if (visibility === "group" && selectedGroupId) {
+            formData.append("groupId", String(selectedGroupId));
+          }
+
+          if (visibility === "contest" && selectedContestId) {
+            formData.append("contestId", String(selectedContestId));
+          }
+
+          formData.append("osImage", osImage);
+          formData.append("cpuLimit", String(cpuLimit));
+          formData.append("memoryLimit", vmMemoryLimit);
+          formData.append("flag", flag);
+
+          const cmdArray = allowedCommandsInput.split(",").map(c => c.trim()).filter(c => c !== "");
+          cmdArray.forEach(cmd => formData.append("allowedCommands", cmd));
+
+          if (dockerfile) {
+            formData.append("dockerfile", dockerfile);
+          }
+
+          bodyData = formData;
         }
-        bodyData = JSON.stringify(payload);
+        // 코딩형 및 객관식은 application/json 처리
+        else {
+          fetchHeaders["Content-Type"] = "application/json";
+
+          let payload: any = {
+            title,
+            summary: summary || title,
+            description,
+            category,
+            difficulty, // 생성 시에도 문자열 규격으로 매핑
+            visibility,
+          };
+
+          if (visibility === "group" && selectedGroupId) {
+            payload.groupId = selectedGroupId;
+          }
+
+          if (visibility === "contest" && selectedContestId) {
+            payload.contestId = selectedContestId; // 백엔드 DTO 스펙에 맞춰 contestId 추가
+          }
+
+          if (problemType === "coding") {
+            endpoint = `https://diveon.net/api/problems/coding`;
+            payload = {
+              ...payload,
+              constraints: {
+                timeLimitMs: timeLimit * 1000,
+                memoryLimitMb: memoryLimit,
+                allowedLanguages: allowedLanguages
+              },
+              inputDescription: inputDesc || "입력 설명",
+              outputDescription: outputDesc || "출력 설명",
+              testcases: testcases.map(tc => ({ ...tc, index: Number(tc.index) })),
+              obo: { enabled: false, initialImageUrl: null },
+              isDraft: false
+            };
+          } else if (problemType === "objective") {
+            endpoint = `https://diveon.net/api/problems/objective`;
+            const validChoices = choices.filter(c => c.content.trim() !== "").map((c, i) => ({ index: i + 1, content: c.content, image_url: null }));
+            if (validChoices.length < 2) {
+              setIsSubmitting(false);
+              return alert("보기를 2개 이상 입력하세요.");
+            }
+
+            payload = {
+              ...payload,
+              choices: validChoices,
+              answer: selectedAnswers,
+              obo: { enabled: false, steps: [] }
+            };
+          }
+          bodyData = JSON.stringify(payload);
+        }
       }
 
-      // API 전송
+      // API 전송 요청 실행
       const response = await fetch(endpoint, {
         method: method,
         headers: fetchHeaders,
@@ -335,10 +344,41 @@ function ProblemCreateContent() {
     }
   }, [editId]);
 
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      setIsLoggedIn(true);
+
+      try {
+        const response = await fetch("https://diveon.net/api/profile/show", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const userInfo = result?.data?.userInfo;
+
+          // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
+          if (userInfo?.profileImgUrl) {
+            setUserImgUrl(userInfo.profileImgUrl);
+          }
+        }
+      } catch (error) {
+        console.error("홈페이지 초기 데이터 로드 실패:", error);
+      }
+    };
+
+    fetchProfileImage();
+  }, []);
+
   // [상태 관리] 그룹 공개용
   const [myGroups, setMyGroups] = useState<any[]>([]);
-  // [임시]
-  // const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [isFetchingGroups, setIsFetchingGroups] = useState(false);
 
@@ -352,12 +392,35 @@ function ProblemCreateContent() {
       })
         .then(res => res.json())
         .then(json => {
-          if (json.data) setMyGroups(json.data); // API 구조에 따라 json.data.groups 일 수 있음
+          if (json.data) setMyGroups(json.data);
         })
         .catch(err => console.error("그룹 목록 로드 실패:", err))
         .finally(() => setIsFetchingGroups(false));
     }
   }, [visibility]);
+
+  // [STATE] 대회 공개용
+  const [myContests, setMyContests] = useState<any[]>([]);
+  const [selectedContestId, setSelectedContestId] = useState<number | null>(null);
+  const [isFetchingContests, setIsFetchingContests] = useState(false);
+
+  // [API] 공개 범위가 'contest'일 때 내 대회 목록 불러오기
+  useEffect(() => {
+    if (visibility === "contest" && myContests.length === 0) {
+      setIsFetchingContests(true);
+      const token = localStorage.getItem("token");
+      fetch("https://diveon.net/api/contests/me/owned", {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(json => {
+          if (json.data) setMyContests(json.data);
+        })
+        .catch(err => console.error("대회 목록 로드 실패:", err))
+        .finally(() => setIsFetchingContests(false));
+    }
+  }, [visibility])
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -381,9 +444,11 @@ function ProblemCreateContent() {
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
               </button>
               <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 cursor-pointer transition-all">
-                  <AvatarImage src="/avatar.png" alt="User" />
-                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-600">DY</AvatarFallback>
+                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                    {/* 공백 상태 유지 */}
+                  </AvatarFallback>
                 </Avatar>
               </Link>
               <button onClick={handleLogout} className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors">
@@ -587,7 +652,7 @@ function ProblemCreateContent() {
                     <div className="flex flex-wrap gap-2 pt-1">
                       {myGroups.map((group) => {
                         const groupId = group.groupId || group.id;
-                        const isSelected = selectedGroupId === groupId; 
+                        const isSelected = selectedGroupId === groupId;
 
                         return (
                           <Badge
@@ -603,6 +668,45 @@ function ProblemCreateContent() {
                           >
                             {isSelected && <CheckCircle2 className="w-3 h-3 mr-1.5 inline-block" />}
                             {group.title || group.name}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {visibility === "contest" && (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 animate-in fade-in duration-300 mt-4">
+                  <Label className="font-bold flex items-center gap-2">
+                    공개할 대회 선택 <span className="text-red-500">*</span>
+                    <span className="text-[10px] text-slate-400 font-normal">문제를 공개할 1개의 대회를 선택해주세요.</span>
+                  </Label>
+
+                  {isFetchingContests ? (
+                    <div className="text-sm text-slate-400 animate-pulse">대회 목록을 불러오는 중...</div>
+                  ) : myContests.length === 0 ? (
+                    <div className="text-sm text-slate-400">관리 중인 대회 없습니다.</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {myContests.map((contest) => {
+                        const contestId = contest.contestId || contest.id;
+                        const isSelected = selectedContestId === contestId;
+
+                        return (
+                          <Badge
+                            key={contestId}
+                            variant={isSelected ? "default" : "outline"}
+                            className={`cursor-pointer px-3 py-1.5 text-xs transition-all ${isSelected
+                              ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                              : "bg-white hover:bg-slate-100 text-slate-600"
+                              }`}
+                            onClick={() => {
+                              setSelectedContestId(isSelected ? null : contestId);
+                            }}
+                          >
+                            {isSelected && <CheckCircle2 className="w-3 h-3 mr-1.5 inline-block" />}
+                            {contest.title}
                           </Badge>
                         );
                       })}
