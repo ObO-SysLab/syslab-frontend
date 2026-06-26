@@ -270,18 +270,26 @@ export default function GroupListPage() {
           <div className="pt-4 border-t">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Tier</h3>
             <div className="flex flex-wrap gap-2">
-              {/* 배열을 숫자 문자열로 변경 */}
-              {["Bronze", "Silver", "Gold", "Platinum", "Diamond"].map(tier => (
-                <Badge
-                  key={tier}
-                  variant={selectedTier === tier ? "default" : "outline"}
-                  className={`cursor-pointer px-3 py-1 transition-all ${selectedTier === tier ? "bg-slate-900 text-white" : "hover:bg-slate-100"
+              {["1", "2", "3", "4", "5", "6", "7"].map(tier => {
+                const tierNameMap: Record<string, string> = {
+                  "1": "Bronze", "2": "Silver", "3": "Gold", 
+                  "4": "Platinum", "5": "Diamond", "6": "Master", "7": "Challenger"
+                };
+                const label = tierNameMap[tier] || "Tier";
+
+                return (
+                  <Badge
+                    key={tier}
+                    variant={selectedTier === tier ? "default" : "outline"}
+                    className={`cursor-pointer px-3 py-1 transition-all capitalize ${
+                      selectedTier === tier ? "bg-slate-900 text-white" : "hover:bg-slate-100"
                     }`}
-                  onClick={() => handleTierChange(tier)}
-                >
-                  {tier} tier
-                </Badge>
-              ))}
+                    onClick={() => handleTierChange(tier)}
+                  >
+                    {label}
+                  </Badge>
+                );
+              })}
             </div>
           </div>
         </aside>
@@ -395,20 +403,30 @@ export default function GroupListPage() {
                           </p>
                         </div>
 
-                        {/* <div className="w-20 flex justify-end">
+                        <div className="w-24 flex justify-end shrink-0">
                           <Badge
                             className={`
-                              rounded-full px-2.5 py-0.5 text-[10px] font-black border uppercase tracking-tight
-                              ${grp.tier === "Bronze" ? "bg-orange-100 text-orange-900 border-orange-400" : ""}
-                              ${grp.tier === "Silver" ? "bg-slate-100 text-slate-600 border-slate-300" : ""}
-                              ${grp.tier === "Gold" ? "bg-yellow-200 text-yellow-950 border-yellow-500 shadow-inner" : ""}
-                              ${grp.tier === "Platinum" ? "bg-emerald-100 text-emerald-700 border-emerald-300" : ""}
-                              ${grp.tier === "Diamond" ? "bg-cyan-100 text-cyan-700 border-cyan-300 shadow-sm" : ""}
+                              rounded-full px-2.5 py-0.5 text-[10px] font-black border uppercase tracking-tight transition-all
+                              ${String(grp.tier) === "1" ? "bg-orange-50 text-orange-700 border-orange-200" : ""}
+                              ${String(grp.tier) === "2" ? "bg-slate-100 text-slate-600 border-slate-300" : ""}
+                              ${String(grp.tier) === "3" ? "bg-yellow-50 text-yellow-700 border-yellow-300 shadow-sm" : ""}
+                              ${String(grp.tier) === "4" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ""}
+                              ${String(grp.tier) === "5" ? "bg-cyan-50 text-cyan-700 border-cyan-200 shadow-sm" : ""}
+                              ${String(grp.tier) === "6" ? "bg-purple-50 text-purple-700 border-purple-200 shadow-sm" : ""}
+                              ${String(grp.tier) === "7" ? "bg-slate-900 text-white border-slate-950 shadow-sm font-black animate-pulse" : ""}
                             `}
                           >
-                            {grp.tier} tier
+                            {/* 텍스트 표기용 콤보 필터 */}
+                            {String(grp.tier) === "7" && "Challenger"}
+                            {String(grp.tier) === "6" && "Master"}
+                            {String(grp.tier) === "5" && "Diamond"}
+                            {String(grp.tier) === "4" && "Platinum"}
+                            {String(grp.tier) === "3" && "Gold"}
+                            {String(grp.tier) === "2" && "Silver"}
+                            {String(grp.tier) === "1" && "Bronze"}
+                            {!["1","2","3","4","5","6","7"].includes(String(grp.tier)) && (grp.tier || "Unranked")}
                           </Badge>
-                        </div> */}
+                        </div>
                       </div>
                     </div>
                   </Card>
