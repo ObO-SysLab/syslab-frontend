@@ -304,7 +304,7 @@ export default function ProblemListPage() {
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Difficulty</h3>
             <div className="flex flex-wrap gap-2">
               {/* 배열을 숫자 문자열로 변경 */}
-              {["1", "2", "3", "4", "5"].map(lvl => (
+              {["1", "2", "3", "4", "5", "6", "7"].map(lvl => (
                 <Badge
                   key={lvl}
                   variant={selectedLevel === lvl ? "default" : "outline"}
@@ -432,12 +432,14 @@ export default function ProblemListPage() {
                         <div className="w-20 flex justify-end">
                           <Badge
                             className={`
-                              rounded-full px-2.5 py-0.5 text-[10px] font-black border uppercase tracking-tight
-                              ${prob.difficulty === "1" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : ""}
-                              ${prob.difficulty === "2" ? "bg-amber-50 text-amber-600 border-amber-200" : ""}
-                              ${prob.difficulty === "3" ? "bg-rose-50 text-rose-600 border-rose-100" : ""}
-                              ${prob.difficulty === "4" ? "bg-violet-50 text-violet-700 border-violet-200" : ""}
-                              ${prob.difficulty === "5" ? "bg-slate-900 text-white border-slate-950 shadow-sm font-black" : ""}
+                              rounded-full px-2.5 py-0.5 text-[10px] font-black border uppercase tracking-tight transition-all
+                              ${String(prob.difficulty) === "1" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : ""}
+                              ${String(prob.difficulty) === "2" ? "bg-lime-50 text-lime-600 border-lime-200" : ""}
+                              ${String(prob.difficulty) === "3" ? "bg-amber-50 text-amber-600 border-amber-200" : ""}
+                              ${String(prob.difficulty) === "4" ? "bg-orange-50 text-orange-600 border-orange-200" : ""}
+                              ${String(prob.difficulty) === "5" ? "bg-rose-50 text-rose-600 border-rose-200" : ""}
+                              ${String(prob.difficulty) === "6" ? "bg-violet-50 text-violet-700 border-violet-200" : ""}
+                              ${String(prob.difficulty) === "7" ? "bg-slate-900 text-white border-slate-950 shadow-sm font-black" : ""}
                             `}
                           >
                             Lvl {prob.difficulty}

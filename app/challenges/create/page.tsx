@@ -554,29 +554,46 @@ function ProblemCreateContent() {
                       <SelectValue placeholder="난이도 선택" />
                     </SelectTrigger>
                     <SelectContent>
+                      {/* Lvl 1: 초록 (기초) */}
                       <SelectItem value="1" className="text-emerald-600 font-bold">
                         <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" /> Lvl 1 (Easy)
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" /> Lvl 1
                         </div>
                       </SelectItem>
-                      <SelectItem value="2" className="text-amber-600 font-bold">
+                      {/* Lvl 2: 연두/황록 */}
+                      <SelectItem value="2" className="text-lime-600 font-bold">
                         <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-amber-500" /> Lvl 2 (Medium)
+                          <span className="w-2 h-2 rounded-full bg-lime-500" /> Lvl 2
                         </div>
                       </SelectItem>
-                      <SelectItem value="3" className="text-rose-600 font-bold">
+                      {/* Lvl 3: 노랑/황금 */}
+                      <SelectItem value="3" className="text-amber-600 font-bold">
                         <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-rose-500" /> Lvl 3 (Hard)
+                          <span className="w-2 h-2 rounded-full bg-amber-500" /> Lvl 3
                         </div>
                       </SelectItem>
-                      <SelectItem value="4" className="text-violet-700 font-bold">
+                      {/* Lvl 4: 주황 */}
+                      <SelectItem value="4" className="text-orange-600 font-bold">
                         <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-violet-500" /> Lvl 4 (Expert)
+                          <span className="w-2 h-2 rounded-full bg-orange-500" /> Lvl 4
                         </div>
                       </SelectItem>
-                      <SelectItem value="5" className="text-slate-900 font-black">
+                      {/* Lvl 5: 빨강 */}
+                      <SelectItem value="5" className="text-rose-600 font-bold">
                         <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-slate-950" /> Lvl 5 (Insane)
+                          <span className="w-2 h-2 rounded-full bg-rose-500" /> Lvl 5
+                        </div>
+                      </SelectItem>
+                      {/* Lvl 6: 보라 */}
+                      <SelectItem value="6" className="text-violet-700 font-bold">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-violet-600" /> Lvl 6
+                        </div>
+                      </SelectItem>
+                      {/* Lvl 7: 검정 (최상위) */}
+                      <SelectItem value="7" className="text-slate-950 font-black">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-slate-950" /> Lvl 7
                         </div>
                       </SelectItem>
                     </SelectContent>
