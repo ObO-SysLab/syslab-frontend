@@ -1,0 +1,143 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  Controls,
+  Background,
+  BackgroundVariant,
+  ConnectionMode,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import { nodeTypes } from './nodes';
+import { OboEdge } from './edges/OboEdge';
+import { FrameContext } from './FrameContext';
+import type { OboBlob, Frame } from './types';
+
+const edgeTypes = { 'obo-edge': OboEdge } as const;
+
+interface OboPlayerProps {
+  blob: OboBlob;
+}
+
+function PlayerInner({ blob }: OboPlayerProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [playing, setPlaying] = useState(false);
+
+  const frames: Frame[] = blob.frames ?? [];
+  const hasFrames = frames.length > 0;
+  const currentFrame: Frame | null = hasFrames ? frames[currentIndex] : null;
+
+  useEffect(() => {
+    if (!playing) return;
+    if (currentIndex >= frames.length - 1) { setPlaying(false); return; }
+    const timer = setTimeout(() => setCurrentIndex(i => i + 1), 1200);
+    return () => clearTimeout(timer);
+  }, [playing, currentIndex, frames.length]);
+
+  const nodes = blob.nodes.map(n => ({ ...n, selectable: false, draggable: false }));
+  const edges = blob.edges.map(e => ({ ...e, type: 'obo-edge' as const, selectable: false }));
+
+  const prev = () => { setCurrentIndex(i => Math.max(0, i - 1)); setPlaying(false); };
+  const next = () => { setCurrentIndex(i => Math.min(frames.length - 1, i + 1)); setPlaying(false); };
+  const reset = () => { setCurrentIndex(0); setPlaying(false); };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 relative">
+        <FrameContext.Provider value={{ previewFrame: currentFrame }}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            fitView
+            fitViewOptions={{ padding: 0.3, maxZoom: 0.75 }}
+            connectionMode={ConnectionMode.Loose}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={false}
+            panOnDrag
+            zoomOnScroll
+          >
+            <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#e2e8f0" />
+            <Controls showInteractive={false} />
+          </ReactFlow>
+        </FrameContext.Provider>
+      </div>
+
+      {hasFrames && (
+        <div className="border-t px-4 py-3 space-y-2 bg-white">
+          {/* 현재 프레임 설명 */}
+          <p className="text-sm font-medium text-slate-700 text-center min-h-5 truncate">
+            {currentFrame?.label || ' '}
+          </p>
+
+          {/* 스텝 인디케이터 */}
+          <div className="flex items-center justify-center gap-1.5">
+            {frames.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => { setCurrentIndex(i); setPlaying(false); }}
+                className="rounded-full transition-all"
+                style={{
+                  width: i === currentIndex ? 24 : 8,
+                  height: 8,
+                  background: i === currentIndex ? '#6366f1' : i < currentIndex ? '#6366f180' : '#e2e8f0',
+                }}
+              />
+            ))}
+          </div>
+
+          {/* 재생 컨트롤 */}
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={reset}
+              className="text-slate-400 hover:text-slate-700 text-xs px-1 transition-colors"
+              title="처음으로"
+            >
+              ⟨⟨
+            </button>
+            <button
+              onClick={prev}
+              disabled={currentIndex === 0}
+              className="text-slate-400 hover:text-slate-700 px-1 disabled:opacity-30 transition-colors"
+            >
+              ◀
+            </button>
+            <button
+              onClick={() => setPlaying(p => !p)}
+              disabled={currentIndex === frames.length - 1 && !playing}
+              className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center disabled:opacity-40 hover:bg-indigo-700 transition-colors text-sm"
+            >
+              {playing ? '⏸' : '▶'}
+            </button>
+            <button
+              onClick={next}
+              disabled={currentIndex === frames.length - 1}
+              className="text-slate-400 hover:text-slate-700 px-1 disabled:opacity-30 transition-colors"
+            >
+              ▶
+            </button>
+            <button
+              onClick={reset}
+              className="text-slate-400 hover:text-slate-700 text-xs px-1 transition-colors"
+              title="초기화"
+            >
+              ↺
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function OboPlayer({ blob }: OboPlayerProps) {
+  return (
+    <ReactFlowProvider>
+      <PlayerInner blob={blob} />
+    </ReactFlowProvider>
+  );
+}
