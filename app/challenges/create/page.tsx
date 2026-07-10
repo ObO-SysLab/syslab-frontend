@@ -4,8 +4,10 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import {
   Menu, LogOut, CheckCircle2, Target, Zap, Code2, PlusCircle, Eye,
-  StickyNote, Bell, Trash2
+  StickyNote, Bell, Trash2, Network
 } from "lucide-react";
+import type { ProblemOboData } from "@/components/obo/types";
+import { OboEditorSection } from "@/components/obo/OboEditorSection";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,7 +25,6 @@ function ProblemCreateContent() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("id"); // URL의 ?id=... 값을 가져옴
   const isEditMode = !!editId; // id가 있으면 수정 모드(true)
-  const [isInitialLoading, setIsInitialLoading] = useState(isEditMode);
   const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
 
   useEffect(() => {
@@ -73,10 +74,25 @@ function ProblemCreateContent() {
   const [choices, setChoices] = useState([
     { index: 1, content: "" }, { index: 2, content: "" }, { index: 3, content: "" }, { index: 4, content: "" }
   ]);
-  const [answerIdx, setAnswerIdx] = useState(1);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([1]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // [상태 관리] OBO 시각화
+  const [oboEnabled, setOboEnabled] = useState(false);
+  const [oboData, setOboData] = useState<ProblemOboData>({ mode: 'single', single: { nodes: [], edges: [], frames: [] } });
+  const [oboModalOpen, setOboModalOpen] = useState(false);
+  const [oboDataSnapshot, setOboDataSnapshot] = useState<ProblemOboData | null>(null);
+
+  const openOboModal = () => {
+    setOboDataSnapshot(oboData);
+    setOboModalOpen(true);
+  };
+  const confirmOboModal = () => setOboModalOpen(false);
+  const cancelOboModal = () => {
+    if (oboDataSnapshot) setOboData(oboDataSnapshot);
+    setOboModalOpen(false);
+  };
 
   // 2. 객관식 정답 토글 핸들러
   const toggleAnswer = (idx: number) => {
@@ -128,6 +144,17 @@ function ProblemCreateContent() {
 
     // 정답이 하나도 남지 않게 되는 경우 방지 (최소 1번은 선택되게)
     setSelectedAnswers(newAnswers.length > 0 ? newAnswers : [1]);
+
+    // 3. OBO per_choice 키 동기화 (삭제된 번호 제거 + 이후 번호 한 칸씩 당김)
+    if (oboData.mode === 'per_choice' && oboData.perChoice) {
+      const newPerChoice: Record<string, import('@/components/obo/types').OboBlob> = {};
+      Object.entries(oboData.perChoice).forEach(([key, blob]) => {
+        const num = parseInt(key.replace('choice_', ''));
+        if (num < choiceNum) newPerChoice[key] = blob;
+        else if (num > choiceNum) newPerChoice[`choice_${num - 1}`] = blob;
+      });
+      setOboData({ ...oboData, perChoice: newPerChoice });
+    }
   };
 
   // [API] 제출 핸들러
@@ -165,7 +192,8 @@ function ProblemCreateContent() {
           title,
           summary: summary || title,
           description,
-          difficulty: difficulty
+          difficulty: difficulty,
+          oboJson: oboEnabled ? oboData : null
         };
 
         bodyData = JSON.stringify(patchPayload);
@@ -248,6 +276,7 @@ function ProblemCreateContent() {
               outputDescription: outputDesc || "출력 설명",
               testcases: testcases.map(tc => ({ ...tc, index: Number(tc.index) })),
               obo: { enabled: false, initialImageUrl: null },
+              oboJson: oboEnabled ? oboData : null,
               isDraft: false
             };
           } else if (problemType === "objective") {
@@ -262,7 +291,8 @@ function ProblemCreateContent() {
               ...payload,
               choices: validChoices,
               answer: selectedAnswers,
-              obo: { enabled: false, steps: [] }
+              obo: { enabled: false, steps: [] },
+              oboJson: oboEnabled ? oboData : null,
             };
           }
           bodyData = JSON.stringify(payload);
@@ -322,7 +352,7 @@ function ProblemCreateContent() {
             setTestcases(data.testcases || []);
           } else if (data.type === "objective") {
             setChoices(data.choices || []);
-            setAnswerIdx(data.answer?.[0] || 1);
+            setSelectedAnswers(data.answer?.length ? data.answer : [1]);
           } else if (data.type === "practice") {
             setFlag(data.flag || "");
 
@@ -335,11 +365,22 @@ function ProblemCreateContent() {
               }
             }
           }
-          setIsInitialLoading(false);
+
+          if (data.oboJson) {
+            // 이전 형식(OboBlob 직접 저장) 호환성 처리
+            const raw = data.oboJson;
+            if (raw.mode === 'single' || raw.mode === 'per_choice') {
+              setOboData(raw);
+            } else {
+              // legacy: OboBlob 그대로 저장된 경우
+              setOboData({ mode: 'single', single: raw });
+            }
+            setOboEnabled(true);
+          }
+
         })
         .catch(err => {
           console.error(err);
-          setIsInitialLoading(false);
         });
     }
   }, [editId]);
@@ -770,7 +811,10 @@ function ProblemCreateContent() {
                   <CardDescription>문제 유형에 따라 정답 판별 방식을 정의합니다.</CardDescription>
                 </div>
                 {/* 문제 유형 API에 맞게 value 세팅 */}
-                <Select value={problemType} onValueChange={setProblemType}>
+                <Select value={problemType} onValueChange={(v) => {
+                  setProblemType(v);
+                  if (v === "practice") { setOboEnabled(false); setOboData({ mode: 'single', single: { nodes: [], edges: [], frames: [] } }); }
+                }}>
                   <SelectTrigger className="w-[140px] bg-slate-100"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="coding">코딩 문제</SelectItem>
@@ -1063,6 +1107,80 @@ function ProblemCreateContent() {
               )}
             </CardContent>
           </Card>
+
+          {/* 4. OBO 시각화 섹션 - 코딩/객관식만 표시 */}
+          {(problemType === "coding" || problemType === "objective") && <Card className="border-slate-100 shadow-sm rounded-2xl">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Network className="w-5 h-5 text-indigo-500" />
+                    OBO 시각화 포함
+                  </CardTitle>
+                  <CardDescription>문제에 운영체제 동작 시각화(OBO)를 첨부합니다.</CardDescription>
+                </div>
+                <div
+                  onClick={() => {
+                    if (oboEnabled) {
+                      const ok = window.confirm("OBO를 비활성화하면 편집한 내용이 초기화됩니다. 계속할까요?");
+                      if (!ok) return;
+                      setOboData({ mode: 'single', single: { nodes: [], edges: [], frames: [] } });
+                    }
+                    setOboEnabled(v => !v);
+                  }}
+                  className={`w-11 h-6 rounded-full transition-colors cursor-pointer flex items-center px-0.5 shrink-0 ${
+                    oboEnabled ? "bg-indigo-600" : "bg-slate-200"
+                  }`}
+                >
+                  <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${oboEnabled ? "translate-x-5" : "translate-x-0"}`} />
+                </div>
+              </div>
+            </CardHeader>
+
+            {oboEnabled && (
+              <CardContent className="pt-0">
+                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                  <p className="text-sm text-slate-500">
+                    {oboData.mode === 'per_choice' ? (
+                      <>보기별 모드 &nbsp;·&nbsp; 보기 <span className="font-bold text-slate-800">{Object.keys(oboData.perChoice ?? {}).length}</span>개 설정됨</>
+                    ) : (
+                      <>
+                        노드 <span className="font-bold text-slate-800">{oboData.single?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        엣지 <span className="font-bold text-slate-800">{oboData.single?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        프레임 <span className="font-bold text-slate-800">{oboData.single?.frames.length ?? 0}</span>개
+                      </>
+                    )}
+                  </p>
+                  <Button variant="outline" size="sm" onClick={openOboModal} className="gap-1.5">
+                    <Network className="w-3.5 h-3.5" />
+                    OBO 편집하기
+                  </Button>
+                </div>
+              </CardContent>
+            )}
+          </Card>}
+
+          {/* OBO 전체화면 모달 */}
+          {oboModalOpen && (
+            <div className="fixed inset-0 z-50 flex flex-col bg-white">
+              <header className="h-14 border-b flex items-center justify-between px-6 shrink-0">
+                <span className="font-bold text-slate-900">OBO 편집</span>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={cancelOboModal}>취소</Button>
+                  <Button size="sm" onClick={confirmOboModal}>완료</Button>
+                </div>
+              </header>
+              <div className="flex-1 min-h-0">
+                <OboEditorSection
+                  value={oboData}
+                  onChange={setOboData}
+                  choices={problemType === 'objective'
+                    ? choices.map(c => ({ id: `choice_${c.index}`, text: c.content }))
+                    : undefined}
+                />
+              </div>
+            </div>
+          )}
         </section>
       </main>
     </div>
