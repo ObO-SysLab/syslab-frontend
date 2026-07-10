@@ -18,7 +18,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { form } from "framer-motion/client";
+import { OboPlayer } from "@/components/obo/OboPlayer";
+import { resolveOboBlob, type OboBlob, type ProblemOboData } from "@/components/obo/types";
 
+function OboPlayerSection({ oboData, selectedChoiceIndex }: {
+  oboData: ProblemOboData | OboBlob;
+  selectedChoiceIndex?: number | null;
+}) {
+  const blob = resolveOboBlob(oboData, selectedChoiceIndex);
+
+  if (!blob || blob.nodes.length === 0) return null;
+
+  return (
+    <div className="mt-8 space-y-2">
+      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">OBO 시각화</p>
+      <div className="border border-slate-200 rounded-2xl overflow-hidden" style={{ height: 440 }}>
+        <OboPlayer blob={blob} />
+      </div>
+    </div>
+  );
+}
 
 function ProblemDetailContent() {
   // API 연동 스위치
@@ -876,6 +895,14 @@ function ProblemDetailContent() {
                   </div>
                 )}
               </div>
+
+              {/* OBO 시각화 플레이어 */}
+              {problemData?.oboJson && (
+                <OboPlayerSection
+                  oboData={problemData.oboJson}
+                  selectedChoiceIndex={selectedChoices.length > 0 ? selectedChoices[selectedChoices.length - 1] : null}
+                />
+              )}
 
               {/* 실습형(CTF) VM 환경 동적 렌더링 */}
               {problemData?.type === "practice" && (
