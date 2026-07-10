@@ -10,6 +10,8 @@ import {
   ConnectionMode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { SkipBack, ChevronLeft, ChevronRight, Play, Pause, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { nodeTypes } from './nodes';
 import { OboEdge } from './edges/OboEdge';
 import { FrameContext } from './FrameContext';
@@ -44,7 +46,7 @@ function PlayerInner({ blob }: OboPlayerProps) {
   const reset = () => { setCurrentIndex(0); setPlaying(false); };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full rounded-2xl overflow-hidden border border-slate-100 bg-white">
       <div className="flex-1 relative">
         <FrameContext.Provider value={{ previewFrame: currentFrame }}>
           <ReactFlow
@@ -68,65 +70,79 @@ function PlayerInner({ blob }: OboPlayerProps) {
       </div>
 
       {hasFrames && (
-        <div className="border-t px-4 py-3 space-y-2 bg-white">
+        <div className="border-t border-slate-100 px-4 py-3 space-y-3 bg-white">
           {/* 현재 프레임 설명 */}
-          <p className="text-sm font-medium text-slate-700 text-center min-h-5 truncate">
-            {currentFrame?.label || ' '}
+          <p className="text-sm font-bold text-slate-700 text-center min-h-5 truncate">
+            {currentFrame?.label || ' '}
           </p>
 
-          {/* 스텝 인디케이터 */}
-          <div className="flex items-center justify-center gap-1.5">
-            {frames.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => { setCurrentIndex(i); setPlaying(false); }}
-                className="rounded-full transition-all"
-                style={{
-                  width: i === currentIndex ? 24 : 8,
-                  height: 8,
-                  background: i === currentIndex ? '#6366f1' : i < currentIndex ? '#6366f180' : '#e2e8f0',
-                }}
-              />
-            ))}
-          </div>
-
-          {/* 재생 컨트롤 */}
-          <div className="flex items-center justify-center gap-2">
-            <button
+          {/* 재생 컨트롤 + 스텝 인디케이터 */}
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={reset}
-              className="text-slate-400 hover:text-slate-700 text-xs px-1 transition-colors"
               title="처음으로"
+              className="rounded-xl text-slate-400 hover:text-slate-900 h-8 w-8"
             >
-              ⟨⟨
-            </button>
-            <button
-              onClick={prev}
-              disabled={currentIndex === 0}
-              className="text-slate-400 hover:text-slate-700 px-1 disabled:opacity-30 transition-colors"
-            >
-              ◀
-            </button>
-            <button
+              <SkipBack className="w-4 h-4" />
+            </Button>
+
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-2xl border border-slate-200 shadow-sm">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={prev}
+                disabled={currentIndex === 0}
+                className="rounded-xl text-slate-400 hover:text-slate-900 h-8 w-8"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+
+              <div className="flex gap-1.5 px-2">
+                {frames.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setCurrentIndex(i); setPlaying(false); }}
+                    className="rounded-full transition-all duration-300"
+                    style={{
+                      width: i === currentIndex ? 28 : 10,
+                      height: 10,
+                      background: i === currentIndex ? '#4f46e5' : i < currentIndex ? '#4f46e566' : '#e2e8f0',
+                    }}
+                  />
+                ))}
+              </div>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={next}
+                disabled={currentIndex === frames.length - 1}
+                className="rounded-xl text-slate-400 hover:text-slate-900 h-8 w-8"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <Button
+              size="icon"
               onClick={() => setPlaying(p => !p)}
               disabled={currentIndex === frames.length - 1 && !playing}
-              className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center disabled:opacity-40 hover:bg-indigo-700 transition-colors text-sm"
+              className={`rounded-xl h-9 w-9 shadow-lg transition-all ${playing ? "bg-rose-500 hover:bg-rose-600 shadow-rose-200" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200"}`}
             >
-              {playing ? '⏸' : '▶'}
-            </button>
-            <button
-              onClick={next}
-              disabled={currentIndex === frames.length - 1}
-              className="text-slate-400 hover:text-slate-700 px-1 disabled:opacity-30 transition-colors"
-            >
-              ▶
-            </button>
-            <button
+              {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={reset}
-              className="text-slate-400 hover:text-slate-700 text-xs px-1 transition-colors"
               title="초기화"
+              className="rounded-xl text-slate-400 hover:text-slate-900 h-8 w-8"
             >
-              ↺
-            </button>
+              <RotateCcw className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       )}

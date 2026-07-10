@@ -104,7 +104,13 @@ function ProblemCreateContent() {
       }
       setSelectedAnswers(selectedAnswers.filter((a) => a !== val));
     } else {
-      setSelectedAnswers([...selectedAnswers, val].sort((a, b) => a - b));
+      const next = [...selectedAnswers, val].sort((a, b) => a - b);
+      setSelectedAnswers(next);
+      // 다중 정답으로 전환되면 OBO는 사용할 수 없으므로 자동으로 끈다.
+      if (next.length > 1 && oboEnabled) {
+        setOboData({ mode: 'single', single: { nodes: [], edges: [], frames: [] } });
+        setOboEnabled(false);
+      }
     }
   };
 
@@ -366,7 +372,8 @@ function ProblemCreateContent() {
             }
           }
 
-          if (data.oboJson) {
+          const isMultiAnswerObjective = data.type === "objective" && (data.answer?.length ?? 0) > 1;
+          if (data.oboJson && !isMultiAnswerObjective) {
             // 이전 형식(OboBlob 직접 저장) 호환성 처리
             const raw = data.oboJson;
             if (raw.mode === 'single' || raw.mode === 'per_choice') {
@@ -462,6 +469,9 @@ function ProblemCreateContent() {
         .finally(() => setIsFetchingContests(false));
     }
   }, [visibility])
+
+  // 다중 정답(객관식) 문제는 선택지 하나에 종속되는 OBO를 만들 수 없다.
+  const oboBlockedByMultiAnswer = problemType === "objective" && selectedAnswers.length > 1;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -1117,10 +1127,15 @@ function ProblemCreateContent() {
                     <Network className="w-5 h-5 text-indigo-500" />
                     OBO 시각화 포함
                   </CardTitle>
-                  <CardDescription>문제에 운영체제 동작 시각화(OBO)를 첨부합니다.</CardDescription>
+                  <CardDescription>
+                    {oboBlockedByMultiAnswer
+                      ? "다중 정답 문제는 OBO를 생성할 수 없습니다. 정답을 1개만 선택하면 활성화됩니다."
+                      : "문제에 운영체제 동작 시각화(OBO)를 첨부합니다."}
+                  </CardDescription>
                 </div>
                 <div
                   onClick={() => {
+                    if (oboBlockedByMultiAnswer) return;
                     if (oboEnabled) {
                       const ok = window.confirm("OBO를 비활성화하면 편집한 내용이 초기화됩니다. 계속할까요?");
                       if (!ok) return;
@@ -1128,9 +1143,9 @@ function ProblemCreateContent() {
                     }
                     setOboEnabled(v => !v);
                   }}
-                  className={`w-11 h-6 rounded-full transition-colors cursor-pointer flex items-center px-0.5 shrink-0 ${
-                    oboEnabled ? "bg-indigo-600" : "bg-slate-200"
-                  }`}
+                  className={`w-11 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0 ${
+                    oboBlockedByMultiAnswer ? "opacity-50 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                  } ${oboEnabled ? "bg-indigo-600" : "bg-slate-200"}`}
                 >
                   <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${oboEnabled ? "translate-x-5" : "translate-x-0"}`} />
                 </div>

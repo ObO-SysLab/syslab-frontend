@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Search, Settings, LogOut, User, Menu, MessageSquare, Bell, Share2,
   CheckCircle2, XCircle, Clock, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag, Trash2,
-  ChevronLeft, MessageCircle, Edit2, Flame, Zap, Flag
+  ChevronLeft, MessageCircle, Edit2, Flame, Zap, Flag, Activity
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,8 +31,10 @@ function OboPlayerSection({ oboData, selectedChoiceIndex }: {
 
   return (
     <div className="mt-8 space-y-2">
-      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">OBO 시각화</p>
-      <div className="border border-slate-200 rounded-2xl overflow-hidden" style={{ height: 440 }}>
+      <p className="text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5">
+        <Activity className="w-4 h-4 text-indigo-600" /> OBO 시각화
+      </p>
+      <div style={{ height: 440 }}>
         <OboPlayer blob={blob} />
       </div>
     </div>
