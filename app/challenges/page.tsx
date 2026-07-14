@@ -15,16 +15,16 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ProblemListPage() {
-  // API 연동 스위치
+  // [STATE] API 연동 스위치
   const USE_API_REQUEST = true;
 
-  // 페이지 상태
+  // [STATE] 페이지 상태
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // 필터 상태
+  // [STATE] 필터 상태
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedType, setSelectedType] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
@@ -32,13 +32,16 @@ export default function ProblemListPage() {
   const [showMyProblems, setShowMyProblems] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // 데이터 상태
+  // [STATE] 데이터 상태
   const [problems, setProblems] = useState<any[]>([]);
   const [totalProblems, setTotalProblems] = useState(0);
   const [myRank, setMyRank] = useState<any>(null);
   const [ads, setAds] = useState<any[]>([]);
   const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
 
+  // 오늘의 랜덤 추천 문제용 상태 및 로딩 상태
+  const [randomProblem, setRandomProblem] = useState<any>(null);
+  const [isRandomLoading, setIsRandomLoading] = useState(false);
 
   const categoryIcons: Record<string, React.ReactNode> = {
     "All": <Layers size={16} />,
@@ -47,6 +50,16 @@ export default function ProblemListPage() {
     "Thread": <GitBranch size={16} />,
     "Memory": <Database size={16} />,
     "File System": <FileCode2 size={16} />
+  };
+
+  const levelMap: Record<string, { depth: string; zone: string }> = {
+    "1": { depth: "100m", zone: "해수면" },
+    "2": { depth: "300m", zone: "표층" },
+    "3": { depth: "500m", zone: "중심층" },
+    "4": { depth: "1,000m", zone: "점심해층" },
+    "5": { depth: "3,000m", zone: "심해층" },
+    "6": { depth: "6,000m", zone: "초심해층" },
+    "7": { depth: "10,000m+", zone: "지구핵" },
   };
 
   // [API] 초기 랭킹 및 광고 데이터 로드 (마운트 시 1회)
@@ -100,6 +113,7 @@ export default function ProblemListPage() {
     };
 
     fetchInitialData();
+    fetchRandomProblem();
   }, []);
 
   // [API] 문제 목록 재조회
@@ -143,6 +157,29 @@ export default function ProblemListPage() {
 
     fetchProblems();
   }, [selectedCategory, selectedType, selectedLevel, showUnsolved, showMyProblems, searchTerm, currentPage]);
+
+  // [API] 랜덤 문제 단일 조회 비동기 api
+  const fetchRandomProblem = async () => {
+    setIsRandomLoading(true);
+    const token = localStorage.getItem("token");
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    try {
+      const response = await fetch("https://diveon.net/api/problems/random", {
+        method: "GET",
+        headers
+      });
+      if (response.ok) {
+        const json = await response.json();
+        setRandomProblem(json.data);
+      }
+    } catch (error) {
+      console.error("랜덤 문제 로드 실패:", error);
+    } finally {
+      setIsRandomLoading(false);
+    }
+  };
 
   // [HANDLER] 필터 변경 시 페이지를 1로 리셋
   const handleCategoryChange = (cat: string) => {
@@ -300,21 +337,30 @@ export default function ProblemListPage() {
           </div>
 
           { /* 레벨 */}
-          <div className="pt-4 border-t">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Difficulty</h3>
-            <div className="flex flex-wrap gap-2">
-              {/* 배열을 숫자 문자열로 변경 */}
-              {["1", "2", "3", "4", "5", "6", "7"].map(lvl => (
-                <Badge
-                  key={lvl}
-                  variant={selectedLevel === lvl ? "default" : "outline"}
-                  className={`cursor-pointer px-3 py-1 transition-all ${selectedLevel === lvl ? "bg-slate-900 text-white" : "hover:bg-slate-100"
-                    }`}
-                  onClick={() => handleLevelChange(lvl)}
-                >
-                  Lvl {lvl} {/* 보여줄 때만 Lvl을 붙임 */}
-                </Badge>
-              ))}
+          <div className="pt-4 border-t border-slate-100">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">
+              Exploration Depth
+            </h3>
+            {/* 가로로 자연스럽게 흐르며 정렬되는 레이아웃 (flex-wrap) */}
+            <div className="flex flex-wrap gap-2 px-1">
+              {["1", "2", "3", "4", "5", "6", "7"].map((lvl) => {
+                const isSelected = selectedLevel === lvl;
+                const { depth } = levelMap[lvl];
+
+                return (
+                  <Badge
+                    key={lvl}
+                    variant={isSelected ? "default" : "outline"}
+                    className={`cursor-pointer px-3.5 py-1.5 transition-all rounded-full border text-xs font-mono font-bold tracking-tight inline-flex items-center justify-center ${isSelected
+                      ? "bg-[#0055FF] text-white border-[#0055FF] shadow-sm shadow-blue-100"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                      }`}
+                    onClick={() => handleLevelChange(lvl)}
+                  >
+                    {depth}
+                  </Badge>
+                );
+              })}
             </div>
           </div>
 
@@ -365,6 +411,42 @@ export default function ProblemListPage() {
               </Link>
             </div>
           </div>
+
+          {/* 오늘의 다이브 추천 랜덤 배너 카드 */}
+          {randomProblem && (
+            <div className="p-5 bg-gradient-to-r from-slate-900 to-indigo-950 border border-slate-800 rounded-2xl shadow-xl text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.12),transparent)] pointer-events-none"></div>
+              
+              <div className="space-y-2 relative z-10">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-amber-500 hover:bg-amber-500 text-slate-950 font-black text-[10px] tracking-tight px-2 rounded-md">TODAY'S DIVE</Badge>
+                  <span className="text-xs text-indigo-200 font-bold uppercase tracking-wider">{randomProblem.category} · {randomProblem.type === "coding" ? "코딩" : randomProblem.type === "objective" ? "객관식" : "실습"}</span>
+                </div>
+                <h2 className="text-xl font-black tracking-tight group-hover:text-indigo-300 transition-colors">{randomProblem.title}</h2>
+                <p className="text-xs text-slate-400 font-medium">수심 미지의 바다! 지금 바로 고민 없이 다이브해 검증 영역을 확장해 보세요.</p>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 relative z-10">
+                {/* 맘에 안 들면 다시 돌리는 셔플 가챠 버튼 */}
+                <Button 
+                  onClick={fetchRandomProblem} 
+                  disabled={isRandomLoading}
+                  variant="outline" 
+                  className="bg-white/5 border-white/10 hover:bg-white/10 text-slate-300 font-bold rounded-xl h-10 px-4 text-xs"
+                >
+                  <span className={`inline-block mr-1.5 ${isRandomLoading ? "animate-spin" : ""}`}>🔄</span>
+                  {isRandomLoading ? "셔플 중" : "다시 뽑기"}
+                </Button>
+
+                {/* 해당 상세방 가이딩 버튼 */}
+                <Link href={`/challenges/detail?id=${randomProblem.probId}`} className="flex-1 sm:flex-none">
+                  <Button className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-black rounded-xl h-10 px-5 text-xs shadow-md shadow-indigo-500/10">
+                    지금 바로 다이브
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* 문제 목록 리스트 */}
           <div className="flex flex-col gap-3 min-h-[400px] relative">
@@ -429,20 +511,20 @@ export default function ProblemListPage() {
                             {(prob.solvedCount || 0).toLocaleString()}명
                           </p>
                         </div>
-                        <div className="w-20 flex justify-end">
+                        <div className="w-24 flex justify-end shrink-0">
                           <Badge
                             className={`
-                              rounded-full px-2.5 py-0.5 text-[10px] font-black border uppercase tracking-tight transition-all
-                              ${String(prob.difficulty) === "1" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : ""}
-                              ${String(prob.difficulty) === "2" ? "bg-lime-50 text-lime-600 border-lime-200" : ""}
-                              ${String(prob.difficulty) === "3" ? "bg-amber-50 text-amber-600 border-amber-200" : ""}
-                              ${String(prob.difficulty) === "4" ? "bg-orange-50 text-orange-600 border-orange-200" : ""}
-                              ${String(prob.difficulty) === "5" ? "bg-rose-50 text-rose-600 border-rose-200" : ""}
-                              ${String(prob.difficulty) === "6" ? "bg-violet-50 text-violet-700 border-violet-200" : ""}
-                              ${String(prob.difficulty) === "7" ? "bg-slate-900 text-white border-slate-950 shadow-sm font-black" : ""}
+                              rounded-full px-2.5 py-0.5 text-[10px] font-black border font-mono tracking-tight transition-all
+                              ${prob.difficulty === "1" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : ""}
+                              ${prob.difficulty === "2" ? "bg-teal-50 text-teal-600 border-teal-200" : ""}
+                              ${prob.difficulty === "3" ? "bg-sky-50 text-sky-600 border-sky-200" : ""}
+                              ${prob.difficulty === "4" ? "bg-blue-50 text-[#0066FF] border-blue-200" : ""}
+                              ${prob.difficulty === "5" ? "bg-indigo-50 text-indigo-600 border-indigo-200" : ""}
+                              ${prob.difficulty === "6" ? "bg-purple-50 text-purple-600 border-purple-200" : ""}
+                              ${prob.difficulty === "7" ? "bg-slate-900 text-white border-slate-950 shadow-sm" : ""}
                             `}
                           >
-                            Lvl {prob.difficulty}
+                            {levelMap[prob.difficulty]?.depth}
                           </Badge>
                         </div>
                       </div>
