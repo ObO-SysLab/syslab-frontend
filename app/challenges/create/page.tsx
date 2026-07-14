@@ -42,10 +42,10 @@ function ProblemCreateContent() {
     window.location.href = "/";
   };
 
-  // [상태 관리] 문제 유형 (coding / ctf / objective) - API 명세에 맞춰 내부 값 변경
+  // [STATE] 문제 유형 (coding / ctf / objective) - API 명세에 맞춰 내부 값 변경
   const [problemType, setProblemType] = useState("coding");
 
-  // [상태 관리] 공통 정보
+  // [STATE] 공통 정보
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState(""); // 스토리를 summary로 매핑
   const [description, setDescription] = useState("");
@@ -53,7 +53,7 @@ function ProblemCreateContent() {
   const [difficulty, setDifficulty] = useState("1");
   const [visibility, setVisibility] = useState("public");
 
-  // [상태 관리] 코딩 문제 전용
+  // [STATE] 코딩 문제 전용
   const [timeLimit, setTimeLimit] = useState(1);
   const [memoryLimit, setMemoryLimit] = useState(256);
   const [inputDesc, setInputDesc] = useState("");
@@ -61,7 +61,7 @@ function ProblemCreateContent() {
   const [outputDesc, setOutputDesc] = useState("");
   const [allowedLanguages, setAllowedLanguages] = useState<string[]>(["c", "cpp", "python"]);
 
-  // [상태 관리] 실습(CTF) 문제 전용
+  // [STATE] 실습(CTF) 문제 전용
   const [flag, setFlag] = useState("");
   const [dockerfile, setDockerfile] = useState<File | null>(null);
   const [osImage, setOsImage] = useState("ubuntu:22.04");
@@ -69,16 +69,16 @@ function ProblemCreateContent() {
   const [vmMemoryLimit, setVmMemoryLimit] = useState("512m");
   const [allowedCommandsInput, setAllowedCommandsInput] = useState("ls, cat, grep, find");
 
-  // [상태 관리] 객관식 문제 전용
+  // [STATE] 객관식 문제 전용
   const [choices, setChoices] = useState([
     { index: 1, content: "" }, { index: 2, content: "" }, { index: 3, content: "" }, { index: 4, content: "" }
   ]);
   const [answerIdx, setAnswerIdx] = useState(1);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([1]);
-
+  const [isOrderedAnswer, setIsOrderedAnswer] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 2. 객관식 정답 토글 핸들러
+  // 객관식 정답 토글 핸들러
   const toggleAnswer = (idx: number) => {
     const val = idx + 1;
     if (selectedAnswers.includes(val)) {
@@ -88,11 +88,12 @@ function ProblemCreateContent() {
       }
       setSelectedAnswers(selectedAnswers.filter((a) => a !== val));
     } else {
-      setSelectedAnswers([...selectedAnswers, val].sort((a, b) => a - b));
+      // setSelectedAnswers([...selectedAnswers, val].sort((a, b) => a - b));
+      setSelectedAnswers([...selectedAnswers, val]);
     }
   };
 
-  // 3. 코딩 문제 테스트케이스 삭제 핸들러
+  // 코딩 문제 테스트케이스 삭제 핸들러
   const removeTestcase = (indexToRemove: number) => {
     if (testcases.length <= 1) {
       alert("최소 하나의 테스트케이스가 필요합니다.");
@@ -112,7 +113,7 @@ function ProblemCreateContent() {
 
     const choiceNum = indexToRemove + 1; // 삭제되는 보지의 번호 (1부터 시작)
 
-    // 1. 보기 목록 필터링 및 인덱스 재정렬
+    // 보기 목록 필터링 및 인덱스 재정렬
     const newChoices = choices
       .filter((_, idx) => idx !== indexToRemove)
       .map((choice, idx) => ({
@@ -121,7 +122,7 @@ function ProblemCreateContent() {
       }));
     setChoices(newChoices);
 
-    // 2. [핵심] 정답 배열(selectedAnswers) 보정
+    // 정답 배열(selectedAnswers) 보정
     const newAnswers = selectedAnswers
       .filter((a) => a !== choiceNum) // 삭제된 번호 제거
       .map((a) => (a > choiceNum ? a - 1 : a)); // 삭제된 번호보다 큰 번호는 1씩 당김
@@ -262,6 +263,7 @@ function ProblemCreateContent() {
               ...payload,
               choices: validChoices,
               answer: selectedAnswers,
+              isOrderedAnswer: isOrderedAnswer,
               obo: { enabled: false, steps: [] }
             };
           }
@@ -296,7 +298,7 @@ function ProblemCreateContent() {
     }
   };
 
-  // [API] 수정 모드용 데이터 로드 useEffect
+  // [API] 수정 모드용 데이터 로드
   useEffect(() => {
     if (isEditMode) {
       const token = localStorage.getItem("token");
@@ -377,7 +379,7 @@ function ProblemCreateContent() {
     fetchProfileImage();
   }, []);
 
-  // [상태 관리] 그룹 공개용
+  // [STATE] 그룹 공개용
   const [myGroups, setMyGroups] = useState<any[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [isFetchingGroups, setIsFetchingGroups] = useState(false);
@@ -550,10 +552,11 @@ function ProblemCreateContent() {
                 <div className="space-y-2">
                   <Label>난이도</Label>
                   <Select value={difficulty} onValueChange={setDifficulty}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="난이도 선택" />
+                    <SelectTrigger className="w-full font-mono">
+                      <SelectValue placeholder="탐사 수심 선택" />
                     </SelectTrigger>
                     <SelectContent>
+<<<<<<< HEAD
                       {/* Lvl 1: 초록 (기초) */}
                       <SelectItem value="1" className="text-emerald-600 font-bold">
                         <div className="flex items-center gap-2">
@@ -594,6 +597,54 @@ function ProblemCreateContent() {
                       <SelectItem value="7" className="text-slate-950 font-black">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-slate-950" /> Lvl 7
+=======
+                      {/* 1단계: 100m */}
+                      <SelectItem value="1" className="text-emerald-600 font-bold">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" /> 100m
+                        </div>
+                      </SelectItem>
+
+                      {/* 2단계: 300m */}
+                      <SelectItem value="2" className="text-teal-600 font-bold">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-teal-500" /> 300m
+                        </div>
+                      </SelectItem>
+
+                      {/* 3단계: 500m */}
+                      <SelectItem value="3" className="text-sky-600 font-bold">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-sky-500" /> 500m
+                        </div>
+                      </SelectItem>
+
+                      {/* 4단계: 1,000m */}
+                      <SelectItem value="4" className="text-blue-600 font-bold">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-blue-500" /> 1,000m
+                        </div>
+                      </SelectItem>
+
+                      {/* 5단계: 3,000m */}
+                      <SelectItem value="5" className="text-indigo-600 font-bold">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500" /> 3,000m
+                        </div>
+                      </SelectItem>
+
+                      {/* 6단계: 6,000m */}
+                      <SelectItem value="6" className="text-purple-600 font-bold">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-purple-500" /> 6,000m
+                        </div>
+                      </SelectItem>
+
+                      {/* 7단계: 10,000m+ */}
+                      <SelectItem value="7" className="text-slate-900 font-black">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-slate-950" /> 10,000m+
+>>>>>>> 818a9a9 (feat: add google Oauth2)
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -1004,49 +1055,79 @@ function ProblemCreateContent() {
               {/* [C] 객관식 문제일 때 */}
               {problemType === "objective" && (
                 <div className="space-y-5 animate-in fade-in-30 duration-300">
+                  
+                  {/* 순서 매칭 옵션 설정 카드 피처 */}
+                  <div className="flex items-center justify-between p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-bold text-slate-900 cursor-pointer" htmlFor="toggle-order">
+                        정답 선택 순서 일치 옵션 활성화
+                      </Label>
+                      <p className="text-[11px] text-slate-500">체크하면 문제를 푸는 학생도 출제자가 선택한 순서대로 입력해야 정답 처리됩니다.</p>
+                    </div>
+                    <input 
+                      type="checkbox"
+                      id="toggle-order"
+                      checked={isOrderedAnswer}
+                      onChange={(e) => setIsOrderedAnswer(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                  </div>
+
                   <div className="space-y-4 pt-1">
                     <Label className="flex justify-between items-center">
                       <span>보기 설정 및 정답 선택 <span className="text-red-500">*</span></span>
-                      <span className="text-[10px] text-slate-400">왼쪽 체크박스를 눌러 정답을 고르세요 (중복 가능)</span>
+                      <span className="text-[10px] text-slate-400">
+                        {isOrderedAnswer ? "번호를 누른 순서가 정답 순서가 됩니다." : "정답 체크박스를 선택하세요 (중복 가능)"}
+                      </span>
                     </Label>
 
                     <div className="space-y-3">
-                      {choices.map((choice, idx) => (
-                        <div key={idx} className="flex items-center gap-3 group">
-                          {/* 정답 토글 버튼 */}
-                          <div
-                            onClick={() => toggleAnswer(idx)}
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${selectedAnswers.includes(idx + 1)
-                              ? "bg-indigo-500 border-indigo-500 text-white"
-                              : "border-slate-200 text-transparent hover:border-indigo-300"
-                              }`}
-                          >
-                            <CheckCircle2 size={14} />
-                          </div>
+                      {choices.map((choice, idx) => {
+                        const val = idx + 1;
+                        const orderIndex = selectedAnswers.indexOf(val); // 몇 번째 순서로 들어가 있는지 확인 (-1이면 미선택)
+                        const isSelected = orderIndex !== -1;
 
-                          <span className="font-bold text-slate-400 w-4">{idx + 1}.</span>
-                          <Input
-                            value={choice.content}
-                            onChange={(e) => {
-                              const newChoices = [...choices];
-                              newChoices[idx].content = e.target.value;
-                              setChoices(newChoices);
-                            }}
-                            placeholder={`보기 ${idx + 1} 내용`}
-                            className={`flex-1 ${selectedAnswers.includes(idx + 1) ? "border-indigo-200 bg-indigo-50/30" : ""}`}
-                          />
-                          {/* 삭제 버튼 */}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeChoice(idx)}
-                            className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
-                      ))}
+                        return (
+                          <div key={idx} className="flex items-center gap-3 group">
+                            {/* 정답 토글 버튼 (순서 시각화 탑재) */}
+                            <div
+                              onClick={() => toggleAnswer(idx)}
+                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all text-xs font-black select-none ${
+                                isSelected
+                                  ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
+                                  : "border-slate-200 text-transparent hover:border-indigo-300"
+                              }`}
+                            >
+                              {/* 순서 모드이고 선택됐다면 순서 번호(1, 2..)를 노출하고, 아니면 체크 아이콘 배치 */}
+                              {isSelected && isOrderedAnswer ? orderIndex + 1 : <CheckCircle2 size={14} />}
+                            </div>
+
+                            <span className="font-bold text-slate-400 w-4">{idx + 1}.</span>
+                            
+                            <Input
+                              value={choice.content}
+                              onChange={(e) => {
+                                const newChoices = [...choices];
+                                newChoices[idx].content = e.target.value;
+                                setChoices(newChoices);
+                              }}
+                              placeholder={`보기 ${idx + 1} 내용`}
+                              className={`flex-1 ${selectedAnswers.includes(idx + 1) ? "border-indigo-200 bg-indigo-50/30" : ""}`}
+                            />
+
+                            {/* 보기 삭제 버튼 */}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeChoice(idx)}
+                              className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     <Button

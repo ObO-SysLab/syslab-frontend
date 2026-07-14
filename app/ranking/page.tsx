@@ -73,6 +73,7 @@ export default function GlobalRankingPage() {
   }, []);
 
   // [API] 유저 랭킹
+  // 기존 빈 함수를 지우고 이 실서버 연동 코드로 교체하세요!
   const fetchUserRankings = async (pageNumber: number) => {
     setIsLoading(true);
     const token = localStorage.getItem("token");
@@ -119,6 +120,7 @@ export default function GlobalRankingPage() {
   };
 
   // [API] 그룹 랭킹
+  // [API] 신규 그룹 랭킹 API 연동 함수
   const fetchGroupRankings = async (pageNumber: number) => {
     setIsLoading(true);
     const token = localStorage.getItem("token");
