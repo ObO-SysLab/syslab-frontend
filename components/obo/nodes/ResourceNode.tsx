@@ -9,7 +9,7 @@ interface ResourceNodeData {
 }
 
 export function ResourceNode({ data, selected }: NodeProps) {
-  const d = data as ResourceNodeData;
+  const d = data as unknown as ResourceNodeData;
   const count = d.instanceCount ?? 1;
   const color = d.color ?? '#1e293b';
   const hs = { width: 7, height: 7, background: color, border: 'none' };

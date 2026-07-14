@@ -10,7 +10,7 @@ interface QueueStripNodeData {
 }
 
 export function QueueStripNode({ data, selected }: NodeProps) {
-  const d = data as QueueStripNodeData;
+  const d = data as unknown as QueueStripNodeData;
   const items = d.items ?? [];
   const color = d.color ?? '#534AB7';
   const dir = d.direction ?? 'ltr';
