@@ -4,8 +4,10 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import {
   Menu, LogOut, CheckCircle2, Target, Zap, Code2, PlusCircle, Eye,
-  StickyNote, Bell, Trash2
+  StickyNote, Bell, Trash2, Network
 } from "lucide-react";
+import type { ProblemOboData } from "@/components/obo/types";
+import { OboEditorSection } from "@/components/obo/OboEditorSection";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,7 +25,6 @@ function ProblemCreateContent() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("id"); // URL의 ?id=... 값을 가져옴
   const isEditMode = !!editId; // id가 있으면 수정 모드(true)
-  const [isInitialLoading, setIsInitialLoading] = useState(isEditMode);
   const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
 
   useEffect(() => {
@@ -42,10 +43,10 @@ function ProblemCreateContent() {
     window.location.href = "/";
   };
 
-  // [상태 관리] 문제 유형 (coding / ctf / objective) - API 명세에 맞춰 내부 값 변경
+  // [STATE] 문제 유형 (coding / ctf / objective) - API 명세에 맞춰 내부 값 변경
   const [problemType, setProblemType] = useState("coding");
 
-  // [상태 관리] 공통 정보
+  // [STATE] 공통 정보
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState(""); // 스토리를 summary로 매핑
   const [description, setDescription] = useState("");
@@ -53,7 +54,7 @@ function ProblemCreateContent() {
   const [difficulty, setDifficulty] = useState("1");
   const [visibility, setVisibility] = useState("public");
 
-  // [상태 관리] 코딩 문제 전용
+  // [STATE] 코딩 문제 전용
   const [timeLimit, setTimeLimit] = useState(1);
   const [memoryLimit, setMemoryLimit] = useState(256);
   const [inputDesc, setInputDesc] = useState("");
@@ -61,7 +62,7 @@ function ProblemCreateContent() {
   const [outputDesc, setOutputDesc] = useState("");
   const [allowedLanguages, setAllowedLanguages] = useState<string[]>(["c", "cpp", "python"]);
 
-  // [상태 관리] 실습(CTF) 문제 전용
+  // [STATE] 실습(CTF) 문제 전용
   const [flag, setFlag] = useState("");
   const [dockerfile, setDockerfile] = useState<File | null>(null);
   const [osImage, setOsImage] = useState("ubuntu:22.04");
@@ -69,14 +70,29 @@ function ProblemCreateContent() {
   const [vmMemoryLimit, setVmMemoryLimit] = useState("512m");
   const [allowedCommandsInput, setAllowedCommandsInput] = useState("ls, cat, grep, find");
 
-  // [상태 관리] 객관식 문제 전용
+  // [STATE] 객관식 문제 전용
   const [choices, setChoices] = useState([
     { index: 1, content: "" }, { index: 2, content: "" }, { index: 3, content: "" }, { index: 4, content: "" }
   ]);
-  const [answerIdx, setAnswerIdx] = useState(1);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([1]);
-
+  const [isOrderedAnswer, setIsOrderedAnswer] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // [상태 관리] OBO 시각화
+  const [oboEnabled, setOboEnabled] = useState(false);
+  const [oboData, setOboData] = useState<ProblemOboData>({ mode: 'single', single: { nodes: [], edges: [], frames: [] } });
+  const [oboModalOpen, setOboModalOpen] = useState(false);
+  const [oboDataSnapshot, setOboDataSnapshot] = useState<ProblemOboData | null>(null);
+
+  const openOboModal = () => {
+    setOboDataSnapshot(oboData);
+    setOboModalOpen(true);
+  };
+  const confirmOboModal = () => setOboModalOpen(false);
+  const cancelOboModal = () => {
+    if (oboDataSnapshot) setOboData(oboDataSnapshot);
+    setOboModalOpen(false);
+  };
 
   // 2. 객관식 정답 토글 핸들러
   const toggleAnswer = (idx: number) => {
@@ -88,11 +104,17 @@ function ProblemCreateContent() {
       }
       setSelectedAnswers(selectedAnswers.filter((a) => a !== val));
     } else {
-      setSelectedAnswers([...selectedAnswers, val].sort((a, b) => a - b));
+      const next = [...selectedAnswers, val].sort((a, b) => a - b);
+      setSelectedAnswers(next);
+      // 다중 정답으로 전환되면 OBO는 사용할 수 없으므로 자동으로 끈다.
+      if (next.length > 1 && oboEnabled) {
+        setOboData({ mode: 'single', single: { nodes: [], edges: [], frames: [] } });
+        setOboEnabled(false);
+      }
     }
   };
 
-  // 3. 코딩 문제 테스트케이스 삭제 핸들러
+  // 코딩 문제 테스트케이스 삭제 핸들러
   const removeTestcase = (indexToRemove: number) => {
     if (testcases.length <= 1) {
       alert("최소 하나의 테스트케이스가 필요합니다.");
@@ -112,7 +134,7 @@ function ProblemCreateContent() {
 
     const choiceNum = indexToRemove + 1; // 삭제되는 보지의 번호 (1부터 시작)
 
-    // 1. 보기 목록 필터링 및 인덱스 재정렬
+    // 보기 목록 필터링 및 인덱스 재정렬
     const newChoices = choices
       .filter((_, idx) => idx !== indexToRemove)
       .map((choice, idx) => ({
@@ -121,13 +143,24 @@ function ProblemCreateContent() {
       }));
     setChoices(newChoices);
 
-    // 2. [핵심] 정답 배열(selectedAnswers) 보정
+    // 정답 배열(selectedAnswers) 보정
     const newAnswers = selectedAnswers
       .filter((a) => a !== choiceNum) // 삭제된 번호 제거
       .map((a) => (a > choiceNum ? a - 1 : a)); // 삭제된 번호보다 큰 번호는 1씩 당김
 
     // 정답이 하나도 남지 않게 되는 경우 방지 (최소 1번은 선택되게)
     setSelectedAnswers(newAnswers.length > 0 ? newAnswers : [1]);
+
+    // 3. OBO per_choice 키 동기화 (삭제된 번호 제거 + 이후 번호 한 칸씩 당김)
+    if (oboData.mode === 'per_choice' && oboData.perChoice) {
+      const newPerChoice: Record<string, import('@/components/obo/types').OboBlob> = {};
+      Object.entries(oboData.perChoice).forEach(([key, blob]) => {
+        const num = parseInt(key.replace('choice_', ''));
+        if (num < choiceNum) newPerChoice[key] = blob;
+        else if (num > choiceNum) newPerChoice[`choice_${num - 1}`] = blob;
+      });
+      setOboData({ ...oboData, perChoice: newPerChoice });
+    }
   };
 
   // [API] 제출 핸들러
@@ -165,7 +198,8 @@ function ProblemCreateContent() {
           title,
           summary: summary || title,
           description,
-          difficulty: difficulty
+          difficulty: difficulty,
+          oboJson: oboEnabled ? oboData : null
         };
 
         bodyData = JSON.stringify(patchPayload);
@@ -248,6 +282,7 @@ function ProblemCreateContent() {
               outputDescription: outputDesc || "출력 설명",
               testcases: testcases.map(tc => ({ ...tc, index: Number(tc.index) })),
               obo: { enabled: false, initialImageUrl: null },
+              oboJson: oboEnabled ? oboData : null,
               isDraft: false
             };
           } else if (problemType === "objective") {
@@ -262,7 +297,8 @@ function ProblemCreateContent() {
               ...payload,
               choices: validChoices,
               answer: selectedAnswers,
-              obo: { enabled: false, steps: [] }
+              obo: { enabled: false, steps: [] },
+              oboJson: oboEnabled ? oboData : null,
             };
           }
           bodyData = JSON.stringify(payload);
@@ -296,7 +332,7 @@ function ProblemCreateContent() {
     }
   };
 
-  // [API] 수정 모드용 데이터 로드 useEffect
+  // [API] 수정 모드용 데이터 로드
   useEffect(() => {
     if (isEditMode) {
       const token = localStorage.getItem("token");
@@ -322,7 +358,7 @@ function ProblemCreateContent() {
             setTestcases(data.testcases || []);
           } else if (data.type === "objective") {
             setChoices(data.choices || []);
-            setAnswerIdx(data.answer?.[0] || 1);
+            setSelectedAnswers(data.answer?.length ? data.answer : [1]);
           } else if (data.type === "practice") {
             setFlag(data.flag || "");
 
@@ -335,11 +371,23 @@ function ProblemCreateContent() {
               }
             }
           }
-          setIsInitialLoading(false);
+
+          const isMultiAnswerObjective = data.type === "objective" && (data.answer?.length ?? 0) > 1;
+          if (data.oboJson && !isMultiAnswerObjective) {
+            // 이전 형식(OboBlob 직접 저장) 호환성 처리
+            const raw = data.oboJson;
+            if (raw.mode === 'single' || raw.mode === 'per_choice') {
+              setOboData(raw);
+            } else {
+              // legacy: OboBlob 그대로 저장된 경우
+              setOboData({ mode: 'single', single: raw });
+            }
+            setOboEnabled(true);
+          }
+
         })
         .catch(err => {
           console.error(err);
-          setIsInitialLoading(false);
         });
     }
   }, [editId]);
@@ -377,7 +425,7 @@ function ProblemCreateContent() {
     fetchProfileImage();
   }, []);
 
-  // [상태 관리] 그룹 공개용
+  // [STATE] 그룹 공개용
   const [myGroups, setMyGroups] = useState<any[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [isFetchingGroups, setIsFetchingGroups] = useState(false);
@@ -421,6 +469,9 @@ function ProblemCreateContent() {
         .finally(() => setIsFetchingContests(false));
     }
   }, [visibility])
+
+  // 다중 정답(객관식) 문제는 선택지 하나에 종속되는 OBO를 만들 수 없다.
+  const oboBlockedByMultiAnswer = problemType === "objective" && selectedAnswers.length > 1;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -550,50 +601,56 @@ function ProblemCreateContent() {
                 <div className="space-y-2">
                   <Label>난이도</Label>
                   <Select value={difficulty} onValueChange={setDifficulty}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="난이도 선택" />
+                    <SelectTrigger className="w-full font-mono">
+                      <SelectValue placeholder="탐사 수심 선택" />
                     </SelectTrigger>
                     <SelectContent>
-                      {/* Lvl 1: 초록 (기초) */}
+                      {/* 1단계: 100m */}
                       <SelectItem value="1" className="text-emerald-600 font-bold">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" /> Lvl 1
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" /> 100m
                         </div>
                       </SelectItem>
-                      {/* Lvl 2: 연두/황록 */}
-                      <SelectItem value="2" className="text-lime-600 font-bold">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-lime-500" /> Lvl 2
+
+                      {/* 2단계: 300m */}
+                      <SelectItem value="2" className="text-teal-600 font-bold">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-teal-500" /> 300m
                         </div>
                       </SelectItem>
-                      {/* Lvl 3: 노랑/황금 */}
-                      <SelectItem value="3" className="text-amber-600 font-bold">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-amber-500" /> Lvl 3
+
+                      {/* 3단계: 500m */}
+                      <SelectItem value="3" className="text-sky-600 font-bold">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-sky-500" /> 500m
                         </div>
                       </SelectItem>
-                      {/* Lvl 4: 주황 */}
-                      <SelectItem value="4" className="text-orange-600 font-bold">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-orange-500" /> Lvl 4
+
+                      {/* 4단계: 1,000m */}
+                      <SelectItem value="4" className="text-blue-600 font-bold">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-blue-500" /> 1,000m
                         </div>
                       </SelectItem>
-                      {/* Lvl 5: 빨강 */}
-                      <SelectItem value="5" className="text-rose-600 font-bold">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-rose-500" /> Lvl 5
+
+                      {/* 5단계: 3,000m */}
+                      <SelectItem value="5" className="text-indigo-600 font-bold">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500" /> 3,000m
                         </div>
                       </SelectItem>
-                      {/* Lvl 6: 보라 */}
-                      <SelectItem value="6" className="text-violet-700 font-bold">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-violet-600" /> Lvl 6
+
+                      {/* 6단계: 6,000m */}
+                      <SelectItem value="6" className="text-purple-600 font-bold">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-purple-500" /> 6,000m
                         </div>
                       </SelectItem>
-                      {/* Lvl 7: 검정 (최상위) */}
-                      <SelectItem value="7" className="text-slate-950 font-black">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-slate-950" /> Lvl 7
+
+                      {/* 7단계: 10,000m+ */}
+                      <SelectItem value="7" className="text-slate-900 font-black">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="w-2 h-2 rounded-full bg-slate-950" /> 10,000m+
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -770,7 +827,10 @@ function ProblemCreateContent() {
                   <CardDescription>문제 유형에 따라 정답 판별 방식을 정의합니다.</CardDescription>
                 </div>
                 {/* 문제 유형 API에 맞게 value 세팅 */}
-                <Select value={problemType} onValueChange={setProblemType}>
+                <Select value={problemType} onValueChange={(v) => {
+                  setProblemType(v);
+                  if (v === "practice") { setOboEnabled(false); setOboData({ mode: 'single', single: { nodes: [], edges: [], frames: [] } }); }
+                }}>
                   <SelectTrigger className="w-[140px] bg-slate-100"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="coding">코딩 문제</SelectItem>
@@ -1004,49 +1064,79 @@ function ProblemCreateContent() {
               {/* [C] 객관식 문제일 때 */}
               {problemType === "objective" && (
                 <div className="space-y-5 animate-in fade-in-30 duration-300">
+                  
+                  {/* 순서 매칭 옵션 설정 카드 피처 */}
+                  <div className="flex items-center justify-between p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-bold text-slate-900 cursor-pointer" htmlFor="toggle-order">
+                        정답 선택 순서 일치 옵션 활성화
+                      </Label>
+                      <p className="text-[11px] text-slate-500">체크하면 문제를 푸는 학생도 출제자가 선택한 순서대로 입력해야 정답 처리됩니다.</p>
+                    </div>
+                    <input 
+                      type="checkbox"
+                      id="toggle-order"
+                      checked={isOrderedAnswer}
+                      onChange={(e) => setIsOrderedAnswer(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                  </div>
+
                   <div className="space-y-4 pt-1">
                     <Label className="flex justify-between items-center">
                       <span>보기 설정 및 정답 선택 <span className="text-red-500">*</span></span>
-                      <span className="text-[10px] text-slate-400">왼쪽 체크박스를 눌러 정답을 고르세요 (중복 가능)</span>
+                      <span className="text-[10px] text-slate-400">
+                        {isOrderedAnswer ? "번호를 누른 순서가 정답 순서가 됩니다." : "정답 체크박스를 선택하세요 (중복 가능)"}
+                      </span>
                     </Label>
 
                     <div className="space-y-3">
-                      {choices.map((choice, idx) => (
-                        <div key={idx} className="flex items-center gap-3 group">
-                          {/* 정답 토글 버튼 */}
-                          <div
-                            onClick={() => toggleAnswer(idx)}
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${selectedAnswers.includes(idx + 1)
-                              ? "bg-indigo-500 border-indigo-500 text-white"
-                              : "border-slate-200 text-transparent hover:border-indigo-300"
-                              }`}
-                          >
-                            <CheckCircle2 size={14} />
-                          </div>
+                      {choices.map((choice, idx) => {
+                        const val = idx + 1;
+                        const orderIndex = selectedAnswers.indexOf(val); // 몇 번째 순서로 들어가 있는지 확인 (-1이면 미선택)
+                        const isSelected = orderIndex !== -1;
 
-                          <span className="font-bold text-slate-400 w-4">{idx + 1}.</span>
-                          <Input
-                            value={choice.content}
-                            onChange={(e) => {
-                              const newChoices = [...choices];
-                              newChoices[idx].content = e.target.value;
-                              setChoices(newChoices);
-                            }}
-                            placeholder={`보기 ${idx + 1} 내용`}
-                            className={`flex-1 ${selectedAnswers.includes(idx + 1) ? "border-indigo-200 bg-indigo-50/30" : ""}`}
-                          />
-                          {/* 삭제 버튼 */}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeChoice(idx)}
-                            className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
-                      ))}
+                        return (
+                          <div key={idx} className="flex items-center gap-3 group">
+                            {/* 정답 토글 버튼 (순서 시각화 탑재) */}
+                            <div
+                              onClick={() => toggleAnswer(idx)}
+                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all text-xs font-black select-none ${
+                                isSelected
+                                  ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
+                                  : "border-slate-200 text-transparent hover:border-indigo-300"
+                              }`}
+                            >
+                              {/* 순서 모드이고 선택됐다면 순서 번호(1, 2..)를 노출하고, 아니면 체크 아이콘 배치 */}
+                              {isSelected && isOrderedAnswer ? orderIndex + 1 : <CheckCircle2 size={14} />}
+                            </div>
+
+                            <span className="font-bold text-slate-400 w-4">{idx + 1}.</span>
+                            
+                            <Input
+                              value={choice.content}
+                              onChange={(e) => {
+                                const newChoices = [...choices];
+                                newChoices[idx].content = e.target.value;
+                                setChoices(newChoices);
+                              }}
+                              placeholder={`보기 ${idx + 1} 내용`}
+                              className={`flex-1 ${selectedAnswers.includes(idx + 1) ? "border-indigo-200 bg-indigo-50/30" : ""}`}
+                            />
+
+                            {/* 보기 삭제 버튼 */}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeChoice(idx)}
+                              className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     <Button
@@ -1063,6 +1153,85 @@ function ProblemCreateContent() {
               )}
             </CardContent>
           </Card>
+
+          {/* 4. OBO 시각화 섹션 - 코딩/객관식만 표시 */}
+          {(problemType === "coding" || problemType === "objective") && <Card className="border-slate-100 shadow-sm rounded-2xl">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Network className="w-5 h-5 text-indigo-500" />
+                    OBO 시각화 포함
+                  </CardTitle>
+                  <CardDescription>
+                    {oboBlockedByMultiAnswer
+                      ? "다중 정답 문제는 OBO를 생성할 수 없습니다. 정답을 1개만 선택하면 활성화됩니다."
+                      : "문제에 운영체제 동작 시각화(OBO)를 첨부합니다."}
+                  </CardDescription>
+                </div>
+                <div
+                  onClick={() => {
+                    if (oboBlockedByMultiAnswer) return;
+                    if (oboEnabled) {
+                      const ok = window.confirm("OBO를 비활성화하면 편집한 내용이 초기화됩니다. 계속할까요?");
+                      if (!ok) return;
+                      setOboData({ mode: 'single', single: { nodes: [], edges: [], frames: [] } });
+                    }
+                    setOboEnabled(v => !v);
+                  }}
+                  className={`w-11 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0 ${
+                    oboBlockedByMultiAnswer ? "opacity-50 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                  } ${oboEnabled ? "bg-indigo-600" : "bg-slate-200"}`}
+                >
+                  <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${oboEnabled ? "translate-x-5" : "translate-x-0"}`} />
+                </div>
+              </div>
+            </CardHeader>
+
+            {oboEnabled && (
+              <CardContent className="pt-0">
+                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                  <p className="text-sm text-slate-500">
+                    {oboData.mode === 'per_choice' ? (
+                      <>보기별 모드 &nbsp;·&nbsp; 보기 <span className="font-bold text-slate-800">{Object.keys(oboData.perChoice ?? {}).length}</span>개 설정됨</>
+                    ) : (
+                      <>
+                        노드 <span className="font-bold text-slate-800">{oboData.single?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        엣지 <span className="font-bold text-slate-800">{oboData.single?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        프레임 <span className="font-bold text-slate-800">{oboData.single?.frames.length ?? 0}</span>개
+                      </>
+                    )}
+                  </p>
+                  <Button variant="outline" size="sm" onClick={openOboModal} className="gap-1.5">
+                    <Network className="w-3.5 h-3.5" />
+                    OBO 편집하기
+                  </Button>
+                </div>
+              </CardContent>
+            )}
+          </Card>}
+
+          {/* OBO 전체화면 모달 */}
+          {oboModalOpen && (
+            <div className="fixed inset-0 z-50 flex flex-col bg-white">
+              <header className="h-14 border-b flex items-center justify-between px-6 shrink-0">
+                <span className="font-bold text-slate-900">OBO 편집</span>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={cancelOboModal}>취소</Button>
+                  <Button size="sm" onClick={confirmOboModal}>완료</Button>
+                </div>
+              </header>
+              <div className="flex-1 min-h-0">
+                <OboEditorSection
+                  value={oboData}
+                  onChange={setOboData}
+                  choices={problemType === 'objective'
+                    ? choices.map(c => ({ id: `choice_${c.index}`, text: c.content }))
+                    : undefined}
+                />
+              </div>
+            </div>
+          )}
         </section>
       </main>
     </div>
