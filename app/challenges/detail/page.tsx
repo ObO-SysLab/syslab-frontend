@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Search, Settings, LogOut, User, Menu, MessageSquare, Bell, Share2,
   CheckCircle2, XCircle, Clock, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag, Trash2,
-  ChevronLeft, MessageCircle, Edit2, Flame, Zap, Flag
+  ChevronLeft, MessageCircle, Edit2, Flame, Zap, Flag, Activity
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { form } from "framer-motion/client";
+import { OboPlayer } from "@/components/obo/OboPlayer";
+import { resolveOboBlob, type OboBlob, type ProblemOboData } from "@/components/obo/types";
 
+function OboPlayerSection({ oboData, selectedChoiceIndex }: {
+  oboData: ProblemOboData | OboBlob;
+  selectedChoiceIndex?: number | null;
+}) {
+  const blob = resolveOboBlob(oboData, selectedChoiceIndex);
+
+  if (!blob || blob.nodes.length === 0) return null;
+
+  return (
+    <div className="mt-8 space-y-2">
+      <p className="text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5">
+        <Activity className="w-4 h-4 text-indigo-600" /> OBO 시각화
+      </p>
+      <div style={{ height: 440 }}>
+        <OboPlayer blob={blob} />
+      </div>
+    </div>
+  );
+}
 
 function ProblemDetailContent() {
   // API 연동 스위치
@@ -896,6 +917,14 @@ function ProblemDetailContent() {
                   </div>
                 )}
               </div>
+
+              {/* OBO 시각화 플레이어 */}
+              {problemData?.oboJson && (
+                <OboPlayerSection
+                  oboData={problemData.oboJson}
+                  selectedChoiceIndex={selectedChoices.length > 0 ? selectedChoices[selectedChoices.length - 1] : null}
+                />
+              )}
 
               {/* 실습형(CTF) VM 환경 동적 렌더링 */}
               {problemData?.type === "practice" && (
