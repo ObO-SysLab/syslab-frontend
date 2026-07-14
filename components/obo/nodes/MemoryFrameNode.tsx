@@ -10,7 +10,7 @@ interface MemoryFrameNodeData {
 }
 
 export function MemoryFrameNode({ data, selected }: NodeProps) {
-  const d = data as MemoryFrameNodeData;
+  const d = data as unknown as MemoryFrameNodeData;
   const count = d.frameCount ?? 4;
   const pages = d.pages ?? Array(count).fill(null);
   const color = d.color ?? '#6366f1';

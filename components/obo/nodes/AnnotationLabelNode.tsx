@@ -9,7 +9,7 @@ interface AnnotationLabelNodeData {
 }
 
 export function AnnotationLabelNode({ data, selected }: NodeProps) {
-  const d = data as AnnotationLabelNodeData;
+  const d = data as unknown as AnnotationLabelNodeData;
   const color = d.color ?? '#e24b4a';
   const borderStyle = d.style ?? 'dashed';
   const border = borderStyle === 'plain' ? 'none' : `1.5px ${borderStyle} ${color}`;
