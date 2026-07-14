@@ -10,7 +10,7 @@ interface CounterBadgeNodeData {
 }
 
 export function CounterBadgeNode({ data, selected }: NodeProps) {
-  const d = data as CounterBadgeNodeData;
+  const d = data as unknown as CounterBadgeNodeData;
   const color = d.color ?? '#b45309';
   return (
     <div style={{

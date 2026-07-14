@@ -9,7 +9,7 @@ interface RectNodeData {
 }
 
 export function RectNode({ data, selected }: NodeProps) {
-  const d = data as RectNodeData;
+  const d = data as unknown as RectNodeData;
   const color = d.color ?? '#64748b';
   const borderRadius = d.shape === 'pill' ? 9999 : 8;
   const hs = { width: 7, height: 7, background: color, border: 'none' };
