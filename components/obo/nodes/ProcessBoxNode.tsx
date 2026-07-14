@@ -14,7 +14,7 @@ interface ProcessBoxNodeData {
 }
 
 export function ProcessBoxNode({ data, selected }: NodeProps) {
-  const d = data as ProcessBoxNodeData;
+  const d = data as unknown as ProcessBoxNodeData;
   const sections = d.sections ?? [
     { name: 'Code' }, { name: 'Data' }, { name: 'Heap' }, { name: 'Stack' },
   ];

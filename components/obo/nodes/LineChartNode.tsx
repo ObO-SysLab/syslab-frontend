@@ -12,7 +12,7 @@ interface LineChartNodeData {
 }
 
 export function LineChartNode({ data, selected }: NodeProps) {
-  const d = data as LineChartNodeData;
+  const d = data as unknown as LineChartNodeData;
   const W = d.width ?? 160;
   const H = d.height ?? 100;
   const pts = d.points ?? [];

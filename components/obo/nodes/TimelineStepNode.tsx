@@ -15,7 +15,7 @@ interface TimelineStepNodeData {
 }
 
 export function TimelineStepNode({ data, selected }: NodeProps) {
-  const d = data as TimelineStepNodeData;
+  const d = data as unknown as TimelineStepNodeData;
   const steps = d.steps ?? [{ label: 'Step 1' }];
   const mainColor = '#334155';
   const hs = { background: mainColor, border: 'none' };

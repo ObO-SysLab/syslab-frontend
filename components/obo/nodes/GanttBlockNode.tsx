@@ -11,7 +11,7 @@ interface GanttBlockNodeData {
 }
 
 export function GanttBlockNode({ data, selected }: NodeProps) {
-  const d = data as GanttBlockNodeData;
+  const d = data as unknown as GanttBlockNodeData;
   const scale = d.scaleUnit ?? 20;
   const color = d.color ?? '#1D9E75';
   const width = Math.max((d.duration ?? 3) * scale, 40);

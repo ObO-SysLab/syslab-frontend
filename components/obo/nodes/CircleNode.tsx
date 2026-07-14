@@ -9,7 +9,7 @@ interface CircleNodeData {
 }
 
 export function CircleNode({ data, selected }: NodeProps) {
-  const d = data as CircleNodeData;
+  const d = data as unknown as CircleNodeData;
   const color = d.color ?? '#6366f1';
   const hs = { width: 8, height: 8, background: color, border: 'none' };
   return (
