@@ -17,7 +17,7 @@ interface TableGridNodeData {
 }
 
 export function TableGridNode({ data, selected }: NodeProps) {
-  const d = data as TableGridNodeData;
+  const d = data as unknown as TableGridNodeData;
   const color = d.color ?? '#6366f1';
   const rows = d.rows ?? [];
 
