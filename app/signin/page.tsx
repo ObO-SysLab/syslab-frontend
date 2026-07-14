@@ -1,58 +1,74 @@
 "use client";
 
-import { useState } from "react"; //
-import { useRouter } from "next/navigation"; // 리다이렉트용
+import { useState, Suspense } from "react"; 
+import { useRouter } from "next/navigation"; 
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react"; // 로딩 스피너
+import { Loader2 } from "lucide-react"; 
+import { useSearchParams } from "next/navigation";
+import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
-
-  // 입력 데이터 및 상태 관리
-  const [formData, setFormData] = useState({ id: "", password: "" });
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const nextTarget = searchParams.get("next");
 
-  // 입력값 변경 핸들러
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
-  };
+  // [API] Google Oauth2 팝업 로그인 세팅
+  const handleGooglePopupLogin = useGoogleLogin({
+    flow: 'auth-code',
+    onSuccess: async (codeResponse) => {
+      setIsLoading(true);
+      try {
+        // 구글이 준 인가 코드를 백엔드 API로 POST 토스
+        const res = await fetch("https://diveon.net/api/auth/google/login", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            'X-Requested-With': 'XmlHttpRequest'
+           },
+          body: JSON.stringify({
+            code: codeResponse.code,
+            next: nextTarget
+          })
+        });
 
-  // 3. [API] 로그인 요청
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
+        const result = await res.json();
 
-    try {
-      const response = await fetch("https://diveon.net/api/auth/login", { // api url
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          loginId: formData.id, 
-          password: formData.password,
-        }),
-      });
+        if (res.ok) {
+          // [체크 포인트] 백엔드가 주는 필드명이 accessToken이 맞는지, access_token인지 꼭 확인해 보세요!
+          const token = result?.data?.accessToken || result?.data?.access_token;
+          const nickname = result?.data?.userInfo?.nickname;
+          const userImg = result?.data?.userInfo?.profileImgUrl;
 
-      const result = await response.json();
-      
-      if (response.ok) {
-        console.log("로그인 성공:", result);
-        localStorage.setItem("token", result.data.accessToken); 
-        window.location.href = "/";
-      } else {
-        setError(result.message || "아이디 또는 비밀번호가 일치하지 않습니다.");
+          if (!token) {
+            alert("백엔드로부터 유효한 토큰을 받지 못했습니다. 구조를 확인해 주세요.");
+            console.log("백엔드 응답 데이터 구조:", result);
+            return;
+          }
+          
+          // 로컬스토리지 정적 세션 고정
+          localStorage.setItem("token", token);
+          if (nickname) localStorage.setItem("nickname", nickname);
+          if (userImg) localStorage.setItem("userImgUrl", userImg);
+          
+          // [UX 교정] router.push 대신 window.location.replace를 쓰면 
+          window.location.replace(nextTarget || "/");
+        } else {
+          // 백엔드에서 뱉은 실제 에러 메시지를 팝업으로 띄워서 디버깅합니다.
+          alert(`서버 인증 실패: ${result.message || "상태 코드 " + res.status}`);
+        }
+      } catch (error) {
+        console.error("인증 실패 상세 로그:", error);
+        alert("구글 로그인 인증 에러가 발생했습니다. 콘솔 창(F12)을 확인해 주세요.");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      setError("서버와 통신 중 오류가 발생했습니다.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    onError: () => alert("구글 팝업 실행 실패")
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-slate-900 font-sans">
@@ -65,61 +81,31 @@ export default function LoginPage() {
       <main className="flex-1 flex items-center justify-center p-4 bg-slate-50/30">
         <div className="w-full max-w-[420px] space-y-4">
           <Card className="border-none shadow-2xl shadow-slate-200/50 bg-white rounded-3xl overflow-hidden">
-            <CardContent className="pt-12 pb-10 px-10 space-y-8">
-              
-              {/* Form 태그로 감싸면 엔터키 로그인이 가능해집니다 */}
-              <form onSubmit={handleLogin} className="space-y-6">
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1" htmlFor="id">
-                      ID
-                    </label>
-                    <Input 
-                      id="id" 
-                      type="text" 
-                      value={formData.id}
-                      onChange={handleChange}
-                      placeholder="아이디를 입력하세요" 
-                      required
-                      className="bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-slate-900 h-12 rounded-xl"
-                    />
-                  </div>
+            <CardContent className="pt-12 pb-12 px-10 space-y-8 text-center">
+              {/* 소셜 로그인 안내 헤딩 */}
+              <div className="space-y-2">
+                <h2 className="text-xl font-black tracking-tight text-slate-900">Diveon 시작하기</h2>
+                <p className="text-xs text-slate-400 font-medium">구글 계정 연동을 통해 운영체제 바다 탐사를 시작합니다.</p>
+              </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1" htmlFor="password">
-                      Password
-                    </label>
-                    <Input 
-                      id="password" 
-                      type="password" 
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="••••••••" 
-                      required
-                      className="bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-slate-900 h-12 rounded-xl"
-                    />
-                  </div>
-                </div>
-
-                {/* 에러 메시지 표시 */}
-                {error && <p className="text-xs text-red-500 font-medium ml-1">{error}</p>}
-
-                <Button 
-                  type="submit"
+              {/* 단독 구글 로그인 버튼 배치 */}
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  onClick={() => handleGooglePopupLogin()}
                   disabled={isLoading}
-                  className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-bold text-base rounded-xl shadow-lg shadow-slate-200 transition-all active:scale-[0.98]"
+                  className="w-full h-12 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-base rounded-xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-3"
                 >
-                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Sign In"}
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                  ) : (
+                    <>
+                      {/* 구글 로고 대용 이모지 */}
+                      <span className="text-lg">🌐</span>
+                      <span>구글 계정으로 계속하기</span>
+                    </>
+                  )}
                 </Button>
-              </form>
-
-              <div className="flex justify-between items-center pt-2">
-                <Link href="/find-account" className="text-xs font-bold text-slate-400 underline underline-offset-4 decoration-slate-200 hover:text-slate-900 hover:decoration-slate-900 transition-all">
-                  아이디/비밀번호 찾기
-                </Link>
-                <Link href="/signup" className="text-xs font-bold text-indigo-600 underline underline-offset-4 decoration-indigo-100 hover:text-indigo-800 hover:decoration-indigo-800 transition-all">
-                  회원가입
-                </Link>
               </div>
             </CardContent>
           </Card>
@@ -130,5 +116,23 @@ export default function LoginPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense 
+      key="secure-signin-suspense"
+      fallback={
+        <div key="secure-signin-loading" className="min-h-screen flex items-center justify-center bg-white">
+          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+        </div>
+      }
+    >
+      {/* clientId에 환경변수 대신 전달받은 구글 ID 문자열을 직접 주입했습니다. */}
+      <GoogleOAuthProvider clientId="556818462420-piu9374s4b65qj329f5l5h6m344j2l26.apps.googleusercontent.com">
+        <LoginContent />
+      </GoogleOAuthProvider>
+    </Suspense>
   );
 }

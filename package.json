@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
+    "@react-oauth/google": "^0.13.5",
     "@tldraw/tldraw": "^4.5.10",
     "@xyflow/react": "^12.11.1",
     "class-variance-authority": "^0.7.1",
