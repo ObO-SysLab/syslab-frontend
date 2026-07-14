@@ -370,9 +370,14 @@ function ProblemDetailContent() {
   const handleChoiceToggle = (index: number) => {
     setSelectedChoices((prev) => {
       if (prev.includes(index)) {
+        // 이미 선택된 보기를 다시 누르면 제거
         return prev.filter((i) => i !== index);
       } else {
-        return [...prev, index];
+        if (problemData?.isOrderedAnswer) {
+          return [...prev, index];
+        }
+        // 순서 상관없는 일반 중복 마킹이라면 번호 순서대로 오름차순 정렬 킵
+        return [...prev, index].sort((a, b) => a - b);
       }
     });
   };
@@ -783,22 +788,37 @@ function ProblemDetailContent() {
                 {/* 객관식 보기 동적 렌더링 */}
                 {problemData?.type === "objective" && problemData?.choices && (
                   <div className="mt-6 space-y-2">
+                    {/* 서버 상태(isOrderedAnswer)가 활성화되어 있다면 순서 저격 경고 배지 출력 */}
+                    {problemData?.isOrderedAnswer && (
+                      <div className="mb-3 p-3 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-700 font-bold flex items-center gap-2 animate-pulse">
+                        이 문제는 정답을 선택하는 <span className="underline decoration-2">정확한 순서</span>까지 일치해야 정답 처리됩니다.
+                      </div>
+                    )}
+
                     {problemData.choices.map((choice: any) => {
-                      // 선택되었는지 확인
-                      const isSelected = selectedChoices.includes(choice.index);
+                      // 배열 내에서 유저가 몇 번째 순서로 클릭했는지 추출 (-1이면 미선택)
+                      const orderIndex = selectedChoices.indexOf(choice.index);
+                      const isSelected = orderIndex !== -1;
+
                       return (
                         <div
                           key={choice.index}
                           onClick={() => handleChoiceToggle(choice.index)}
-                          className={`p-4 border-2 rounded-xl flex items-center gap-3 cursor-pointer transition-all ${isSelected
-                            ? "border-indigo-600 bg-indigo-50 shadow-sm" // 선택 시 스타일
-                            : "border-slate-100 bg-slate-50 hover:border-slate-300 hover:bg-slate-100" // 기본 스타일
+                          className={`p-4 border-2 rounded-xl flex items-center gap-4 cursor-pointer transition-all ${isSelected
+                            ? "border-indigo-600 bg-indigo-50/50 shadow-sm"
+                            : "border-slate-100 bg-slate-50 hover:border-slate-300 hover:bg-slate-100"
                             }`}
                         >
-                          <span className={`font-black ${isSelected ? "text-indigo-600" : "text-slate-400"}`}>
-                            {choice.index}.
-                          </span>
-                          <span className={`text-sm ${isSelected ? "text-indigo-900 font-bold" : "text-slate-700"}`}>
+                          {/* 서버 옵션이 순서 모드(isOrderedAnswer)라면 동글 내부에 누른 순서 숫자(1, 2..)를 띄우고, 일반 모드라면 기존 기호 유지 */}
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-black transition-all ${
+                            isSelected 
+                              ? "bg-indigo-600 text-white border-indigo-600 shadow-inner" 
+                              : "border-slate-300 bg-white text-slate-400"
+                          }`}>
+                            {isSelected && problemData?.isOrderedAnswer ? orderIndex + 1 : choice.index}
+                          </div>
+
+                          <span className={`text-sm ${isSelected ? "text-indigo-950 font-bold" : "text-slate-700"}`}>
                             {choice.content}
                           </span>
                         </div>

@@ -5,12 +5,13 @@ import Link from "next/link";
 import {
   Search, LogOut, Bell, Menu, Code2, Coffee, SearchCode, BookOpen,
   LayoutGrid, Users, BarChart3, Trophy, ShoppingBag, Plus, CheckCircle2,
-  Layers, GraduationCap, School, Briefcase, Flag
+  Layers, GraduationCap, School, Briefcase, Flag, Lock
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 
@@ -19,6 +20,7 @@ export default function GroupListPage() {
   const USE_API_REQUEST = false;
 
   // [STATE] 페이지 전체
+  const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -172,6 +174,21 @@ export default function GroupListPage() {
     window.location.href = "/";
   };
 
+  // [HANDLER] 비공개 그룹 클릭 방어
+  const handleGroupClick = (e: React.MouseEvent, grp: any) => {
+    e.preventDefault();
+
+    // 비공개 그룹(isPrivate)이고, 현재 가입된 상태가 아니라면 차단
+    // 백엔드 명세 규칙(userContext.myStatus 등) 또는 grp.joined 변수 상태에 맞춰 방어선을 설정합니다.
+    if (grp.isPrivate && !grp.joined) {
+      alert("이 그룹은 비공개 탐사 기지입니다.\n공유받은 카톡/이메일 초대 링크를 통해서만 입장하실 수 있습니다.");
+      return;
+    }
+
+    // 통과 시 상세방으로 이동
+    router.push(`/groups/detail?id=${grp.groupId}`);
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
 
@@ -314,115 +331,121 @@ export default function GroupListPage() {
             </div>
           </div>
 
-          {/* 그룹 목록 리스트 */}
-          <div className="flex flex-col gap-3 min-h-[400px] relative">
-            {isLoading ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-              </div>
-            ) : groups.length > 0 ? (
-              groups.map((grp) => (
-                <Link
-                  key={grp.groupId}
-                  href={`/groups/detail?id=${grp.groupId}`}
-                  className="block group"
-                >
-                  <Card className="p-4 hover:shadow-md transition-all cursor-pointer border-slate-100 rounded-xl overflow-hidden group-hover:border-indigo-200 group-hover:bg-indigo-50/5">
-                    <div className="flex w-full flex-row items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors capitalize">
-                          {TagIcons[grp.tags[0]] || <Code2 size={20} />}
-                        </div>
-                        <div className="flex flex-col justify-center">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {/* 그룹명 */}
-                            <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                              {grp.title}
-                            </h3>
+          {/* [추가] 비공개 그룹 클릭 제어 가드 봇 함수 */}
+          {(() => {
+            const handleGroupClick = (e: React.MouseEvent, grp: any) => {
+              e.preventDefault();
 
-                            {/* 가입 여부 체크 아이콘 */}
-                            {grp.joined && (
-                              <CheckCircle2 className="h-4 w-4 text-emerald-500 fill-emerald-50 shrink-0" />
-                            )}
-                          </div>
+              // 비공개 그룹(isPrivate)이고, 내가 가입(joined)된 상태가 아니라면 팝업창을 띄우고 진입 차단
+              if (grp.isPrivate && !grp.joined) {
+                alert("이 그룹은 비공개 탐사 기지입니다.\n공유받은 카톡/이메일 초대 링크(?code=...)를 통해서만 입장하실 수 있습니다.");
+                return;
+              }
 
-                          {/* 그룹장, 태그, 칭호 정보 */}
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className="text-[13px] text-slate-400">
-                              그룹장: {grp.leader}
-                            </p>
-                            <span className="text-slate-300 text-[10px]">|</span>
+              // 통과자 혹은 공개방 유저는 부드럽게 상세 페이지로 워프
+              router.push(`/groups/detail?id=${grp.groupId}`);
+            };
 
-                            {/* 칭호 뱃지 */}
-                            {/* <Badge variant="outline" className="px-2 py-0 h-5 text-[10px] font-bold tracking-tight text-slate-500 bg-white border-slate-200 shrink-0 capitalize">
-                              {grp.alias}
-                            </Badge> */}
+            return (
+              /* 그룹 목록 리스트 메인 보드 패널 */
+              <div className="flex flex-col gap-3 min-h-[400px] relative">
+                {isLoading ? (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                  </div>
+                ) : groups.length > 0 ? (
+                  groups.map((grp) => (
+                    <div
+                      key={grp.groupId}
+                      onClick={(e) => handleGroupClick(e, grp)}
+                      className="block group"
+                    >
+                      <Card className="p-4 hover:shadow-md transition-all cursor-pointer border-slate-100 rounded-xl overflow-hidden group-hover:border-indigo-200 group-hover:bg-indigo-50/5">
+                        <div className="flex w-full flex-row items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors capitalize">
+                              {TagIcons[grp.tags[0]] || <Code2 size={20} />}
+                            </div>
+                            <div className="flex flex-col justify-center">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {/* 그룹명 */}
+                                <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                  {grp.title}
+                                </h3>
 
-                            {/* 태그 뱃지 */}
-                            {grp.tags.length > 0 ? (
-                              grp.tags.map((t: string) => {
-                                const isSelected = selectedTag === t;
-                                return (
-                                  <Badge
-                                    key={t}
-                                    variant="secondary"
-                                    className={`px-2 py-0 h-5 text-[10px] font-black tracking-tight shrink-0 transition-all duration-300 ${isSelected
-                                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md scale-105" // 선택된 태그는 진하게 강조!
-                                      : "bg-indigo-50 text-indigo-600 border-indigo-100" // 기본 스타일
-                                      }`}
-                                  >
-                                    {t}
+                                {/* 비공개 상태 스캔 시 자물쇠 배지 UI 동적 장착 */}
+                                {grp.isPrivate && (
+                                  <Badge variant="outline" className="px-1.5 py-0 h-5 text-[10px] font-bold text-amber-600 border-amber-200 bg-amber-50/70 shrink-0 flex items-center gap-1.5 select-none rounded-md">
+                                    <Lock size={10} className="text-amber-500 fill-amber-500/10" /> 
+                                    <span>비공개</span>
                                   </Badge>
-                                );
-                              })
-                            ) : (
-                              <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-black tracking-tight text-slate-400 bg-slate-50 border border-slate-100 shrink-0">
-                                태그 없음
-                              </Badge>
-                            )}
+                                )}
+
+                                {/* 가입 여부 체크 아이콘 */}
+                                {grp.joined && (
+                                  <CheckCircle2 className="h-4 w-4 text-emerald-500 fill-emerald-50 shrink-0" />
+                                )}
+                              </div>
+
+                              {/* 그룹장, 태그, 칭호 정보 */}
+                              <div className="flex items-center gap-2 mt-1">
+                                <p className="text-[13px] text-slate-400">
+                                  그룹장: {grp.leader}
+                                </p>
+                                <span className="text-slate-300 text-[10px]">|</span>
+
+                                {/* 태그 뱃지 */}
+                                {grp.tags.length > 0 ? (
+                                  grp.tags.map((t: string) => {
+                                    const isSelected = selectedTag === t;
+                                    return (
+                                      <Badge
+                                        key={t}
+                                        variant="secondary"
+                                        className={`px-2 py-0 h-5 text-[10px] font-black tracking-tight shrink-0 transition-all duration-300 ${isSelected
+                                          ? "bg-indigo-600 text-white border-indigo-600 shadow-md scale-105"
+                                          : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                                          }`}
+                                      >
+                                        {t}
+                                      </Badge>
+                                    );
+                                  })
+                                ) : (
+                                  <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-black tracking-tight text-slate-400 bg-slate-50 border border-slate-100 shrink-0">
+                                    태그 없음
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 그룹 멤버 수 및 통계 패널 */}
+                          <div className="flex items-center gap-8">
+                            <div className="text-right min-w-[100px]">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                MEMBERS
+                              </p>
+                              <p className="text-base font-bold text-slate-700">
+                                {(grp.memberCount || 0).toLocaleString()}/{(grp.totalMembers || 0).toLocaleString()}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-
-                      { /* 그룹 멤버 수 및 티어 뱃지 */}
-                      <div className="flex items-center gap-8">
-                        <div className="text-right min-w-[100px]">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            MEMBERS
-                          </p>
-                          <p className="text-base font-bold text-slate-700">
-                            {(grp.memberCount || 0).toLocaleString()}/{(grp.totalMembers || 0).toLocaleString()}
-                          </p>
-                        </div>
-
-                        {/* <div className="w-20 flex justify-end">
-                          <Badge
-                            className={`
-                              rounded-full px-2.5 py-0.5 text-[10px] font-black border uppercase tracking-tight
-                              ${grp.tier === "Bronze" ? "bg-orange-100 text-orange-900 border-orange-400" : ""}
-                              ${grp.tier === "Silver" ? "bg-slate-100 text-slate-600 border-slate-300" : ""}
-                              ${grp.tier === "Gold" ? "bg-yellow-200 text-yellow-950 border-yellow-500 shadow-inner" : ""}
-                              ${grp.tier === "Platinum" ? "bg-emerald-100 text-emerald-700 border-emerald-300" : ""}
-                              ${grp.tier === "Diamond" ? "bg-cyan-100 text-cyan-700 border-cyan-300 shadow-sm" : ""}
-                            `}
-                          >
-                            {grp.tier} tier
-                          </Badge>
-                        </div> */}
-                      </div>
+                      </Card>
                     </div>
-                  </Card>
-                </Link>
-              ))
-            ) : (
-              <div className="text-center py-24 text-slate-400 border-2 border-dashed border-slate-50 rounded-3xl h-full flex flex-col items-center justify-center">
-                <SearchCode className="mx-auto h-12 w-12 text-slate-200 mb-2" />
-                <p className="font-bold">조건에 맞는 그룹이 없습니다.</p>
+                  ))
+                ) : (
+                  <div className="text-center py-24 text-slate-400 border-2 border-dashed border-slate-50 rounded-3xl h-full flex flex-col items-center justify-center">
+                    <SearchCode className="mx-auto h-12 w-12 text-slate-200 mb-2" />
+                    <p className="font-bold">조건에 맞는 그룹이 없습니다.</p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })()}
 
-          {/* 계산된 페이지네이션 UI */}
+          {/* 페이지네이션 파트 */}
           {totalGroups > 0 && (
             <div className="flex justify-center gap-2 pt-6">
               <Button
