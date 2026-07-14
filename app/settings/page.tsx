@@ -236,12 +236,12 @@ export default function SettingsPage() {
 /* -------------------------------------------------------------------------- */
 /* 1. 프로필 및 개인정보 관리 섹션 */
 /* -------------------------------------------------------------------------- */
-function ProfileSection({ 
-  data, 
-  pendingImageFile, 
-  setPendingImageFile 
-}: { 
-  data: any; 
+function ProfileSection({
+  data,
+  pendingImageFile,
+  setPendingImageFile
+}: {
+  data: any;
   pendingImageFile: File | null;
   setPendingImageFile: React.Dispatch<React.SetStateAction<File | null>>;
 }) {
@@ -305,6 +305,34 @@ function ProfileSection({
     // 핵심: 파일 객체는 주머니(pendingImageFile)에 보관하고, 화면 마크업만 임시 전환
     setPendingImageFile(file);
     setProfileImgUrl(URL.createObjectURL(file));
+  };
+
+  // 숫자 티어를 문자열로 매핑하는 변환기
+  const getTierLabel = (tier: string | number) => {
+    const tierStr = String(tier);
+    if (tierStr === "7") return "Challenger";
+    if (tierStr === "6") return "Master";
+    if (tierStr === "5") return "Diamond";
+    if (tierStr === "4") return "Platinum";
+    if (tierStr === "3") return "Gold";
+    if (tierStr === "2") return "Silver";
+    if (tierStr === "1") return "Bronze";
+    return tier || "Unranked";
+  };
+
+  // 7단계 명예 티어 스킨 테마
+  const getTierBadgeStyle = (tier: string | number) => {
+    const label = getTierLabel(tier);
+    switch (label) {
+      case 'Challenger': return 'bg-rose-950 text-rose-200 border-rose-800 font-black animate-pulse';
+      case 'Master': return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'Diamond': return 'bg-cyan-50 text-cyan-600 border-cyan-200';
+      case 'Platinum': return 'bg-emerald-50 text-emerald-600 border-emerald-200';
+      case 'Gold': return 'bg-amber-50 text-amber-600 border-amber-200';
+      case 'Silver': return 'bg-slate-100 text-slate-600 border-slate-200';
+      case 'Bronze': return 'bg-orange-50 text-orange-700 border-orange-200';
+      default: return 'bg-slate-50 text-slate-500 border-slate-200';
+    }
   };
 
   const handleUpdateProfile = async () => {
@@ -462,6 +490,20 @@ function ProfileSection({
         <Separator />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label className="text-slate-400 flex items-center gap-2 ml-1">
+              티어 <Lock size={12} />
+            </Label>
+            <div className="h-11 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-between cursor-not-allowed">
+              <span className="text-slate-700 text-sm font-bold">
+                {getTierLabel(info?.tier)} Tier 
+              </span>
+              <Badge variant="outline" className={`font-black text-[10px] uppercase tracking-tight py-0.5 px-2 rounded-full ${getTierBadgeStyle(info?.tier || "4")}`}>
+                Active
+              </Badge>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label className="text-slate-400 flex items-center gap-2 ml-1">
               계정 생성일 <Lock size={12} />

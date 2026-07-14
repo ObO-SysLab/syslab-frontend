@@ -82,6 +82,8 @@ function GroupDetailPage() {
   const [pendingMembers, setPendingMembers] = useState<any[]>([]);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDesc] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteExpiresAt, setInviteExpiresAt] = useState("");
 
   const groupFileInputRef = useRef<HTMLInputElement>(null);
   const [groupImgUrl, setGroupImgUrl] = useState("/avatar.png"); // 기본 껍데기 이미지
@@ -145,7 +147,14 @@ function GroupDetailPage() {
     fetchInitData();
   }, []);
 
-  // [HANDLER] 게시글 선택 시 상세 정보 다시 불러오기
+  // [API] 초대코드 자동 바인딩
+  useEffect(() => {
+    if (isPrivate && isGroupLeader && groupId) {
+      fetchInviteCode();
+    }
+  }, [isPrivate, isGroupLeader, groupId]);
+
+  // [API] 게시글 선택 시 상세 정보 다시 불러오기
   useEffect(() => {
     if (selectedPostId !== 0) {
       fetchBoardDetail();
@@ -154,7 +163,7 @@ function GroupDetailPage() {
     }
   }, [selectedPostId]);
 
-  // [HANDLER] 게시판 페이지가 바뀌면 게시글 다시 불러오기
+  // [API] 게시판 페이지가 바뀌면 게시글 다시 불러오기
   useEffect(() => {
     fetchBoards(boardPage);
   }, [boardPage]);
@@ -165,7 +174,7 @@ function GroupDetailPage() {
     }
   }, [commentPage]);
 
-  // [HANDLER] 문제/대회 페이지가 바뀌면 활동 다시 불러오기
+  // [API] 문제/대회 페이지가 바뀌면 활동 다시 불러오기
   useEffect(() => {
     fetchGroupProblems(activityPage);
   }, [activityPage]);
@@ -818,6 +827,44 @@ function GroupDetailPage() {
       alert("서버와 통신 중 문제가 발생했습니다.");
     } finally {
       setIsGroupImgUploading(false);
+    }
+  };
+
+  // [API] 초대 코드 불러오기
+  const fetchInviteCode = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`https://diveon.net/api/groups/${groupId}/invite-code`, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setInviteCode(json.data.invitationCode);
+        setInviteExpiresAt(json.data.expiresAt);
+      }
+    } catch (e) {
+      console.error("초기 초대코드 바인딩 실패:", e);
+    }
+  };
+
+  // [API] 초대코드 재발급 
+  const handleRegenerateInviteCode = async () => {
+    if (!confirm("기존 초대링크는 즉시 무효화됩니다. 새 링크를 발급하시겠습니까?")) return;
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`https://diveon.net/api/groups/${groupId}/invite-code`, {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setInviteCode(json.data.invitationCode);
+        setInviteExpiresAt(json.data.expiresAt);
+        alert("새로운 초대코드가 발급되었습니다!");
+      }
+    } catch (e) {
+      console.error("초대코드 재발급 중 장애 발생:", e);
     }
   };
 
@@ -1752,6 +1799,47 @@ function GroupDetailPage() {
                         <span className={`pointer-events-none block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${isAutoApprove ? "translate-x-4" : "translate-x-1"}`} />
                       </button>
                     </div>
+
+                    {/* 비공개 그룹인 경우만 보게 되는 시크릿 통로 */}
+                    {isPrivate && inviteCode && (
+                      <div className="p-4 bg-slate-900 border border-slate-950 rounded-xl space-y-3 text-white shadow-inner animate-in">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-indigo-400 uppercase tracking-widest">Secret Invitation Link</span>
+                          <span className="text-[10px] text-slate-400 font-medium">만료일: {inviteExpiresAt?.replace("T", " ")}</span>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Input 
+                            readOnly 
+                            // 유저가 로컬(localhost:3000)에서 테스트할 때와 실서버(diveon.net)에서 테스트할 때의 주소를 알아서 유연하게 맞춰서 보여줍니다.
+                            value={`${typeof window !== "undefined" ? window.location.origin : ""}/groups/invite?code=${inviteCode}`} 
+                            className="bg-slate-950 border-slate-800 text-xs font-mono text-emerald-400 select-all h-9"
+                          />
+                          <Button 
+                            size="sm" 
+                            type="button"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-xs font-bold shrink-0 h-9 rounded-xl"
+                            onClick={() => {
+                              // 클릭 시 카톡/이메일에 붙여넣을 수 있는 정적 파라미터 링크 규격으로 클립보드 복사
+                              const shareUrl = `${window.location.origin}/groups/invite?code=${inviteCode}`;
+                              navigator.clipboard.writeText(shareUrl);
+                              alert("카톡/이메일 공유용 초대 링크가 클립보드에 복사되었습니다!");
+                            }}
+                          >
+                            복사
+                          </Button>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          type="button"
+                          variant="outline" 
+                          onClick={handleRegenerateInviteCode}
+                          className="w-full text-[11px] font-bold text-slate-400 border-white/5 bg-white/5 hover:bg-white/10 hover:text-white h-8 rounded-lg"
+                        >
+                          🔄 초대 링크 재발급 (기존 링크 폐기)
+                        </Button>
+                      </div>
+                    )}
 
                     {/* 자동 승인이 OFF(!isAutoApprove)일 때만 대기열 버튼 노출 */}
                     {!isAutoApprove && (

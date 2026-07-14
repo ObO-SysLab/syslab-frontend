@@ -126,7 +126,7 @@ export default function GroupCreatePage() {
     setPreviewUrl("");
   };
 
-  // [API 연동] 그룹 생성 및 후속 이미지 업로드 연쇄 결합 트랙
+  // [API] 그룹 생성 및 후속 이미지 업로드 연쇄 결합 트랙
   const handleSubmit = async () => {
     if (!title.trim()) {
       alert("그룹 이름을 입력해주세요.");

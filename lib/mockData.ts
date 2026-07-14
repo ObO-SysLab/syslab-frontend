@@ -11,9 +11,9 @@ export const mockUser = {
 
 // [Diveon main] 최신/추천 문제 목록
 export const mockFeaturedProblems = [
-	{ id: "102", title: "숨겨진 플래그를 찾아라", category: "CTF", difficulty: "중", solvedCount: 1258 },
-	{ id: "105", title: "라운드로빈", category: "Process", difficulty: "상", solvedCount: 452 },
-	{ id: "108", title: "나만의 MFT", category: "File System", difficulty: "하", solvedCount: 2351 }, // [전공 특화]
+	{ id: "102", title: "숨겨진 플래그를 찾아라", category: "CTF", difficulty: "중", solvedCount: 1258, depthLabel: "500m" },
+	{ id: "105", title: "라운드로빈", category: "Process", difficulty: "상", solvedCount: 452, depthLabel: "50m" },
+	{ id: "108", title: "나만의 MFT", category: "File System", difficulty: "하", solvedCount: 2351, depthLabel: "100m" }, 
 ];
 
 export const mockNotifications = [
