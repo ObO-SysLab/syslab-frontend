@@ -10,7 +10,7 @@ interface FaultMarkerNodeData {
 }
 
 export function FaultMarkerNode({ data, selected }: NodeProps) {
-  const d = data as FaultMarkerNodeData;
+  const d = data as unknown as FaultMarkerNodeData;
   const markers = d.markers ?? [];
   const faultColor = d.faultColor ?? '#E24B4A';
   const hitColor = d.hitColor ?? '#1D9E75';
