@@ -440,48 +440,7 @@ export default function GroupListPage() {
                             </div>
                           </div>
                         </div>
-<<<<<<< HEAD
-                      </div>
-
-                      { /* 그룹 멤버 수 및 티어 뱃지 */}
-                      <div className="flex items-center gap-8">
-                        <div className="text-right min-w-[100px]">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            MEMBERS
-                          </p>
-                          <p className="text-base font-bold text-slate-700">
-                            {(grp.memberCount || 0).toLocaleString()}/{(grp.totalMembers || 0).toLocaleString()}
-                          </p>
-                        </div>
-
-                        <div className="w-24 flex justify-end shrink-0">
-                          <Badge
-                            className={`
-                              rounded-full px-2.5 py-0.5 text-[10px] font-black border uppercase tracking-tight transition-all
-                              ${String(grp.tier) === "1" ? "bg-orange-50 text-orange-700 border-orange-200" : ""}
-                              ${String(grp.tier) === "2" ? "bg-slate-100 text-slate-600 border-slate-300" : ""}
-                              ${String(grp.tier) === "3" ? "bg-yellow-50 text-yellow-700 border-yellow-300 shadow-sm" : ""}
-                              ${String(grp.tier) === "4" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ""}
-                              ${String(grp.tier) === "5" ? "bg-cyan-50 text-cyan-700 border-cyan-200 shadow-sm" : ""}
-                              ${String(grp.tier) === "6" ? "bg-purple-50 text-purple-700 border-purple-200 shadow-sm" : ""}
-                              ${String(grp.tier) === "7" ? "bg-slate-900 text-white border-slate-950 shadow-sm font-black animate-pulse" : ""}
-                            `}
-                          >
-                            {/* 텍스트 표기용 콤보 필터 */}
-                            {String(grp.tier) === "7" && "Challenger"}
-                            {String(grp.tier) === "6" && "Master"}
-                            {String(grp.tier) === "5" && "Diamond"}
-                            {String(grp.tier) === "4" && "Platinum"}
-                            {String(grp.tier) === "3" && "Gold"}
-                            {String(grp.tier) === "2" && "Silver"}
-                            {String(grp.tier) === "1" && "Bronze"}
-                            {!["1","2","3","4","5","6","7"].includes(String(grp.tier)) && (grp.tier || "Unranked")}
-                          </Badge>
-                        </div>
-                      </div>
-=======
                       </Card>
->>>>>>> 818a9a9 (feat: add google Oauth2)
                     </div>
                   ))
                 ) : (
