@@ -287,18 +287,26 @@ export default function GroupListPage() {
           <div className="pt-4 border-t">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Tier</h3>
             <div className="flex flex-wrap gap-2">
-              {/* 배열을 숫자 문자열로 변경 */}
-              {["Bronze", "Silver", "Gold", "Platinum", "Diamond"].map(tier => (
-                <Badge
-                  key={tier}
-                  variant={selectedTier === tier ? "default" : "outline"}
-                  className={`cursor-pointer px-3 py-1 transition-all ${selectedTier === tier ? "bg-slate-900 text-white" : "hover:bg-slate-100"
+              {["1", "2", "3", "4", "5", "6", "7"].map(tier => {
+                const tierNameMap: Record<string, string> = {
+                  "1": "Bronze", "2": "Silver", "3": "Gold", 
+                  "4": "Platinum", "5": "Diamond", "6": "Master", "7": "Challenger"
+                };
+                const label = tierNameMap[tier] || "Tier";
+
+                return (
+                  <Badge
+                    key={tier}
+                    variant={selectedTier === tier ? "default" : "outline"}
+                    className={`cursor-pointer px-3 py-1 transition-all capitalize ${
+                      selectedTier === tier ? "bg-slate-900 text-white" : "hover:bg-slate-100"
                     }`}
-                  onClick={() => handleTierChange(tier)}
-                >
-                  {tier} tier
-                </Badge>
-              ))}
+                    onClick={() => handleTierChange(tier)}
+                  >
+                    {label}
+                  </Badge>
+                );
+              })}
             </div>
           </div>
         </aside>

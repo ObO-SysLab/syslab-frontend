@@ -72,7 +72,7 @@ export default function GlobalRankingPage() {
     fetchProfileImage();
   }, []);
 
-  // 기존 빈 함수를 지우고 이 실서버 연동 코드로 교체하세요!
+  // [API] 유저 랭킹
   const fetchUserRankings = async (pageNumber: number) => {
     setIsLoading(true);
     const token = localStorage.getItem("token");
@@ -118,7 +118,7 @@ export default function GlobalRankingPage() {
     }
   };
 
-  // [API] 신규 그룹 랭킹 API 연동 함수
+  // [API] 그룹 랭킹
   const fetchGroupRankings = async (pageNumber: number) => {
     setIsLoading(true);
     const token = localStorage.getItem("token");
@@ -179,18 +179,18 @@ export default function GlobalRankingPage() {
   };
 
   // 기존 getTierColor 함수 내부에 들어오는 티어 변환 가드 주입
-  const getTierColor = (tier: string | number) => {
-    let tierStr = String(tier);
+  const getTierColor = (tier: string) => {
+    
 
-    if (tierStr === "7") tierStr = "Challenger";
-    else if (tierStr === "6") tierStr = "Master";
-    else if (tierStr === "5") tierStr = "Diamond";
-    else if (tierStr === "4") tierStr = "Platinum";
-    else if (tierStr === "3") tierStr = "Gold";
-    else if (tierStr === "2") tierStr = "Silver";
-    else if (tierStr === "1") tierStr = "Bronze";
+    if (tier === "7") tier = "Challenger";
+    else if (tier === "6") tier = "Master";
+    else if (tier === "5") tier = "Diamond";
+    else if (tier === "4") tier = "Platinum";
+    else if (tier === "3") tier = "Gold";
+    else if (tier === "2") tier = "Silver";
+    else if (tier === "1") tier = "Bronze";
 
-    switch (tierStr) {
+    switch (tier) {
       case 'Challenger': return 'bg-rose-950 text-rose-200 border-rose-800';
       case 'Master': return 'bg-purple-50 text-purple-700 border-purple-200';
       case 'Diamond': return 'bg-cyan-50 text-cyan-600 border-cyan-200';
@@ -262,7 +262,7 @@ export default function GlobalRankingPage() {
           <div className="space-y-4 w-full md:w-auto">
             <div className="space-y-2">
               <h1 className="text-4xl font-black tracking-tighter text-slate-950 uppercase flex items-center gap-3">
-                <BarChart3 className="h-8 w-8 text-indigo-600" /> Leaderboard
+                <BarChart3 className="h-8 w-8 text-indigo-600" /> Ranking
               </h1>
               <p className="text-slate-500 font-medium">Diveon 최고의 명예를 거머쥔 주인공들을 확인하세요.</p>
             </div>
@@ -406,12 +406,12 @@ export default function GlobalRankingPage() {
                     : `${(item.memberCount || 0).toLocaleString()}명`;
 
                   return (
-                    <TableRow key={item.rank} className="hover:bg-slate-50/50 transition-colors group">
+                    <TableRow key={`table-row-${rankType}-${displayId}`} className="hover:bg-slate-50/50 transition-colors group">
                       <TableCell className="text-center font-black text-slate-500">{item.rank}위</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8 border border-slate-100">
-                            <AvatarImage src={rankType === "group" && item.image ? item.image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${displayId}?v=${Date.now()}`} className="object-cover" />
+                            <AvatarImage src={rankType === "group" && item.image ? item.image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${displayId}?v=${cacheBuster}`} className="object-cover" />
                             <AvatarFallback className={rankType === "user" ? "bg-indigo-50 text-indigo-600 text-xs font-bold" : "bg-purple-50 text-purple-600 text-xs font-bold"}>
                               {displayName.substring(0, 2).toUpperCase()}
                             </AvatarFallback>

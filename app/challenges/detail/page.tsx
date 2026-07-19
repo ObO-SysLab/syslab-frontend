@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Search, Settings, LogOut, User, Menu, MessageSquare, Bell, Share2,
   CheckCircle2, XCircle, Clock, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag, Trash2,
-  ChevronLeft, MessageCircle, Edit2, Flame, Zap, Flag
+  ChevronLeft, MessageCircle, Edit2, Flame, Zap, Flag, Activity
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { form } from "framer-motion/client";
+import { OboPlayer } from "@/components/obo/OboPlayer";
+import { resolveOboBlob, type OboBlob, type ProblemOboData } from "@/components/obo/types";
 
+function OboPlayerSection({ oboData, selectedChoiceIndex }: {
+  oboData: ProblemOboData | OboBlob;
+  selectedChoiceIndex?: number | null;
+}) {
+  const blob = resolveOboBlob(oboData, selectedChoiceIndex);
+
+  if (!blob || blob.nodes.length === 0) return null;
+
+  return (
+    <div className="mt-8 space-y-2">
+      <p className="text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5">
+        <Activity className="w-4 h-4 text-indigo-600" /> OBO 시각화
+      </p>
+      <div style={{ height: 440 }}>
+        <OboPlayer blob={blob} />
+      </div>
+    </div>
+  );
+}
 
 function ProblemDetailContent() {
   // API 연동 스위치
@@ -107,31 +128,36 @@ function ProblemDetailContent() {
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
       try {
-        // 문제 상세 조회, 랭킹, 광고를 병렬로 호출
-        const [probRes] = await Promise.all([
+        const [probRes, rankRes] = await Promise.all([
           fetch(`https://diveon.net/api/problems/${probId}`, { headers }),
-          // fetch(`https://diveon.net/api/problems/${probId}/rank?page=0&size=100`, { headers }),
-          // fetch("https://diveon.net/api/ad/?placement=prob_detail")
+          fetch(`https://diveon.net/api/problems/${probId}/ranking?page=1`, { headers }) // 20개씩 가져오는 1페이지 노크
         ]);
 
+        // 1. 문제 상세 정보 매립
         if (probRes.ok) {
           const probJson = await probRes.json();
           setProblemData(probJson.data);
           setIsOwner(probJson.data.isOwner);
         }
 
-        // if (rankRes.ok) {
-        //   const rankJson = await rankRes.json();
-        //   if (rankJson.status === 200) setRankings(rankJson.data.rankings);
-        // }
+        // 2. 새 명세 규격에 맞춘 랭킹 데이터 매립 및 First Blood 계산
+        if (rankRes.ok) {
+          const rankJson = await rankRes.json();
+          const rankList = rankJson?.data?.rankings || [];
+          setRankings(rankList);
 
-        // if (adRes.ok) {
-        //   const adJson = await adRes.json();
-        //   if (adJson.ads) setAds(adJson.ads);
-        //   else if (adJson.data?.ads) setAds(adJson.data.ads);
-        // }
+          if (rankList.length > 0) {
+            const first = rankList[0];
+            setFirstBlood({
+              user: first.nickname,
+              // "2024-01-01T12:00:00" 포맷 파싱 가드
+              date: new Date(first.firstSolvedAt).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })
+            });
+          }
+        }
 
-        fetchComments(); // 메인 댓글 목록 조회
+        // 후속 데이터 패널 로드
+        fetchComments();    // 메인 댓글 목록 조회
         fetchSubmissions(); // 제출 탭 데이터 조회
       } catch (error) {
         console.error("데이터 로드 실패:", error);
@@ -139,7 +165,10 @@ function ProblemDetailContent() {
         setIsLoading(false); // 로딩 종료
       }
     };
-    fetchPageData();
+
+    if (probId) {
+      fetchPageData();
+    }
   }, [probId]);
 
   // [API] 채점 탭 데이터 요청
@@ -313,6 +342,38 @@ function ProblemDetailContent() {
       }
     } catch (e) {
       console.error("댓글 파싱/네트워크 에러:", e);
+    }
+  };
+
+  // [API] 랭킹 불러오기
+  const fetchRanking = async (page = 1) => {
+    const token = localStorage.getItem("token");
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    try {
+      const res = await fetch(`https://diveon.net/api/problems/${probId}/ranking?page=${page}`, {
+        method: "GET",
+        headers
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        // 백엔드가 제공하는 데이터 패키지 바인딩
+        setRankings(json.data.rankings || []);
+
+        // 만약 첫 번째 해결자(First Blood)가 아직 화면에 매핑 안 되었다면 
+        // 랭킹의 1등 정보를 활용해 실시간 연동 처리 가드 기입
+        if (json.data.rankings && json.data.rankings.length > 0) {
+          const first = json.data.rankings[0];
+          setFirstBlood({
+            user: first.nickname,
+            date: new Date(first.firstSolvedAt).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })
+          });
+        }
+      }
+    } catch (error) {
+      console.error("문제 랭킹 로드 실패:", error);
     }
   };
 
@@ -628,19 +689,27 @@ function ProblemDetailContent() {
             <Card className="shadow-none border-slate-200">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-yellow-500" /> Top 3
+                  <Trophy className="h-4 w-4 text-yellow-500" /> Top 3 명예의 전당
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {rankings.slice(0, 3).map((ranker) => (
-                  <div key={ranker.rank} className="flex items-center justify-between text-sm">
+                  <div key={ranker.userId} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="h-5 w-5 flex items-center justify-center p-0 rounded-full">
+                      <Badge variant="secondary" className="h-5 w-5 flex items-center justify-center p-0 rounded-full font-black text-[10px]">
                         {ranker.rank}
                       </Badge>
-                      <span className="font-medium text-slate-700">{ranker.nickname}</span>
+                      <span className="font-semibold text-slate-700">{ranker.nickname}</span>
                     </div>
-                    <span className="text-slate-400 text-xs">{ranker.score}점</span>
+                    {ranker.language ? (
+                      <Badge variant="outline" className="text-[10px] uppercase font-mono px-1.5 h-4 border-slate-200 text-slate-400">
+                        {ranker.language}
+                      </Badge>
+                    ) : (
+                      <span className="text-slate-400 text-[11px] font-medium">
+                        {new Date(ranker.firstSolvedAt).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })}
+                      </span>
+                    )}
                   </div>
                 ))}
                 {rankings.length === 0 && (
@@ -849,6 +918,14 @@ function ProblemDetailContent() {
                 )}
               </div>
 
+              {/* OBO 시각화 플레이어 */}
+              {problemData?.oboJson && (
+                <OboPlayerSection
+                  oboData={problemData.oboJson}
+                  selectedChoiceIndex={selectedChoices.length > 0 ? selectedChoices[selectedChoices.length - 1] : null}
+                />
+              )}
+
               {/* 실습형(CTF) VM 환경 동적 렌더링 */}
               {problemData?.type === "practice" && (
                 <div className="mt-8 p-6 bg-slate-900 rounded-2xl space-y-6 shadow-lg border border-slate-800">
@@ -1043,32 +1120,71 @@ function ProblemDetailContent() {
 
             {/* 3. 순위 탭 */}
             <TabsContent value="rank" className="mt-6 animate-in fade-in-50 duration-300">
-              <h2 className="text-lg font-bold mb-4">전체 랭킹 (Top 100)</h2>
-              <div className="border rounded-lg overflow-hidden">
+              <h2 className="text-lg font-bold mb-4">전체 랭킹 (실시간 제출 완료 순)</h2>
+              <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
                 <Table>
                   <TableHeader className="bg-slate-50">
                     <TableRow>
-                      <TableHead className="w-[60px]">순위</TableHead>
-                      <TableHead>사용자</TableHead>
-                      <TableHead>메모리</TableHead>
-                      <TableHead>시간</TableHead>
-                      <TableHead>언어</TableHead>
-                      <TableHead className="text-right">날짜</TableHead>
+                      <TableHead className="w-[80px] text-center font-bold">순위</TableHead>
+                      <TableHead className="font-bold">사용자</TableHead>
+                      {problemData?.type === "coding" && <TableHead className="w-[120px] text-center font-bold">사용 언어</TableHead>}
+                      <TableHead className="text-right pr-6 font-bold">최초 해결 일시</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {rankings.map((rank) => (
-                      <TableRow key={rank.rank}>
-                        <TableCell className="font-bold">{rank.rank}</TableCell>
-                        <TableCell className="font-medium text-blue-600">{rank.nickname}</TableCell>
-                        <TableCell className="text-xs text-slate-500">-</TableCell>
-                        <TableCell className="text-xs text-slate-500">-</TableCell>
-                        <TableCell className="text-xs"><Badge variant="outline">{rank.score}점</Badge></TableCell>
-                        <TableCell className="text-right text-xs text-slate-400">
-                          {new Date(rank.solvedAt).toLocaleString()}
+                      <TableRow key={rank.userId} className="hover:bg-slate-50/50 transition-colors">
+                        <TableCell className="text-center font-black text-slate-400">{rank.rank}위</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-7 w-7 border border-slate-100">
+                              {/* 💡 [기술 특약] 백엔드 규칙에 맞게 확장자 떼고 쿼리스트링 매핑 우회 적용 */}
+                              <AvatarImage
+                                src={`https://d3ghudecvdi62z.cloudfront.net/profiles/users/${rank.userId}?v=${Date.now()}`}
+                                className="object-cover"
+                              />
+                              <AvatarFallback className="bg-slate-100 text-[10px] text-slate-500 font-bold">
+                                {rank.nickname[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-bold text-slate-800">{rank.nickname}</span>
+                          </div>
+                        </TableCell>
+
+                        {/* 코딩 문제일 경우에만 해당 언어 노출 가드 기입 */}
+                        {problemData?.type === "coding" && (
+                          <TableCell className="text-center">
+                            {rank.language ? (
+                              <Badge variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono text-xs uppercase px-2 py-0.5 rounded-md">
+                                {rank.language}
+                              </Badge>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
+                          </TableCell>
+                        )}
+
+                        <TableCell className="text-right text-xs text-slate-500 font-mono pr-6">
+                          {/* 백엔드가 제공하는 firstSolvedAt 파싱 적용 */}
+                          {new Date(rank.firstSolvedAt).toLocaleString("ko-KR", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit"
+                          })}
                         </TableCell>
                       </TableRow>
                     ))}
+
+                    {rankings.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={problemData?.type === "coding" ? 3 : 2} className="text-center py-12 text-slate-400 text-sm font-medium">
+                          이 문제를 해결한 사용자가 아직 없습니다. 최초의 정답자가 되어보세요! 🚀
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>
