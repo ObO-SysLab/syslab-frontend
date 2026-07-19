@@ -227,3 +227,17 @@ export const mockRankings = [
   { rank: 9, nickname: "MutexLock", score: 8500, tier: "Silver", solved: 150, recentActivity: "10분 전" },
   { rank: 10, nickname: "DevBeginner", score: 8100, tier: "Silver", solved: 142, recentActivity: "방금 전" },
 ];
+
+export const mockTop3Groups = [
+  { rank: 1, nickname: "단국대 보안동아리", avatar: "DK", score: 98400, master: "거뇽이형", memberCount: 42 },
+  { rank: 2, nickname: "알고리즘 뿌시기", avatar: "AL", score: 85200, master: "JohnDoe", memberCount: 28 },
+  { rank: 3, nickname: "CTF 워리어스", avatar: "CT", score: 71900, master: "Alice", memberCount: 15 },
+];
+
+export const mockGroupRankings = [
+  { rank: 1, nickname: "단국대 보안동아리", tier: "Challenger", solved: 412, score: 98400, recentActivity: "5분 전 문제 해결" },
+  { rank: 2, nickname: "알고리즘 뿌시기", tier: "Master", solved: 325, score: 85200, recentActivity: "20분 전 문제 해결" },
+  { rank: 3, nickname: "CTF 워리어스", tier: "Diamond", solved: 289, score: 71900, recentActivity: "1시간 전 대회 종료" },
+  { rank: 4, nickname: "WebHacking.kr 파티", tier: "Platinum", solved: 210, score: 64200, recentActivity: "3시간 전 글 작성" },
+  { rank: 5, nickname: "초보자 환영 스터디", tier: "Gold", solved: 145, score: 48900, recentActivity: "어제 멤버 가입" },
+];
