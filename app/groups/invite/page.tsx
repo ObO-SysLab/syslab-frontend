@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 function GroupInviteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const code = searchParams.get("code"); 
+  const code = searchParams.get("code");
 
   const [status, setStatus] = useState<"loading" | "success" | "already" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState("");
@@ -25,10 +25,15 @@ function GroupInviteContent() {
 
     const joinGroupViaInviteCode = async () => {
       const token = localStorage.getItem("token");
-      
+
       if (!token) {
         alert("그룹 초대 링크를 이용하시려면 로그인이 필요합니다.");
-        router.push(`/signin?next=${encodeURIComponent(window.location.href)}`);
+
+        // window.location.href 풀 주소 대신, 상대 경로와 쿼리스트링(?code=...)을 안전하게 추출합니다.
+        const currentRelativePath = window.location.pathname + window.location.search;
+
+        // 인코딩 꼬임 방지를 위해 정제된 주소만 파라미터로 넘깁니다.
+        router.push(`/signin?next=${encodeURIComponent(currentRelativePath)}`);
         return;
       }
 
@@ -80,7 +85,7 @@ function GroupInviteContent() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans">
       <Card className="w-full max-w-md border-none shadow-2xl shadow-slate-200 bg-white rounded-3xl overflow-hidden">
         <CardContent className="py-12 px-10 text-center space-y-6">
-          
+
           {status === "loading" && (
             <div className="space-y-4 animate-in fade-in duration-300">
               <Loader2 className="h-10 w-10 animate-spin text-indigo-600 mx-auto" />
@@ -134,7 +139,7 @@ function GroupInviteContent() {
                 </p>
               </div>
               <div className="pt-2">
-                <Button 
+                <Button
                   onClick={() => router.push("/groups")}
                   className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl"
                 >
