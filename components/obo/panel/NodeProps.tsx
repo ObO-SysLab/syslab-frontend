@@ -6,7 +6,7 @@ import { NumField } from './fields/Num';
 import { ColorField } from './fields/Color';
 import { SegField } from './fields/Seg';
 import { ToggleField } from './fields/Toggle';
-import { ListEditor, type SlotCell, type GanttBlock, type ChartSeries } from './fields/ListEditor';
+import { ListEditor, type GanttBlock, type ChartSeries } from './fields/ListEditor';
 
 function Divider() {
   return <div className="h-px bg-slate-100" />;
@@ -56,57 +56,66 @@ export function NodeEditor({ node, onUpdate }: NodeEditorProps) {
   }
 
   if (node.type === 'slot-grid') {
-    const cells = (d.cells as SlotCell[]) ?? [];
-    const header = (d.header as boolean) ?? false;
+    const slotCount = (d.slotCount as number) ?? 0;
+    const slots = (d.slots as (number | null)[]) ?? [];
+    const resize = (count: number) => {
+      const next = Array.from({ length: count }, (_, i) => slots[i] ?? null);
+      onUpdate({ slotCount: count, slots: next });
+    };
+    const updateSlot = (i: number, raw: string) => {
+      const next = [...slots];
+      next[i] = raw === '' ? null : Number(raw);
+      onUpdate({ slots: next });
+    };
     return (
-      <div className="space-y-4">
-        <Section>
-          <TextField label="제목" value={(d.title as string) ?? ''} onChange={v => onUpdate({ title: v })} />
-          <SegField label="방향" value={(d.orientation as string) ?? 'row'}
-            options={[{ value: 'row', label: '행' }, { value: 'col', label: '열' }, { value: 'grid', label: '격자' }]}
-            onChange={v => onUpdate({ orientation: v })} />
-          <NumField label="열 수" value={(d.cols as number) ?? 4} min={1} max={8}
-            onChange={v => onUpdate({ cols: v })} />
-          <SegField label="셀 모양" value={(d.cellShape as string) ?? 'rect'}
-            options={[{ value: 'rect', label: '사각' }, { value: 'circle', label: '원형' }]}
-            onChange={v => onUpdate({ cellShape: v })} />
-          <ToggleField label="헤더" value={header} onChange={v => onUpdate({ header: v })} />
-          {header && (
-            <TextField label="헤더 라벨" placeholder="P0, P1, P2"
-              value={((d.headerLabels as string[]) ?? []).join(', ')}
-              onChange={v => onUpdate({ headerLabels: v.split(',').map(s => s.trim()).filter(Boolean) })} />
-          )}
-          <ToggleField label="꼬리 화살표" value={(d.trailingArrow as boolean) ?? false}
-            onChange={v => onUpdate({ trailingArrow: v })} />
-        </Section>
-        <Divider />
-        <Section title="셀 목록">
-          <ListEditor mode="cells" value={cells} onChange={newCells => onUpdate({ cells: newCells })} />
-        </Section>
-      </div>
+      <Section>
+        <NumField label="슬롯 개수" value={slotCount} min={1} max={16} onChange={resize} />
+        <div className="space-y-1">
+          <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">초기 슬롯 값</label>
+          <div className="flex flex-wrap gap-1.5">
+            {Array.from({ length: slotCount }).map((_, i) => (
+              <input
+                key={i}
+                value={slots[i] ?? ''}
+                onChange={e => updateSlot(i, e.target.value)}
+                placeholder="-"
+                className="w-10 px-1 py-1 text-xs text-center border border-slate-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-indigo-300"
+              />
+            ))}
+          </div>
+        </div>
+      </Section>
     );
   }
 
   if (node.type === 'gantt-lane') {
-    const mode = (d.mode as string) ?? 'block';
     const blocks = (d.blocks as GanttBlock[]) ?? [];
     return (
       <div className="space-y-4">
         <Section>
-          <TextField label="라벨" value={(d.label as string) ?? ''} onChange={v => onUpdate({ label: v })} />
-          <SegField label="모드" value={mode}
-            options={[{ value: 'block', label: '블록' }, { value: 'step', label: '스텝' }]}
-            onChange={v => onUpdate({ mode: v })} />
-          {mode === 'block' && (
-            <NumField label="축 최대값" value={(d.axisMax as number) ?? 8} min={1} max={30}
-              onChange={v => onUpdate({ axisMax: v })} />
-          )}
+          <TextField label="트랙 ID" value={(d.trackId as string) ?? ''} onChange={v => onUpdate({ trackId: v })} />
         </Section>
         <Divider />
         <Section title="블록 목록">
           <ListEditor mode="blocks" value={blocks} onChange={newBlocks => onUpdate({ blocks: newBlocks })} />
         </Section>
       </div>
+    );
+  }
+
+  if (node.type === 'counter-badge') {
+    const min = (d.min as number) ?? 0;
+    const max = (d.max as number) ?? 10;
+    return (
+      <Section>
+        <TextField label="라벨" value={(d.label as string) ?? ''} onChange={v => onUpdate({ label: v })} />
+        <NumField label="최솟값" value={min} min={-999} max={max}
+          onChange={v => onUpdate({ min: v })} />
+        <NumField label="최댓값" value={max} min={min} max={999}
+          onChange={v => onUpdate({ max: v })} />
+        <NumField label="초기값" value={(d.value as number) ?? min} min={min} max={max}
+          onChange={v => onUpdate({ value: v })} />
+      </Section>
     );
   }
 

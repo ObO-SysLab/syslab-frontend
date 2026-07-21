@@ -3,11 +3,12 @@
 import { Trash2 } from 'lucide-react';
 import type { Node, Edge } from '@xyflow/react';
 import type { EdgeType } from '../templates';
-import type { Frame } from '../types';
+import type { Frame, OboMode } from '../types';
 import { NodeEditor } from './NodeProps';
 import { EdgeEditor } from './EdgeProps';
 import { Palette } from './Palette';
 import { FramePanel } from './FramePanel';
+import { TracePanel } from './TracePanel';
 
 type PanelMode = 'palette' | 'property' | 'json';
 
@@ -30,6 +31,7 @@ interface PropertyPanelProps {
   onJsonClose: () => void;
   onDelete: () => void;
   // 프레임 탭
+  oboMode: OboMode;
   frames: Frame[];
   selectedFrameId: string | null;
   onSelectFrame: (id: string) => void;
@@ -38,6 +40,15 @@ interface PropertyPanelProps {
   onUpdateFrameLabel: (id: string, label: string) => void;
   onRemoveHighlightNode: (frameId: string, nodeId: string) => void;
   onRemoveHighlightEdge: (frameId: string, edgeId: string) => void;
+  onAddNodeOverride: (frameId: string, nodeId: string) => void;
+  onRemoveNodeOverride: (frameId: string, nodeId: string) => void;
+  onSetOverrideField: (frameId: string, nodeId: string, field: string, value: unknown) => void;
+  onClearOverrideField: (frameId: string, nodeId: string, field: string) => void;
+  onUpdateFrameCursorTime: (frameId: string, cursorTime: number | undefined) => void;
+  // coding_diff 전용 (frames 대신 트레이스 텍스트로 프레임 자동 생성)
+  traceText: string;
+  onTraceTextChange: (text: string) => void;
+  testcaseOutputs?: { index: number; output: string }[];
 }
 
 export function PropertyPanel({
@@ -46,8 +57,10 @@ export function PropertyPanel({
   updateNodeData, updateEdgeData,
   activeEdgeType, onEdgeTypeChange,
   currentNodes, currentEdges, onJsonClose, onDelete,
-  frames, selectedFrameId, onSelectFrame, onAddFrame, onRemoveFrame,
+  oboMode, frames, selectedFrameId, onSelectFrame, onAddFrame, onRemoveFrame,
   onUpdateFrameLabel, onRemoveHighlightNode, onRemoveHighlightEdge,
+  onAddNodeOverride, onRemoveNodeOverride, onSetOverrideField, onClearOverrideField, onUpdateFrameCursorTime,
+  traceText, onTraceTextChange, testcaseOutputs,
 }: PropertyPanelProps) {
   const selectedNode = selectedKind === 'node' ? nodes.find(n => n.id === selectedId) ?? null : null;
   const selectedEdge = selectedKind === 'edge' ? edges.find(e => e.id === selectedId) ?? null : null;
@@ -87,24 +100,40 @@ export function PropertyPanel({
               : 'text-slate-400 hover:text-slate-600'
           }`}
         >
-          프레임{frames.length > 0 && ` (${frames.length})`}
+          {oboMode === 'coding_diff'
+            ? `트레이스${traceText.trim() ? ` (${traceText.split('\n').filter(l => l.trim()).length})` : ''}`
+            : `프레임${frames.length > 0 ? ` (${frames.length})` : ''}`}
         </button>
       </div>
 
       {activeTab === 'frame' ? (
         <div className="flex-1 overflow-y-auto">
-          <FramePanel
-            frames={frames}
-            selectedFrameId={selectedFrameId}
-            onSelectFrame={onSelectFrame}
-            onAddFrame={onAddFrame}
-            onRemoveFrame={onRemoveFrame}
-            onUpdateLabel={onUpdateFrameLabel}
-            onRemoveHighlightNode={onRemoveHighlightNode}
-            onRemoveHighlightEdge={onRemoveHighlightEdge}
-            nodes={nodes}
-            edges={edges}
-          />
+          {oboMode === 'coding_diff' ? (
+            <TracePanel
+              nodes={nodes}
+              value={traceText}
+              onChange={onTraceTextChange}
+              testcaseOutputs={testcaseOutputs}
+            />
+          ) : (
+            <FramePanel
+              frames={frames}
+              selectedFrameId={selectedFrameId}
+              onSelectFrame={onSelectFrame}
+              onAddFrame={onAddFrame}
+              onRemoveFrame={onRemoveFrame}
+              onUpdateLabel={onUpdateFrameLabel}
+              onRemoveHighlightNode={onRemoveHighlightNode}
+              onRemoveHighlightEdge={onRemoveHighlightEdge}
+              onAddNodeOverride={onAddNodeOverride}
+              onRemoveNodeOverride={onRemoveNodeOverride}
+              onSetOverrideField={onSetOverrideField}
+              onClearOverrideField={onClearOverrideField}
+              onUpdateFrameCursorTime={onUpdateFrameCursorTime}
+              nodes={nodes}
+              edges={edges}
+            />
+          )}
         </div>
       ) : (
         <>
