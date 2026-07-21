@@ -5,6 +5,7 @@ import type { Frame } from './types';
 
 interface FrameCtx {
   previewFrame: Frame | null;
+  checkpointStatus?: Record<string, 'correct' | 'incorrect'>;
 }
 
 export const FrameContext = createContext<FrameCtx>({ previewFrame: null });
