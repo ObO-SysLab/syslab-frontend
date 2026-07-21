@@ -8,7 +8,7 @@ interface OboEdgeData {
   direction?: 'forward' | 'both';
   style?: 'solid' | 'dashed';
   role?: 'transition' | 'request' | 'allocation';
-  highlight?: boolean;
+  emphasize?: boolean;
 }
 
 export function OboEdge({
@@ -27,7 +27,7 @@ export function OboEdge({
   const frameDimmed = previewFrame !== null && !frameHighlighted;
 
   // 데모(app/challenges/obo/page.tsx)와 동일하게: 평소엔 옅은 회색, 활성(하이라이트)일 때만 두껍고 진하게.
-  const stroke = frameHighlighted ? '#f59e0b' : d.highlight ? '#ef4444' : selected ? '#6366f1' : '#e2e8f0';
+  const stroke = frameHighlighted ? '#f59e0b' : d.emphasize ? '#ef4444' : selected ? '#6366f1' : '#e2e8f0';
   const strokeWidth = frameHighlighted ? 3.5 : selected ? 2.5 : 2;
   const strokeDasharray = d.style === 'dashed' ? '6 3' : undefined;
   const opacity = frameDimmed ? 0.25 : 1;
