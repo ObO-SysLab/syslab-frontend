@@ -1,108 +1,101 @@
 'use client';
 
 import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { TIMELINE_COLOR_PALETTE, DEFAULT_TIMELINE_COLOR_KEY } from './ganttColors';
+import { useFrameCtx } from '../FrameContext';
+import { CheckpointStatusRing } from './CheckpointStatusRing';
 
-interface GanttBlock {
-  label: string;
+interface TimelineBlock {
   start: number;
   end: number;
-  color?: string;
+  colorKey: string;
 }
 
-interface GanttLaneData {
-  label?: string;
-  mode?: 'block' | 'step';
-  axisMax?: number;
-  blocks?: GanttBlock[];
+interface TimelineBlockData {
+  trackId?: string;
+  blocks?: TimelineBlock[];
+  activeBlockIndex?: number | null;
 }
 
-const SCALE = 20; // px per time unit
-const DEFAULT_COLOR = '#1D9E75';
+const SCALE = 26; // px per time unit
+const TRACK_H = 40;
 
-function BlockMode({ d, selected }: { d: GanttLaneData; selected: boolean }) {
-  const axisMax = d.axisMax ?? 8;
+function colorFor(colorKey: string): string {
+  return TIMELINE_COLOR_PALETTE[colorKey] ?? TIMELINE_COLOR_PALETTE[DEFAULT_TIMELINE_COLOR_KEY];
+}
+
+export function GanttLane({ id, data, selected }: NodeProps) {
+  const d = (data as unknown) as TimelineBlockData;
   const blocks = d.blocks ?? [];
+  const activeBlockIndex = d.activeBlockIndex ?? null;
+  const axisMax = Math.max(1, ...blocks.map(b => b.end), 1);
   const totalW = axisMax * SCALE;
-  const color = DEFAULT_COLOR;
+  const trackColor = TIMELINE_COLOR_PALETTE[DEFAULT_TIMELINE_COLOR_KEY];
+  const { checkpointStatus } = useFrameCtx();
+  const status = checkpointStatus?.[id] ?? null;
 
-  // Unique tick values from block boundaries
   const ticks = [...new Set([0, ...blocks.flatMap(b => [b.start, b.end]), axisMax])].sort((a, b) => a - b);
 
   return (
-    <div style={{
-      display: 'inline-flex', flexDirection: 'column', gap: 0,
-      boxShadow: selected ? `0 0 0 3px ${color}40` : undefined,
-      cursor: 'grab', userSelect: 'none',
-    }}>
-      <Handle id="t" type="source" position={Position.Top}    style={{ background: color, border: 'none' }} />
-      <Handle id="b" type="source" position={Position.Bottom} style={{ background: color, border: 'none' }} />
-      {d.label && (
-        <div style={{ fontSize: 10, fontWeight: 600, color: '#64748b', marginBottom: 3 }}>{d.label}</div>
-      )}
-      {/* Timeline track */}
-      <div style={{ position: 'relative', width: totalW, height: 36, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
-        {blocks.map((b, i) => (
-          <div key={i} style={{
-            position: 'absolute',
-            left: b.start * SCALE,
-            width: (b.end - b.start) * SCALE,
-            height: '100%',
-            backgroundColor: (b.color ?? DEFAULT_COLOR) + '30',
-            border: `1.5px solid ${b.color ?? DEFAULT_COLOR}`,
-            borderRadius: 2,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            overflow: 'hidden',
-          }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: b.color ?? DEFAULT_COLOR }}>{b.label}</span>
-          </div>
-        ))}
-      </div>
-      {/* Axis */}
-      <div style={{ position: 'relative', width: totalW, height: 14 }}>
-        {ticks.map(t => (
-          <span key={t} style={{
-            position: 'absolute', left: t * SCALE - 4,
-            fontSize: 8, color: '#94a3b8',
-          }}>{t}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
+    <CheckpointStatusRing status={status}>
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 10,
+        cursor: 'grab', userSelect: 'none', position: 'relative',
+      }}>
+        <Handle id="t" type="source" position={Position.Top}    style={{ background: trackColor, border: 'none' }} />
+        <Handle id="b" type="source" position={Position.Bottom} style={{ background: trackColor, border: 'none' }} />
 
-function StepMode({ d, selected }: { d: GanttLaneData; selected: boolean }) {
-  const blocks = d.blocks ?? [];
-  return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center',
-      boxShadow: selected ? '0 0 0 3px #33415540' : undefined,
-      cursor: 'grab', userSelect: 'none',
-    }}>
-      <Handle id="l" type="source" position={Position.Left}  style={{ background: '#94a3b8', border: 'none' }} />
-      <Handle id="r" type="source" position={Position.Right} style={{ background: '#94a3b8', border: 'none' }} />
-      {blocks.map((b, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+        {d.trackId && (
           <div style={{
-            padding: '6px 10px',
-            border: `1.5px solid ${b.color ?? '#6366f1'}`,
-            borderRadius: 4, backgroundColor: 'white',
-            fontSize: 11, fontWeight: 600, color: b.color ?? '#6366f1',
-            whiteSpace: 'nowrap' as const,
+            fontSize: 11, fontWeight: 800, color: '#475569',
+            background: '#f1f5f9', borderRadius: 8, padding: '5px 9px',
+            minWidth: 28, textAlign: 'center', flexShrink: 0,
           }}>
-            {b.label}
+            {d.trackId}
           </div>
-          {i < blocks.length - 1 && (
-            <div style={{ width: 20, textAlign: 'center', color: '#94a3b8', fontSize: 12, flexShrink: 0 }}>→</div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
+        )}
 
-export function GanttLane({ data, selected }: NodeProps) {
-  const d = (data as unknown) as GanttLaneData;
-  return d.mode === 'step'
-    ? <StepMode d={d} selected={selected ?? false} />
-    : <BlockMode d={d} selected={selected ?? false} />;
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <div style={{
+            position: 'relative', width: totalW, height: TRACK_H,
+            backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8,
+            boxShadow: selected ? `0 0 0 3px ${trackColor}40` : undefined,
+          }}>
+            {blocks.map((b, i) => {
+              const color = colorFor(b.colorKey);
+              const isActive = i === activeBlockIndex;
+              return (
+                <div key={i} style={{
+                  position: 'absolute', top: 3, bottom: 3,
+                  left: b.start * SCALE + (b.start === 0 ? 0 : 1),
+                  width: (b.end - b.start) * SCALE - (b.start === 0 ? 1 : 2),
+                }}>
+                  {isActive && (
+                    <div
+                      className="absolute -inset-1.5 rounded-lg opacity-70 animate-pulse pointer-events-none"
+                      style={{ boxShadow: `0 0 0 2.5px ${color}` }}
+                    />
+                  )}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundColor: color,
+                    borderRadius: 5,
+                    boxShadow: isActive ? `0 2px 6px ${color}80` : '0 1px 2px rgba(15,23,42,0.12)',
+                  }} />
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ position: 'relative', width: totalW, height: 12 }}>
+            {ticks.map(t => (
+              <span key={t} style={{
+                position: 'absolute', left: t * SCALE - 4,
+                fontSize: 9, color: '#94a3b8', fontWeight: 600,
+              }}>{t}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </CheckpointStatusRing>
+  );
 }

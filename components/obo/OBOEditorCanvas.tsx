@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -25,6 +25,8 @@ import { FrameContext } from './FrameContext';
 import { nodeTypes } from './nodes';
 import { DEFAULT_NODE_DATA } from './nodes/defaultNodeData';
 import { OboEdge } from './edges/OboEdge';
+import { nextNodeId, nextEdgeId } from './lib/id';
+import { applyFrame } from './lib/applyFrame';
 
 const edgeTypes = { 'obo-edge': OboEdge } as const;
 
@@ -40,6 +42,7 @@ interface OBOEditorCanvasProps {
   onSelect: (id: string | null, kind: 'node' | 'edge' | null) => void;
   // 프레임 탭
   activeTab: 'property' | 'frame';
+  frames: Frame[];
   previewFrame: Frame | null;
   onFrameNodeClick: (nodeId: string) => void;
   onFrameEdgeClick: (edgeId: string) => void;
@@ -48,23 +51,29 @@ interface OBOEditorCanvasProps {
 function CanvasInner({
   nodes, edges, onNodesChange, onEdgesChange,
   setNodes, setEdges, activeEdgeType, onSelect,
-  activeTab, previewFrame, onFrameNodeClick, onFrameEdgeClick,
+  activeTab, frames, previewFrame, onFrameNodeClick, onFrameEdgeClick,
 }: OBOEditorCanvasProps) {
   const { screenToFlowPosition } = useReactFlow();
+
+  const previewIndex = previewFrame ? frames.findIndex(f => f.id === previewFrame.id) : -1;
+  const displayNodes = useMemo(
+    () => (previewIndex >= 0 ? applyFrame(nodes, frames, previewIndex) : nodes),
+    [nodes, frames, previewIndex]
+  );
 
   const onConnect = useCallback((params: Connection) => {
     const isBidi  = activeEdgeType === 'bidirectional';
     const isAlloc = activeEdgeType === 'allocation';
     setEdges(eds => addEdge({
       ...params,
-      id: `e_${Date.now()}`,
+      id: nextEdgeId(eds),
       type: 'obo-edge',
       data: {
         label: '',
         direction: isBidi  ? 'both'       : 'forward',
         style:     isAlloc ? 'dashed'     : 'solid',
         role:      isAlloc ? 'allocation' : 'transition',
-        highlight: false,
+        emphasize: false,
       },
     } as Edge, eds));
   }, [activeEdgeType, setEdges]);
@@ -75,7 +84,7 @@ function CanvasInner({
     if (!type) return;
     const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     setNodes(nds => [...nds, {
-      id: `${type}-${Date.now()}`,
+      id: nextNodeId(nds),
       type,
       position,
       data: { ...(DEFAULT_NODE_DATA[type] ?? { label: type }) },
@@ -114,7 +123,7 @@ function CanvasInner({
           </div>
         )}
         <ReactFlow
-          nodes={nodes}
+          nodes={displayNodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}

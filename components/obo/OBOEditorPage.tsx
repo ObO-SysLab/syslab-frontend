@@ -45,7 +45,7 @@ export function OBOEditorPage() {
     setSelectedId(null);
     setSelectedKind(null);
     setJsonVisible(false);
-    setFrames([]);
+    setFrames(template.defaultFrames ?? []);
     setSelectedFrameId(null);
   }, [nodes.length, edges.length, setNodes, setEdges]);
 
@@ -69,7 +69,17 @@ export function OBOEditorPage() {
     if (selectedKind === 'node') {
       setNodes(nds => nds.filter(n => n.id !== selectedId));
       setEdges(eds => eds.filter(e => e.source !== selectedId && e.target !== selectedId));
-      setFrames(fs => fs.map(f => ({ ...f, highlightNodes: f.highlightNodes.filter(id => id !== selectedId) })));
+      setFrames(fs => fs.map(f => {
+        if (!f.nodeDataOverrides?.[selectedId]) {
+          return { ...f, highlightNodes: f.highlightNodes.filter(id => id !== selectedId) };
+        }
+        const { [selectedId]: _removed, ...restOverrides } = f.nodeDataOverrides;
+        return {
+          ...f,
+          highlightNodes: f.highlightNodes.filter(id => id !== selectedId),
+          nodeDataOverrides: restOverrides,
+        };
+      }));
     } else {
       setEdges(eds => eds.filter(e => e.id !== selectedId));
       setFrames(fs => fs.map(f => ({ ...f, highlightEdges: f.highlightEdges.filter(id => id !== selectedId) })));
@@ -122,6 +132,47 @@ export function OBOEditorPage() {
     setFrames(fs => fs.map(f => f.id !== frameId ? f : {
       ...f, highlightEdges: f.highlightEdges.filter(id => id !== edgeId),
     }));
+  }, []);
+
+  const addNodeOverride = useCallback((frameId: string, nodeId: string) => {
+    setFrames(fs => fs.map(f => f.id !== frameId ? f : {
+      ...f,
+      nodeDataOverrides: { ...(f.nodeDataOverrides ?? {}), [nodeId]: f.nodeDataOverrides?.[nodeId] ?? {} },
+    }));
+  }, []);
+
+  const removeNodeOverride = useCallback((frameId: string, nodeId: string) => {
+    setFrames(fs => fs.map(f => {
+      if (f.id !== frameId || !f.nodeDataOverrides) return f;
+      const { [nodeId]: _removed, ...rest } = f.nodeDataOverrides;
+      return { ...f, nodeDataOverrides: rest };
+    }));
+  }, []);
+
+  const setOverrideField = useCallback((frameId: string, nodeId: string, field: string, value: unknown) => {
+    setFrames(fs => fs.map(f => f.id !== frameId ? f : {
+      ...f,
+      nodeDataOverrides: {
+        ...(f.nodeDataOverrides ?? {}),
+        [nodeId]: { ...(f.nodeDataOverrides?.[nodeId] ?? {}), [field]: value },
+      },
+    }));
+  }, []);
+
+  const clearOverrideField = useCallback((frameId: string, nodeId: string, field: string) => {
+    setFrames(fs => fs.map(f => {
+      const existing = f.nodeDataOverrides?.[nodeId];
+      if (f.id !== frameId || !existing) return f;
+      const { [field]: _removed, ...restFields } = existing;
+      return {
+        ...f,
+        nodeDataOverrides: { ...f.nodeDataOverrides, [nodeId]: restFields },
+      };
+    }));
+  }, []);
+
+  const updateFrameCursorTime = useCallback((frameId: string, cursorTime: number | undefined) => {
+    setFrames(fs => fs.map(f => f.id !== frameId ? f : { ...f, cursorTime }));
   }, []);
 
   // 캔버스 클릭 → 프레임 탭에서 하이라이트 토글
@@ -207,6 +258,7 @@ export function OBOEditorPage() {
           activeEdgeType={activeEdgeType}
           onSelect={handleSelect}
           activeTab={activeTab}
+          frames={frames}
           previewFrame={previewFrame}
           onFrameNodeClick={handleFrameNodeClick}
           onFrameEdgeClick={handleFrameEdgeClick}
@@ -228,6 +280,7 @@ export function OBOEditorPage() {
           currentEdges={edges}
           onJsonClose={() => setJsonVisible(false)}
           onDelete={deleteSelected}
+          oboMode="single"
           frames={frames}
           selectedFrameId={selectedFrameId}
           onSelectFrame={setSelectedFrameId}
@@ -236,6 +289,13 @@ export function OBOEditorPage() {
           onUpdateFrameLabel={updateFrameLabel}
           onRemoveHighlightNode={removeHighlightNode}
           onRemoveHighlightEdge={removeHighlightEdge}
+          onAddNodeOverride={addNodeOverride}
+          onRemoveNodeOverride={removeNodeOverride}
+          onSetOverrideField={setOverrideField}
+          onClearOverrideField={clearOverrideField}
+          onUpdateFrameCursorTime={updateFrameCursorTime}
+          traceText=""
+          onTraceTextChange={() => {}}
         />
       </div>
 

@@ -10,7 +10,7 @@ interface OboEdgeData {
   direction?: 'forward' | 'both';
   style?: 'solid' | 'dashed';
   role?: 'transition' | 'request' | 'allocation';
-  highlight?: boolean;
+  emphasize?: boolean;
 }
 
 interface EdgeEditorProps {
@@ -46,7 +46,7 @@ export function EdgeEditor({ edge, onUpdate }: EdgeEditorProps) {
         ]}
         onChange={v => onUpdate({ role: v as OboEdgeData['role'] })}
       />
-      <ToggleField label="강조" value={d.highlight ?? false} onChange={v => onUpdate({ highlight: v })} />
+      <ToggleField label="강조" value={d.emphasize ?? false} onChange={v => onUpdate({ emphasize: v })} />
     </div>
   );
 }

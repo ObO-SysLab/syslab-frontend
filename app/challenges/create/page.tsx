@@ -1228,6 +1228,10 @@ function ProblemCreateContent() {
                   choices={problemType === 'objective'
                     ? choices.map(c => ({ id: `choice_${c.index}`, text: c.content }))
                     : undefined}
+                  allowCodingDiff={problemType === 'coding'}
+                  testcaseOutputs={problemType === 'coding'
+                    ? testcases.map(tc => ({ index: tc.index, output: tc.output }))
+                    : undefined}
                 />
               </div>
             </div>
