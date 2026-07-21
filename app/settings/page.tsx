@@ -6,6 +6,7 @@ import {
   Search, LogOut, User, Menu, Lock, Bell, Paintbrush, Trash2, X, ShieldCheck,
   Laptop, Moon, Sun, Flag, Trophy, Users, BarChart3, ShoppingBag, Camera
 } from "lucide-react";
+import { BarChart, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -199,6 +200,12 @@ export default function SettingsPage() {
               active={activeTab === "appearance"}
               onClick={() => setActiveTab("appearance")}
             />
+            <SettingsNavItem
+              icon={<BarChart3 size={18} />}
+              label="능력치 차트"
+              active={activeTab === "chart"}
+              onClick={() => setActiveTab("chart")}
+            />
           </nav>
           <Separator className="my-6" />
           <div className="px-3">
@@ -226,6 +233,7 @@ export default function SettingsPage() {
           {activeTab === "security" && <SecuritySection />}
           {activeTab === "notifications" && <NotificationSection />}
           {activeTab === "appearance" && <AppearanceSection />}
+          {activeTab === "chart" && <ChartSection data={profileData} />}
         </section>
 
       </main>
@@ -768,6 +776,303 @@ function AppearanceSection() {
           </SelectContent>
         </Select>
       </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* 5. 대원 능력치 차트 분석 섹션 (실시간 API 카테고리 스태츠 연동 및 동적 MAX 제어) */
+/* -------------------------------------------------------------------------- */
+function ChartSection({ data }: { data: any }) {
+  // 토큰 및 세션 정보 획득
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  // [STATE] 서브 메뉴 토글 및 필터 제어
+  const [subTab, setSubTab] = useState<"solved" | "failed" | "authored" | "groups" | "contests">("solved");
+  const [visibility, setVisibility] = useState<string>("");
+  const [listData, setListData] = useState<any[]>([]);
+  const [isSubLoading, setIsSubLoading] = useState(false);
+
+  // [STATE] 오각형 차트용 실시간 API 데이터 풀
+  const [categoryStats, setCategoryStats] = useState<Record<string, number>>({
+    Process: 0,
+    Memory: 0,
+    Kernel: 0,
+    Thread: 0,
+    FileSystem: 0
+  });
+  const [isChartLoading, setIsChartLoading] = useState(true);
+
+  // 1. [EFFECT] 오각형 차트 전용 실시간 카테고리 스태츠 로드 체인
+  useEffect(() => {
+    const fetchChartStats = async () => {
+      if (!token) return;
+      try {
+        const res = await fetch("https://diveon.net/api/profile/category-stats", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.status === 200 && json.data?.categoryScores) {
+            setCategoryStats(json.data.categoryScores);
+          }
+        }
+      } catch (err) {
+        console.error("카테고리 통계 조회 인프라 통신 실패:", err);
+      } finally {
+        setIsChartLoading(false);
+      }
+    };
+
+    fetchChartStats();
+  }, [token]);
+
+  // 2. [EFFECT] 하단 리스트업 제어 체인 (푼 문제, 그룹, 대회 등)
+  useEffect(() => {
+    const fetchSubTabData = async () => {
+      if (!token) return;
+      setIsSubLoading(true);
+      try {
+        let url = `https://diveon.net/api/profile/problems/${subTab}?page=1`;
+        
+        if (subTab === "groups" || subTab === "contests") {
+          url = `https://diveon.net/api/profile/${subTab}?page=1`;
+        } else if (visibility) {
+          url += `&visibility=${visibility}`;
+        }
+
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          if (subTab === "groups") setListData(json?.data?.groups || []);
+          else if (subTab === "contests") setListData(json?.data?.contests || []);
+          else setListData(json?.data?.problems || []);
+        } else {
+          setListData([]);
+        }
+      } catch (err) {
+        console.error("서브 탭 데이터 연동 오류:", err);
+        setListData([]);
+      } finally {
+        setIsSubLoading(false);
+      }
+    };
+
+    fetchSubTabData();
+  }, [subTab, visibility, token]);
+
+  // 명세서 권장 사항: 가장 높은 값을 max로 동적 설정 (강약점 변별력 확보)
+  const scoreValues = Object.values(categoryStats);
+  const maxScore = Math.max(...scoreValues);
+  // 모든 점수가 0점일 경우 최소 분모를 100m로 잡아 차트 크래시 방어 가드 주입
+  const dynamicMax = maxScore > 0 ? maxScore : 100;
+
+  // Recharts 컴포넌트 규격에 맞게 API 데이터를 배열 포맷으로 바인딩 (UI 가시성을 위해 FileSystem -> File System 변환)
+  const formattedChartData = [
+    { subject: "Process", depth: categoryStats.Process },
+    { subject: "Memory", depth: categoryStats.Memory },
+    { subject: "Kernel", depth: categoryStats.Kernel },
+    { subject: "Thread", depth: categoryStats.Thread },
+    { subject: "File System", depth: categoryStats.FileSystem },
+  ];
+
+  // 공용 수심 배지 테마 렌더러
+  const renderDepthBadge = (diff: string) => {
+    const labels: Record<string, string> = { "1": "100m", "2": "300m", "3": "500m", "4": "1,000m", "5": "3,000m+" };
+    return (
+      <Badge variant="outline" className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-black border
+        ${diff === "1" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : ""}
+        ${diff === "2" ? "bg-amber-50 text-amber-600 border-amber-200" : ""}
+        ${diff === "3" ? "bg-rose-50 text-rose-600 border-rose-100" : ""}
+        ${diff === "4" ? "bg-violet-50 text-violet-700 border-violet-200" : ""}
+        ${diff === "5" ? "bg-slate-900 text-white border-slate-950 shadow-sm" : ""}
+      `}>
+        {labels[diff] || "100m"}
+      </Badge>
+    );
+  };
+
+  return (
+    <div className="space-y-12 animate-in fade-in-50 duration-300 pb-16">
+      
+      {/* [상단 패널] 오각형 레이더 차트 분석 스택 */}
+      <div className="space-y-6">
+        <div className="space-y-1">
+          <h3 className="text-xl font-bold">능력치 차트</h3>
+          <p className="text-sm text-slate-500">각 카테고리별로 대원님이 획득한 누적 점수 수심(m) 분포도입니다. (맞힌 문제 난이도 × 10 합산)</p>
+        </div>
+        <Separator />
+
+        {isChartLoading ? (
+          <div className="h-[400px] flex items-center justify-center text-slate-400 text-sm font-bold animate-pulse bg-slate-50 border rounded-2xl">
+            심해 분석 시스템 가동 중...
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            {/* 오각형 차트 그래픽 패널 */}
+            <Card className="col-span-12 lg:col-span-7 bg-slate-950 border-slate-900 shadow-xl overflow-hidden rounded-2xl h-[400px] flex items-center justify-center p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={formattedChartData}>
+                  <PolarGrid stroke="#1e293b" />
+                  <PolarAngleAxis dataKey="subject" stroke="#94a3b8" fontSize={11} fontWeight="bold" />
+                  {/* 동적 계산된 dynamicMax를 축 최댓값(domain)으로 정교하게 바인딩 */}
+                  <PolarRadiusAxis angle={30} domain={[0, dynamicMax]} tick={{ fill: '#475569', fontSize: 10 }} />
+                  <Radar name="최고 탐사 수심" dataKey="depth" stroke="#00D1FF" fill="#0055FF" fillOpacity={0.15} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </Card>
+
+            {/* 카테고리별 상세 리포트 스태츠 패널 */}
+            <div className="col-span-12 lg:col-span-5 space-y-3">
+              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Live Score Details</Label>
+              {formattedChartData.map((item) => (
+                <div key={item.subject} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
+                  <span className="text-sm font-bold text-slate-700">{item.subject}</span>
+                  <Badge variant="secondary" className="font-mono text-xs font-black text-indigo-600 bg-indigo-50 border-none">
+                    {item.depth.toLocaleString()} m
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* [하단 대시보드 통합 허브] 문제/그룹/대회 5단 스위처 팩 */}
+      <div className="space-y-6">
+        <div className="flex flex-wrap gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200/50">
+          <button onClick={() => { setSubTab("solved"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "solved" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-white/50"}`}>🌊 푼 문제</button>
+          <button onClick={() => { setSubTab("failed"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "failed" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-white/50"}`}>❌ 못 푼 문제</button>
+          <button onClick={() => { setSubTab("authored"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "authored" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-white/50"}`}>🛠️ 출제한 문제</button>
+          <button onClick={() => { setSubTab("groups"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "groups" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-white/50"}`}>👥 속한 그룹</button>
+          <button onClick={() => { setSubTab("contests"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "contests" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-white/50"}`}>🏆 참여 대회</button>
+        </div>
+
+        {["solved", "failed", "authored"].includes(subTab) && (
+          <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium pl-1">
+            <span className="text-slate-400 mr-2 font-bold">필터:</span>
+            {[
+              { label: "전체", value: "" },
+              { label: "공개 문제", value: "public" },
+              { label: "그룹 문제", value: "group" },
+              { label: "대회 문제", value: "contest" },
+              { label: "비공개 문제", value: "private" },
+            ].map((filter) => (
+              <button
+                key={filter.label}
+                onClick={() => setVisibility(filter.value)}
+                className={`px-3 py-1 rounded-full border transition-all font-bold ${
+                  visibility === filter.value
+                    ? "bg-indigo-50 border-indigo-300 text-indigo-600 shadow-sm"
+                    : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <Card className="border border-slate-100 shadow-sm rounded-2xl overflow-hidden min-h-[250px] flex flex-col justify-between">
+          <CardContent className="p-0">
+            {isSubLoading ? (
+              <div className="py-20 text-center text-slate-400 text-sm font-bold animate-pulse">심해 서버 엔지니어링 동기화 중...</div>
+            ) : listData.length === 0 ? (
+              <div className="py-20 text-center text-slate-400 text-sm font-medium">검출된 탐사 기록 데이터가 비어 있습니다.</div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {listData.map((item: any) => {
+                  if (["solved", "failed", "authored"].includes(subTab)) {
+                    return (
+                      <Link href={`/challenges/${item.probId}`} key={`prob-${item.probId}`} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors group">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono font-bold text-slate-400 group-hover:text-indigo-600 transition-colors">#{item.probId}</span>
+                            <Badge variant="secondary" className="text-[10px] font-semibold bg-slate-100 text-slate-500 rounded-md py-0 px-1.5">{item.category}</Badge>
+                            {subTab === "authored" && (
+                              <Badge className={`text-[9px] font-black rounded border-none shadow-none px-1.5 ${item.isSolved ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
+                                {item.isSolved ? "내가 풂" : "미풀이"}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:underline">{item.title}</p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {renderDepthBadge(item.difficulty)}
+                          <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">{item.author}</span>
+                        </div>
+                      </Link>
+                    );
+                  }
+
+                  if (subTab === "groups") {
+                    return (
+                      <Link href={`/groups/${item.groupId}`} key={`group-${item.groupId}`} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors group">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar className="h-9 w-9 border border-slate-100 rounded-xl">
+                            <AvatarImage src={item.image} alt={item.title} className="object-cover" />
+                            <AvatarFallback className="bg-slate-100 text-slate-500 text-xs font-bold rounded-xl">👥</AvatarFallback>
+                          </Avatar>
+                          <div className="space-y-0.5 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:underline">{item.title}</p>
+                              <Badge className={`text-[9px] font-black border-none rounded px-1.5 ${item.role === "LEADER" ? "bg-amber-50 text-amber-600" : "bg-slate-100 text-slate-500"}`}>{item.role}</Badge>
+                            </div>
+                            <p className="text-[11px] text-slate-400 font-medium">대원 수 {item.memberCount}명</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] rounded-full font-bold px-2 py-0.5 border-slate-200 text-slate-400">
+                          {item.isPrivate ? "🔒 비공개" : "🌐 공개"}
+                        </Badge>
+                      </Link>
+                    );
+                  }
+
+                  if (subTab === "contests") {
+                    const isOngoing = item.status === "ONGOING";
+                    const isUpcoming = item.status === "UPCOMING";
+                    return (
+                      <Link href={`/contests/${item.contestId}`} key={`contest-${item.contestId}`} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors group">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Badge className={`text-[9px] font-black border-none shadow-none rounded px-1.5 ${
+                              isOngoing ? "bg-blue-50 text-blue-600 animate-pulse" :
+                              isUpcoming ? "bg-amber-50 text-amber-600" : "bg-slate-100 text-slate-400"
+                            }`}>
+                              {item.status === "ENDED" ? "종료됨" : isOngoing ? "진행중" : "대기중"}
+                            </Badge>
+                            <Badge variant="outline" className="text-[9px] font-medium border-slate-200 text-slate-400 uppercase">{item.role}</Badge>
+                          </div>
+                          <p className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:underline">{item.title}</p>
+                        </div>
+                        <div className="text-right shrink-0 font-mono text-[10px] text-slate-400 space-y-0.5 hidden sm:block">
+                          <p>시작: {new Date(item.startTime).toLocaleDateString("ko-KR")} {new Date(item.startTime).toLocaleTimeString("ko-KR", {hour: '2-digit', minute:'2-digit', hour12:false})}</p>
+                          <p>종료: {new Date(item.endTime).toLocaleDateString("ko-KR")} {new Date(item.endTime).toLocaleTimeString("ko-KR", {hour: '2-digit', minute:'2-digit', hour12:false})}</p>
+                        </div>
+                      </Link>
+                    );
+                  }
+
+                  return null;
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
     </div>
   );
 }

@@ -98,15 +98,22 @@ function ProblemCreateContent() {
   // 2. 객관식 정답 토글 핸들러
   const toggleAnswer = (idx: number) => {
     const val = idx + 1;
+
     if (selectedAnswers.includes(val)) {
-      if (selectedAnswers.length <= 1) {
+      // 해제한 후 정답이 0개가 되는 '결과론적 상황'만 차단
+      if (selectedAnswers.length === 1) {
         alert("최소 하나의 정답은 선택해야 합니다.");
         return;
       }
       setSelectedAnswers(selectedAnswers.filter((a) => a !== val));
     } else {
-      const next = [...selectedAnswers, val].sort((a, b) => a - b);
+      // 순서 일치 옵션이 켜져 있다면 .sort()를 생략하고 누른 순서 그대로 push
+      const next = isOrderedAnswer
+        ? [...selectedAnswers, val]                     // 1. 순서 지정 모드: 누른 데이터 뒤에 차례로 누적 [4, 2, 1]
+        : [...selectedAnswers, val].sort((a, b) => a - b); // 2. 일반 다중 모드: 기존처럼 번호 순 정렬 [1, 2, 4]
+
       setSelectedAnswers(next);
+
       // 다중 정답으로 전환되면 OBO는 사용할 수 없으므로 자동으로 끈다.
       if (next.length > 1 && oboEnabled) {
         setOboData({ mode: 'single', single: { nodes: [], edges: [], frames: [] } });
@@ -1065,7 +1072,7 @@ function ProblemCreateContent() {
               {/* [C] 객관식 문제일 때 */}
               {problemType === "objective" && (
                 <div className="space-y-5 animate-in fade-in-30 duration-300">
-                  
+
                   {/* 순서 매칭 옵션 설정 카드 피처 */}
                   <div className="flex items-center justify-between p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl">
                     <div className="space-y-0.5">
@@ -1074,11 +1081,17 @@ function ProblemCreateContent() {
                       </Label>
                       <p className="text-[11px] text-slate-500">체크하면 문제를 푸는 학생도 출제자가 선택한 순서대로 입력해야 정답 처리됩니다.</p>
                     </div>
-                    <input 
+                    <input
                       type="checkbox"
                       id="toggle-order"
                       checked={isOrderedAnswer}
-                      onChange={(e) => setIsOrderedAnswer(e.target.checked)}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        setIsOrderedAnswer(isChecked);
+
+                        // 옵션을 변경할 때 유저가 등록해 둔 기존 정답들을 번호 순으로 깔끔하게 정렬 리셋해 주어 UX 충돌을 방지
+                        setSelectedAnswers((prev) => [...prev].sort((a, b) => a - b));
+                      }}
                       className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                     />
                   </div>
@@ -1102,18 +1115,17 @@ function ProblemCreateContent() {
                             {/* 정답 토글 버튼 (순서 시각화 탑재) */}
                             <div
                               onClick={() => toggleAnswer(idx)}
-                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all text-xs font-black select-none ${
-                                isSelected
+                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all text-xs font-black select-none ${isSelected
                                   ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
                                   : "border-slate-200 text-transparent hover:border-indigo-300"
-                              }`}
+                                }`}
                             >
                               {/* 순서 모드이고 선택됐다면 순서 번호(1, 2..)를 노출하고, 아니면 체크 아이콘 배치 */}
                               {isSelected && isOrderedAnswer ? orderIndex + 1 : <CheckCircle2 size={14} />}
                             </div>
 
                             <span className="font-bold text-slate-400 w-4">{idx + 1}.</span>
-                            
+
                             <Input
                               value={choice.content}
                               onChange={(e) => {
@@ -1180,9 +1192,8 @@ function ProblemCreateContent() {
                     }
                     setOboEnabled(v => !v);
                   }}
-                  className={`w-11 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0 ${
-                    oboBlockedByMultiAnswer ? "opacity-50 cursor-not-allowed pointer-events-none" : "cursor-pointer"
-                  } ${oboEnabled ? "bg-indigo-600" : "bg-slate-200"}`}
+                  className={`w-11 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0 ${oboBlockedByMultiAnswer ? "opacity-50 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                    } ${oboEnabled ? "bg-indigo-600" : "bg-slate-200"}`}
                 >
                   <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${oboEnabled ? "translate-x-5" : "translate-x-0"}`} />
                 </div>

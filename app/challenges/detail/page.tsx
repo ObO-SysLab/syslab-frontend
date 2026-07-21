@@ -879,11 +879,10 @@ function ProblemDetailContent() {
                             }`}
                         >
                           {/* 서버 옵션이 순서 모드(isOrderedAnswer)라면 동글 내부에 누른 순서 숫자(1, 2..)를 띄우고, 일반 모드라면 기존 기호 유지 */}
-                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-black transition-all ${
-                            isSelected 
-                              ? "bg-indigo-600 text-white border-indigo-600 shadow-inner" 
-                              : "border-slate-300 bg-white text-slate-400"
-                          }`}>
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-black transition-all ${isSelected
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-inner"
+                            : "border-slate-300 bg-white text-slate-400"
+                            }`}>
                             {isSelected && problemData?.isOrderedAnswer ? orderIndex + 1 : choice.index}
                           </div>
 
@@ -979,6 +978,7 @@ function ProblemDetailContent() {
                     <TableRow>
                       <TableHead className="w-[100px]">제출 번호</TableHead>
                       <TableHead>닉네임</TableHead>
+                      <TableHead className="w-[80px]">티어</TableHead>
                       <TableHead>결과</TableHead>
 
                       {/* 코딩 문제 전용 헤더 */}
@@ -1028,6 +1028,13 @@ function ProblemDetailContent() {
                           >
                             <TableCell className="font-mono text-xs">{sub.submissionId}</TableCell>
                             <TableCell className="font-bold text-slate-700">{sub.nickname || "User"}</TableCell>
+
+                            {/* 티어 표시 컬럼 */}
+                            <TableCell>
+                              <Badge variant="outline" className="font-mono text-[10px] bg-slate-50 text-slate-600 border-slate-200">
+                                Tier {sub.tier || "1"}
+                              </Badge>
+                            </TableCell>
 
                             {/* 결과 배지 컬럼 */}
                             <TableCell>
@@ -1127,6 +1134,7 @@ function ProblemDetailContent() {
                     <TableRow>
                       <TableHead className="w-[80px] text-center font-bold">순위</TableHead>
                       <TableHead className="font-bold">사용자</TableHead>
+                      <TableHead className="w-[80px] text-center font-bold">티어</TableHead>
                       {problemData?.type === "coding" && <TableHead className="w-[120px] text-center font-bold">사용 언어</TableHead>}
                       <TableHead className="text-right pr-6 font-bold">최초 해결 일시</TableHead>
                     </TableRow>
@@ -1138,7 +1146,7 @@ function ProblemDetailContent() {
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-7 w-7 border border-slate-100">
-                              {/* 💡 [기술 특약] 백엔드 규칙에 맞게 확장자 떼고 쿼리스트링 매핑 우회 적용 */}
+                              {/* 백엔드 규칙에 맞게 확장자 떼고 쿼리스트링 매핑 우회 적용 */}
                               <AvatarImage
                                 src={`https://d3ghudecvdi62z.cloudfront.net/profiles/users/${rank.userId}?v=${Date.now()}`}
                                 className="object-cover"
@@ -1149,6 +1157,13 @@ function ProblemDetailContent() {
                             </Avatar>
                             <span className="font-bold text-slate-800">{rank.nickname}</span>
                           </div>
+                        </TableCell>
+
+                        {/* 티어 표시 컬럼 */}
+                        <TableCell className="text-center">
+                          <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-mono text-[10px] px-2 py-0.5 shadow-none border-none">
+                            Tier {rank.tier || "1"}
+                          </Badge>
                         </TableCell>
 
                         {/* 코딩 문제일 경우에만 해당 언어 노출 가드 기입 */}
@@ -1180,7 +1195,7 @@ function ProblemDetailContent() {
 
                     {rankings.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={problemData?.type === "coding" ? 3 : 2} className="text-center py-12 text-slate-400 text-sm font-medium">
+                        <TableCell colSpan={problemData?.type === "coding" ? 4 : 3} className="text-center py-12 text-slate-400 text-sm font-medium">
                           이 문제를 해결한 사용자가 아직 없습니다. 최초의 정답자가 되어보세요! 🚀
                         </TableCell>
                       </TableRow>
