@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNodesState, useEdgesState } from '@xyflow/react';
 import type { Node, Edge } from '@xyflow/react';
 import { CheckCircle2, X } from 'lucide-react';
@@ -11,6 +11,9 @@ import { OBOEditorCanvas } from './OBOEditorCanvas';
 import { PropertyPanel } from './panel/PropertyPanel';
 import { OboPlayer } from './OboPlayer';
 import { Button } from '@/components/ui/button';
+import { nextFrameId } from './lib/id';
+import { generateFramesFromTrace } from './lib/trace';
+import { parseTraceText, stringifyTrace } from './lib/traceParser';
 
 export interface OboChoice { id: string; text: string; }
 
@@ -18,6 +21,8 @@ interface Props {
   value: ProblemOboData | null;
   onChange: (data: ProblemOboData) => void;
   choices?: OboChoice[];
+  allowCodingDiff?: boolean;
+  testcaseOutputs?: { index: number; output: string }[];
 }
 
 const EMPTY_BLOB: OboBlob = { nodes: [], edges: [], frames: [] };
@@ -38,13 +43,17 @@ function serialize(nodes: Node[], edges: Edge[], frames: Frame[]): OboBlob {
 }
 
 export const OboEditorSection = React.memo(function OboEditorSection({
-  value, onChange, choices = [],
+  value, onChange, choices = [], allowCodingDiff = false, testcaseOutputs,
 }: Props) {
-  const initMode: OboMode = value?.mode ?? 'single';
+  const initMode: OboMode = value?.mode ?? (allowCodingDiff ? 'coding_diff' : 'single');
   const initChoiceId = choices[0]?.id ?? null;
 
   const getBlob = (m: OboMode, id: string | null): OboBlob => {
     if (m === 'single') return value?.single ?? EMPTY_BLOB;
+    if (m === 'coding_diff') {
+      const schema = value?.codingDiff;
+      return schema ? { nodes: schema.nodes, edges: schema.edges, frames: [] } : EMPTY_BLOB;
+    }
     return id ? (value?.perChoice?.[id] ?? EMPTY_BLOB) : EMPTY_BLOB;
   };
 
@@ -52,12 +61,18 @@ export const OboEditorSection = React.memo(function OboEditorSection({
   const [mode, setMode] = useState<OboMode>(initMode);
   const [activeChoiceId, setActiveChoiceId] = useState<string | null>(initChoiceId);
   const perChoiceMapRef = useRef<Record<string, OboBlob>>(value?.perChoice ?? {});
+  // coding_diff 전용: frames를 손으로 안 만들고, 자유텍스트 트레이스로부터 자동 생성.
+  // traceText가 유일한 source of truth — referenceTrace는 여기서 파생된다(아래 useMemo).
+  const [traceText, setTraceText] = useState<string>(() =>
+    value?.codingDiff ? stringifyTrace(value.codingDiff.referenceTrace, value.codingDiff.nodes as Node[]) : ''
+  );
 
   // ── React Flow 상태 ───────────────────────────────────
   const init = getBlob(initMode, initChoiceId);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(init.nodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(init.edges as Edge[]);
   const [frames, setFrames] = useState<Frame[]>(init.frames);
+  const referenceTrace = useMemo(() => parseTraceText(traceText, nodes), [traceText, nodes]);
 
   // ── 에디터 UI 상태 ────────────────────────────────────
   const [selectedTemplate, setSelectedTemplate] = useState<OBOTemplate | null>(null);
@@ -75,27 +90,34 @@ export const OboEditorSection = React.memo(function OboEditorSection({
 
   // ── 변경 전파 ─────────────────────────────────────────
   useEffect(() => {
-    const blob = serialize(nodes, edges, frames);
     if (mode === 'single') {
-      onChangeRef.current({ mode: 'single', single: blob });
+      onChangeRef.current({ mode: 'single', single: serialize(nodes, edges, frames) });
+    } else if (mode === 'coding_diff') {
+      const blob = serialize(nodes, edges, []);
+      onChangeRef.current({
+        mode: 'coding_diff',
+        codingDiff: { nodes: blob.nodes, edges: blob.edges, referenceTrace },
+      });
     } else if (activeChoiceId) {
+      const blob = serialize(nodes, edges, frames);
       perChoiceMapRef.current = { ...perChoiceMapRef.current, [activeChoiceId]: blob };
       onChangeRef.current({ mode: 'per_choice', perChoice: { ...perChoiceMapRef.current } });
     }
-  }, [nodes, edges, frames, mode, activeChoiceId]);
+  }, [nodes, edges, frames, mode, activeChoiceId, referenceTrace]);
 
   // ── 모드 전환 ─────────────────────────────────────────
   const handleModeChange = useCallback((newMode: OboMode) => {
     if (newMode === mode) return;
-    const hasContent = mode === 'single'
-      ? nodes.length > 0
-      : Object.values(perChoiceMapRef.current).some(b => b.nodes.length > 0);
+    const hasContent = mode === 'per_choice'
+      ? Object.values(perChoiceMapRef.current).some(b => b.nodes.length > 0)
+      : nodes.length > 0;
     if (hasContent && !window.confirm('모드를 변경하면 현재 작성된 OBO 내용이 초기화됩니다. 계속할까요?')) return;
 
     perChoiceMapRef.current = {};
     setNodes([]);
     setEdges([]);
     setFrames([]);
+    setTraceText('');
     setSelectedId(null);
     setSelectedKind(null);
     setSelectedFrameId(null);
@@ -126,7 +148,7 @@ export const OboEditorSection = React.memo(function OboEditorSection({
     setSelectedId(null);
     setSelectedKind(null);
     setJsonVisible(false);
-    setFrames([]);
+    setFrames(template.defaultFrames ?? []);
     setSelectedFrameId(null);
   }, [nodes.length, edges.length, setNodes, setEdges]);
 
@@ -150,7 +172,17 @@ export const OboEditorSection = React.memo(function OboEditorSection({
     if (selectedKind === 'node') {
       setNodes(nds => nds.filter(n => n.id !== selectedId));
       setEdges(eds => eds.filter(e => e.source !== selectedId && e.target !== selectedId));
-      setFrames(fs => fs.map(f => ({ ...f, highlightNodes: f.highlightNodes.filter(id => id !== selectedId) })));
+      setFrames(fs => fs.map(f => {
+        if (!f.nodeDataOverrides?.[selectedId]) {
+          return { ...f, highlightNodes: f.highlightNodes.filter(id => id !== selectedId) };
+        }
+        const { [selectedId]: _removed, ...restOverrides } = f.nodeDataOverrides;
+        return {
+          ...f,
+          highlightNodes: f.highlightNodes.filter(id => id !== selectedId),
+          nodeDataOverrides: restOverrides,
+        };
+      }));
     } else {
       setEdges(eds => eds.filter(e => e.id !== selectedId));
       setFrames(fs => fs.map(f => ({ ...f, highlightEdges: f.highlightEdges.filter(id => id !== selectedId) })));
@@ -161,10 +193,10 @@ export const OboEditorSection = React.memo(function OboEditorSection({
 
   // ── 프레임 탭 ─────────────────────────────────────────
   const addFrame = useCallback(() => {
-    const id = `f_${Date.now()}`;
+    const id = nextFrameId(frames);
     setFrames(fs => [...fs, { id, label: '', highlightNodes: [], highlightEdges: [] }]);
     setSelectedFrameId(id);
-  }, []);
+  }, [frames]);
 
   const removeFrame = useCallback((id: string) => {
     setFrames(fs => fs.filter(f => f.id !== id));
@@ -205,6 +237,47 @@ export const OboEditorSection = React.memo(function OboEditorSection({
     }));
   }, []);
 
+  const addNodeOverride = useCallback((frameId: string, nodeId: string) => {
+    setFrames(fs => fs.map(f => f.id !== frameId ? f : {
+      ...f,
+      nodeDataOverrides: { ...(f.nodeDataOverrides ?? {}), [nodeId]: f.nodeDataOverrides?.[nodeId] ?? {} },
+    }));
+  }, []);
+
+  const removeNodeOverride = useCallback((frameId: string, nodeId: string) => {
+    setFrames(fs => fs.map(f => {
+      if (f.id !== frameId || !f.nodeDataOverrides) return f;
+      const { [nodeId]: _removed, ...rest } = f.nodeDataOverrides;
+      return { ...f, nodeDataOverrides: rest };
+    }));
+  }, []);
+
+  const setOverrideField = useCallback((frameId: string, nodeId: string, field: string, value: unknown) => {
+    setFrames(fs => fs.map(f => f.id !== frameId ? f : {
+      ...f,
+      nodeDataOverrides: {
+        ...(f.nodeDataOverrides ?? {}),
+        [nodeId]: { ...(f.nodeDataOverrides?.[nodeId] ?? {}), [field]: value },
+      },
+    }));
+  }, []);
+
+  const clearOverrideField = useCallback((frameId: string, nodeId: string, field: string) => {
+    setFrames(fs => fs.map(f => {
+      const existing = f.nodeDataOverrides?.[nodeId];
+      if (f.id !== frameId || !existing) return f;
+      const { [field]: _removed, ...restFields } = existing;
+      return {
+        ...f,
+        nodeDataOverrides: { ...f.nodeDataOverrides, [nodeId]: restFields },
+      };
+    }));
+  }, []);
+
+  const updateFrameCursorTime = useCallback((frameId: string, cursorTime: number | undefined) => {
+    setFrames(fs => fs.map(f => f.id !== frameId ? f : { ...f, cursorTime }));
+  }, []);
+
   const handleFrameNodeClick = useCallback((nodeId: string) => {
     if (selectedFrameId) toggleHighlightNode(selectedFrameId, nodeId);
   }, [selectedFrameId, toggleHighlightNode]);
@@ -219,9 +292,11 @@ export const OboEditorSection = React.memo(function OboEditorSection({
 
   const panelMode = jsonVisible ? 'json' : (selectedId ? 'property' : 'palette');
 
-  const previewBlob: OboBlob = mode === 'single'
-    ? serialize(nodes, edges, frames)
-    : (activeChoiceId ? (perChoiceMapRef.current[activeChoiceId] ?? EMPTY_BLOB) : EMPTY_BLOB);
+  const previewBlob: OboBlob = mode === 'per_choice'
+    ? (activeChoiceId ? (perChoiceMapRef.current[activeChoiceId] ?? EMPTY_BLOB) : EMPTY_BLOB)
+    : mode === 'coding_diff'
+      ? (() => { const b = serialize(nodes, edges, []); return { ...b, frames: generateFramesFromTrace(referenceTrace, b.edges) }; })()
+      : serialize(nodes, edges, frames);
 
   return (
     <div className="h-full flex flex-col">
@@ -246,6 +321,16 @@ export const OboEditorSection = React.memo(function OboEditorSection({
             >
               보기별
             </button>
+            {allowCodingDiff && (
+              <button
+                onClick={() => handleModeChange('coding_diff')}
+                className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all ${
+                  mode === 'coding_diff' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                코딩 채점
+              </button>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -311,6 +396,7 @@ export const OboEditorSection = React.memo(function OboEditorSection({
           activeEdgeType={activeEdgeType}
           onSelect={handleSelect}
           activeTab={activeTab}
+          frames={frames}
           previewFrame={previewFrame}
           onFrameNodeClick={handleFrameNodeClick}
           onFrameEdgeClick={handleFrameEdgeClick}
@@ -332,6 +418,7 @@ export const OboEditorSection = React.memo(function OboEditorSection({
           currentEdges={edges}
           onJsonClose={() => setJsonVisible(false)}
           onDelete={deleteSelected}
+          oboMode={mode}
           frames={frames}
           selectedFrameId={selectedFrameId}
           onSelectFrame={setSelectedFrameId}
@@ -340,6 +427,14 @@ export const OboEditorSection = React.memo(function OboEditorSection({
           onUpdateFrameLabel={updateFrameLabel}
           onRemoveHighlightNode={removeHighlightNode}
           onRemoveHighlightEdge={removeHighlightEdge}
+          onAddNodeOverride={addNodeOverride}
+          onRemoveNodeOverride={removeNodeOverride}
+          onSetOverrideField={setOverrideField}
+          onClearOverrideField={clearOverrideField}
+          onUpdateFrameCursorTime={updateFrameCursorTime}
+          traceText={traceText}
+          onTraceTextChange={setTraceText}
+          testcaseOutputs={testcaseOutputs}
         />
       </div>
 

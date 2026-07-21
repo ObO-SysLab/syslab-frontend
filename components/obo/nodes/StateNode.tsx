@@ -2,6 +2,7 @@
 
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { useFrameCtx } from '../FrameContext';
+import { CheckpointStatusRing } from './CheckpointStatusRing';
 
 interface StateNodeData {
   label: string;
@@ -20,10 +21,11 @@ export function StateNode({ id, data, selected }: NodeProps) {
   const isHighlit = d.highlight ?? false;
   const hs = { ...HS, background: color };
 
-  const { previewFrame } = useFrameCtx();
+  const { previewFrame, checkpointStatus } = useFrameCtx();
   const frameHighlighted = previewFrame?.highlightNodes.includes(id) ?? false;
   const frameDimmed = previewFrame !== null && !frameHighlighted;
   const active = isHighlit || frameHighlighted;
+  const status = checkpointStatus?.[id] ?? null;
 
   const handles = (
     <>
@@ -48,46 +50,50 @@ export function StateNode({ id, data, selected }: NodeProps) {
 
   if (d.shape !== 'box') {
     return (
-      <div style={{ position: 'relative', width: 80, height: 80 }}>
-        {frameHighlighted && (
-          <div
-            className="absolute inset-0 -m-3 rounded-full border-2 border-dashed animate-[spin_6s_linear_infinite] opacity-50 pointer-events-none"
-            style={{ borderColor: color, transformOrigin: '50% 50%' }}
-          />
-        )}
-        <div style={{
-          width: 80, height: 80, borderRadius: '50%',
-          border: `2.5px solid ${active ? color : IDLE_BORDER}`,
-          backgroundColor: active ? color : 'white',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow, opacity,
-          userSelect: 'none', cursor: 'grab',
-          transition: 'background-color 300ms, border-color 300ms, box-shadow 300ms',
-        }}>
-          {handles}
-          <span style={{
-            ...labelStyle,
-            maxWidth: 64, padding: '0 8px',
-          }}>{d.label}</span>
+      <CheckpointStatusRing status={status}>
+        <div style={{ position: 'relative', width: 80, height: 80 }}>
+          {frameHighlighted && (
+            <div
+              className="absolute inset-0 -m-3 rounded-full border-2 border-dashed animate-[spin_6s_linear_infinite] opacity-50 pointer-events-none"
+              style={{ borderColor: color, transformOrigin: '50% 50%' }}
+            />
+          )}
+          <div style={{
+            width: 80, height: 80, borderRadius: '50%',
+            border: `2.5px solid ${active ? color : IDLE_BORDER}`,
+            backgroundColor: active ? color : 'white',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow, opacity,
+            userSelect: 'none', cursor: 'grab',
+            transition: 'background-color 300ms, border-color 300ms, box-shadow 300ms',
+          }}>
+            {handles}
+            <span style={{
+              ...labelStyle,
+              maxWidth: 64, padding: '0 8px',
+            }}>{d.label}</span>
+          </div>
         </div>
-      </div>
+      </CheckpointStatusRing>
     );
   }
 
   return (
-    <div style={{
-      padding: '8px 16px', borderRadius: 8, minWidth: 80,
-      border: `2px solid ${active ? color : IDLE_BORDER}`,
-      backgroundColor: active ? color : 'white',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      boxShadow, opacity,
-      userSelect: 'none', cursor: 'grab',
-      transition: 'background-color 300ms, border-color 300ms, box-shadow 300ms',
-    }}>
-      {handles}
-      <span style={{
-        ...labelStyle, fontSize: 13, whiteSpace: 'nowrap',
-      }}>{d.label}</span>
-    </div>
+    <CheckpointStatusRing status={status}>
+      <div style={{
+        padding: '8px 16px', borderRadius: 8, minWidth: 80,
+        border: `2px solid ${active ? color : IDLE_BORDER}`,
+        backgroundColor: active ? color : 'white',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow, opacity,
+        userSelect: 'none', cursor: 'grab',
+        transition: 'background-color 300ms, border-color 300ms, box-shadow 300ms',
+      }}>
+        {handles}
+        <span style={{
+          ...labelStyle, fontSize: 13, whiteSpace: 'nowrap',
+        }}>{d.label}</span>
+      </div>
+    </CheckpointStatusRing>
   );
 }
