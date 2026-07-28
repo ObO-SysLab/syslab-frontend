@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Search, LogOut, User, Menu, Lock, Bell, Paintbrush, Trash2, X, ShieldCheck,
@@ -20,17 +21,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 
 
-export default function SettingsPage() {
+function SettingsContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab"); 
+
   // 현재 로그인 상태를 관리 (나중에는 실제 토큰 유무로 판단)
   const [isLoggedIn, setIsLoggedIn] = useState(true);
   // [상태 관리] 현재 활성화된 탭 (profile, security, notifications, appearance)
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState(tabParam || "profile");
 
   // 프로필 데이터를 저장할 상태
   const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   useEffect(() => {
     const fetchProfileImage = async () => {
@@ -504,7 +514,7 @@ function ProfileSection({
             </Label>
             <div className="h-11 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-between cursor-not-allowed">
               <span className="text-slate-700 text-sm font-bold">
-                {getTierLabel(info?.tier)} Tier 
+                {getTierLabel(info?.tier)} Tier
               </span>
               <Badge variant="outline" className={`font-black text-[10px] uppercase tracking-tight py-0.5 px-2 rounded-full ${getTierBadgeStyle(info?.tier || "4")}`}>
                 Active
@@ -781,7 +791,7 @@ function AppearanceSection() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 5. 대원 능력치 차트 분석 섹션 (실시간 API 카테고리 스태츠 연동 및 동적 MAX 제어) */
+/* 5. 대원 능력치 차트 분석 섹션 (카테고리 키 소문자/대문자 정규화 이식 완료) */
 /* -------------------------------------------------------------------------- */
 function ChartSection({ data }: { data: any }) {
   // 토큰 및 세션 정보 획득
@@ -795,11 +805,11 @@ function ChartSection({ data }: { data: any }) {
 
   // [STATE] 오각형 차트용 실시간 API 데이터 풀
   const [categoryStats, setCategoryStats] = useState<Record<string, number>>({
-    Process: 0,
-    Memory: 0,
-    Kernel: 0,
-    Thread: 0,
-    FileSystem: 0
+    process: 0,
+    memory: 0,
+    kernel: 0,
+    thread: 0,
+    filesystem: 0
   });
   const [isChartLoading, setIsChartLoading] = useState(true);
 
@@ -818,8 +828,16 @@ function ChartSection({ data }: { data: any }) {
 
         if (res.ok) {
           const json = await res.json();
-          if (json && json.status === 200 && json.data?.categoryScores) {
-            setCategoryStats(json.data.categoryScores);
+          const rawScores = json?.data?.categoryScores;
+
+          if (rawScores) {
+            // [핵심] API 응답 객체의 모든 키값을 소문자로 일괄 정규화하여 대소문자 차이 흡수
+            const normalizedScores: Record<string, number> = {};
+            Object.keys(rawScores).forEach((key) => {
+              normalizedScores[key.toLowerCase()] = Number(rawScores[key]) || 0;
+            });
+
+            setCategoryStats(normalizedScores);
           }
         }
       } catch (err) {
@@ -839,7 +857,7 @@ function ChartSection({ data }: { data: any }) {
       setIsSubLoading(true);
       try {
         let url = `https://diveon.net/api/profile/problems/${subTab}?page=1`;
-        
+
         if (subTab === "groups" || subTab === "contests") {
           url = `https://diveon.net/api/profile/${subTab}?page=1`;
         } else if (visibility) {
@@ -873,19 +891,25 @@ function ChartSection({ data }: { data: any }) {
     fetchSubTabData();
   }, [subTab, visibility, token]);
 
-  // 명세서 권장 사항: 가장 높은 값을 max로 동적 설정 (강약점 변별력 확보)
-  const scoreValues = Object.values(categoryStats);
+  // 카테고리 점수 안전 가출출 (소문자/대문자/공백 키 안전 매핑)
+  const processScore = categoryStats.process ?? categoryStats.Process ?? 0;
+  const memoryScore = categoryStats.memory ?? categoryStats.Memory ?? 0;
+  const kernelScore = categoryStats.kernel ?? categoryStats.Kernel ?? 0;
+  const threadScore = categoryStats.thread ?? categoryStats.Thread ?? 0;
+  const fileSystemScore = categoryStats.filesystem ?? categoryStats.FileSystem ?? categoryStats["file system"] ?? 0;
+
+  // 동적 MAX 값 계산
+  const scoreValues = [processScore, memoryScore, kernelScore, threadScore, fileSystemScore];
   const maxScore = Math.max(...scoreValues);
-  // 모든 점수가 0점일 경우 최소 분모를 100m로 잡아 차트 크래시 방어 가드 주입
   const dynamicMax = maxScore > 0 ? maxScore : 100;
 
-  // Recharts 컴포넌트 규격에 맞게 API 데이터를 배열 포맷으로 바인딩 (UI 가시성을 위해 FileSystem -> File System 변환)
+  // Recharts 바인딩용 배열 (화면 표시 레이블은 깔끔하게 대문자 표기)
   const formattedChartData = [
-    { subject: "Process", depth: categoryStats.Process },
-    { subject: "Memory", depth: categoryStats.Memory },
-    { subject: "Kernel", depth: categoryStats.Kernel },
-    { subject: "Thread", depth: categoryStats.Thread },
-    { subject: "File System", depth: categoryStats.FileSystem },
+    { subject: "Process", depth: processScore },
+    { subject: "Memory", depth: memoryScore },
+    { subject: "Kernel", depth: kernelScore },
+    { subject: "Thread", depth: threadScore },
+    { subject: "File System", depth: fileSystemScore },
   ];
 
   // 공용 수심 배지 테마 렌더러
@@ -906,7 +930,7 @@ function ChartSection({ data }: { data: any }) {
 
   return (
     <div className="space-y-12 animate-in fade-in-50 duration-300 pb-16">
-      
+
       {/* [상단 패널] 오각형 레이더 차트 분석 스택 */}
       <div className="space-y-6">
         <div className="space-y-1">
@@ -927,7 +951,6 @@ function ChartSection({ data }: { data: any }) {
                 <RadarChart cx="50%" cy="50%" outerRadius="70%" data={formattedChartData}>
                   <PolarGrid stroke="#1e293b" />
                   <PolarAngleAxis dataKey="subject" stroke="#94a3b8" fontSize={11} fontWeight="bold" />
-                  {/* 동적 계산된 dynamicMax를 축 최댓값(domain)으로 정교하게 바인딩 */}
                   <PolarRadiusAxis angle={30} domain={[0, dynamicMax]} tick={{ fill: '#475569', fontSize: 10 }} />
                   <Radar name="최고 탐사 수심" dataKey="depth" stroke="#00D1FF" fill="#0055FF" fillOpacity={0.15} />
                 </RadarChart>
@@ -973,11 +996,10 @@ function ChartSection({ data }: { data: any }) {
               <button
                 key={filter.label}
                 onClick={() => setVisibility(filter.value)}
-                className={`px-3 py-1 rounded-full border transition-all font-bold ${
-                  visibility === filter.value
-                    ? "bg-indigo-50 border-indigo-300 text-indigo-600 shadow-sm"
-                    : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
-                }`}
+                className={`px-3 py-1 rounded-full border transition-all font-bold ${visibility === filter.value
+                  ? "bg-indigo-50 border-indigo-300 text-indigo-600 shadow-sm"
+                  : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                  }`}
               >
                 {filter.label}
               </button>
@@ -996,7 +1018,11 @@ function ChartSection({ data }: { data: any }) {
                 {listData.map((item: any) => {
                   if (["solved", "failed", "authored"].includes(subTab)) {
                     return (
-                      <Link href={`/challenges/${item.probId}`} key={`prob-${item.probId}`} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors group">
+                      <Link
+                        href={`/challenges/detail?id=${item.probId}`} // [수정 필요] 이동할 문제 상세 페이지 URL 경로를 입력하세요. (예: `/problems/${item.probId}`)
+                        key={`prob-${item.probId}`}
+                        className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors group"
+                      >
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-mono font-bold text-slate-400 group-hover:text-indigo-600 transition-colors">#{item.probId}</span>
@@ -1019,7 +1045,11 @@ function ChartSection({ data }: { data: any }) {
 
                   if (subTab === "groups") {
                     return (
-                      <Link href={`/groups/${item.groupId}`} key={`group-${item.groupId}`} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors group">
+                      <Link
+                        href={`/groups/detail?id=${item.groupId}`} // [수정 필요] 이동할 그룹 상세 페이지 URL 경로를 입력하세요. (예: `/group/detail/${item.groupId}`)
+                        key={`group-${item.groupId}`}
+                        className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors group"
+                      >
                         <div className="flex items-center gap-3 min-w-0">
                           <Avatar className="h-9 w-9 border border-slate-100 rounded-xl">
                             <AvatarImage src={item.image} alt={item.title} className="object-cover" />
@@ -1044,13 +1074,16 @@ function ChartSection({ data }: { data: any }) {
                     const isOngoing = item.status === "ONGOING";
                     const isUpcoming = item.status === "UPCOMING";
                     return (
-                      <Link href={`/contests/${item.contestId}`} key={`contest-${item.contestId}`} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors group">
+                      <Link
+                        href={`/contests/detail?id=${item.contestId}`} // [수정 필요] 이동할 대회 상세 페이지 URL 경로를 입력하세요. (예: `/contests/detail/${item.contestId}`)
+                        key={`contest-${item.contestId}`}
+                        className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors group"
+                      >
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <Badge className={`text-[9px] font-black border-none shadow-none rounded px-1.5 ${
-                              isOngoing ? "bg-blue-50 text-blue-600 animate-pulse" :
+                            <Badge className={`text-[9px] font-black border-none shadow-none rounded px-1.5 ${isOngoing ? "bg-blue-50 text-blue-600 animate-pulse" :
                               isUpcoming ? "bg-amber-50 text-amber-600" : "bg-slate-100 text-slate-400"
-                            }`}>
+                              }`}>
                               {item.status === "ENDED" ? "종료됨" : isOngoing ? "진행중" : "대기중"}
                             </Badge>
                             <Badge variant="outline" className="text-[9px] font-medium border-slate-200 text-slate-400 uppercase">{item.role}</Badge>
@@ -1058,8 +1091,8 @@ function ChartSection({ data }: { data: any }) {
                           <p className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:underline">{item.title}</p>
                         </div>
                         <div className="text-right shrink-0 font-mono text-[10px] text-slate-400 space-y-0.5 hidden sm:block">
-                          <p>시작: {new Date(item.startTime).toLocaleDateString("ko-KR")} {new Date(item.startTime).toLocaleTimeString("ko-KR", {hour: '2-digit', minute:'2-digit', hour12:false})}</p>
-                          <p>종료: {new Date(item.endTime).toLocaleDateString("ko-KR")} {new Date(item.endTime).toLocaleTimeString("ko-KR", {hour: '2-digit', minute:'2-digit', hour12:false})}</p>
+                          <p>시작: {new Date(item.startTime).toLocaleDateString("ko-KR")} {new Date(item.startTime).toLocaleTimeString("ko-KR", { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
+                          <p>종료: {new Date(item.endTime).toLocaleDateString("ko-KR")} {new Date(item.endTime).toLocaleTimeString("ko-KR", { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
                         </div>
                       </Link>
                     );
@@ -1133,5 +1166,17 @@ function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNod
       <span className="text-slate-400 group-hover:text-slate-900">{icon}</span>
       {label}
     </Link>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-slate-400 font-bold animate-pulse">설정 로딩 중...</div>
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
   );
 }

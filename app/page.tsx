@@ -152,6 +152,7 @@ export default function HomePage() {
         isLoggedIn={isLoggedIn}
         userImgUrl={userImgUrl}
         activeMenu="home"
+        showSearch={false}
         onLogout={() => {
           // 로컬에 남은 잔재(토큰, 정보)를 모조리 청소합니다.
           localStorage.removeItem("token");
@@ -195,7 +196,7 @@ export default function HomePage() {
                       지금 다이브하기 <Zap size={18} className="ml-2 fill-current" />
                     </Button>
                   </Link>
-                  <Link href="/settings">
+                  <Link href="/settings?tab=chart">
                     <Button size="lg" variant="outline" className="text-slate-300 border-white/10 hover:bg-white/5 hover:text-white">
                       차트 분석
                     </Button>
@@ -296,7 +297,7 @@ export default function HomePage() {
                 </CardContent>
 
                 <div className="p-4 pt-0">
-                  <Link href="/challenges?level=1">
+                  <Link href="/challenges/detail?id=1">
                     <Button variant="outline" className="w-full text-xs font-bold text-[#00FFA3] border-[#00FFA3]/30 hover:bg-[#00FFA3]/10 hover:text-white hover:border-[#00FFA3] transition-all">
                       ⚡ 100m 수심 맛보기 체험
                     </Button>
@@ -312,7 +313,7 @@ export default function HomePage() {
             <h2 className="text-xl font-black text-slate-950 flex items-center gap-2">
               <Crown className="w-5 h-5 text-amber-500 fill-amber-100" /> 오늘의 단독 탐사 임무
             </h2>
-            <Link href={`/challenges/${todayProblem.probId}`}>
+            <Link href={`/challenges/detail?id=${todayProblem.probId}`}>
               <Card className="bg-gradient-to-r from-blue-50/60 via-indigo-50/30 to-white border border-blue-100 shadow-sm hover:shadow-md hover:border-blue-400/40 transition-all rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 group cursor-pointer">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -374,8 +375,8 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {(recommendData?.problems && recommendData.problems.length > 0 
-              ? recommendData.problems 
+            {(recommendData?.problems && recommendData.problems.length > 0
+              ? recommendData.problems
               : mockFeaturedProblems
             ).map((prob: any) => {
               const currentId = prob.probId || prob.id;
@@ -384,10 +385,10 @@ export default function HomePage() {
               const solvedCount = prob.solvedCount ?? 0;
 
               return (
-                <Link href={`/challenges/${currentId}`} key={String(currentId)} className="block h-full">
+                <Link href={`/challenges/detail?id=${currentId}`} key={String(currentId)} className="block h-full">
                   {/* 사이버네틱 심해 잠수정 컨셉의 다크 테크 카드 인프라 */}
                   <div className="group relative bg-slate-950 border border-slate-900 rounded-2xl overflow-hidden shadow-xl hover:shadow-[0_0_30px_rgba(0,102,255,0.15)] hover:border-[#0066FF]/50 transition-all duration-300 h-full flex flex-col justify-between text-white p-5 space-y-5">
-                    
+
                     {/* 우측 상단 배경에 은은하게 박히는 빅 사이즈 카테고리 워터마크 (시각적 입체감) */}
                     <div className="absolute right-[-10px] top-[-10px] text-slate-900 font-mono text-5xl font-black opacity-20 select-none pointer-events-none group-hover:text-[#0066FF]/10 group-hover:scale-105 transition-all">
                       {category.substring(0, 4).toUpperCase()}
@@ -412,7 +413,7 @@ export default function HomePage() {
                           </span>
                           {category}
                         </Badge>
-                        
+
                         {/* 수심 단계별 메인 인디케이터 배지 (칼 정렬 및 입체 스킨) */}
                         <Badge className={`rounded-full px-2.5 py-0.5 text-[10px] font-black border tracking-tight font-mono shadow-inner
                           ${difficulty === "1" ? "bg-emerald-950/40 text-emerald-400 border-emerald-800" : ""}
@@ -435,7 +436,7 @@ export default function HomePage() {
                     <div className="pt-3 border-t border-slate-900 flex justify-between items-center font-mono text-[10px] text-slate-500 relative z-10">
                       <p className="tracking-tight bg-slate-900/50 px-2 py-0.5 rounded text-slate-400">ID: {currentId}</p>
                       <p className="flex items-center gap-1 text-slate-400 font-bold">
-                        <Anchor size={12} className="text-slate-500 group-hover:text-[#00D1FF] transition-colors" /> 
+                        <Anchor size={12} className="text-slate-500 group-hover:text-[#00D1FF] transition-colors" />
                         {solvedCount.toLocaleString()}명 돌파
                       </p>
                     </div>
