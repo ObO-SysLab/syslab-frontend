@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Header } from "@/components/Header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ProblemListPage() {
@@ -210,84 +211,26 @@ export default function ProblemListPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
 
-      {/* 1. 고정 헤더 */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-        { /* [A] Diveon 로고 영역 */}
-        <div className="flex items-center gap-8">
-          <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
-          <Link href="/" className="text-2xl font-black tracking-tighter text-slate-900 mr-4">
-            Diveon
-          </Link>
-
-          {/* [B] 중앙 네비게이션 메뉴 영역 */}
-          <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" active />
-            <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
-            <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
-            <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
-            <NavMenuLink href="/store" icon={<ShoppingBag size={18} />} label="스토어" />
-          </nav>
-        </div>
-
-        { /* [C] 검색창 영역 */}
-        <div className="flex-1 max-w-sm px-4">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-            <Input
-              type="search"
-              placeholder="검색..."
-              className="pl-9 bg-slate-50 border-slate-200 rounded-full h-9 text-sm"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
-        </div>
-
-        { /* [D] 우측 사용자 영역 */}
-        <div className="flex items-center gap-3">
-          {isLoggedIn ? (
-            /* --- 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
-            <>
-              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-              </button>
-              <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
-                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
-                    {/* 공백 상태 유지 */}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-              <button
-                onClick={() => {
-                  localStorage.removeItem("token");
-                  setIsLoggedIn(false);
-                }}
-                className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
-              >
-                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
-              </button>
-            </>
-          ) : (
-            /* --- 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
-            <div className="flex items-center gap-2">
-              <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
-              </Link>
-              <Link href="/signup">
-                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header
+        isLoggedIn={isLoggedIn}
+        userImgUrl={userImgUrl}
+        activeMenu="challenge"
+        searchTerm={searchTerm} 
+        showSearch={true}
+        onSearchChange={(value) => { 
+          setSearchTerm(value);
+          setCurrentPage(1);
+        }}
+        onLogout={async () => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("nickname");
+          localStorage.removeItem("userImgUrl");
+          localStorage.clear();
+          sessionStorage.clear();
+          setIsLoggedIn(false);
+          window.location.replace("/");
+        }}
+      />
 
       {/* 2. 메인 컨텐츠 영역 */}
       <main className="container mx-auto max-w-[1500px] pt-8 grid grid-cols-1 md:grid-cols-12 gap-8 px-4 pb-12">
@@ -416,7 +359,7 @@ export default function ProblemListPage() {
           {randomProblem && (
             <div className="p-5 bg-gradient-to-r from-slate-900 to-indigo-950 border border-slate-800 rounded-2xl shadow-xl text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300 relative overflow-hidden group">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.12),transparent)] pointer-events-none"></div>
-              
+
               <div className="space-y-2 relative z-10">
                 <div className="flex items-center gap-2">
                   <Badge className="bg-amber-500 hover:bg-amber-500 text-slate-950 font-black text-[10px] tracking-tight px-2 rounded-md">TODAY'S DIVE</Badge>
@@ -428,10 +371,10 @@ export default function ProblemListPage() {
 
               <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 relative z-10">
                 {/* 맘에 안 들면 다시 돌리는 셔플 가챠 버튼 */}
-                <Button 
-                  onClick={fetchRandomProblem} 
+                <Button
+                  onClick={fetchRandomProblem}
                   disabled={isRandomLoading}
-                  variant="outline" 
+                  variant="outline"
                   className="bg-white/5 border-white/10 hover:bg-white/10 text-slate-300 font-bold rounded-xl h-10 px-4 text-xs"
                 >
                   <span className={`inline-block mr-1.5 ${isRandomLoading ? "animate-spin" : ""}`}>🔄</span>
@@ -598,19 +541,6 @@ export default function ProblemListPage() {
 
       </main>
     </div>
-  );
-}
-
-function NavMenuLink({ href, icon, label, active = false }: { href: string; icon: React.ReactNode; label: string; active?: boolean }) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active ? "text-indigo-600 bg-indigo-50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
-        }`}
-    >
-      <span>{icon}</span>
-      {label}
-    </Link>
   );
 }
 
