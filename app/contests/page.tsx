@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Header } from "@/components/Header";
 
 
 export default function ContestListPage() {
@@ -134,84 +135,33 @@ export default function ContestListPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
 
-      {/* 1. 고정 헤더 (기존 디자인 유지) */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-        { /* [A] Diveon 로고 영역 */}
-        <div className="flex items-center gap-8">
-          <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
-          <Link href="/" className="text-2xl font-black tracking-tighter text-slate-900 mr-4">
-            Diveon
-          </Link>
+      <Header
+        isLoggedIn={isLoggedIn}
+        userImgUrl={userImgUrl}
+        activeMenu="contest"
+        searchTerm={keyword}
+        showSearch={true}
+        onSearchChange={(value) => {
+          setKeyword(value);
+          setCurrentPage(1);
+        }}
+        onLogout={async () => {
+          // 1. 쿠키 완전 만료 파기
+          localStorage.removeItem("token");
+          localStorage.removeItem("nickname");
+          localStorage.removeItem("userImgUrl");
 
-          {/* [B] 중앙 네비게이션 메뉴 영역 */}
-          <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
-            <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" active />
-            <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
-            <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
-            <NavMenuLink href="/store" icon={<ShoppingBag size={18} />} label="스토어" />
-          </nav>
-        </div>
+          // 2. 로컬 / 세션 스토리지 클리어
+          localStorage.clear();
+          sessionStorage.clear();
 
-        { /* [C] 검색창 영역 */}
-        <div className="flex-1 max-w-sm px-4">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-            <Input
-              type="search"
-              placeholder="검색..."
-              className="pl-9 bg-slate-50 border-slate-200 rounded-full h-9 text-sm"
-              value={keyword}
-              onChange={(e) => {
-                setCurrentPage(1);
-                setKeyword(e.target.value);
-              }}
-            />
-          </div>
-        </div>
+          // 3. 인메모리 로그인 상태 리셋
+          setIsLoggedIn(false);
 
-        { /* [D] 우측 사용자 영역 */}
-        <div className="flex items-center gap-3">
-          {isLoggedIn ? (
-            /* --- 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
-            <>
-              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-              </button>
-              <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
-                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
-                    {/* 공백 상태 유지 */}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-              <button
-                onClick={() => {
-                  localStorage.removeItem("token");
-                  setIsLoggedIn(false);
-                }}
-                className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
-              >
-                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
-              </button>
-            </>
-          ) : (
-            /* --- 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
-            <div className="flex items-center gap-2">
-              <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
-              </Link>
-              <Link href="/signup">
-                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-      </header>
+          // 4. 메인('/')으로 안전하게 리다이렉트
+          window.location.replace("/");
+        }}
+      />
 
       {/* 2. 메인 레이아웃 (Grid 12분할) */}
       <main className="container mx-auto max-w-[1500px] pt-8 grid grid-cols-1 md:grid-cols-12 gap-6 px-4 pb-12">
@@ -376,19 +326,5 @@ export default function ContestListPage() {
 
       </main>
     </div>
-  );
-}
-
-// [보조 컴포넌트] 헤더 메뉴 전용
-function NavMenuLink({ href, icon, label, active = false }: { href: string; icon: React.ReactNode; label: string; active?: boolean }) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active ? "text-indigo-600 bg-indigo-50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
-        }`}
-    >
-      <span>{icon}</span>
-      {label}
-    </Link>
   );
 }
