@@ -312,7 +312,77 @@ export default function GroupListPage() {
                   className="block group"
                 >
                   <Card className="p-4 hover:shadow-md transition-all cursor-pointer border-slate-100 rounded-xl overflow-hidden group-hover:border-indigo-200 group-hover:bg-indigo-50/5">
-                    {/* ... 기존 카드 내 레이아웃 유지 ... */}
+                    <div className="flex w-full flex-row items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors capitalize">
+                          {TagIcons[grp.tags[0]] || <Code2 size={20} />}
+                        </div>
+                        <div className="flex flex-col justify-center">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {/* 그룹명 */}
+                            <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                              {grp.title}
+                            </h3>
+
+                            {/* 비공개 상태 스캔 시 자물쇠 배지 UI 동적 장착 */}
+                            {grp.isPrivate && (
+                              <Badge variant="outline" className="px-1.5 py-0 h-5 text-[10px] font-bold text-amber-600 border-amber-200 bg-amber-50/70 shrink-0 flex items-center gap-1.5 select-none rounded-md">
+                                <Lock size={10} className="text-amber-500 fill-amber-500/10" />
+                                <span>비공개</span>
+                              </Badge>
+                            )}
+
+                            {/* 가입 여부 체크 아이콘 */}
+                            {grp.joined && (
+                              <CheckCircle2 className="h-4 w-4 text-emerald-500 fill-emerald-50 shrink-0" />
+                            )}
+                          </div>
+
+                          {/* 그룹장, 태그, 칭호 정보 */}
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-[13px] text-slate-400">
+                              그룹장: {grp.leader}
+                            </p>
+                            <span className="text-slate-300 text-[10px]">|</span>
+
+                            {/* 태그 뱃지 */}
+                            {grp.tags.length > 0 ? (
+                              grp.tags.map((t: string) => {
+                                const isSelected = selectedTag === t;
+                                return (
+                                  <Badge
+                                    key={t}
+                                    variant="secondary"
+                                    className={`px-2 py-0 h-5 text-[10px] font-black tracking-tight shrink-0 transition-all duration-300 ${isSelected
+                                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md scale-105"
+                                      : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                                      }`}
+                                  >
+                                    {t}
+                                  </Badge>
+                                );
+                              })
+                            ) : (
+                              <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-black tracking-tight text-slate-400 bg-slate-50 border border-slate-100 shrink-0">
+                                태그 없음
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 그룹 멤버 수 및 통계 패널 */}
+                      <div className="flex items-center gap-8">
+                        <div className="text-right min-w-[100px]">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            MEMBERS
+                          </p>
+                          <p className="text-base font-bold text-slate-700">
+                            {(grp.memberCount || 0).toLocaleString()}/{(grp.totalMembers || 0).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </Card>
                 </div>
               ))
