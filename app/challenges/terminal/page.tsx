@@ -120,7 +120,7 @@ function PracticeContent() {
 
       if (res.ok || res.status === 404) {
         alert("실습 환경이 종료되었습니다.");
-        router.push(`/challenges/detail?id=${probId}`);
+        router.push(`/challenges/detail?id=${probId}&tab=grading`);
       } else {
         const errorData = await res.json();
         alert(`종료 실패: ${errorData.detail || errorData.message}`);
