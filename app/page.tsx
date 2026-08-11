@@ -261,11 +261,9 @@ export default function HomePage() {
 
                 <div className="pt-2">
                   <Link href="/signup">
-                    <Link href="/signin">
-                      <Button size="lg" className="bg-gradient-to-r from-[#00D1FF] to-[#0066FF] text-white font-black hover:from-[#00FFA3] hover:to-[#00A3FF] hover:text-slate-950 transition-all duration-300 shadow-[0_0_20px_rgba(0,102,255,0.3)]">
-                        정식 대원 자격증 발급받기 (가입)
-                      </Button>
-                    </Link>
+                    <Button size="lg" className="bg-gradient-to-r from-[#00D1FF] to-[#0066FF] text-white font-black hover:from-[#00FFA3] hover:to-[#00A3FF] hover:text-slate-950 transition-all duration-300 shadow-[0_0_20px_rgba(0,102,255,0.3)]">
+                      정식 대원 자격증 발급받기 (가입)
+                    </Button>
                   </Link>
                 </div>
               </div>
