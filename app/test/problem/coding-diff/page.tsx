@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { Node, Edge } from '@xyflow/react';
-import { OBO_TEMPLATES } from '@/components/obo/templates';
+import { ALL_OBO_TEMPLATES as OBO_TEMPLATES } from '@/components/obo/templates';
 import type { OboCodingSchema } from '@/components/obo/types';
 import { parseTraceText } from '@/components/obo/lib/traceParser';
 import { CodingDiffPlayer } from '@/components/obo/CodingDiffPlayer';
