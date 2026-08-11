@@ -1854,8 +1854,7 @@ function GroupDetailPage() {
                           <div className="flex gap-2">
                             <Input
                               readOnly
-                              // 그룹 상세 페이지 주소(?id=그룹ID&code=초대코드)로 변경
-                              value={`${typeof window !== "undefined" ? window.location.origin : ""}/groups/detail?id=${groupId}&code=${inviteCode}`}
+                              value={`${typeof window !== "undefined" ? window.location.origin : ""}/groups?code=${inviteCode}`}
                               className="bg-slate-950 border-slate-800 text-xs font-mono text-emerald-400 select-all h-9"
                             />
                             <Button
@@ -1863,9 +1862,9 @@ function GroupDetailPage() {
                               type="button"
                               className="bg-indigo-600 hover:bg-indigo-700 text-xs font-bold shrink-0 h-9 rounded-xl"
                               onClick={() => {
-                                const shareUrl = `${window.location.origin}/groups/detail?id=${groupId}&code=${inviteCode}`;
+                                const shareUrl = `${window.location.origin}/groups?code=${inviteCode}`;
                                 navigator.clipboard.writeText(shareUrl);
-                                alert("그룹 상세방 직접 입장 초대 링크가 클립보드에 복사되었습니다!");
+                                alert("초대 가입 링크가 클립보드에 복사되었습니다!");
                               }}
                             >
                               복사

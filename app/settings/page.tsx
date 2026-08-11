@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge"
 
 function SettingsContent() {
   const searchParams = useSearchParams();
-  const tabParam = searchParams.get("tab"); 
+  const tabParam = searchParams.get("tab");
 
   // 현재 로그인 상태를 관리 (나중에는 실제 토큰 유무로 판단)
   const [isLoggedIn, setIsLoggedIn] = useState(true);
@@ -898,10 +898,11 @@ function ChartSection({ data }: { data: any }) {
   const threadScore = categoryStats.thread ?? categoryStats.Thread ?? 0;
   const fileSystemScore = categoryStats.filesystem ?? categoryStats.FileSystem ?? categoryStats["file system"] ?? 0;
 
-  // 동적 MAX 값 계산
+  // 동적 MAX 값 계산 (실제 최댓값의 125%로 틀을 더 크게 잡아서 꽉 차는 답답함 해소)
   const scoreValues = [processScore, memoryScore, kernelScore, threadScore, fileSystemScore];
   const maxScore = Math.max(...scoreValues);
-  const dynamicMax = maxScore > 0 ? maxScore : 100;
+  // 가장 높은 점수보다 25% 넓은 수치를 오각형의 바깥 테두리 기준으로 설정합니다.
+  const chartDomainMax = maxScore > 0 ? Math.ceil(maxScore * 1.25) : 100;
 
   // Recharts 바인딩용 배열 (화면 표시 레이블은 깔끔하게 대문자 표기)
   const formattedChartData = [
@@ -948,10 +949,12 @@ function ChartSection({ data }: { data: any }) {
             {/* 오각형 차트 그래픽 패널 */}
             <Card className="col-span-12 lg:col-span-7 bg-slate-950 border-slate-900 shadow-xl overflow-hidden rounded-2xl h-[400px] flex items-center justify-center p-4">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={formattedChartData}>
+                {/* outerRadius를 60% 정도로 지정하고 domain에 여유를 두어 꼭짓점 여백을 확보합니다. */}
+                <RadarChart cx="50%" cy="50%" outerRadius="60%" data={formattedChartData}>
                   <PolarGrid stroke="#1e293b" />
                   <PolarAngleAxis dataKey="subject" stroke="#94a3b8" fontSize={11} fontWeight="bold" />
-                  <PolarRadiusAxis angle={30} domain={[0, dynamicMax]} tick={{ fill: '#475569', fontSize: 10 }} />
+                  {/* dynamicMax 대신 여백이 반영된 chartDomainMax를 바인딩합니다. */}
+                  <PolarRadiusAxis angle={30} domain={[0, chartDomainMax]} tick={{ fill: '#475569', fontSize: 10 }} />
                   <Radar name="최고 탐사 수심" dataKey="depth" stroke="#00D1FF" fill="#0055FF" fillOpacity={0.15} />
                 </RadarChart>
               </ResponsiveContainer>

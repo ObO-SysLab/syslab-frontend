@@ -11,12 +11,21 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Header } from "@/components/Header";
 
 
 export default function GroupListPage() {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const codeFromUrl = searchParams.get("code");
+    if (codeFromUrl) {
+      setInviteInput(codeFromUrl);
+    }
+  }, [searchParams]);
+  
   // API 연동 스위치
   const USE_API_REQUEST = false;
 
@@ -27,6 +36,8 @@ export default function GroupListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [inviteInput, setInviteInput] = useState("");
+  const [isJoiningWithCode, setIsJoiningWithCode] = useState(false);
 
   // [STATE] 필터
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
@@ -194,6 +205,61 @@ export default function GroupListPage() {
   //   router.push(`/groups/detail?id=${grp.groupId}`);
   // };
 
+  // [API] 초대 코드로 비공개 그룹 즉시 가입 (POST /api/groups/join?code=...)
+  const handleJoinWithCode = async () => {
+    const code = inviteInput.trim();
+    if (!code) {
+      alert("초대 코드를 입력해 주세요.");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    setIsJoiningWithCode(true);
+
+    try {
+      const res = await fetch(`https://diveon.net/api/groups/join?code=${encodeURIComponent(code)}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      const json = await res.json().catch(() => ({}));
+
+      if (res.status === 200) {
+        alert(json.message || "그룹에 참여했습니다.");
+        setInviteInput("");
+        // 가입 성공 시 해당 그룹 상세 페이지로 이동 (또는 리스트 갱신)
+        if (json.data?.groupId) {
+          router.push(`/groups/detail?id=${json.data.groupId}`);
+        } else {
+          setCurrentPage(1);
+        }
+      } else if (res.status === 401) {
+        alert("유효하지 않거나 만료된 토큰입니다.");
+      } else if (res.status === 404) {
+        alert("잘못된 초대 코드입니다.");
+      } else if (res.status === 409) {
+        alert("그룹 정원이 초과되었습니다.");
+      } else if (res.status === 410) {
+        alert("만료된 초대 링크입니다.");
+      } else {
+        alert(`가입 실패: ${json.message || "오류가 발생했습니다."}`);
+      }
+    } catch (error) {
+      console.error("초대 가입 실패:", error);
+      alert("서버와 통신 중 오류가 발생했습니다.");
+    } finally {
+      setIsJoiningWithCode(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
 
@@ -279,6 +345,26 @@ export default function GroupListPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* 초대 코드 입력 및 가입 UI */}
+              <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl p-1">
+                <Input
+                  type="text"
+                  placeholder="초대 코드 입력"
+                  value={inviteInput}
+                  onChange={(e) => setInviteInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleJoinWithCode()}
+                  className="h-8 w-36 text-xs bg-white border-none focus-visible:ring-1 focus-visible:ring-indigo-500 font-mono"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleJoinWithCode}
+                  disabled={isJoiningWithCode || !inviteInput.trim()}
+                  className="h-8 px-3 text-xs bg-indigo-600 hover:bg-indigo-700 font-bold rounded-lg shrink-0"
+                >
+                  {isJoiningWithCode ? "가입 중..." : "초대 가입"}
+                </Button>
+              </div>
+              
               <Button
                 variant={showMyGroups ? "default" : "outline"}
                 size="sm"
