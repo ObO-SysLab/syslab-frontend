@@ -1016,7 +1016,7 @@ function ProblemCreateContent() {
                   </div>
 
                   {/* [추가] VM 환경 설정 입력란 */}
-                  <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-4 mt-2">
+                  {/* <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-4 mt-2">
                     <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">VM Environment Config</h4>
 
                     <div className="grid md:grid-cols-2 gap-4">
@@ -1045,7 +1045,7 @@ function ProblemCreateContent() {
                         />
                       </div>
                     </div>
-                  </div>
+                  </div> */}
 
                   <div className="space-y-2.5 pt-2">
                     <Label>Dockerfile 업로드 (.zip) <span className="text-red-500">*</span></Label>

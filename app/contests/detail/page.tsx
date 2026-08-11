@@ -660,20 +660,53 @@ function ContestDetailPage() {
         {/* [A] 좌측 사이드바 내비게이션 (2칸) */}
         <aside className="col-span-12 md:col-span-2 space-y-2">
           <nav className="space-y-1">
-            <ContestSideBtn icon={<Flag size={18} />} label="포스터" active={activeTab === "poster"} onClick={() => setActiveTab("poster")} />
-            <ContestSideBtn icon={<Terminal size={18} />} label="대시보드" active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} />
-            <ContestSideBtn icon={<Flag size={18} />} label="챌린지" active={activeTab === "challenges"} onClick={() => setActiveTab("challenges")} />
-            <ContestSideBtn icon={<BarChart3 size={18} />} label="스코어보드" active={activeTab === "scoreboard"} onClick={() => setActiveTab("scoreboard")} />
-            <ContestSideBtn icon={<MessageSquare size={18} />} label="질의응답(Q&A)" active={activeTab === "qa"} onClick={() => setActiveTab("qa")} />
-            {/* 운영자 전용 탭 */}
-            {isContestHost && (
-              <>
-                <div className="my-4 border-t border-slate-200" />
-                <ContestSideBtn icon={<Users size={18} />} label="참가자 관리" active={activeTab === "participants"} onClick={() => setActiveTab("participants")} />
-                <ContestSideBtn icon={<AlertTriangle size={18} />} label="공지 관리" active={activeTab === "notice"} onClick={() => setActiveTab("notice")} />
-                <ContestSideBtn icon={<Settings size={18} />} label="대회 설정" active={activeTab === "settings"} onClick={() => setActiveTab("settings")} />
-              </>
-            )}
+            {/* 대회 종료 여부 변수 */}
+            {(() => {
+              const isEnded = contestInfo?.status === "종료";
+
+              return (
+                <>
+                  <ContestSideBtn icon={<Flag size={18} />} label="포스터" active={activeTab === "poster"} onClick={() => setActiveTab("poster")} />
+
+                  {/* 대회 종료 시 출력 X */}
+                  {!isEnded && (
+                    <ContestSideBtn icon={<Terminal size={18} />} label="대시보드" active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} />
+                  )}
+
+                  {/* 대회 종료 시 눌러도 활성화 X (비활성화 처리) */}
+                  <ContestSideBtn
+                    icon={<Flag size={18} />}
+                    label="챌린지"
+                    active={activeTab === "challenges"}
+                    disabled={isEnded}
+                    onClick={() => {
+                      if (isEnded) {
+                        alert("종료된 대회의 문제는 조회할 수 없습니다.");
+                        return;
+                      }
+                      setActiveTab("challenges");
+                    }}
+                  />
+
+                  <ContestSideBtn icon={<BarChart3 size={18} />} label="스코어보드" active={activeTab === "scoreboard"} onClick={() => setActiveTab("scoreboard")} />
+
+                  {/* 대회 종료 시 출력 X */}
+                  {!isEnded && (
+                    <ContestSideBtn icon={<MessageSquare size={18} />} label="질의응답(Q&A)" active={activeTab === "qa"} onClick={() => setActiveTab("qa")} />
+                  )}
+
+                  {/* 운영자 전용 탭 (종료 시에도 관리 목적 접근 유지 가능) */}
+                  {isContestHost && (
+                    <>
+                      <div className="my-4 border-t border-slate-200" />
+                      <ContestSideBtn icon={<Users size={18} />} label="참가자 관리" active={activeTab === "participants"} onClick={() => setActiveTab("participants")} />
+                      <ContestSideBtn icon={<AlertTriangle size={18} />} label="공지 관리" active={activeTab === "notice"} onClick={() => setActiveTab("notice")} />
+                      <ContestSideBtn icon={<Settings size={18} />} label="대회 설정" active={activeTab === "settings"} onClick={() => setActiveTab("settings")} />
+                    </>
+                  )}
+                </>
+              );
+            })()}
           </nav>
           <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm mt-6">
             <p className="text-xs font-bold text-slate-400 mb-2 uppercase">진행률</p>
@@ -824,24 +857,42 @@ function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, h
               <Crown className="w-4 h-4 text-amber-500 mx-auto" /> 이 대회의 운영진 계정으로 접속 중입니다.
             </div>
           ) : isJoined ? (
-            <Button
-              variant="destructive"
-              className="bg-red-500 hover:bg-red-600 text-white px-10 py-6 h-auto shadow-lg shadow-red-500/10 font-black tracking-tight rounded-xl transition-all active:scale-95 duration-150"
-              onClick={() => {
-                if (confirm("정말 대회 참가를 취소하시겠습니까?")) handleCancelContest();
-              }}
-            >
-              대회 참가 취소
-            </Button>
+            /* 이미 가입한 유저 중 대회가 종료되었으면 참 취소 불가능 처리 */
+            contestInfo.status === "종료" ? (
+              <div className="bg-slate-800 text-slate-400 font-bold px-8 py-3 rounded-xl border border-slate-700">
+                대회가 종료되었습니다 (참가 완료)
+              </div>
+            ) : (
+              <Button
+                variant="destructive"
+                className="bg-red-500 hover:bg-red-600 text-white px-10 py-6 h-auto shadow-lg shadow-red-500/10 font-black tracking-tight rounded-xl transition-all active:scale-95 duration-150"
+                onClick={() => {
+                  if (confirm("정말 대회 참가를 취소하시겠습니까?")) handleCancelContest();
+                }}
+              >
+                대회 참가 취소
+              </Button>
+            )
           ) : (
-            <Button
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg px-10 py-6 h-auto shadow-lg shadow-indigo-500/20 transition-all active:scale-95 duration-150"
-              onClick={() => {
-                if (confirm("대회에 참가하시겠습니까?")) handleEnterContest();
-              }}
-            >
-              지금 참가하기
-            </Button>
+            /* 미가입 유저 상태 분기 */
+            contestInfo.status === "접수 중" ? (
+              <Button
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg px-10 py-6 h-auto shadow-lg shadow-indigo-500/20 transition-all active:scale-95 duration-150"
+                onClick={() => {
+                  if (confirm("대회에 참가하시겠습니까?")) handleEnterContest();
+                }}
+              >
+                지금 참가하기
+              </Button>
+            ) : contestInfo.status === "진행 중" ? (
+              <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold px-8 py-3 rounded-xl">
+                대회가 진행 중입니다 (신규 참가 접수 마감)
+              </div>
+            ) : (
+              <div className="bg-slate-800 text-slate-400 font-bold px-8 py-3 rounded-xl border border-slate-700">
+                종료된 대회입니다
+              </div>
+            )
           )}
         </div>
       </div>
@@ -1817,10 +1868,19 @@ function ContestSettingsTab({ contestInfo, handleEditSettings, handleDeleteConte
 /* -------------------------------------------------------------------------- */
 /* 공통 보조 컴포넌트 */
 /* -------------------------------------------------------------------------- */
-function ContestSideBtn({ icon, label, active, onClick }: { icon: any, label: string, active: boolean, onClick: () => void }) {
+function ContestSideBtn({ icon, label, active, disabled = false, onClick }: { icon: any, label: string, active: boolean, disabled?: boolean, onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${active ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200" : "text-slate-500 hover:bg-white hover:text-slate-900 border border-transparent hover:border-slate-200"
-      }`}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+        disabled
+          ? "opacity-40 cursor-not-allowed text-slate-400 bg-slate-100/50"
+          : active
+          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+          : "text-slate-500 hover:bg-white hover:text-slate-900 border border-transparent hover:border-slate-200"
+      }`}
+    >
       {icon} <span>{label}</span>
     </button>
   );

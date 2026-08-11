@@ -1026,9 +1026,9 @@ function ProblemDetailContent() {
                             <TableCell>
                               <Badge
                                 variant="outline"
-                                className={`font-mono text-[10px] font-bold border ${getTierColor(sub.tier)}`}
+                                className={`font-mono text-[10px] font-bold border ${getTierColor(sub.rank)}`}
                               >
-                                {formatTierName(sub.tier)}
+                                {formatTierName(sub.rank)}
                               </Badge>
                             </TableCell>
 
@@ -1159,9 +1159,9 @@ function ProblemDetailContent() {
                         <TableCell className="text-center">
                           <Badge
                             variant="outline"
-                            className={`font-mono text-[10px] font-bold border ${getTierColor(rank.tier)}`}
+                            className={`font-mono text-[10px] font-bold border ${getTierColor(rank.rank)}`}
                           >
-                            {formatTierName(rank.tier)}
+                            {formatTierName(rank.rank)}
                           </Badge>
                         </TableCell>
 
