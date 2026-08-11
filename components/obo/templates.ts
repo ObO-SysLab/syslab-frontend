@@ -37,10 +37,7 @@ export interface PaletteItem {
 export const PALETTE_ITEMS: PaletteItem[] = [
   { type: 'state-node',    group: 'node',  label: 'State Node',      description: '상태/엔터티 (ST2)' },
   { type: 'text-label',    group: 'text',  label: 'Text Label',      description: '텍스트/주석' },
-  { type: 'slot-grid',     group: 'node',  label: 'Slot Grid',       description: '페이지/슬롯 배열 (FIFO/LRU/Belady)' },
-  { type: 'gantt-lane',    group: 'node',  label: 'Timeline Block',  description: '스케줄링 간트 차트 트랙' },
-  { type: 'counter-badge', group: 'node',  label: 'Counter Badge',   description: '세마포어/버퍼 카운트' },
-  // 비활성: resource-square, line-chart
+  // 비활성: slot-grid, gantt-lane, counter-badge, resource-square, line-chart
 ];
 
 export const PALETTE_GROUPS = [
@@ -66,7 +63,9 @@ export interface OBOTemplate {
   defaultFrames?: Frame[];
 }
 
-export const OBO_TEMPLATES: OBOTemplate[] = [
+// 전체 템플릿 정의(제거하지 않고 보존). 실제 노출은 아래 ACTIVE_TEMPLATE_IDS로 필터.
+// 비활성 템플릿을 직접 참조해야 하는 테스트/내부 용도는 이 배열을 쓴다.
+export const ALL_OBO_TEMPLATES: OBOTemplate[] = [
   {
     id: 'ST2',
     name: '프로세스 상태 전이',
@@ -363,9 +362,14 @@ export const OBO_TEMPLATES: OBOTemplate[] = [
   // 비활성: G2, P2, P3, S3
 ];
 
+// 현재 활성 템플릿: ST2만. 나머지(S1, G1, C1)는 정의는 보존하되 팔레트/사이드바에 노출하지 않음.
+const ACTIVE_TEMPLATE_IDS = ['ST2'];
+
+export const OBO_TEMPLATES: OBOTemplate[] = ALL_OBO_TEMPLATES.filter(
+  t => ACTIVE_TEMPLATE_IDS.includes(t.id)
+);
+
 export const CATEGORIES = [
-  { id: 'all',    label: '전체',   count: 4 },
-  { id: 'cpu',    label: 'CPU',    count: 2 },
-  { id: 'memory', label: 'Memory', count: 1 },
-  { id: 'sync',   label: 'Sync',   count: 1 },
+  { id: 'all', label: '전체', count: 1 },
+  { id: 'cpu', label: 'CPU',  count: 1 },
 ] as const;
