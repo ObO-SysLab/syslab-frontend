@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import {
   Search, LogOut, Bell, Menu, Code2, Coffee, SearchCode, BookOpen,
@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Header } from "@/components/Header";
 
 
-export default function GroupListPage() {
+function GroupListContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -554,5 +554,19 @@ function TagItem({ icon, label, active, onClick }: { icon: React.ReactNode; labe
       <span className={active ? "text-white" : "text-slate-400 group-hover:text-slate-950"}>{icon}</span>
       <span>{label}</span>
     </div>
+  );
+}
+
+export default function GroupListPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+          <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        </div>
+      }
+    >
+      <GroupListContent />
+    </Suspense>
   );
 }
