@@ -146,9 +146,10 @@ function MonacoSubmitContent() {
         alert("채점 요청이 접수되었습니다.");
         const json = await response.json();
         const newId = json.data.submissionId;
+        
         sessionStorage.setItem(`pending_sub_${probId}`, newId);
-        // 채점 현황을 바로 볼 수 있도록 상세 페이지의 채점 탭으로 이동
-        window.location.href = `/challenges/detail/?id=${probId}`;
+
+        router.push(`/challenges/detail?id=${probId}&tab=grading`);
       } else {
         const errorData = await response.json();
         alert(`제출 실패: ${errorData.message || "오류 발생"}`);

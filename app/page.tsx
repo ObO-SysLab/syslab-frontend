@@ -152,6 +152,7 @@ export default function HomePage() {
         isLoggedIn={isLoggedIn}
         userImgUrl={userImgUrl}
         activeMenu="home"
+        showSearch={false}
         onLogout={() => {
           // 로컬에 남은 잔재(토큰, 정보)를 모조리 청소합니다.
           localStorage.removeItem("token");
@@ -190,12 +191,16 @@ export default function HomePage() {
                   현재 탐사 랭킹 <span className="font-bold text-[#00FFA3]">{mockUser.ranking}위</span>이며, 다음 수층 진입이 머지않았습니다!
                 </p>
                 <div className="flex gap-3 pt-3">
-                  <Button size="lg" className="bg-[#00D1FF] text-slate-950 font-bold hover:bg-[#00FFA3] transition-colors shadow-[0_0_15px_rgba(0,209,255,0.2)]">
-                    지금 다이브하기 <Zap size={18} className="ml-2 fill-current" />
-                  </Button>
-                  <Button size="lg" variant="outline" className="text-slate-300 border-white/10 hover:bg-white/5 hover:text-white">
-                    차트 분석
-                  </Button>
+                  <Link href="/challenges">
+                    <Button size="lg" className="bg-[#00D1FF] text-slate-950 font-bold hover:bg-[#00FFA3] transition-colors shadow-[0_0_15px_rgba(0,209,255,0.2)]">
+                      지금 다이브하기 <Zap size={18} className="ml-2 fill-current" />
+                    </Button>
+                  </Link>
+                  <Link href="/settings?tab=chart">
+                    <Button size="lg" variant="outline" className="text-slate-300 border-white/10 hover:bg-white/5 hover:text-white">
+                      차트 분석
+                    </Button>
+                  </Link>
                 </div>
               </div>
 
@@ -290,7 +295,7 @@ export default function HomePage() {
                 </CardContent>
 
                 <div className="p-4 pt-0">
-                  <Link href="/challenges?level=1">
+                  <Link href="/challenges/detail?id=1">
                     <Button variant="outline" className="w-full text-xs font-bold text-[#00FFA3] border-[#00FFA3]/30 hover:bg-[#00FFA3]/10 hover:text-white hover:border-[#00FFA3] transition-all">
                       ⚡ 100m 수심 맛보기 체험
                     </Button>
@@ -306,7 +311,7 @@ export default function HomePage() {
             <h2 className="text-xl font-black text-slate-950 flex items-center gap-2">
               <Crown className="w-5 h-5 text-amber-500 fill-amber-100" /> 오늘의 단독 탐사 임무
             </h2>
-            <Link href={`/challenges/${todayProblem.probId}`}>
+            <Link href={`/challenges/detail?id=${todayProblem.probId}`}>
               <Card className="bg-gradient-to-r from-blue-50/60 via-indigo-50/30 to-white border border-blue-100 shadow-sm hover:shadow-md hover:border-blue-400/40 transition-all rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 group cursor-pointer">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -351,70 +356,93 @@ export default function HomePage() {
 
         {/* [B] 추천 챌린지 영역 */}
         <section className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
             <div className="space-y-1">
-              <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-                <Target className="w-6 h-6 text-[#FF4B72]" />
+              <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2.5 tracking-tight">
+                <Target className="w-5.5 h-5.5 text-[#0066FF] animate-pulse" />
                 대원 맞춤 탐사 영역 추천
               </h2>
-              {/* API에서 전달된 취약점 사유 또는 폴백 텍스트 반영 */}
-              <p className="text-xs text-[#0066FF] font-bold font-mono pl-9">
-                {recommendData?.reason || "대원님의 인공지능 탐사 분석 시스템 가동 중..."}
-              </p>
+              {/* 추천 사유 문구 가시성 극대화 및 폴백 텍스트 대응 */}
+              <div className="inline-flex items-center gap-1.5 bg-blue-50 text-[#0066FF] px-2.5 py-1 rounded-md text-xs font-bold font-mono">
+                <span>🎯</span> {recommendData?.reason || "많은 사람들이 푼 문제를 추천해드려요"}
+              </div>
             </div>
-            <Link href="/challenges" className="text-sm font-bold text-[#0066FF] hover:underline whitespace-nowrap pl-9 sm:pl-0">
+            <Link href="/challenges" className="text-xs font-black text-[#0066FF] bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-xl transition-all tracking-tight shrink-0 self-start sm:self-center">
               전체 수심 도전하기 →
             </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 데이터가 로드되었을 경우 API 스펙 데이터를 출력, 로그아웃 및 폴백 상황엔 mock 데이터 스탠바이 */}
-            {(recommendData?.problems && recommendData.problems.length > 0 ? recommendData.problems : mockFeaturedProblems).map((prob: any) => (
-              // 상위 부모 링커에 식별용 고유 키 주입 완료
-              <Link href={`/challenges/${prob.probId}`} key={prob.probId}>
-                <Card className="bg-white border-slate-100 shadow-sm hover:border-[#0091FF]/40 hover:shadow-md transition-all duration-300 cursor-pointer group rounded-2xl overflow-hidden h-full flex flex-col justify-between">
-                  <div>
-                    {/* 지정된 카테고리에 최적화된 상단 컬러 바 매핑 */}
-                    <div className={`h-1.5 ${prob.category === "Process" ? "bg-[#00A3FF]" :
-                        prob.category === "Memory" ? "bg-[#00E699]" :
-                          prob.category === "Kernel" ? "bg-slate-900" :
-                            prob.category === "Thread" ? "bg-purple-400" :
-                              prob.category === "File System" ? "bg-amber-400" : "bg-slate-300"
-                      }`} />
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <Badge variant="outline" className="font-mono text-[10px] text-slate-500 border-slate-200 bg-slate-50 flex items-center gap-1">
-                          {prob.category === "Process" && <Cpu size={12} />}
-                          {prob.category === "Memory" && <Layers size={12} />}
-                          {prob.category === "Kernel" && <HardDrive size={12} />}
-                          {prob.category === "Thread" && <Users size={12} />}
-                          {prob.category === "File System" && <Lock size={12} />}
-                          {prob.category}
-                        </Badge>
-                        <Badge className={`rounded-full px-2.5 py-0.5 text-[10px] font-black border tracking-tight font-mono
-                          ${prob.difficulty === "1" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : ""}
-                          ${prob.difficulty === "2" ? "bg-amber-50 text-amber-600 border-amber-200" : ""}
-                          ${prob.difficulty === "3" ? "bg-rose-50 text-rose-600 border-rose-100" : ""}
-                          ${prob.difficulty === "4" ? "bg-violet-50 text-violet-700 border-violet-200" : ""}
-                          ${prob.difficulty === "5" ? "bg-slate-900 text-white border-slate-950 shadow-sm" : "bg-slate-100 text-slate-600"}
+            {(recommendData?.problems && recommendData.problems.length > 0
+              ? recommendData.problems
+              : mockFeaturedProblems
+            ).map((prob: any) => {
+              const currentId = prob.probId || prob.id;
+              const category = prob.category || "Process";
+              const difficulty = String(prob.difficulty || "1");
+              const solvedCount = prob.solvedCount ?? 0;
+
+              return (
+                <Link href={`/challenges/detail?id=${currentId}`} key={String(currentId)} className="block h-full">
+                  {/* 사이버네틱 심해 잠수정 컨셉의 다크 테크 카드 인프라 */}
+                  <div className="group relative bg-slate-950 border border-slate-900 rounded-2xl overflow-hidden shadow-xl hover:shadow-[0_0_30px_rgba(0,102,255,0.15)] hover:border-[#0066FF]/50 transition-all duration-300 h-full flex flex-col justify-between text-white p-5 space-y-5">
+
+                    {/* 우측 상단 배경에 은은하게 박히는 빅 사이즈 카테고리 워터마크 (시각적 입체감) */}
+                    <div className="absolute right-[-10px] top-[-10px] text-slate-900 font-mono text-5xl font-black opacity-20 select-none pointer-events-none group-hover:text-[#0066FF]/10 group-hover:scale-105 transition-all">
+                      {category.substring(0, 4).toUpperCase()}
+                    </div>
+
+                    <div className="space-y-4 relative z-10">
+                      <div className="flex items-center justify-between">
+                        {/* 카테고리 칩 - 5대 코어에 맞춘 네온 컬러 포인트 */}
+                        <Badge className={`font-mono text-[10px] font-black tracking-wider border-none rounded-lg px-2 py-0.5 shadow-none
+                          ${category === "Process" ? "bg-[#00A3FF]/10 text-[#00A3FF]" : ""}
+                          ${category === "Memory" ? "bg-[#00E699]/10 text-[#00E699]" : ""}
+                          ${category === "Kernel" ? "bg-purple-500/10 text-purple-400" : ""}
+                          ${category === "Thread" ? "bg-fuchsia-500/10 text-fuchsia-400" : ""}
+                          ${category === "File System" ? "bg-amber-400/10 text-amber-400" : ""}
                         `}>
-                          {prob.difficulty === "1" ? "100m" : prob.difficulty === "2" ? "300m" : prob.difficulty === "3" ? "500m" : "1,000m+"}
+                          <span className="mr-1">
+                            {category === "Process" && <Cpu size={10} className="inline" />}
+                            {category === "Memory" && <Layers size={10} className="inline" />}
+                            {category === "Kernel" && <HardDrive size={10} className="inline" />}
+                            {category === "Thread" && <Users size={10} className="inline" />}
+                            {category === "File System" && <Lock size={10} className="inline" />}
+                          </span>
+                          {category}
+                        </Badge>
+
+                        {/* 수심 단계별 메인 인디케이터 배지 (칼 정렬 및 입체 스킨) */}
+                        <Badge className={`rounded-full px-2.5 py-0.5 text-[10px] font-black border tracking-tight font-mono shadow-inner
+                          ${difficulty === "1" ? "bg-emerald-950/40 text-emerald-400 border-emerald-800" : ""}
+                          ${difficulty === "2" ? "bg-amber-950/40 text-amber-400 border-amber-800" : ""}
+                          ${difficulty === "3" ? "bg-rose-950/40 text-rose-400 border-rose-800" : ""}
+                          ${difficulty === "4" ? "bg-violet-950/40 text-violet-400 border-violet-800" : ""}
+                          ${difficulty === "5" ? "bg-white/10 text-white border-white/20" : "bg-slate-900 text-slate-400 border-slate-800"}
+                        `}>
+                          {difficulty === "1" ? "100m" : difficulty === "2" ? "300m" : difficulty === "3" ? "500m" : difficulty === "4" ? "1,000m" : "3,000m+"}
                         </Badge>
                       </div>
-                      <CardTitle className="text-lg font-bold text-slate-900 group-hover:text-[#0066FF] transition-colors line-clamp-2 leading-snug">
+
+                      {/* 호버 시 네온 블루로 변광하는 타이틀 라인 */}
+                      <h3 className="text-base font-bold text-slate-100 group-hover:text-[#00D1FF] transition-colors line-clamp-2 leading-snug tracking-tight">
                         {prob.title}
-                      </CardTitle>
-                    </CardHeader>
+                      </h3>
+                    </div>
+
+                    {/* 카드 하단 스태츠 바 - 다크 그레이 가로 단락 마감 */}
+                    <div className="pt-3 border-t border-slate-900 flex justify-between items-center font-mono text-[10px] text-slate-500 relative z-10">
+                      <p className="tracking-tight bg-slate-900/50 px-2 py-0.5 rounded text-slate-400">ID: {currentId}</p>
+                      <p className="flex items-center gap-1 text-slate-400 font-bold">
+                        <Anchor size={12} className="text-slate-500 group-hover:text-[#00D1FF] transition-colors" />
+                        {solvedCount.toLocaleString()}명 돌파
+                      </p>
+                    </div>
+
                   </div>
-                  <CardContent className="pt-0 pb-5 text-xs text-slate-400 flex justify-between items-center bg-slate-50/30">
-                    <p className="font-mono text-[11px]">ID: {prob.probId}</p>
-                    <p className="flex items-center gap-1 text-slate-500 font-medium">
-                      <Anchor size={13} className="text-slate-400" /> {(prob.solvedCount || 0).toLocaleString()}명 돌파
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         </section>
 

@@ -17,9 +17,9 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { form } from "framer-motion/client";
 import { OboPlayer } from "@/components/obo/OboPlayer";
 import { resolveOboBlob, type OboBlob, type ProblemOboData } from "@/components/obo/types";
+import { Header } from "@/components/Header";
 
 function OboPlayerSection({ oboData, selectedChoiceIndex }: {
   oboData: ProblemOboData | OboBlob;
@@ -48,6 +48,14 @@ function ProblemDetailContent() {
   // URL에서 가져온 값 상태
   const searchParams = useSearchParams();
   const probId = searchParams.get('id');
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabParam || "problem");
+
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   // 페이지 상태
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -309,6 +317,8 @@ function ProblemDetailContent() {
 
         setSubmissions(prev => [pendingSub, ...prev]);
 
+        setActiveTab("grading");
+
       } else {
         const err = await res.json();
         alert(`제출 실패: ${err.detail || err.message || "오류가 발생했습니다."}`);
@@ -569,77 +579,60 @@ function ProblemDetailContent() {
     window.location.reload(); // 상태 초기화를 위해 새로고침
   };
 
+  // 숫자/문자열 티어 값을 이름으로 정제해주는 함수
+  const formatTierName = (tier: string | number) => {
+    const t = String(tier);
+    if (t === "7") return "Challenger";
+    if (t === "6") return "Master";
+    if (t === "5") return "Diamond";
+    if (t === "4") return "Platinum";
+    if (t === "3") return "Gold";
+    if (t === "2") return "Silver";
+    if (t === "1") return "Bronze";
+    return t || "Bronze"; // 기본값
+  };
+
+  // 티어 명칭에 따라 배경/글자/테두리 색상 클래스를 리턴하는 함수
+  const getTierColor = (tier: string | number) => {
+    const tierName = formatTierName(tier);
+
+    switch (tierName) {
+      case "Challenger":
+        return "bg-rose-950 text-rose-200 border-rose-800";
+      case "Master":
+        return "bg-purple-50 text-purple-700 border-purple-200";
+      case "Diamond":
+        return "bg-cyan-50 text-cyan-600 border-cyan-200";
+      case "Platinum":
+        return "bg-emerald-50 text-emerald-600 border-emerald-200";
+      case "Gold":
+        return "bg-amber-50 text-amber-600 border-amber-200";
+      case "Silver":
+        return "bg-slate-100 text-slate-600 border-slate-200";
+      case "Bronze":
+      default:
+        return "bg-slate-50 text-slate-500 border-slate-200";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
 
-      {/* 1. 고정 헤더 (기존 디자인 유지) */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-        { /* [A] Diveon 로고 영역 */}
-        <div className="flex items-center gap-8"> {/* gap을 넓혀서 메뉴 공간 확보 */}
-          <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
-          <Link href="/" className="text-2xl font-black tracking-tighter text-slate-900 mr-4">
-            Diveon
-          </Link>
-
-          {/* [B] 중앙 네비게이션 메뉴 영역 */}
-          <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
-            <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
-            <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
-            <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
-            <NavMenuLink href="/store" icon={<ShoppingBag size={18} />} label="스토어" />
-          </nav>
-        </div>
-
-        {/* [C] 검색창 영역 */}
-        <div className="flex-1 max-w-sm px-4">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-            <Input type="search" placeholder="검색..." className="pl-9 bg-slate-50 border-slate-200 rounded-full h-9 text-sm" />
-          </div>
-        </div>
-
-        {/* [D] 우측 사용자 영역 (로그인 상태에 따라 가변적) */}
-        <div className="flex items-center gap-3">
-          {isLoggedIn ? (
-            /* --- 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
-            <>
-              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-              </button>
-
-              <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
-                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
-                    {/* 공백 상태 유지 */}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-
-              <button
-                onClick={() => setIsLoggedIn(false)}
-                className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
-              >
-                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
-              </button>
-            </>
-          ) : (
-            /* --- 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
-            <div className="flex items-center gap-2">
-              <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
-              </Link>
-              <Link href="/signup">
-                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header
+        isLoggedIn={isLoggedIn}
+        userImgUrl={userImgUrl}
+        activeMenu="challenge"
+        showSearch={false}
+        onLogout={async () => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("nickname");
+          localStorage.removeItem("userImgUrl");
+          localStorage.clear();
+          sessionStorage.clear();
+          setIsLoggedIn(false);
+          window.location.replace("/");
+        }}
+      />
 
       {/* 2. 메인 레이아웃 (Grid 12분할) */}
       <main className="container mx-auto max-w-[1600px] pt-6 grid grid-cols-1 md:grid-cols-12 gap-6 px-4 pb-12">
@@ -750,7 +743,7 @@ function ProblemDetailContent() {
         <section className="col-span-12 md:col-span-8 space-y-6">
 
           {/* 탭 컨트롤러 */}
-          <Tabs defaultValue="problem" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4 bg-slate-100 p-1 rounded-lg sticky top-16 z-40">
               <TabsTrigger value="problem">문제</TabsTrigger>
               <TabsTrigger value="grading">채점</TabsTrigger>
@@ -879,11 +872,10 @@ function ProblemDetailContent() {
                             }`}
                         >
                           {/* 서버 옵션이 순서 모드(isOrderedAnswer)라면 동글 내부에 누른 순서 숫자(1, 2..)를 띄우고, 일반 모드라면 기존 기호 유지 */}
-                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-black transition-all ${
-                            isSelected 
-                              ? "bg-indigo-600 text-white border-indigo-600 shadow-inner" 
-                              : "border-slate-300 bg-white text-slate-400"
-                          }`}>
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-black transition-all ${isSelected
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-inner"
+                            : "border-slate-300 bg-white text-slate-400"
+                            }`}>
                             {isSelected && problemData?.isOrderedAnswer ? orderIndex + 1 : choice.index}
                           </div>
 
@@ -979,6 +971,7 @@ function ProblemDetailContent() {
                     <TableRow>
                       <TableHead className="w-[100px]">제출 번호</TableHead>
                       <TableHead>닉네임</TableHead>
+                      <TableHead className="w-[80px]">티어</TableHead>
                       <TableHead>결과</TableHead>
 
                       {/* 코딩 문제 전용 헤더 */}
@@ -1028,6 +1021,16 @@ function ProblemDetailContent() {
                           >
                             <TableCell className="font-mono text-xs">{sub.submissionId}</TableCell>
                             <TableCell className="font-bold text-slate-700">{sub.nickname || "User"}</TableCell>
+
+                            {/* 티어 표시 컬럼 */}
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={`font-mono text-[10px] font-bold border ${getTierColor(sub.rank)}`}
+                              >
+                                {formatTierName(sub.rank)}
+                              </Badge>
+                            </TableCell>
 
                             {/* 결과 배지 컬럼 */}
                             <TableCell>
@@ -1127,6 +1130,7 @@ function ProblemDetailContent() {
                     <TableRow>
                       <TableHead className="w-[80px] text-center font-bold">순위</TableHead>
                       <TableHead className="font-bold">사용자</TableHead>
+                      <TableHead className="w-[80px] text-center font-bold">티어</TableHead>
                       {problemData?.type === "coding" && <TableHead className="w-[120px] text-center font-bold">사용 언어</TableHead>}
                       <TableHead className="text-right pr-6 font-bold">최초 해결 일시</TableHead>
                     </TableRow>
@@ -1138,7 +1142,7 @@ function ProblemDetailContent() {
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-7 w-7 border border-slate-100">
-                              {/* 💡 [기술 특약] 백엔드 규칙에 맞게 확장자 떼고 쿼리스트링 매핑 우회 적용 */}
+                              {/* 백엔드 규칙에 맞게 확장자 떼고 쿼리스트링 매핑 우회 적용 */}
                               <AvatarImage
                                 src={`https://d3ghudecvdi62z.cloudfront.net/profiles/users/${rank.userId}?v=${Date.now()}`}
                                 className="object-cover"
@@ -1149,6 +1153,16 @@ function ProblemDetailContent() {
                             </Avatar>
                             <span className="font-bold text-slate-800">{rank.nickname}</span>
                           </div>
+                        </TableCell>
+
+                        {/* 티어 표시 컬럼 */}
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            className={`font-mono text-[10px] font-bold border ${getTierColor(rank.rank)}`}
+                          >
+                            {formatTierName(rank.rank)}
+                          </Badge>
                         </TableCell>
 
                         {/* 코딩 문제일 경우에만 해당 언어 노출 가드 기입 */}
@@ -1180,7 +1194,7 @@ function ProblemDetailContent() {
 
                     {rankings.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={problemData?.type === "coding" ? 3 : 2} className="text-center py-12 text-slate-400 text-sm font-medium">
+                        <TableCell colSpan={problemData?.type === "coding" ? 4 : 3} className="text-center py-12 text-slate-400 text-sm font-medium">
                           이 문제를 해결한 사용자가 아직 없습니다. 최초의 정답자가 되어보세요! 🚀
                         </TableCell>
                       </TableRow>
