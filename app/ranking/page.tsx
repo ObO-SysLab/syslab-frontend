@@ -73,7 +73,6 @@ export default function GlobalRankingPage() {
   }, []);
 
   // [API] 유저 랭킹
-  // 기존 빈 함수를 지우고 이 실서버 연동 코드로 교체하세요!
   const fetchUserRankings = async (pageNumber: number) => {
     setIsLoading(true);
     const token = localStorage.getItem("token");
@@ -101,7 +100,7 @@ export default function GlobalRankingPage() {
           const top3Podium = apiRankings.slice(0, 3).map((item: any) => ({
             rank: item.rank,
             nickname: item.nickname,
-            avatar: item.nickname.substring(0, 2).toUpperCase(),
+            avatar: item.nickname ? item.nickname.substring(0, 1).toUpperCase() : "",
             score: item.score,
             userId: item.userId,
             tier: item.tier,
@@ -120,7 +119,6 @@ export default function GlobalRankingPage() {
   };
 
   // [API] 그룹 랭킹
-  // [API] 신규 그룹 랭킹 API 연동 함수
   const fetchGroupRankings = async (pageNumber: number) => {
     setIsLoading(true);
     const token = localStorage.getItem("token");
@@ -144,7 +142,7 @@ export default function GlobalRankingPage() {
           const top3Podium = apiRankings.slice(0, 3).map((item: any) => ({
             rank: item.rank,
             nickname: item.title,
-            avatar: item.title.substring(0, 2).toUpperCase(),
+            avatar: item.title ? item.title.substring(0, 1).toUpperCase() : "",
             score: item.score,
             memberCount: item.memberCount,
             groupId: item.groupId,
@@ -182,7 +180,7 @@ export default function GlobalRankingPage() {
 
   // 기존 getTierColor 함수 내부에 들어오는 티어 변환 가드 주입
   const getTierColor = (tier: string) => {
-    
+
 
     if (tier === "7") tier = "Challenger";
     else if (tier === "6") tier = "Master";
@@ -415,7 +413,7 @@ export default function GlobalRankingPage() {
                           <Avatar className="h-8 w-8 border border-slate-100">
                             <AvatarImage src={rankType === "group" && item.image ? item.image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${displayId}?v=${cacheBuster}`} className="object-cover" />
                             <AvatarFallback className={rankType === "user" ? "bg-indigo-50 text-indigo-600 text-xs font-bold" : "bg-purple-50 text-purple-600 text-xs font-bold"}>
-                              {displayName.substring(0, 2).toUpperCase()}
+                              {displayName ? displayName.substring(0, 1).toUpperCase() : ""}
                             </AvatarFallback>
                           </Avatar>
                           <span className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors cursor-pointer">

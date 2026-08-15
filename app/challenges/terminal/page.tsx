@@ -120,7 +120,7 @@ function PracticeContent() {
 
       if (res.ok || res.status === 404) {
         alert("실습 환경이 종료되었습니다.");
-        router.push(`/challenges/detail?id=${probId}`);
+        router.push(`/challenges/detail?id=${probId}&tab=grading`);
       } else {
         const errorData = await res.json();
         alert(`종료 실패: ${errorData.detail || errorData.message}`);
@@ -131,7 +131,7 @@ function PracticeContent() {
     }
   };
 
-  // [API] FLAG 제출 성공 시 문제 상세 페이지로 복귀
+  // [API] FLAG 제출 성공 시 문제 상세 페이지의 채점 탭으로 복귀
   const handleFlagSubmit = async () => {
     if (!flag.trim()) {
       alert("플래그를 입력해주세요.");
@@ -141,14 +141,12 @@ function PracticeContent() {
     const token = localStorage.getItem("token");
     const targetFlag = flag.trim();
 
-    // 1. 사용자 화면은 지체 없이 즉시 문제 상세(메인) 페이지로 이동 시킵니다.
-    alert("채점 요청이 접수되었습니다. 결과는 챌린지 리스트에서 확인하실 수 있습니다!");
-    router.push(`/challenges/detail?id=${probId}`);
+    alert("채점 요청이 접수되었습니다. 채점 현황 탭으로 이동합니다.");
+    router.push(`/challenges/detail?id=${probId}&tab=grading`);
 
-    // 2. 이후 백엔드 통신은 await로 사용자를 붙잡지 않고 백그라운드에서 조용히 실행합니다.
+    // 백그라운드 채점 요청 및 VM 종료 파이프라인
     (async () => {
       try {
-        // [비동기 1단계] 백그라운드 채점 서버 노크
         const response = await fetch(`https://diveon.net/api/submissions/grade`, {
           method: "POST",
           headers: {
@@ -171,7 +169,6 @@ function PracticeContent() {
           }
         }
 
-        // [비동기 2단계] 채점 요청 끝났으니 사용하던 컨테이너(VM) 정지 요청
         await fetch(`https://diveon.net/api/vm/stop`, {
           method: "DELETE",
           headers: {
@@ -182,7 +179,6 @@ function PracticeContent() {
         });
 
       } catch (error) {
-        // 이미 사용자는 메인 페이지로 나갔으므로 alert를 띄우지 않고 콘솔에만 조용히 에러를 남깁니다.
         console.error("백그라운드 채점/VM종료 파이프라인 에러:", error);
       }
     })();

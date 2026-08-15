@@ -38,14 +38,12 @@ function LoginContent() {
         const result = await res.json();
 
         if (res.ok) {
-          // [체크 포인트] 백엔드가 주는 필드명이 accessToken이 맞는지, access_token인지 꼭 확인해 보세요!
           const token = result?.data?.accessToken || result?.data?.access_token;
           const nickname = result?.data?.userInfo?.nickname;
           const userImg = result?.data?.userInfo?.profileImgUrl;
 
           if (!token) {
             alert("백엔드로부터 유효한 토큰을 받지 못했습니다. 구조를 확인해 주세요.");
-            console.log("백엔드 응답 데이터 구조:", result);
             return;
           }
           
@@ -54,8 +52,29 @@ function LoginContent() {
           if (nickname) localStorage.setItem("nickname", nickname);
           if (userImg) localStorage.setItem("userImgUrl", userImg);
           
-          // [UX 교정] router.push 대신 window.location.replace를 쓰면 
-          window.location.replace(nextTarget || "/");
+          // 전체 URL 수신 시, 안전하게 상대 경로만 추출해 내는 가드 코드입니다.
+          let safeRedirectPath = "/";
+          if (nextTarget) {
+            try {
+              // nextTarget이 풀 주소(https://...)인 경우 상대 경로만 추출
+              if (nextTarget.startsWith("http")) {
+                const urlObj = new URL(nextTarget);
+                safeRedirectPath = urlObj.pathname + urlObj.search;
+              } else {
+                safeRedirectPath = nextTarget;
+              }
+            } catch (e) {
+              safeRedirectPath = nextTarget;
+            }
+          }
+
+          // router.replace를 사용하면 Next.js 인프라가 쿼리스트링(?code=...)을 유실하지 않고 
+          // 안전하게 목적지(초대 페이지)로 배달
+          router.replace(safeRedirectPath);
+          setTimeout(() => {
+            router.refresh();
+          }, 100);
+
         } else {
           // 백엔드에서 뱉은 실제 에러 메시지를 팝업으로 띄워서 디버깅합니다.
           alert(`서버 인증 실패: ${result.message || "상태 코드 " + res.status}`);
