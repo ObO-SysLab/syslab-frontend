@@ -80,19 +80,34 @@ export function StateNode({ id, data, selected }: NodeProps) {
 
   return (
     <CheckpointStatusRing status={status}>
-      <div style={{
-        padding: '8px 16px', borderRadius: 8, minWidth: 80,
-        border: `2px solid ${active ? color : IDLE_BORDER}`,
-        backgroundColor: active ? color : 'white',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow, opacity,
-        userSelect: 'none', cursor: 'grab',
-        transition: 'background-color 300ms, border-color 300ms, box-shadow 300ms',
-      }}>
-        {handles}
-        <span style={{
-          ...labelStyle, fontSize: 13, whiteSpace: 'nowrap',
-        }}>{d.label}</span>
+      <div style={{ position: 'relative' }}>
+        {frameHighlighted && (
+          <svg
+            className="absolute pointer-events-none"
+            style={{ inset: -6, width: 'calc(100% + 12px)', height: 'calc(100% + 12px)', opacity: 0.55, overflow: 'visible' }}
+          >
+            <rect
+              x="0" y="0" width="100%" height="100%" rx="12" ry="12"
+              fill="none" stroke={color} strokeWidth="2"
+              strokeDasharray="8 8"
+              style={{ animation: 'obo-march 0.6s linear infinite' }}
+            />
+          </svg>
+        )}
+        <div style={{
+          padding: '14px 16px', borderRadius: 8, minWidth: 80,
+          border: `2px solid ${active ? color : IDLE_BORDER}`,
+          backgroundColor: active ? color : 'white',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow, opacity,
+          userSelect: 'none', cursor: 'grab',
+          transition: 'background-color 300ms, border-color 300ms, box-shadow 300ms',
+        }}>
+          {handles}
+          <span style={{
+            ...labelStyle, fontSize: 13, whiteSpace: 'nowrap',
+          }}>{d.label}</span>
+        </div>
       </div>
     </CheckpointStatusRing>
   );

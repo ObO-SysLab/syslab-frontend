@@ -17,6 +17,7 @@ export function OboEdge({
   data, selected,
 }: EdgeProps) {
   const d = (data ?? {}) as OboEdgeData;
+  const isBidi = d.direction === 'both';
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX, sourceY, sourcePosition,
     targetX, targetY, targetPosition,
@@ -33,7 +34,6 @@ export function OboEdge({
   const opacity = frameDimmed ? 0.25 : 1;
   const mkId = `obo-mk-${id}`;
   const mkBiId = `obo-mk-bi-${id}`;
-  const isBidi = d.direction === 'both';
 
   const labelCls = frameHighlighted
     ? 'bg-white border border-amber-400 rounded-full text-[11px] font-black text-amber-700 px-3 py-1 shadow-sm'
@@ -44,7 +44,9 @@ export function OboEdge({
       {/* SVG 요소는 <g>로 묶어 opacity 일괄 적용 */}
       <g style={{ opacity }}>
         <defs>
-          <marker id={mkId} markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="strokeWidth">
+          {/* refX를 tip(9)보다 크게 잡아 화살표를 곡선 접선 방향으로 살짝 당긴다
+              → tip이 노드 핸들 점 바깥 가장자리에 놓여 점에 가려지지 않는다(붕 뜨지 않음). */}
+          <marker id={mkId} markerWidth="9" markerHeight="9" refX="11" refY="4.5" orient="auto" markerUnits="strokeWidth">
             <path d="M 0 0 L 9 4.5 L 0 9 z" fill={stroke} />
           </marker>
           {isBidi && (
