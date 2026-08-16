@@ -5,6 +5,7 @@ import type { Node, Edge } from '@xyflow/react';
 import type { EdgeType } from '../templates';
 import type { Frame, OboMode } from '../types';
 import { NodeEditor } from './NodeProps';
+import { collectLabels } from '../lib/label';
 import { EdgeEditor } from './EdgeProps';
 import { Palette } from './Palette';
 import { FramePanel } from './FramePanel';
@@ -111,6 +112,7 @@ export function PropertyPanel({
           {oboMode === 'coding_diff' ? (
             <TracePanel
               nodes={nodes}
+              edges={edges}
               value={traceText}
               onChange={onTraceTextChange}
               testcaseOutputs={testcaseOutputs}
@@ -164,7 +166,11 @@ export function PropertyPanel({
               </pre>
             ) : mode === 'property' && selectedNode ? (
               <div className="p-3 space-y-4">
-                <NodeEditor node={selectedNode} onUpdate={patch => updateNodeData(selectedNode.id, patch)} />
+                <NodeEditor
+                  node={selectedNode}
+                  onUpdate={patch => updateNodeData(selectedNode.id, patch)}
+                  takenLabels={collectLabels(nodes, selectedNode.id)}
+                />
               </div>
             ) : mode === 'property' && selectedEdge ? (
               <div className="p-3 space-y-4">
