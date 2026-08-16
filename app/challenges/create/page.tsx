@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { ProblemOboData } from "@/components/obo/types";
 import { OboEditorSection } from "@/components/obo/OboEditorSection";
+import { validateProblemObo } from "@/components/obo/lib/validateObo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -91,6 +92,9 @@ function ProblemCreateContent() {
   };
   const confirmOboModal = () => setOboModalOpen(false);
   const cancelOboModal = () => {
+    // 편집으로 내용이 바뀐 경우에만 폐기 확인
+    const dirty = JSON.stringify(oboData) !== JSON.stringify(oboDataSnapshot);
+    if (dirty && !window.confirm("편집한 내용이 저장되지 않습니다. 취소할까요?")) return;
     if (oboDataSnapshot) setOboData(oboDataSnapshot);
     setOboModalOpen(false);
   };
@@ -181,6 +185,14 @@ function ProblemCreateContent() {
     if (visibility === "group" && !selectedGroupId) {
       alert("공개할 그룹을 선택해주세요.");
       return;
+    }
+
+    if (oboEnabled) {
+      const oboErrors = validateProblemObo(oboData, { choiceCount: choices.length });
+      if (oboErrors.length) {
+        alert("OBO 설정을 확인하세요:\n- " + oboErrors.join("\n- "));
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -1206,6 +1218,13 @@ function ProblemCreateContent() {
                   <p className="text-sm text-slate-500">
                     {oboData.mode === 'per_choice' ? (
                       <>보기별 모드 &nbsp;·&nbsp; 보기 <span className="font-bold text-slate-800">{Object.keys(oboData.perChoice ?? {}).length}</span>개 설정됨</>
+                    ) : oboData.mode === 'coding_diff' ? (
+                      <>
+                        코딩 채점 모드 &nbsp;·&nbsp;
+                        노드 <span className="font-bold text-slate-800">{oboData.codingDiff?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        엣지 <span className="font-bold text-slate-800">{oboData.codingDiff?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        트레이스 <span className="font-bold text-slate-800">{oboData.codingDiff?.referenceTrace.length ?? 0}</span>스텝
+                      </>
                     ) : (
                       <>
                         노드 <span className="font-bold text-slate-800">{oboData.single?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
