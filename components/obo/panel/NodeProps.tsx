@@ -1,12 +1,48 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import type { Node } from '@xyflow/react';
+import { makeUniqueLabel } from '../lib/label';
 import { TextField } from './fields/Text';
 import { NumField } from './fields/Num';
 import { ColorField } from './fields/Color';
 import { SegField } from './fields/Seg';
 import { ToggleField } from './fields/Toggle';
 import { ListEditor, type GanttBlock, type ChartSeries } from './fields/ListEditor';
+
+// 노드 라벨 전용 필드. 라벨은 트레이스 키라 유일해야 하므로, 편집 확정(blur/Enter) 시
+// 다른 노드와 중복이면 자동으로 접미 숫자를 붙여 유일화한다(입력 중엔 방해하지 않음).
+function UniqueLabelField({ label, value, taken, onCommit }: {
+  label: string;
+  value: string;
+  taken: Set<string>;
+  onCommit: (v: string) => void;
+}) {
+  const [local, setLocal] = useState(value);
+  useEffect(() => setLocal(value), [value]);
+
+  const commit = () => {
+    const v = local.trim();
+    if (v === '' || v === value) { setLocal(value); return; } // 빈 값/무변경은 원복
+    const unique = taken.has(v) ? makeUniqueLabel(v, taken) : v;
+    setLocal(unique);
+    if (unique !== value) onCommit(unique);
+  };
+
+  return (
+    <div>
+      <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{label}</p>
+      <input
+        type="text"
+        value={local}
+        onChange={e => setLocal(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+        className="w-full px-2 py-1 text-xs border border-slate-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-indigo-300"
+      />
+    </div>
+  );
+}
 
 function Divider() {
   return <div className="h-px bg-slate-100" />;
@@ -24,15 +60,17 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
 interface NodeEditorProps {
   node: Node;
   onUpdate: (patch: Record<string, unknown>) => void;
+  // 이 노드를 제외한 다른 노드들의 라벨 집합 — 라벨 유일성 검사에 사용.
+  takenLabels: Set<string>;
 }
 
-export function NodeEditor({ node, onUpdate }: NodeEditorProps) {
+export function NodeEditor({ node, onUpdate, takenLabels }: NodeEditorProps) {
   const d = node.data as Record<string, unknown>;
 
   if (node.type === 'state-node') {
     return (
       <Section>
-        <TextField label="라벨" value={(d.label as string) ?? ''} onChange={v => onUpdate({ label: v })} />
+        <UniqueLabelField label="라벨" value={(d.label as string) ?? ''} taken={takenLabels} onCommit={v => onUpdate({ label: v })} />
         <SegField label="모양" value={(d.shape as string) ?? 'circle'}
           options={[{ value: 'circle', label: '원' }, { value: 'box', label: '박스' }]}
           onChange={v => onUpdate({ shape: v })} />
@@ -46,7 +84,7 @@ export function NodeEditor({ node, onUpdate }: NodeEditorProps) {
     const instances = (d.instances as number) ?? 1;
     return (
       <Section>
-        <TextField label="라벨" value={(d.label as string) ?? ''} onChange={v => onUpdate({ label: v })} />
+        <UniqueLabelField label="라벨" value={(d.label as string) ?? ''} taken={takenLabels} onCommit={v => onUpdate({ label: v })} />
         <NumField label="인스턴스 수" value={instances} min={1} max={8}
           onChange={v => onUpdate({ instances: v, allocated: Math.min((d.allocated as number) ?? 0, v) })} />
         <NumField label="할당 수" value={(d.allocated as number) ?? 0} min={0} max={instances}
@@ -108,7 +146,7 @@ export function NodeEditor({ node, onUpdate }: NodeEditorProps) {
     const max = (d.max as number) ?? 10;
     return (
       <Section>
-        <TextField label="라벨" value={(d.label as string) ?? ''} onChange={v => onUpdate({ label: v })} />
+        <UniqueLabelField label="라벨" value={(d.label as string) ?? ''} taken={takenLabels} onCommit={v => onUpdate({ label: v })} />
         <NumField label="최솟값" value={min} min={-999} max={max}
           onChange={v => onUpdate({ min: v })} />
         <NumField label="최댓값" value={max} min={min} max={999}
