@@ -128,3 +128,10 @@
     @apply font-sans;
   }
 }
+
+/* OBO 박스 노드 강조: 점선이 둘레를 따라 흐르는 marching-ants (도형 회전 없음) */
+@keyframes obo-march {
+  to {
+    stroke-dashoffset: -16;
+  }
+}

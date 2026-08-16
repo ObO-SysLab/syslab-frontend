@@ -4,7 +4,7 @@ import type { Frame, OboBlob, OboTraceStep } from '../types';
 // 두 노드가 강조됐다고 그 사이 엣지를 전부(양방향 엣지, 병렬 엣지 포함) 강조하면 예를 들어
 // ready<->running처럼 서로 다른 방향의 엣지(dispatch/interrupt)가 둘 다 있는 경우 둘 다 켜지는
 // 문제가 생긴다 — 트레이스가 준 순서를 방향으로 써서 정확히 그 전이 하나만 고른다.
-function findDirectedEdge(edges: OboBlob['edges'], from: string, to: string) {
+export function findDirectedEdge(edges: OboBlob['edges'], from: string, to: string) {
   return edges.find(e => {
     if (e.source === from && e.target === to) return true;
     const direction = (e.data as { direction?: string } | undefined)?.direction;
