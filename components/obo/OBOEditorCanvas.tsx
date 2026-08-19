@@ -30,6 +30,7 @@ import { OboEdge } from './edges/OboEdge';
 import { nextNodeId, nextEdgeId } from './lib/id';
 import { applyFrame } from './lib/applyFrame';
 import { makeUniqueLabel, collectLabels } from './lib/label';
+import type { GanttRow, PaintHint } from './lib/useGanttPaintDrag';
 import { Lock, Unlock } from 'lucide-react';
 
 const edgeTypes = { 'obo-edge': OboEdge } as const;
@@ -59,6 +60,8 @@ interface OBOEditorCanvasProps {
   onDuplicateNode?: (id: string) => void;
   onDeleteNode?: (id: string) => void;
   onDeleteEdge?: (id: string) => void;
+  // 캔버스에 그려진 gantt-chart 노드를 직접 드래그로 칠하기(생성/리사이즈/이동/삭제)
+  onGanttChartPaint?: (nodeId: string, rows: GanttRow[], hint: PaintHint | null) => void;
 }
 
 function CanvasInner({
@@ -67,6 +70,7 @@ function CanvasInner({
   activeTab, frames, previewFrame, onFrameNodeClick, onFrameEdgeClick,
   traceMode = false, onTraceNodeClick,
   onDuplicateNode, onDeleteNode, onDeleteEdge,
+  onGanttChartPaint,
 }: OBOEditorCanvasProps) {
   // 우클릭 컨텍스트 메뉴: 대상 종류·id·화면 좌표
   const [menu, setMenu] = useState<{ kind: 'node' | 'edge'; id: string; x: number; y: number } | null>(null);
@@ -77,7 +81,7 @@ function CanvasInner({
   useEffect(() => {
     if (fitSignal === 0) return;
     const id = window.setTimeout(
-      () => fitView({ padding: 0.3, maxZoom: 0.75, duration: 300 }),
+      () => fitView({ padding: 0.08, maxZoom: 1.125, duration: 300 }),
       60,
     );
     return () => window.clearTimeout(id);
@@ -165,7 +169,7 @@ function CanvasInner({
   const closeMenu = useCallback(() => setMenu(null), []);
 
   return (
-    <FrameContext.Provider value={{ previewFrame }}>
+    <FrameContext.Provider value={{ previewFrame, onGanttChartPaint }}>
       <div className="flex-1 overflow-hidden relative" onDrop={onDrop} onDragOver={onDragOver}>
         {nodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
@@ -198,7 +202,7 @@ function CanvasInner({
           snapToGrid
           snapGrid={[16, 16]}
           fitView
-          fitViewOptions={{ padding: 0.3, maxZoom: 0.75 }}
+          fitViewOptions={{ padding: 0.08, maxZoom: 1.125 }}
         >
           <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#e2e8f0" />
           <Controls showInteractive={false}>

@@ -28,9 +28,12 @@ describe('exampleStateValue', () => {
     expect(parsed).toHaveLength(2);
   });
 
-  it('gantt-lane → an array containing one block-shaped object', () => {
-    const parsed = JSON.parse(exampleStateValue(node('gantt-lane', {}))!);
-    expect(parsed).toEqual([{ start: expect.any(Number), end: expect.any(Number), colorKey: expect.any(String) }]);
+  it('gantt-chart → an array containing one row with a block-shaped object', () => {
+    const parsed = JSON.parse(exampleStateValue(node('gantt-chart', {}))!);
+    expect(parsed).toEqual([{
+      trackId: expect.any(String),
+      blocks: [{ start: expect.any(Number), end: expect.any(Number), colorKey: expect.any(String) }],
+    }]);
   });
 
   it('node types with no state field return null', () => {

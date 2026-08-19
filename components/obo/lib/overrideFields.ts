@@ -3,7 +3,7 @@ import { DEFAULT_TIMELINE_COLOR_KEY } from '../nodes/ganttColors';
 
 export const NODE_OVERRIDE_FIELDS: Record<string, { state: string[]; event: string[] }> = {
   'text-label':    { state: ['text'],   event: [] },
-  'gantt-lane':    { state: ['blocks'], event: ['activeBlockIndex'] },
+  'gantt-chart':   { state: ['rows'],   event: ['activeRowIndex', 'activeBlockIndex'] },
   'slot-grid':     { state: ['slots'],  event: ['faultSlotIndex', 'hitSlotIndex'] },
   'counter-badge': { state: ['value'],  event: ['delta'] },
 };
@@ -36,8 +36,8 @@ export function exampleStateValue(node: Node): string | null {
       const count = (data.slotCount as number) ?? (data.slots as unknown[] | undefined)?.length ?? 3;
       return JSON.stringify(Array(count).fill(null));
     }
-    case 'gantt-lane':
-      return JSON.stringify([{ start: 0, end: 1, colorKey: DEFAULT_TIMELINE_COLOR_KEY }]);
+    case 'gantt-chart':
+      return JSON.stringify([{ trackId: 'P1', blocks: [{ start: 0, end: 1, colorKey: DEFAULT_TIMELINE_COLOR_KEY }] }]);
     default:
       return null;
   }

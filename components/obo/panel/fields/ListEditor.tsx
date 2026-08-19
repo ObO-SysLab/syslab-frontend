@@ -5,7 +5,7 @@ import { TIMELINE_COLOR_KEYS, DEFAULT_TIMELINE_COLOR_KEY } from '../../nodes/gan
 export interface GanttBlock {
   start: number;
   end: number;
-  colorKey: string;
+  colorKey?: string;
 }
 
 export interface ChartSeries {

@@ -9,7 +9,7 @@ export type NodeComponentType =
   | 'counter-badge';
 
 export type ChartComponentType =
-  | 'gantt-lane'
+  | 'gantt-chart'
   | 'line-chart';
 
 export type TextComponentType =
@@ -36,12 +36,14 @@ export interface PaletteItem {
 
 export const PALETTE_ITEMS: PaletteItem[] = [
   { type: 'state-node',    group: 'node',  label: 'State Node',      description: '상태/엔터티 (ST2)' },
+  { type: 'gantt-chart',   group: 'chart', label: 'Gantt Chart',     description: '스케줄링 타임라인 박스 (G1)' },
   { type: 'text-label',    group: 'text',  label: 'Text Label',      description: '텍스트/주석' },
-  // 비활성: slot-grid, gantt-lane, counter-badge, resource-square, line-chart
+  // 비활성: slot-grid, counter-badge, resource-square, line-chart
 ];
 
 export const PALETTE_GROUPS = [
   { id: 'node', label: 'NODE' },
+  { id: 'chart', label: 'CHART' },
   { id: 'edge', label: 'EDGE' },
   { id: 'text', label: 'TEXT' },
 ] as const;
@@ -242,34 +244,24 @@ export const ALL_OBO_TEMPLATES: OBOTemplate[] = [
     description: 'Timeline Block',
     defaultNodes: [
       {
-        id: 'schedule-title',
-        type: 'text-label',
-        position: { x: 40, y: 20 },
-        data: { text: 'FCFS 스케줄링 · P1(3) → P2(3) → P3(3)', variant: 'plain', color: '#334155' },
-      },
-      {
-        id: 'status',
-        type: 'text-label',
-        position: { x: 40, y: 52 },
-        data: { text: '프레임 탭에서 재생해 보세요 →', variant: 'pill', color: '#6366f1' },
-      },
-      {
-        id: 'track-p1',
-        type: 'gantt-lane',
-        position: { x: 40, y: 100 },
-        data: { trackId: 'P1', blocks: [], activeBlockIndex: null },
-      },
-      {
-        id: 'track-p2',
-        type: 'gantt-lane',
-        position: { x: 40, y: 160 },
-        data: { trackId: 'P2', blocks: [], activeBlockIndex: null },
-      },
-      {
-        id: 'track-p3',
-        type: 'gantt-lane',
-        position: { x: 40, y: 220 },
-        data: { trackId: 'P3', blocks: [], activeBlockIndex: null },
+        // 제목·행·시간축을 한 박스가 통째로 들고 있다 — 행을 늘려도 축이 알아서 같이 늘어난다.
+        // 참고 이미지처럼 위에서 아래로 P3 → P2 → P1(x축과 맞닿음) 순서로 쌓는다.
+        id: 'schedule',
+        type: 'gantt-chart',
+        position: { x: 40, y: 40 },
+        data: {
+          title: 'FCFS 스케줄링',
+          axisMax: 9,
+          // 행마다 고유 색을 줘서(블록에 colorKey 생략 시 이 색을 따름) 같은 프로세스가
+          // 여러 프레임에 걸쳐도 항상 같은 색으로 보인다.
+          rows: [
+            { trackId: 'P3', blocks: [], color: 'amber' },
+            { trackId: 'P2', blocks: [], color: 'indigo' },
+            { trackId: 'P1', blocks: [], color: 'teal' },
+          ],
+          activeRowIndex: null,
+          activeBlockIndex: null,
+        },
       },
     ],
     defaultEdges: [],
@@ -277,22 +269,40 @@ export const ALL_OBO_TEMPLATES: OBOTemplate[] = [
       {
         id: 'f_1', label: 'P1 디스패치 (0~3)', highlightNodes: [], highlightEdges: [],
         nodeDataOverrides: {
-          'track-p1': { blocks: [{ start: 0, end: 3, colorKey: 'teal' }], activeBlockIndex: 0 },
-          status: { text: 'P1 디스패치 (0~3)' },
+          schedule: {
+            rows: [
+              { trackId: 'P3', blocks: [], color: 'amber' },
+              { trackId: 'P2', blocks: [], color: 'indigo' },
+              { trackId: 'P1', blocks: [{ start: 0, end: 3 }], color: 'teal' },
+            ],
+            activeRowIndex: 2, activeBlockIndex: 0,
+          },
         },
       },
       {
         id: 'f_2', label: 'P2 디스패치 (3~6)', highlightNodes: [], highlightEdges: [],
         nodeDataOverrides: {
-          'track-p2': { blocks: [{ start: 3, end: 6, colorKey: 'indigo' }], activeBlockIndex: 0 },
-          status: { text: 'P1 종료 → P2 디스패치 (3~6)' },
+          schedule: {
+            rows: [
+              { trackId: 'P3', blocks: [], color: 'amber' },
+              { trackId: 'P2', blocks: [{ start: 3, end: 6 }], color: 'indigo' },
+              { trackId: 'P1', blocks: [{ start: 0, end: 3 }], color: 'teal' },
+            ],
+            activeRowIndex: 1, activeBlockIndex: 0,
+          },
         },
       },
       {
-        id: 'f_3', label: 'P3 디스패치 (6~9)', highlightNodes: [], highlightEdges: [],
+        id: 'f_3', label: 'P3 디스패치 (6~9) · 모든 프로세스 완료', highlightNodes: [], highlightEdges: [],
         nodeDataOverrides: {
-          'track-p3': { blocks: [{ start: 6, end: 9, colorKey: 'amber' }], activeBlockIndex: 0 },
-          status: { text: 'P2 종료 → P3 디스패치 (6~9) · 모든 프로세스 완료' },
+          schedule: {
+            rows: [
+              { trackId: 'P3', blocks: [{ start: 6, end: 9 }], color: 'amber' },
+              { trackId: 'P2', blocks: [{ start: 3, end: 6 }], color: 'indigo' },
+              { trackId: 'P1', blocks: [{ start: 0, end: 3 }], color: 'teal' },
+            ],
+            activeRowIndex: 0, activeBlockIndex: 0,
+          },
         },
       },
     ],
@@ -362,14 +372,14 @@ export const ALL_OBO_TEMPLATES: OBOTemplate[] = [
   // 비활성: G2, P2, P3, S3
 ];
 
-// 현재 활성 템플릿: ST2만. 나머지(S1, G1, C1)는 정의는 보존하되 팔레트/사이드바에 노출하지 않음.
-const ACTIVE_TEMPLATE_IDS = ['ST2'];
+// 현재 활성 템플릿: ST2, G1. 나머지(S1, C1)는 정의는 보존하되 팔레트/사이드바에 노출하지 않음.
+const ACTIVE_TEMPLATE_IDS = ['ST2', 'G1'];
 
 export const OBO_TEMPLATES: OBOTemplate[] = ALL_OBO_TEMPLATES.filter(
   t => ACTIVE_TEMPLATE_IDS.includes(t.id)
 );
 
 export const CATEGORIES = [
-  { id: 'all', label: '전체', count: 1 },
-  { id: 'cpu', label: 'CPU',  count: 1 },
+  { id: 'all', label: '전체', count: 2 },
+  { id: 'cpu', label: 'CPU',  count: 2 },
 ] as const;

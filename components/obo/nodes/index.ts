@@ -1,7 +1,7 @@
 import { StateNode }        from './StateNode';
 import { ResourceSquare }   from './ResourceSquare';
 import { SlotGrid }         from './SlotGrid';
-import { GanttLane }        from './GanttLane';
+import { GanttChart }       from './GanttChart';
 import { LineChart }        from './LineChart';
 import { TextLabel }        from './TextLabel';
 import { CounterBadgeNode } from './CounterBadgeNode';
@@ -11,7 +11,7 @@ export const nodeTypes = {
   'state-node':      StateNode,
   'resource-square': ResourceSquare,
   'slot-grid':       SlotGrid,
-  'gantt-lane':      GanttLane,
+  'gantt-chart':     GanttChart,
   'line-chart':      LineChart,
   'text-label':      TextLabel,
   'counter-badge':   CounterBadgeNode,

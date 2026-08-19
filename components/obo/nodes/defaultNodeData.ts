@@ -9,8 +9,10 @@ export const DEFAULT_NODE_DATA: Record<string, object> = {
     slotCount: 4, slots: [null, null, null, null],
     faultSlotIndex: null, hitSlotIndex: null,
   },
-  'gantt-lane': {
-    trackId: 'P1', blocks: [], activeBlockIndex: null,
+  'gantt-chart': {
+    title: '', axisMax: undefined,
+    rows: [{ trackId: 'P1', blocks: [], color: 'teal' }, { trackId: 'P2', blocks: [], color: 'indigo' }],
+    activeRowIndex: null, activeBlockIndex: null,
   },
   'counter-badge': {
     label: 'Counter', min: 0, max: 10, value: 0, delta: null,

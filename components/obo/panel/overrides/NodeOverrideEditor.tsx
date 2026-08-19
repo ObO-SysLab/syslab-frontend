@@ -4,7 +4,7 @@ import type { Node } from '@xyflow/react';
 import type { Frame } from '../../types';
 import { applyFrame } from '../../lib/applyFrame';
 import { TextLabelOverrideForm } from './TextLabelOverrideForm';
-import { TimelineBlockOverrideForm } from './TimelineBlockOverrideForm';
+import { GanttChartOverrideForm } from './GanttChartOverrideForm';
 import { SlotGridOverrideForm } from './SlotGridOverrideForm';
 import { CounterBadgeOverrideForm } from './CounterBadgeOverrideForm';
 
@@ -33,8 +33,8 @@ export function NodeOverrideEditor({ node, frames, frameIndex, override, onField
   switch (node.type) {
     case 'text-label':
       return <TextLabelOverrideForm {...formProps} />;
-    case 'gantt-lane':
-      return <TimelineBlockOverrideForm {...formProps} />;
+    case 'gantt-chart':
+      return <GanttChartOverrideForm {...formProps} />;
     case 'slot-grid':
       return <SlotGridOverrideForm {...formProps} />;
     case 'counter-badge':

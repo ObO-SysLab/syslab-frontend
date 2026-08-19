@@ -17,6 +17,7 @@ import { generateFramesFromTrace } from './lib/trace';
 import { parseTraceText, stringifyTrace } from './lib/traceParser';
 import { traceTokenFor, makeUniqueLabel, collectLabels } from './lib/label';
 import { exampleStateValue } from './lib/overrideFields';
+import type { GanttRow, PaintHint } from './lib/useGanttPaintDrag';
 
 export interface OboChoice { id: string; text: string; }
 
@@ -29,6 +30,13 @@ interface Props {
 }
 
 const EMPTY_BLOB: OboBlob = { nodes: [], edges: [], frames: [] };
+
+// 저장된 블롭의 엣지에는 type이 없다(serialize가 저장하지 않음) — React Flow edgeTypes 맵이
+// 'obo-edge' 키로만 등록돼 있으므로 type 없이 그대로 넣으면 기본 엣지(라벨 미표시)로 렌더링된다.
+// 캔버스에 올리기 전 항상 type을 강제해 OboPlayer(리뷰 화면)와 동일하게 렌더되도록 맞춘다.
+function withEdgeType(edges: OboBlob['edges']): Edge[] {
+  return edges.map(e => ({ ...e, type: 'obo-edge' as const })) as Edge[];
+}
 
 // 모드는 저작자가 고르지 않고 문제 유형에서 자동 결정된다. 상단 바에는 선택 대신 이 라벨을 표시만 한다.
 const MODE_LABEL: Record<OboMode, string> = {
@@ -87,7 +95,7 @@ export const OboEditorSection = React.memo(function OboEditorSection({
   // ── React Flow 상태 ───────────────────────────────────
   const init = getBlob(initMode, initChoiceId);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(init.nodes as Node[]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(init.edges as Edge[]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(withEdgeType(init.edges));
   const [frames, setFrames] = useState<Frame[]>(init.frames);
   const referenceTrace = useMemo(() => parseTraceText(traceText, nodes), [traceText, nodes]);
 
@@ -150,7 +158,7 @@ export const OboEditorSection = React.memo(function OboEditorSection({
     if (choiceId === activeChoiceId) return;
     const blob = perChoiceMapRef.current[choiceId] ?? EMPTY_BLOB;
     setNodes(blob.nodes as Node[]);
-    setEdges(blob.edges as Edge[]);
+    setEdges(withEdgeType(blob.edges));
     setFrames(blob.frames);
     setActiveChoiceId(choiceId);
     setSelectedId(null);
@@ -265,9 +273,19 @@ export const OboEditorSection = React.memo(function OboEditorSection({
   }, [selectedId, selectedKind, duplicateNode]);
 
   // ── 프레임 탭 ─────────────────────────────────────────
+  // 새 프레임은 직전 프레임이 오버라이드하던 노드 집합을 그대로 이어받는다(값은 안 베끼고
+  // 빈 {}만) — state 필드는 applyFrame이 알아서 이전 값을 캐리포워드하므로, 패널에 그 노드가
+  // 바로 보이기만 하면 편집 시작점이 "이전 프레임 내용이 유지된 채" 시작하는 것처럼 느껴진다.
   const addFrame = useCallback(() => {
     const id = nextFrameId(frames);
-    setFrames(fs => [...fs, { id, label: '', highlightNodes: [], highlightEdges: [] }]);
+    const prevOverrideIds = Object.keys(frames[frames.length - 1]?.nodeDataOverrides ?? {});
+    const nodeDataOverrides = prevOverrideIds.length
+      ? Object.fromEntries(prevOverrideIds.map(nid => [nid, {}]))
+      : undefined;
+    setFrames(fs => [...fs, {
+      id, label: '', highlightNodes: [], highlightEdges: [],
+      ...(nodeDataOverrides ? { nodeDataOverrides } : {}),
+    }]);
     setSelectedFrameId(id);
   }, [frames]);
 
@@ -371,6 +389,23 @@ export const OboEditorSection = React.memo(function OboEditorSection({
       prev === '' || prev.endsWith('\n') || prev.endsWith(' ') ? prev + insert : `${prev} ${insert}`,
     );
   }, [nodes]);
+
+  // 캔버스에 그려진 gantt-chart 노드를 직접 드래그로 칠했을 때 — 항상 "지금 고른 프레임"의
+  // 오버라이드로 들어간다. 블록은 프레임이 진행되며 채워지는 것이지 기본 데이터가 아니므로,
+  // 프레임을 고르지 않은 상태(속성 탭)에서는 애초에 캔버스가 칠하기를 안 받는다
+  // (OboEditorSection이 onGanttChartPaint를 selectedFrameId가 있을 때만 내려줌).
+  const handleGanttChartPaint = useCallback((nodeId: string, rowsNext: GanttRow[], hint: PaintHint | null) => {
+    if (!selectedFrameId) return;
+    addNodeOverride(selectedFrameId, nodeId);
+    setOverrideField(selectedFrameId, nodeId, 'rows', rowsNext);
+    if (hint) {
+      setOverrideField(selectedFrameId, nodeId, 'activeRowIndex', hint.rowIndex);
+      setOverrideField(selectedFrameId, nodeId, 'activeBlockIndex', hint.blockIndex);
+    } else {
+      clearOverrideField(selectedFrameId, nodeId, 'activeRowIndex');
+      clearOverrideField(selectedFrameId, nodeId, 'activeBlockIndex');
+    }
+  }, [selectedFrameId, addNodeOverride, setOverrideField, clearOverrideField]);
 
   const previewFrame = activeTab === 'frame' && selectedFrameId
     ? (frames.find(f => f.id === selectedFrameId) ?? null)
@@ -499,6 +534,7 @@ export const OboEditorSection = React.memo(function OboEditorSection({
           onDuplicateNode={duplicateNode}
           onDeleteNode={deleteNodeById}
           onDeleteEdge={deleteEdgeById}
+          onGanttChartPaint={activeTab === 'frame' && selectedFrameId ? handleGanttChartPaint : undefined}
         />
 
         <PropertyPanel

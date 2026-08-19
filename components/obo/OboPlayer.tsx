@@ -63,7 +63,7 @@ function PlayerInner({ blob, maxFrameIndex, checkpointStatusByFrame, autoPlay }:
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             fitView
-            fitViewOptions={{ padding: 0.3, maxZoom: 0.75 }}
+            fitViewOptions={{ padding: 0.08, maxZoom: 1.125 }}
             connectionMode={ConnectionMode.Loose}
             nodesDraggable={false}
             nodesConnectable={false}

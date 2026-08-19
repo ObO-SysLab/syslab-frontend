@@ -9,6 +9,7 @@ import { ColorField } from './fields/Color';
 import { SegField } from './fields/Seg';
 import { ToggleField } from './fields/Toggle';
 import { ListEditor, type GanttBlock, type ChartSeries } from './fields/ListEditor';
+import { TIMELINE_COLOR_KEYS, rowColorForIndex } from '../nodes/ganttColors';
 
 // 노드 라벨 전용 필드. 라벨은 트레이스 키라 유일해야 하므로, 편집 확정(blur/Enter) 시
 // 다른 노드와 중복이면 자동으로 접미 숫자를 붙여 유일화한다(입력 중엔 방해하지 않음).
@@ -126,16 +127,55 @@ export function NodeEditor({ node, onUpdate, takenLabels }: NodeEditorProps) {
     );
   }
 
-  if (node.type === 'gantt-lane') {
-    const blocks = (d.blocks as GanttBlock[]) ?? [];
+  if (node.type === 'gantt-chart') {
+    // 블록은 여기(기본 데이터)가 아니라 프레임에서 채워진다 — 이 화면은 어떤 행(프로세스)이
+    // 있는지·색만 정한다. 실제 "언제 뭐가 도는지"는 프레임 탭에서 캔버스를 직접 칠해서 만든다.
+    const rows = (d.rows as { trackId?: string; blocks?: GanttBlock[]; color?: string }[]) ?? [];
+    const updateRows = (next: typeof rows) => onUpdate({ rows: next });
     return (
       <div className="space-y-4">
         <Section>
-          <TextField label="트랙 ID" value={(d.trackId as string) ?? ''} onChange={v => onUpdate({ trackId: v })} />
+          <TextField label="제목" value={(d.title as string) ?? ''} onChange={v => onUpdate({ title: v })} />
+          <NumField
+            label="공유 칸 수(0=자동)"
+            value={(d.axisMax as number) ?? 0}
+            min={0} max={40}
+            onChange={v => onUpdate({ axisMax: v || undefined })}
+          />
         </Section>
         <Divider />
-        <Section title="블록 목록">
-          <ListEditor mode="blocks" value={blocks} onChange={newBlocks => onUpdate({ blocks: newBlocks })} />
+        <Section title="행 (프로세스별 한 줄)">
+          <div className="space-y-2">
+            {rows.map((row, i) => (
+              <div key={i} className="relative border border-slate-100 rounded-lg p-2 flex items-end gap-2">
+                <button
+                  onClick={() => updateRows(rows.filter((_, j) => j !== i))}
+                  className="absolute top-1.5 right-1.5 text-slate-300 hover:text-red-400 text-xs transition-colors"
+                >✕</button>
+                <div className="flex-1">
+                  <TextField
+                    label="트랙 ID"
+                    value={row.trackId ?? ''}
+                    onChange={v => updateRows(rows.map((r, j) => j === i ? { ...r, trackId: v } : r))}
+                  />
+                </div>
+                <div className="w-24 pr-4">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">행 색상</p>
+                  <select
+                    value={row.color ?? rowColorForIndex(i)}
+                    onChange={e => updateRows(rows.map((r, j) => j === i ? { ...r, color: e.target.value } : r))}
+                    className="w-full px-1.5 py-1 text-xs border border-slate-200 rounded bg-white"
+                  >
+                    {TIMELINE_COLOR_KEYS.map(k => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                </div>
+              </div>
+            ))}
+            <button
+              onClick={() => updateRows([...rows, { trackId: `P${rows.length + 1}`, blocks: [], color: rowColorForIndex(rows.length) }])}
+              className="w-full text-xs text-indigo-500 hover:text-indigo-700 py-1 border border-dashed border-indigo-200 rounded transition-colors"
+            >+ 행 추가</button>
+          </div>
         </Section>
       </div>
     );
