@@ -1168,10 +1168,9 @@ function ChallengesTab({ allChallenges, contestId, isContestHost, setShowAddChal
 
                     <div className="space-y-1 mt-4 border-t border-slate-200/50 pt-3">
                       <div className="flex justify-between text-[10px] font-bold text-slate-400">
-                        <span>정답률</span>
-                        <span>{Math.round((ch.solvedCount / 128) * 100)}% ({ch.solvedCount}명)</span>
+                        <span>해결자</span>
+                        <span>{ch.solvedCount}명 · 제출 {ch.submittedCount ?? 0}회</span>
                       </div>
-                      <Progress value={(ch.solvedCount / 128) * 100} className="h-1.5 bg-slate-100" />
                     </div>
 
                     {isContestHost && (
