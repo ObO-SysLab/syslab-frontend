@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { connectTerminal } from "@/lib/terminal-connection";
 
 function PracticeContent() {
   // 라우터와 URL 파라미터 가져오기
@@ -205,12 +206,14 @@ function PracticeContent() {
     let term: any;
     let resizeObserver: ResizeObserver;
     let ws: WebSocket;
+    const connectionAbort = new AbortController();
 
     const initTerminal = async () => {
       const { Terminal } = await import("xterm");
       const { FitAddon } = await import("xterm-addon-fit");
       const { AttachAddon } = await import("xterm-addon-attach"); // Attach Addon 추가
       await import("xterm/css/xterm.css");
+      if (connectionAbort.signal.aborted) return;
 
       term = new Terminal({
         cursorBlink: true,
@@ -223,38 +226,31 @@ function PracticeContent() {
       term.loadAddon(fitAddon);
       term.open(terminalRef.current!);
 
-      setTimeout(() => fitAddon.fit(), 50);
+      setTimeout(() => { if (!connectionAbort.signal.aborted) fitAddon.fit(); }, 50);
       resizeObserver = new ResizeObserver(() => { try { fitAddon.fit(); } catch { } });
       resizeObserver.observe(terminalRef.current!);
 
       term.writeln("\x1b[1;34mDIVEON Remote Lab Cloud v2.0.4-LTS\x1b[0m");
       term.writeln("Connecting to server...");
 
-      // WebSocket 연결 (명세서의 /ws/terminal 사용)
-      const token = localStorage.getItem("token");
-      // 프로토콜을 wss(https) 또는 ws(http)로 설정
-      const wsUrl = `wss://diveon.net/ws/terminal?container_id=${containerId}&token=${token}`;
-      ws = new WebSocket(wsUrl);
-
-      ws.onopen = () => {
-        term.writeln("\x1b[1;32mConnection established.\x1b[0m\r\n");
-        // AttachAddon을 이용해 웹소켓과 터미널을 양방향 파이프로 연결
-        const attachAddon = new AttachAddon(ws);
-        term.loadAddon(attachAddon);
-      };
-
-      ws.onerror = () => {
-        term.writeln("\x1b[1;31mConnection error. Please try again.\x1b[0m");
-      };
-
-      ws.onclose = () => {
-        term.writeln("\r\n\x1b[1;33mConnection closed.\x1b[0m");
-      };
+      ws = await connectTerminal({
+        probId: Number(probId), containerId, token: localStorage.getItem("token"),
+        signal: connectionAbort.signal,
+        onReady: socket => {
+          term.writeln("\x1b[1;32mConnection established.\x1b[0m\r\n");
+          term.loadAddon(new AttachAddon(socket));
+        },
+        onError: () => term.writeln("\r\nAuthorization failed. Refresh to reconnect."),
+        onClose: () => term.writeln("\r\nConnection closed."),
+      });
     };
 
-    initTerminal();
+    initTerminal().catch(() => {
+      if (!connectionAbort.signal.aborted) term?.writeln("\r\nConnection failed. Check login and lab status.");
+    });
 
     return () => {
+      connectionAbort.abort();
       resizeObserver?.disconnect();
       term?.dispose();
       ws?.close(); // 컴포넌트가 사라지면 소켓 연결도 끊기
