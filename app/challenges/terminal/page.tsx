@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { connectTerminal } from "@/lib/terminal-connection";
+import { readVmSession, stopVmSession } from "@/lib/vm-session";
 
 function PracticeContent() {
   // 라우터와 URL 파라미터 가져오기
@@ -27,10 +28,11 @@ function PracticeContent() {
   const xtermRef = useRef<any>(null);
   const [flag, setFlag] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(2700); // 45분 (초 단위)
+  const [timeLeft, setTimeLeft] = useState(0);
 
   // API 연동 스위치 및 동적 상태 선언 아래에 추가
   const [containerId, setContainerId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<number | null>(null);
   const [isVmLoading, setIsVmLoading] = useState(true); // VM 생성 로딩 상태
 
   const hasFetched = useRef(false);
@@ -73,14 +75,10 @@ function PracticeContent() {
 
         if (vmRes.status === 201 || vmRes.status === 200) {
           const vmJson = await vmRes.json();
-          setContainerId(vmJson.data.containerId);
-
-          if (vmJson.data.expiresAt) {
-            const expiresDate = new Date(vmJson.data.expiresAt).getTime();
-            const now = new Date().getTime();
-            const diffSeconds = Math.floor((expiresDate - now) / 1000);
-            setTimeLeft(diffSeconds > 0 ? diffSeconds : 0);
-          }
+          const session = readVmSession(vmJson.data);
+          setSessionId(session.sessionId);
+          setContainerId(session.containerId);
+          setTimeLeft(Math.max(0, Math.floor((session.expiresAtEpochMs - Date.now()) / 1000)));
         } else {
           const errJson = await vmRes.json();
           alert(`VM 환경을 구성할 수 없습니다: ${errJson.detail || errJson.message}`);
@@ -110,22 +108,11 @@ function PracticeContent() {
 
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`https://diveon.net/api/vm/stop`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ probId: Number(probId) }) // API 명세 키값 매핑
-      });
-
-      if (res.ok || res.status === 404) {
-        alert("실습 환경이 종료되었습니다.");
-        router.push(`/challenges/detail?id=${probId}&tab=grading`);
-      } else {
-        const errorData = await res.json();
-        alert(`종료 실패: ${errorData.detail || errorData.message}`);
-      }
+      await stopVmSession(Number(probId), sessionId, token);
+      setContainerId(null);
+      setSessionId(null);
+      alert("실습 환경이 종료되었습니다.");
+      router.push(`/challenges/detail?id=${probId}&tab=grading`);
     } catch (error) {
       console.error("VM 종료 에러:", error);
       alert("서버와 통신 중 오류가 발생했습니다.");
@@ -170,14 +157,7 @@ function PracticeContent() {
           }
         }
 
-        await fetch(`https://diveon.net/api/vm/stop`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({ probId: Number(probId) })
-        });
+        await stopVmSession(Number(probId), sessionId, token);
 
       } catch (error) {
         console.error("백그라운드 채점/VM종료 파이프라인 에러:", error);
