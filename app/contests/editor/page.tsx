@@ -146,11 +146,9 @@ function MonacoSubmitContent() {
 
       if (response.ok) {
         alert("채점 요청이 접수되었습니다.");
-        const json = await response.json();
-        const newId = json.data.solveSubmissionId;
-        if (newId != null) sessionStorage.setItem(`pending_sub_${probId}`, String(newId));
+        // The contest board reads the committed contest submission directly.
         // 채점 현황을 바로 볼 수 있도록 상세 페이지의 채점 탭으로 이동
-        window.location.href = `/contests/challenge/?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}`;
+        window.location.href = `/contests/challenge/?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}&tab=grading`;
       } else {
         const errorData = await response.json();
         alert(`제출 실패: ${errorData.message || "오류 발생"}`);

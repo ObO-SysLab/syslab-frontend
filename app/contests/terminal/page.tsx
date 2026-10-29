@@ -84,7 +84,7 @@ function PracticeContent() {
         } else {
           const errJson = await vmRes.json();
           alert(`VM 환경을 구성할 수 없습니다: ${errJson.detail || errJson.message}`);
-          router.push(`/contests/challenge/?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}`); // 실패 시 강제 퇴장
+          router.push(`/contests/challenge/?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}&tab=grading`); // 실패 시 강제 퇴장
         }
       } catch (error) {
         console.error("통신 에러:", error);
@@ -147,8 +147,7 @@ function PracticeContent() {
 
       if (response.ok) {
         const json = await response.json();
-        const newId = json.data.submissionId;
-        sessionStorage.setItem(`pending_sub_${probId}`, newId);
+        const resultText = json.data.isCorrect === true ? "정답입니다." : json.data.isCorrect === false ? "오답입니다." : "결과를 확인해주세요.";
 
         let cleanupConfirmed = false;
         try {
@@ -158,7 +157,7 @@ function PracticeContent() {
           console.error("VM 자동 종료 요청 중 에러(무시됨):", e);
         }
 
-        alert(cleanupConfirmed ? "채점 요청이 접수되었으며 실습 환경이 종료되었습니다." : "채점 요청이 접수되었습니다. 실습 종료는 확인하지 못했으니 실습 화면에서 다시 종료해주세요.");
+        alert(cleanupConfirmed ? `${resultText} 실습 환경이 종료되었습니다.` : `${resultText} 실습 종료는 확인하지 못했으니 실습 화면에서 다시 종료해주세요.`);
         // 3. 문제 상세 페이지로 이동
         router.push(`/contests/challenge/?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}`);
       } else {
