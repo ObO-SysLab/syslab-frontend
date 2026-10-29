@@ -868,11 +868,13 @@ function ProblemCreateContent() {
                   <div className="grid md:grid-cols-2 gap-5 text-sm">
                     <div className="space-y-1.5">
                       <Label>시간 제한 (sec)</Label>
-                      <Input type="number" value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value))} className="font-mono" />
+                      <Input type="number" min={1} max={30} step={1} value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value))} className="font-mono" />
+                      <p className="text-xs text-slate-500">1~30초, 정수 단위</p>
                     </div>
                     <div className="space-y-1.5">
                       <Label>메모리 제한 (MB)</Label>
-                      <Input type="number" value={memoryLimit} onChange={(e) => setMemoryLimit(Number(e.target.value))} className="font-mono" />
+                      <Input type="number" min={16} max={1024} step={1} value={memoryLimit} onChange={(e) => setMemoryLimit(Number(e.target.value))} className="font-mono" />
+                      <p className="text-xs text-slate-500">16~1024 MiB</p>
                     </div>
                   </div>
 
