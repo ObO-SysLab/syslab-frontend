@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { isSubmissionPending } from "@/lib/submission-status";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -139,7 +140,7 @@ function ProblemDetailContent() {
 
 				// 1. 서버 응답 중 아직 채점이 안 끝난(isCorrect가 null인) 항목들은 폴링 대상(_isPending)으로 지정
 				items = items.map((item: any) => {
-					if (item.isCorrect === null || item.submissionStatus === "PENDING" || item.submissionStatus === "JUDGING") {
+					if (isSubmissionPending(item)) {
 						return { ...item, _isPending: true };
 					}
 					return item;
@@ -180,13 +181,15 @@ function ProblemDetailContent() {
 
 		const timer = setTimeout(async () => {
 			const token = localStorage.getItem("token");
-			let needsBoardRefresh = false;
 
 			// 아직 채점 중인 항목들만 모아서 상태값 병렬 병합 조회
 			const results = await Promise.all(
 				pendingItems.map(async (item) => {
 					try {
-						const res = await fetch(`https://diveon.net/api/contests/${contestId}/submissions/${item.submissionId}/status`, {
+						const statusUrl = problemData?.type === "coding"
+							? `https://diveon.net/api/submissions/${item.submissionId}/status`
+							: `https://diveon.net/api/contests/${contestId}/submissions/${item.submissionId}/status`;
+						const res = await fetch(statusUrl, {
 							headers: { "Authorization": `Bearer ${token}` }
 						});
 
@@ -211,7 +214,7 @@ function ProblemDetailContent() {
 
 					if (updatedData) {
 						if (updatedData.submissionStatus === "COMPLETED" || updatedData.submissionStatus === "FAILED") {
-							needsBoardRefresh = true; // 채점 완료 시 전체 리스트 새로고침 플래그 On
+
 
 							return {
 								...sub,
@@ -233,7 +236,7 @@ function ProblemDetailContent() {
 			);
 
 			// 하나라도 채점 완료(COMPLETED) 신호가 수신되었다면 히스토리 보드 전면 새로고침
-			if (needsBoardRefresh) {
+			if (results.some(r => r && (r.submissionStatus === "COMPLETED" || r.submissionStatus === "FAILED"))) {
 				fetchSubmissions();
 			}
 
@@ -644,15 +647,12 @@ function ProblemDetailContent() {
 												const isCoding = problemData?.type === "coding";
 
 												// 렌더링 상태 판별
-												const isPending = sub._isPending ||
-													sub.isCorrect === null ||
-													sub.submissionStatus === "PENDING" ||
-													sub.submissionStatus === "JUDGING";
+												const isPending = isSubmissionPending(sub);
 												const isSuccess = sub.isCorrect === true;
 												const isFailed = sub.submissionStatus === "FAILED";
 
 												let resultText = "결과 대기";
-												if (isFailed) resultText = "시스템 오류";
+												if (isFailed) resultText = "채점 실패 · 잠시 후 다시 제출해주세요";
 												else if (isPending) resultText = `채점 중 (${sub.progress || 0}%)`;
 												else resultText = isSuccess ? "정답" : "오답";
 
@@ -696,8 +696,8 @@ function ProblemDetailContent() {
 														{/* 코딩 문제 전용 데이터 */}
 														{isCoding && (
 															<>
-																<TableCell className="text-xs text-slate-500">{!isPending && sub.memoryUsage !== undefined ? `${sub.memoryUsage} MB` : "-"}</TableCell>
-																<TableCell className="text-xs text-slate-500">{!isPending && sub.runtime !== undefined ? `${sub.runtime} ms` : "-"}</TableCell>
+																<TableCell className="text-xs text-slate-500">{!isPending && sub.memoryUsage != null ? `${sub.memoryUsage} MB` : "-"}</TableCell>
+																<TableCell className="text-xs text-slate-500">{!isPending && sub.runtime != null ? `${sub.runtime} ms` : "-"}</TableCell>
 																<TableCell className="text-xs font-bold text-slate-600">{!isPending ? (sub.language || "-") : "-"}</TableCell>
 															</>
 														)}
@@ -722,7 +722,7 @@ function ProblemDetailContent() {
 															)}
 
 															{/* 2. 코딩: 코드 보기 / OBO 보기 2가지 버튼 제공 */}
-															{problemData?.type === "coding" && !isPending && (
+															{problemData?.type === "coding" && !isPending && !isFailed && (
 																<div className="flex justify-center gap-1.5">
 																	<Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold text-slate-600" asChild>
 																		<Link href={`/challenges/submissions?id=${sub.submissionId}`}>코드</Link>
@@ -734,7 +734,7 @@ function ProblemDetailContent() {
 															)}
 
 															{/* 3. 실습: 버튼 없음 (또는 채점 중일 때 대기 상태 표시) */}
-															{(problemData?.type === "practice" || isPending) && (
+															{(problemData?.type === "practice" || isPending || isFailed) && (
 																<span className="text-xs text-slate-300">-</span>
 															)}
 														</TableCell>
