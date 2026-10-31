@@ -1,74 +1,28 @@
-'use client';
-
+﻿'use client';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-
-interface HighlightCell {
-  row: number;
-  col: number;
-  color: string;
-}
-
-interface TableGridNodeData {
-  label: string;
-  headers?: string[];
-  rows?: (string | number)[][];
-  highlightCells?: HighlightCell[];
-  color?: string;
-}
-
-export function TableGridNode({ data, selected }: NodeProps) {
-  const d = data as unknown as TableGridNodeData;
-  const color = d.color ?? '#6366f1';
-  const rows = d.rows ?? [];
-
-  const cellStyle = (r: number, c: number) => {
-    const h = d.highlightCells?.find(x => x.row === r && x.col === c);
-    return {
-      padding: '3px 8px' as const,
-      fontSize: 11,
-      border: '1px solid #e2e8f0' as const,
-      backgroundColor: h ? h.color + '30' : 'white',
-      color: h ? h.color : '#374151',
-      fontWeight: h ? 700 : 400,
-      whiteSpace: 'nowrap' as const,
-    };
-  };
-
-  return (
-    <div style={{
-      background: 'white', border: `1.5px solid ${color}30`, borderRadius: 6,
-      boxShadow: selected ? `0 0 0 3px ${color}40` : '0 2px 6px rgba(0,0,0,0.06)',
-      cursor: 'grab', userSelect: 'none', overflow: 'hidden',
-    }}>
-      <Handle id="t" type="source" position={Position.Top}    style={{ background: color, border: 'none' }} />
-      <Handle id="b" type="target" position={Position.Bottom} style={{ background: color, border: 'none' }} />
-      {d.label && (
-        <div style={{ padding: '3px 8px', fontSize: 11, fontWeight: 700, color, borderBottom: `1px solid ${color}30`, backgroundColor: color + '08' }}>
-          {d.label}
-        </div>
-      )}
-      <table style={{ borderCollapse: 'collapse', fontSize: 11 }}>
-        {d.headers && (
-          <thead>
-            <tr>
-              {d.headers.map((h, i) => (
-                <th key={i} style={{ padding: '3px 8px', border: '1px solid #e2e8f0', backgroundColor: color + '15', color, fontWeight: 700, fontSize: 10 }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-        )}
-        <tbody>
-          {rows.map((row, r) => (
-            <tr key={r}>
-              {row.map((cell, c) => (
-                <td key={c} style={cellStyle(r, c)}>{cell}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+import { useFrameCtx } from '../FrameContext';
+interface TableData { label?: string; headers?: string[]; rows?: (string | number)[][]; activeRow?: number | null; width?: number; color?: string; highlightCells?: { row: number; col: number; color: string }[]; }
+export function TableGridNode({ id, data, selected }: NodeProps) {
+  const d = data as unknown as TableData;
+  const rows = Array.isArray(d.rows) ? d.rows : [];
+  const headers = Array.isArray(d.headers) ? d.headers : [];
+  const { previewFrame } = useFrameCtx();
+  const active = previewFrame?.highlightNodes.includes(id);
+  const color = d.color ?? '#4f46e5';
+  return <div data-table={id} style={{ width: d.width ?? 300, background: 'white', border: `2px solid ${active ? color : '#cbd5e1'}`, borderRadius: 10,
+    outline: selected ? '3px dashed #6366f1' : undefined, outlineOffset: 4 }}>
+    <Handle id="t" type="source" position={Position.Top} /><Handle id="b" type="source" position={Position.Bottom} />
+    <Handle id="l" type="source" position={Position.Left} /><Handle id="r" type="source" position={Position.Right} />
+    <div style={{ padding: '10px 12px', fontSize: 14, fontWeight: 800, color, background: '#f8fafc', borderRadius: '8px 8px 0 0' }}>{d.label || '표'}</div>
+    <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13, tableLayout: 'fixed' }}>
+      {headers.length > 0 && <thead><tr>{headers.map((h, i) => <th key={i} style={{ padding: 8, borderTop: '1px solid #e2e8f0', background: '#eef2ff', color: '#475569', overflowWrap: 'anywhere' }}>{h}</th>)}</tr></thead>}
+      <tbody>{rows.map((row, r) => <tr key={r} data-table-row={r} data-active={r === d.activeRow}>
+        {(Array.isArray(row) ? row : []).map((cell, c) => {
+          const focus = r === d.activeRow || d.highlightCells?.some(h => h.row === r && h.col === c);
+          return <td key={c} style={{ padding: '9px 8px', borderTop: '1px solid #e2e8f0', textAlign: 'center', overflowWrap: 'anywhere', background: focus ? '#fef3c7' : 'white', color: focus ? '#92400e' : '#334155', fontWeight: focus ? 800 : 500 }}>{String(cell ?? '—')}</td>;
+        })}
+      </tr>)}</tbody>
+    </table>
+    {!rows.length && <p style={{ fontSize: 13, padding: 12, color: '#64748b' }}>아직 항목이 없습니다.</p>}
+  </div>;
 }
