@@ -174,3 +174,5 @@ eslint.config.mjs
 next-env.d.ts
 screenshots/
 app/test-page/
+public/obo-runtime/
+components/obo/runtime/worker-release.ts
