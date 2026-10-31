@@ -22,6 +22,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import {problemApi,problemToken} from '@/lib/problemApi';
+import {useBrowserDraft} from '@/components/obo/authoring/useBrowserDraft';
+import {isProblemDraft,type ProblemDraft} from '@/components/obo/authoring/problemDraft';
 
 function ProblemCreateContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -31,7 +34,7 @@ function ProblemCreateContent() {
   const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     if (token) {
       setIsLoggedIn(true);
     } else {
@@ -82,6 +85,9 @@ function ProblemCreateContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editLoaded,setEditLoaded]=useState(!editId);
   const [editError,setEditError]=useState('');
+  const [saveNotice,setSaveNotice]=useState('');
+  const [editVersion,setEditVersion]=useState<string|null>(null);
+  const [oboAlternates,setOboAlternates]=useState<ProblemDraft['oboAlternates']>({});
 
   // 객관식 정답 토글 핸들러
   // [상태 관리] OBO 시각화
@@ -187,6 +193,9 @@ function ProblemCreateContent() {
 
   // [API] 제출 핸들러
   const handleSubmit = async () => {
+    setSaveNotice('');
+    if(isEditMode&&problemType!=='practice'&&!editVersion){setSaveNotice('서버 버전을 확인하지 못했습니다. 초안을 보관하고 다시 열어주세요.');return;}
+    draft.save();
     if(!editLoaded)return;
     if (!title || !category || !description) {
       alert("제목, 카테고리, 문제 설명은 필수입니다.");
@@ -207,7 +216,7 @@ function ProblemCreateContent() {
     }
 
     setIsSubmitting(true);
-    const token = localStorage.getItem("token");
+    const token = problemToken();
 
     // 상태 변수 정의
     const method = isEditMode ? "PATCH" : "POST";
@@ -223,9 +232,10 @@ function ProblemCreateContent() {
       // ----------------------------------------------------
       if (isEditMode) {
         fetchHeaders["Content-Type"] = "application/json";
-        endpoint = `https://diveon.net/api/problems/${problemType.toLocaleLowerCase()}/${editId}`;
+        endpoint = problemApi(`/api/problems/${problemType.toLocaleLowerCase()}/${editId}`);
 
         const patchPayload = {
+          expectedEditVersion:editVersion,
           title,
           summary: summary || title,
           description,
@@ -248,7 +258,7 @@ function ProblemCreateContent() {
       else {
         // 실습형(practice)은 multipart/form-data 처리
         if (problemType === "practice") {
-          endpoint = `https://diveon.net/api/problems/practice`;
+          endpoint = problemApi(`/api/problems/practice`);
 
           if (!dockerfile) {
             alert("Dockerfile zip 파일을 업로드해주세요.");
@@ -308,7 +318,7 @@ function ProblemCreateContent() {
           }
 
           if (problemType === "coding") {
-            endpoint = `https://diveon.net/api/problems/coding`;
+            endpoint = problemApi(`/api/problems/coding`);
             payload = {
               ...payload,
               constraints: {
@@ -324,7 +334,7 @@ function ProblemCreateContent() {
               isDraft: false
             };
           } else if (problemType === "objective") {
-            endpoint = `https://diveon.net/api/problems/objective`;
+            endpoint = problemApi(`/api/problems/objective`);
             if (choices.some(c => !c.content.trim())) {
               setIsSubmitting(false);
               return alert('빈 보기의 내용을 입력하거나 해당 보기를 삭제하세요.');
@@ -355,19 +365,25 @@ function ProblemCreateContent() {
       });
 
       if (response.ok) {
+        const savedResponse=await response.json().catch(()=>null);
+        const savedId=isEditMode?editId:savedResponse?.data?.probId;
+        draft.markSaved();
         alert(isEditMode ? "수정되었습니다!" : "등록되었습니다!");
-        window.location.href = isEditMode ? `/challenges/detail?id=${editId}` : "/challenges";
+        window.location.href = savedId ? `/challenges/detail?id=${savedId}` : "/challenges";
       } else {
+        if(response.status===409){setSaveNotice('다른 창에서 수정되었습니다. 내 초안은 유지됩니다. 파일로 보관하거나 최신 서버 자료를 다시 연 뒤 비교하세요.');return;}
         const errorText = await response.text();
         let errorMessage = "입력값이 잘못되었거나 권한이 없습니다.";
         try {
           const errorData = JSON.parse(errorText);
           errorMessage = errorData.detail || errorData.message || errorMessage;
         } catch (e) { errorMessage = errorText; }
+        setSaveNotice(`서버 저장 실패: ${errorMessage} 작성 내용과 브라우저 초안을 유지합니다.`);
         alert(`실패: ${errorMessage}`);
       }
     } catch (error) {
       console.error(error);
+      setSaveNotice('서버에 연결하지 못했습니다. 작성 내용과 브라우저 초안을 유지합니다. 다시 저장할 수 있습니다.');
       alert("서버 통신 중 오류가 발생했습니다.");
     } finally {
       setIsSubmitting(false);
@@ -377,9 +393,9 @@ function ProblemCreateContent() {
   // [API] 수정 모드용 데이터 로드
   useEffect(() => {
     if (isEditMode) {
-      const token = localStorage.getItem("token");
+      const token = problemToken();
 
-      fetch(`https://diveon.net/api/problems/${editId}`, {
+      fetch(problemApi(`/api/problems/${editId}`), {
         headers: { "Authorization": `Bearer ${token}` }
       })
         .then(res => {if(!res.ok)throw new Error('문제를 불러오지 못했습니다.');return res.json();})
@@ -387,7 +403,7 @@ function ProblemCreateContent() {
           const data = json.data;
           if(!data?.isOwner)throw new Error('작성자만 문제를 수정할 수 있습니다.');
           if (data.isOwner && (data.type === 'objective' || data.type === 'coding')) {
-            const authorObo = await fetch(`https://diveon.net/api/challenges/obo/author/settings?id=${editId}`, {
+            const authorObo = await fetch(problemApi(`/api/challenges/obo/author/settings?id=${editId}`), {
               headers: { Authorization: `Bearer ${token}` }, cache: 'no-store',
             });
             if (!authorObo.ok) throw new Error('작성자 OBO를 불러오지 못했습니다.');
@@ -395,6 +411,7 @@ function ProblemCreateContent() {
             Object.assign(data, text ? JSON.parse(text) : {});
           }
           // 공통 필드 채우기
+          setEditVersion(data.editVersion??null);
           setTitle(data.title);
           setSummary(data.summary || "");
           setDescription(data.description);
@@ -448,13 +465,13 @@ function ProblemCreateContent() {
 
   useEffect(() => {
     const fetchProfileImage = async () => {
-      const token = localStorage.getItem("token");
+      const token = problemToken();
       if (!token) return;
 
       setIsLoggedIn(true);
 
       try {
-        const response = await fetch("https://diveon.net/api/profile/show", {
+        const response = await fetch(problemApi("/api/profile/show"), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -488,8 +505,8 @@ function ProblemCreateContent() {
   useEffect(() => {
     if (visibility === "group" && myGroups.length === 0) {
       setIsFetchingGroups(true);
-      const token = localStorage.getItem("token");
-      fetch("https://diveon.net/api/groups/me", {
+      const token = problemToken();
+      fetch(problemApi("/api/groups/me"), {
         headers: { "Authorization": `Bearer ${token}` }
       })
         .then(res => res.json())
@@ -510,8 +527,8 @@ function ProblemCreateContent() {
   useEffect(() => {
     if (visibility === "contest" && myContests.length === 0) {
       setIsFetchingContests(true);
-      const token = localStorage.getItem("token");
-      fetch("https://diveon.net/api/contests/me/owned", {
+      const token = problemToken();
+      fetch(problemApi("/api/contests/me/owned"), {
         method: "GET",
         headers: { "Authorization": `Bearer ${token}` }
       })
@@ -525,6 +542,14 @@ function ProblemCreateContent() {
   }, [visibility])
 
   // 다중 정답(객관식) 문제는 선택지 하나에 종속되는 OBO를 만들 수 없다.
+  const draftValue:ProblemDraft={problemType,title,summary,description,category,difficulty,visibility,timeLimit,memoryLimit,inputDesc,outputDesc,allowedLanguages,testcases,choices,selectedAnswers,isOrderedAnswer,oboEnabled,oboData,editVersion,selectedGroupId,selectedContestId,oboAlternates};
+  const restoreDraft=(d:ProblemDraft)=>{
+    setProblemType(d.problemType);setTitle(d.title);setSummary(d.summary);setDescription(d.description);setCategory(d.category);setDifficulty(d.difficulty);setVisibility(d.visibility);
+    setTimeLimit(d.timeLimit);setMemoryLimit(d.memoryLimit);setInputDesc(d.inputDesc);setOutputDesc(d.outputDesc);setAllowedLanguages(d.allowedLanguages);setTestcases(d.testcases);
+    setChoices(d.choices);setSelectedAnswers(d.selectedAnswers);setIsOrderedAnswer(d.isOrderedAnswer);setOboEnabled(d.oboEnabled);setOboData(d.oboData);setEditVersion(d.editVersion);
+    setSelectedGroupId(d.selectedGroupId);setSelectedContestId(d.selectedContestId);setOboAlternates(d.oboAlternates);setOboModalOpen(false);
+  };
+  const draft=useBrowserDraft({documentId:editId??'new',value:draftValue,restore:restoreDraft,enabled:editLoaded&&isLoggedIn&&problemType!=='practice',valid:isProblemDraft});
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -598,7 +623,7 @@ function ProblemCreateContent() {
         </aside>
 
         {/* [B] 중앙 출제 양식 */}
-        <section className="col-span-12 md:col-span-9 space-y-8 animate-in fade-in-50 duration-500">
+        <section inert={isSubmitting} className="col-span-12 md:col-span-9 space-y-8 animate-in fade-in-50 duration-500">
           {/* 타이틀 및 저장 버튼 */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-1">
@@ -608,7 +633,7 @@ function ProblemCreateContent() {
               <p className="text-slate-500">문제를 만들고 다른 유저들과 공유합니다.</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="secondary" className="px-6">임시 저장</Button>
+              <Button variant="secondary" className="px-6" onClick={draft.save}>브라우저에 보관</Button>
               <Button variant="outline" className="px-6 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group">
                 <Eye size={16} className="mr-2 text-slate-400 group-hover:text-indigo-500 transition-colors" />문제 미리보기
               </Button>
@@ -620,6 +645,13 @@ function ProblemCreateContent() {
               </Button>
             </div>
           </div>
+          {problemType!=='practice'&&<div className="space-y-2 rounded-xl border border-indigo-100 bg-white p-4 text-sm" aria-label="작성 자료 보관">
+            <p role="status">{draft.status}</p>
+            <p className="text-xs text-slate-500">이 기기·브라우저에 보관됩니다. 서버 저장은 문제 등록/수정 완료 버튼으로 진행합니다.</p>
+            <Button variant="outline" size="sm" onClick={draft.exportFile}>초안 파일로 보관</Button>
+            {draft.candidates.map(record=><div key={record.id} className="flex flex-wrap items-center gap-2"><span>{new Date(record.savedAt).toLocaleString('ko-KR')} · {record.value.title||'제목 없는 초안'}</span><Button variant="outline" size="sm" onClick={()=>{if(window.confirm('현재 작성 내용을 먼저 보관하고 선택한 초안을 불러올까요?')){if(draft.save())draft.recover(record);}}}>초안 복구</Button></div>)}
+            {saveNotice&&<p role="alert" className="text-rose-700">{saveNotice}</p>}
+          </div>}
           <Separator />
 
           {/* 1. 기본 정보 설정 카드 */}
@@ -882,6 +914,7 @@ function ProblemCreateContent() {
                 </div>
                 {/* 문제 유형 API에 맞게 value 세팅 */}
                 <Select value={problemType} onValueChange={(v) => {
+                  if(problemType!=='practice'&&!draft.checkpoint())return;
                   setProblemType(v);
                   if (v === "practice") { setOboEnabled(false); setOboData({ mode: 'single', single: { nodes: [], edges: [], frames: [] } }); }
                 }}>
@@ -1289,19 +1322,21 @@ function ProblemCreateContent() {
                 <span className="font-bold text-slate-900">OBO 편집</span>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" onClick={cancelOboModal}>취소</Button>
-                  <Button size="sm" onClick={confirmOboModal}>완료</Button>
+                  <Button size="sm" onClick={confirmOboModal}>작성 내용에 반영</Button>
                 </div>
               </header>
               <div className="flex-1 min-h-0">
                 <OboEditorSection
                   value={oboData}
                   onChange={setOboData}
+                  alternatives={oboAlternates}
+                  onAlternativesChange={setOboAlternates}
                   choices={problemType === 'objective'
                     ? choices.map(c => ({ id: oboData.mode === 'simulation' ? c.id : `choice_${c.index}`, text: c.content }))
                     : undefined}
                   allowCodingDiff={problemType === 'coding'}
                   testcaseOutputs={problemType === 'coding'
-                    ? testcases.map(tc => ({ index: tc.index, output: tc.output }))
+                    ? testcases.filter(tc=>tc.is_sample).map(tc => ({ index: tc.index, output: tc.output }))
                     : undefined}
                 />
               </div>

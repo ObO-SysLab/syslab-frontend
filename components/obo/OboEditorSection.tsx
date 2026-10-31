@@ -19,6 +19,7 @@ import { parseTraceText, stringifyTrace } from './lib/traceParser';
 import { traceTokenFor, makeUniqueLabel, collectLabels } from './lib/label';
 import { exampleStateValue } from './lib/overrideFields';
 import { SimulationEditor } from './simulation/SimulationEditor';
+import {parseDiagramTrace} from './runtime/freeDiagram.mjs';
 import { createDocument } from './runtime/document.mjs';
 import { resizeSlotFrames } from './slots/model';
 import { pruneFrameReferences } from './authoring/model';
@@ -26,6 +27,8 @@ import { pruneFrameReferences } from './authoring/model';
 export interface OboChoice { id: string; text: string; }
 
 interface Props {
+  alternatives?: {legacy?:ProblemOboData;simulation?:ProblemOboData};
+  onAlternativesChange?: (value:{legacy?:ProblemOboData;simulation?:ProblemOboData})=>void;
   value: ProblemOboData | null;
   onChange: (data: ProblemOboData) => void;
   choices?: OboChoice[];
@@ -39,23 +42,24 @@ const EMPTY_BLOB: OboBlob = { nodes: [], edges: [], frames: [] };
 const MODE_LABEL: Record<OboMode, string> = {
   single: '단일 다이어그램',
   per_choice: '보기별',
-  coding_diff: '코딩 자동 채점',
+  coding_diff: '출력 기록 재생',
   simulation: '규칙 기반 시뮬레이션',
 };
 
 export const OboEditorSection = React.memo(function OboEditorSection(props: Props) {
-  const legacy = useRef<ProblemOboData | null>(props.value?.mode === 'simulation' ? null : props.value);
-  const simulation = useRef<ProblemOboData | null>(props.value?.mode === 'simulation' ? props.value : null);
+  const legacy = useRef<ProblemOboData | null>(props.value?.mode === 'simulation' ? props.alternatives?.legacy??null : props.value);
+  const simulation = useRef<ProblemOboData | null>(props.value?.mode === 'simulation' ? props.value : props.alternatives?.simulation??null);
   const modern = props.value?.mode === 'simulation';
   const update = (next: ProblemOboData) => {
     if (next.mode === 'simulation') simulation.current = next; else legacy.current = next;
+    props.onAlternativesChange?.({...(legacy.current?{legacy:legacy.current}:{}),...(simulation.current?{simulation:simulation.current}:{})});
     props.onChange(next);
   };
   return <div className="flex h-full min-h-0 flex-col">
     <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-slate-50 px-4 py-2">
       <Button type="button" size="sm" variant={modern ? 'default' : 'outline'} onClick={() => update(simulation.current ?? {schemaVersion: 2, mode: 'simulation', simulation: createDocument()})}>규칙 기반 시뮬레이션</Button>
-      <Button type="button" size="sm" variant={modern ? 'outline' : 'default'} onClick={() => update(legacy.current ?? {mode: 'single', single: EMPTY_BLOB})}>기존 다이어그램</Button>
-      <span className="text-xs text-slate-500">편집 중 전환한 구성은 이 창을 닫기 전까지 보관됩니다.</span>
+      <Button type="button" size="sm" variant={modern ? 'outline' : 'default'} onClick={() => update(legacy.current ?? {mode: 'single', single: EMPTY_BLOB})}>자유 그림</Button>
+      <span className="text-xs text-slate-500">규칙 계산과 직접 만든 그림은 독립적입니다. {props.onAlternativesChange?'두 구성은 작성 초안에 함께 보관됩니다.':'전환한 구성은 이 창을 닫기 전까지 보관됩니다.'}</span>
     </div>
     {modern && props.value?.simulation ? <div className="min-h-0 flex-1 overflow-auto bg-slate-50 p-4">
       <SimulationEditor value={props.value.simulation} onChange={document => update({schemaVersion: 2, mode: 'simulation', simulation: document})} choices={props.choices} allowCoding={props.allowCodingDiff}/>
@@ -84,7 +88,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
   // 모드는 문제 유형이 결정한다(저작자 선택 없음): 코딩→coding_diff, 객관식(보기 있음)→per_choice.
   // 부모가 넘기는 기본값 mode:'single'이 유형 판정을 이기지 못하도록 코딩/객관식은 유형을 우선한다.
   // 유형이 특정되지 않는 경우(실습형 등)에만 저장된 mode를 존중하고, 없으면 single.
-  const initMode: OboMode = allowCodingDiff
+  const initMode: OboMode = value?.mode==='single'&&!!value.single?.nodes.length ? 'single' : allowCodingDiff
     ? 'coding_diff'
     : choices.length > 0
       ? 'per_choice'
@@ -107,7 +111,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
   // coding_diff 전용: frames를 손으로 안 만들고, 자유텍스트 트레이스로부터 자동 생성.
   // traceText가 유일한 source of truth — referenceTrace는 여기서 파생된다(아래 useMemo).
   const [traceText, setTraceText] = useState<string>(() =>
-    value?.codingDiff ? stringifyTrace(value.codingDiff.referenceTrace, value.codingDiff.nodes as Node[]) : ''
+    value?.codingDiff ? value.codingDiff.sourceTraceText??stringifyTrace(value.codingDiff.referenceTrace, value.codingDiff.nodes as Node[]) : ''
   );
 
   // ── React Flow 상태 ───────────────────────────────────
@@ -115,7 +119,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(init.nodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(init.edges as Edge[]);
   const [frames, setFrames] = useState<Frame[]>(init.frames);
-  const referenceTrace = useMemo(() => parseTraceText(traceText, nodes), [traceText, nodes]);
+  const referenceTrace = useMemo(() => parseDiagramTrace(traceText, nodes,edges).trace, [traceText, nodes,edges]);
 
   // ── 되돌리기 / 다시하기 ────────────────────────────────
   const { undo, redo, canUndo, canRedo } = useGraphHistory({
@@ -162,7 +166,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
       const blob = serialize(nodes, edges, []);
       onChangeRef.current({
         mode: 'coding_diff',
-        codingDiff: { nodes: blob.nodes, edges: blob.edges, referenceTrace },
+        codingDiff: { nodes: blob.nodes, edges: blob.edges, referenceTrace,sourceTraceText:traceText },
       });
     } else if (activeChoiceId) {
       const blob = serialize(nodes, edges, frames);

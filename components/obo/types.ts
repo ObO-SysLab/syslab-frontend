@@ -15,16 +15,18 @@ export type OboMode = 'single' | 'per_choice' | 'coding_diff' | 'simulation';
 
 // 트레이스 한 스텝. overrides는 그 시점의 nodeDataOverrides(Frame.nodeDataOverrides와 같은 모양,
 // carry-forward 대상)이고, highlightNodes는 그 스텝에서 강조되는 노드 id들(carry-forward 없음).
-// 채점 대상(어떤 노드/필드를 비교할지)은 별도로 저장하지 않고 트레이스에 실제로 등장하는 값/강조에서 자동 도출한다.
+// 표시용 기록이다. 서버의 문제별 의미 채점 계약과 분리한다.
 export interface OboTraceStep {
   overrides: Record<string, Record<string, unknown>>;
   highlightNodes: string[];
+  visibleEdges?: string[];
 }
 
 export interface OboCodingSchema {
   nodes: OboBlob['nodes'];
   edges: OboBlob['edges'];
-  referenceTrace: OboTraceStep[]; // 정답 코드 실행 트레이스 — 프레임/채점 대상 전부 이걸로부터 자동 파생됨
+  referenceTrace: OboTraceStep[]; // 출제자가 공개하는 참고 재생 기록. 의미 정답의 정의가 아니다.
+  sourceTraceText?: string; // Preserve incomplete author input in browser drafts; rejected at publish if invalid.
 }
 
 export interface ProblemOboData {

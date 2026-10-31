@@ -1,4 +1,7 @@
 "use client";
+import {DiagramOutputPlayer,type DiagramOutputRecord} from '@/components/obo/DiagramOutputPlayer';
+import type {OboCodingSchema} from '@/components/obo/types';
+import {problemApi,problemToken} from '@/lib/problemApi';
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -30,6 +33,8 @@ function OboResultContent() {
   const [legacyRevision, setLegacyRevision] = useState(false);
   const [simulation,setSimulation] = useState<SimulationDocument|null>(null);
   const [publicCases,setPublicCases] = useState<PublicCase[]>([]);
+  const [diagramRecords,setDiagramRecords]=useState<DiagramOutputRecord[]>([]);
+  const [codingSchema,setCodingSchema]=useState<OboCodingSchema|null>(null);
   const [availableAt,setAvailableAt] = useState<string|null>(null);
   const [choices,setChoices]=useState<ExplanationChoice[]>([]);
   const [selectedAnswers,setSelectedAnswers]=useState<number[]>([]);
@@ -45,13 +50,13 @@ function OboResultContent() {
     const load = async () => {
       setIsLoading(true);
       setError(null);setAvailableAt(null);
-      const token = localStorage.getItem("token");
+      const token = problemToken();
       const headers: HeadersInit = { "Authorization": `Bearer ${token}` };
 
       try {
         const subRes = await fetch(contestSubmissionId
-          ? `https://diveon.net/api/challenges/obo/contest-submission?id=${contestSubmissionId}`
-          : `https://diveon.net/api/submissions/${submissionId}/result`, { headers,cache:'no-store' });
+          ? problemApi(`/api/challenges/obo/contest-submission?id=${contestSubmissionId}`)
+          : problemApi(`/api/submissions/${submissionId}/result`), { headers,cache:'no-store' });
         if (!subRes.ok) {
           setError(subRes.status===409?'pending':'not_found');
           return;
@@ -64,7 +69,7 @@ function OboResultContent() {
         // 2. 문제에 연결된 OBO JSON 조회 (없으면 200 + null body)
         let released = subData.explanation;
         if(!contestSubmissionId){
-        const oboRes = await fetch(`https://diveon.net/api/challenges/obo/submission?id=${submissionId}`, { headers, cache: 'no-store' });
+        const oboRes = await fetch(problemApi(`/api/challenges/obo/submission?id=${submissionId}`), { headers, cache: 'no-store' });
         if (!oboRes.ok) {
           setError("not_found");
           return;
@@ -74,7 +79,9 @@ function OboResultContent() {
         }
         if(released?.lockedReason){setError('locked');setAvailableAt(released.availableAt??null);return;}
         setLegacyRevision(released?.legacyRevision ?? false);
-        setPublicCases(released?.publicCases ?? []);
+        setPublicCases((released?.publicCases ?? []).filter((r:{kind?:string})=>r.kind!=='diagram'));
+        setDiagramRecords((released?.publicCases ?? []).filter((r:{kind?:string})=>r.kind==='diagram'));
+        setCodingSchema(released?.obo?.mode==='coding_diff'?released.obo.codingDiff:null);
         setChoices(released?.choices??[]);setSelectedAnswers(Array.isArray(subData.selectedAnswers)?subData.selectedAnswers:[]);
         const oboJson: ProblemOboData | OboBlob | null = released?.obo ?? null;
         setSimulation(oboJson && 'mode' in oboJson && oboJson.mode === 'simulation' ? oboJson.simulation ?? null : null);
@@ -151,6 +158,8 @@ function OboResultContent() {
 
         <div className="w-full max-w-4xl mx-auto">
           {publicCases.length>0&&<div className="mb-8"><PublicCasePlayer records={publicCases}/></div>}
+          {codingSchema&&diagramRecords.length>0&&<div className="mb-8"><DiagramOutputPlayer schema={codingSchema} records={diagramRecords}/></div>}
+          {codingSchema&&blob&&<h2 className="mb-3 font-bold">출제자의 참고 출력 기록</h2>}
           {legacyRevision && <p className="mb-3 text-sm text-slate-500">이전 제출은 당시 문제 설정이 보관되지 않아 현재 등록된 해설을 보여줍니다.</p>}
           {explanations.length > 1 && <div className="mb-3 flex flex-wrap gap-2" aria-label="보기별 해설">
             {explanations.map(item => <Button key={item.id} variant={item.id === activeExplanation ? 'default' : 'outline'} onClick={() => setActiveExplanation(item.id)}>
