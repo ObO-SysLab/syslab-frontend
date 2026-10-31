@@ -1,6 +1,7 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { Frame } from './types';
 import { ROUND_ROBIN_TEMPLATE } from './gantt/roundRobinExample';
+import { PAGE_REPLACEMENT_TEMPLATE } from './slots/pageReplacementExample';
 
 // ── 팔레트 원소 타입 ───────────────────────────────────────────────
 export type NodeComponentType =
@@ -39,7 +40,8 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   { type: 'state-node',    group: 'node',  label: 'State Node',      description: '상태/엔터티 (ST2)' },
   { type: 'text-label',    group: 'text',  label: 'Text Label',      description: '텍스트/주석' },
   { type: 'gantt-lane', group: 'chart', label: '간트 줄', description: '프로세스별 실행 구간' },
-  // 비활성: slot-grid, counter-badge, resource-square, line-chart
+  { type: 'slot-grid', group: 'node', label: '칸 묶음', description: '칸의 값과 장면별 변화' },
+  // 비활성: counter-badge, resource-square, line-chart
 ];
 
 export const PALETTE_GROUPS = [
@@ -152,91 +154,7 @@ export const ALL_OBO_TEMPLATES: OBOTemplate[] = [
       },
     ],
   },
-  {
-    id: 'S1',
-    name: '페이지 교체 (FIFO)',
-    category: 'memory',
-    description: 'Slot Grid',
-    defaultNodes: [
-      {
-        id: 'ref-string',
-        type: 'text-label',
-        position: { x: 40, y: 30 },
-        data: { text: '참조열: 7 0 1 2 0 3 0 4  (프레임 3개, FIFO)', variant: 'plain', color: '#334155' },
-      },
-      {
-        id: 'status',
-        type: 'text-label',
-        position: { x: 40, y: 62 },
-        data: { text: '프레임 탭에서 재생해 보세요 →', variant: 'pill', color: '#6366f1' },
-      },
-      {
-        id: 'frames',
-        type: 'slot-grid',
-        position: { x: 40, y: 110 },
-        data: { slotCount: 3, slots: [null, null, null], faultSlotIndex: null, hitSlotIndex: null },
-      },
-    ],
-    defaultEdges: [],
-    defaultFrames: [
-      {
-        id: 'f_1', label: '참조 7 (fault)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [7, null, null], faultSlotIndex: 0 },
-          status: { text: '참조 7 → FAULT · slot 0에 적재' },
-        },
-      },
-      {
-        id: 'f_2', label: '참조 0 (fault)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [7, 0, null], faultSlotIndex: 1 },
-          status: { text: '참조 0 → FAULT · slot 1에 적재' },
-        },
-      },
-      {
-        id: 'f_3', label: '참조 1 (fault)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [7, 0, 1], faultSlotIndex: 2 },
-          status: { text: '참조 1 → FAULT · slot 2에 적재 (프레임 가득 참)' },
-        },
-      },
-      {
-        id: 'f_4', label: '참조 2 (fault, 교체)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [2, 0, 1], faultSlotIndex: 0 },
-          status: { text: '참조 2 → FAULT · 가장 먼저 들어온 slot 0(7) 교체' },
-        },
-      },
-      {
-        id: 'f_5', label: '참조 0 (hit)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { hitSlotIndex: 1 },
-          status: { text: '참조 0 → HIT · slot 1' },
-        },
-      },
-      {
-        id: 'f_6', label: '참조 3 (fault, 교체)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [2, 3, 1], faultSlotIndex: 1 },
-          status: { text: '참조 3 → FAULT · 가장 먼저 들어온 slot 1(0) 교체' },
-        },
-      },
-      {
-        id: 'f_7', label: '참조 0 (fault, 교체)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [2, 3, 0], faultSlotIndex: 2 },
-          status: { text: '참조 0 → FAULT · 가장 먼저 들어온 slot 2(1) 교체' },
-        },
-      },
-      {
-        id: 'f_8', label: '참조 4 (fault, 교체)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [4, 3, 0], faultSlotIndex: 0 },
-          status: { text: '참조 4 → FAULT · 가장 먼저 들어온 slot 0(2) 교체 · 총 7 fault / 1 hit' },
-        },
-      },
-    ],
-  },
+  PAGE_REPLACEMENT_TEMPLATE,
   {
     id: 'G1',
     name: 'CPU 스케줄링 (FCFS)',
@@ -363,14 +281,15 @@ export const ALL_OBO_TEMPLATES: OBOTemplate[] = [
   // 비활성: P2, P3, S3
 ];
 
-// 검토한 ST2/G1/G2를 노출하고 나머지는 정의만 보존한다.
-const ACTIVE_TEMPLATE_IDS = ['ST2', 'G1', 'G2'];
+// 검토한 ST2/G1/G2/S1을 노출하고 나머지는 정의만 보존한다.
+const ACTIVE_TEMPLATE_IDS = ['ST2', 'G1', 'G2', 'S1'];
 
 export const OBO_TEMPLATES: OBOTemplate[] = ALL_OBO_TEMPLATES.filter(
   t => ACTIVE_TEMPLATE_IDS.includes(t.id)
 );
 
 export const CATEGORIES = [
-  { id: 'all', label: '전체', count: 3 },
+  { id: 'all', label: '전체', count: 4 },
   { id: 'cpu', label: 'CPU',  count: 3 },
+  { id: 'memory', label: '메모리', count: 1 },
 ] as const;

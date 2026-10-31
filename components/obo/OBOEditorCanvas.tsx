@@ -33,6 +33,8 @@ import { makeUniqueLabel, collectLabels } from './lib/label';
 import { Lock, Unlock } from 'lucide-react';
 import { GanttContext } from './gantt/GanttContext';
 import { ganttLayouts, alignGanttRows, expandGanttMoves, blocksOf, groupOf, type GanttBlock } from './gantt/model';
+import { SlotGridContext } from './slots/SlotGridContext';
+import { slotCountOf, slotValues, validSlotIndex, type SlotValue } from './slots/model';
 
 const edgeTypes = { 'obo-edge': OboEdge } as const;
 
@@ -103,6 +105,16 @@ function CanvasInner({
       setFrames(fs => fs.map(frame => frame.id !== previewFrame.id ? frame : { ...frame,
         nodeDataOverrides: { ...frame.nodeDataOverrides, [id]: { ...frame.nodeDataOverrides?.[id], blocks } } }));
     } else if (activeTab === 'property') setNodes(ns => ns.map(n => n.id === id ? { ...n, data: { ...n.data, blocks } } : n));
+  };
+
+  const editSlot = (id: string, index: number, value: SlotValue) => {
+    const node = displayNodes.find(n => n.id === id);
+    if (!node || !validSlotIndex(index, slotCountOf(node.data))) return;
+    const slots = slotValues(node.data); slots[index] = value;
+    if (activeTab === 'frame' && previewFrame && setFrames) {
+      setFrames(fs => fs.map(frame => frame.id !== previewFrame.id ? frame : { ...frame,
+        nodeDataOverrides: { ...frame.nodeDataOverrides, [id]: { ...frame.nodeDataOverrides?.[id], slots } } }));
+    } else if (activeTab === 'property') setNodes(ns => ns.map(n => n.id === id ? { ...n, data: { ...n.data, slots } } : n));
   };
 
   const onConnect = useCallback((params: Connection) => {
@@ -188,6 +200,9 @@ function CanvasInner({
   const closeMenu = useCallback(() => setMenu(null), []);
 
   return (
+    <SlotGridContext.Provider value={{ traceMode,
+      editLabel: activeTab === 'frame' ? `장면 ${previewIndex + 1} 값 수정 · 이후 장면에도 이어집니다` : '기본 그림의 값 수정',
+      onEditSlot: !traceMode && (activeTab === 'property' || (!!previewFrame && !!setFrames)) ? editSlot : undefined }}>
     <GanttContext.Provider value={{ layouts, traceMode,
       editLabel: activeTab === 'frame' ? `장면 ${previewIndex + 1} 수정 · 이후 장면에도 이어집니다` : '기본 그림 수정',
       onEditBlock: !traceMode && (activeTab === 'property' || (!!previewFrame && !!setFrames)) ? editBlock : undefined }}>
@@ -267,6 +282,7 @@ function CanvasInner({
       </div>
     </FrameContext.Provider>
     </GanttContext.Provider>
+    </SlotGridContext.Provider>
   );
 }
 

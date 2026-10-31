@@ -20,6 +20,7 @@ import { traceTokenFor, makeUniqueLabel, collectLabels } from './lib/label';
 import { exampleStateValue } from './lib/overrideFields';
 import { SimulationEditor } from './simulation/SimulationEditor';
 import { createDocument } from './runtime/document.mjs';
+import { resizeSlotFrames } from './slots/model';
 
 export interface OboChoice { id: string; text: string; }
 
@@ -216,6 +217,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
   }, []);
 
   const updateNodeData = useCallback((id: string, patch: Record<string, unknown>) => {
+    if (typeof patch.slotCount === 'number') setFrames(fs => resizeSlotFrames(fs, id, patch.slotCount as number));
     setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, ...patch } } : n));
   }, [setNodes]);
 
