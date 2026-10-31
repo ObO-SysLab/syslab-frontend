@@ -15,6 +15,7 @@ import { TracePanel } from './TracePanel';
 type PanelMode = 'palette' | 'property' | 'json';
 
 interface PropertyPanelProps {
+  onUpdateFrameVisibleEdges: (frameId: string, visibleEdges: string[] | undefined) => void;
   // 탭
   activeTab: 'property' | 'frame';
   onTabChange: (tab: 'property' | 'frame') => void;
@@ -56,6 +57,7 @@ interface PropertyPanelProps {
 }
 
 export function PropertyPanel({
+  onUpdateFrameVisibleEdges,
   activeTab, onTabChange,
   mode, selectedId, selectedKind, nodes, edges,
   updateNodeData, updateEdgeData,
@@ -127,6 +129,7 @@ export function PropertyPanel({
             />
           ) : (
             <FramePanel
+              onUpdateFrameVisibleEdges={onUpdateFrameVisibleEdges}
               frames={frames}
               selectedFrameId={selectedFrameId}
               onSelectFrame={onSelectFrame}
@@ -190,6 +193,7 @@ export function PropertyPanel({
             ) : showProperties && selectedNode ? (
               <div className="p-3 space-y-4">
                 <NodeEditor
+                  frames={frames}
                   node={selectedNode}
                   onUpdate={patch => updateNodeData(selectedNode.id, patch)}
                   takenLabels={collectLabels(nodes, selectedNode.id)}

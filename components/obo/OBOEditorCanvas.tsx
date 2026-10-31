@@ -30,6 +30,7 @@ import { OboEdge } from './edges/OboEdge';
 import { nextNodeId, nextEdgeId } from './lib/id';
 import { applyFrame } from './lib/applyFrame';
 import { frameEdges } from './lib/frameEdges';
+import { pruneFrameReferences } from './authoring/model';
 import { makeUniqueLabel, collectLabels } from './lib/label';
 import { Lock, Unlock } from 'lucide-react';
 import { GanttContext } from './gantt/GanttContext';
@@ -146,7 +147,7 @@ function CanvasInner({
     if (!type) return;
     const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     setNodes(nds => {
-      const data = { ...(DEFAULT_NODE_DATA[type] ?? { label: type }) } as Record<string, unknown>;
+      const data = JSON.parse(JSON.stringify(DEFAULT_NODE_DATA[type] ?? { label: type })) as Record<string, unknown>;
       if (type === 'gantt-lane') {
         const rows = nds.filter(n => n.type === 'gantt-lane');
         if (rows.length) {
@@ -222,6 +223,11 @@ function CanvasInner({
           edges={frameEdges(edges, previewFrame)}
           onNodesChange={changes => onNodesChange(expandGanttMoves(changes, displayNodes))}
           onEdgesChange={onEdgesChange}
+          onNodesDelete={removed => {
+            const ids = removed.map(n => n.id);
+            setFrames?.(fs => pruneFrameReferences(fs, ids, edges.filter(e => ids.includes(e.source) || ids.includes(e.target)).map(e => e.id)));
+          }}
+          onEdgesDelete={removed => setFrames?.(fs => pruneFrameReferences(fs, [], removed.map(e => e.id)))}
           onConnect={onConnect}
           onReconnect={activeTab === 'property' ? onReconnect : undefined}
           onSelectionChange={onSelectionChange}

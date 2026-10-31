@@ -21,6 +21,7 @@ import { exampleStateValue } from './lib/overrideFields';
 import { SimulationEditor } from './simulation/SimulationEditor';
 import { createDocument } from './runtime/document.mjs';
 import { resizeSlotFrames } from './slots/model';
+import { pruneFrameReferences } from './authoring/model';
 
 export interface OboChoice { id: string; text: string; }
 
@@ -229,24 +230,14 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
   const deleteNodeById = useCallback((id: string) => {
     setNodes(nds => nds.filter(n => n.id !== id));
     setEdges(eds => eds.filter(e => e.source !== id && e.target !== id));
-    setFrames(fs => fs.map(f => {
-      if (!f.nodeDataOverrides?.[id]) {
-        return { ...f, highlightNodes: f.highlightNodes.filter(nid => nid !== id) };
-      }
-      const { [id]: _removed, ...restOverrides } = f.nodeDataOverrides;
-      return {
-        ...f,
-        highlightNodes: f.highlightNodes.filter(nid => nid !== id),
-        nodeDataOverrides: restOverrides,
-      };
-    }));
+    setFrames(fs => pruneFrameReferences(fs, [id], edges.filter(e => e.source === id || e.target === id).map(e => e.id)));
     setSelectedId(prev => prev === id ? null : prev);
     setSelectedKind(prev => (selectedId === id ? null : prev));
-  }, [setNodes, setEdges, selectedId]);
+  }, [setNodes, setEdges, selectedId, edges]);
 
   const deleteEdgeById = useCallback((id: string) => {
     setEdges(eds => eds.filter(e => e.id !== id));
-    setFrames(fs => fs.map(f => ({ ...f, highlightEdges: f.highlightEdges.filter(eid => eid !== id) })));
+    setFrames(fs => pruneFrameReferences(fs, [], [id]));
     setSelectedId(prev => prev === id ? null : prev);
     setSelectedKind(prev => (selectedId === id ? null : prev));
   }, [setEdges, selectedId]);
@@ -262,7 +253,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
     setNodes(nds => {
       const src = nds.find(n => n.id === id);
       if (!src) return nds;
-      const data = { ...(src.data as Record<string, unknown>) };
+      const data = JSON.parse(JSON.stringify(src.data)) as Record<string, unknown>;
       if (typeof data.label === 'string') {
         data.label = makeUniqueLabel(data.label, collectLabels(nds));
       }
@@ -572,6 +563,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
           onSetOverrideField={setOverrideField}
           onClearOverrideField={clearOverrideField}
           onUpdateFrameCursorTime={updateFrameCursorTime}
+          onUpdateFrameVisibleEdges={(id, visibleEdges) => setFrames(fs => fs.map(f => f.id === id ? { ...f, visibleEdges } : f))}
           traceText={traceText}
           onTraceTextChange={setTraceText}
           testcaseOutputs={testcaseOutputs}

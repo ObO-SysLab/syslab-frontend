@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import type { Node } from '@xyflow/react';
+import type { Frame } from '../types';
+import { ElementFields } from '../authoring/ElementFields';
+import { AUTHORING_FIELDS, sceneConflicts } from '../authoring/model';
 import { makeUniqueLabel } from '../lib/label';
 import { TextField } from './fields/Text';
 import { NumField } from './fields/Num';
@@ -60,14 +63,22 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
 }
 
 interface NodeEditorProps {
+  frames?: Frame[];
   node: Node;
   onUpdate: (patch: Record<string, unknown>) => void;
   // 이 노드를 제외한 다른 노드들의 라벨 집합 — 라벨 유일성 검사에 사용.
   takenLabels: Set<string>;
 }
 
-export function NodeEditor({ node, onUpdate, takenLabels }: NodeEditorProps) {
+export function NodeEditor({ node, onUpdate, takenLabels, frames = [] }: NodeEditorProps) {
   const d = node.data as Record<string, unknown>;
+
+  if (node.type && node.type !== 'state-node' && node.type in AUTHORING_FIELDS) {
+    return <Section>
+      <UniqueLabelField label="요소 이름" value={String(d.label ?? '')} taken={takenLabels} onCommit={label => onUpdate({ label })} />
+      <ElementFields key={node.id} type={node.type} data={d} onApply={onUpdate} validatePatch={patch => sceneConflicts(node, frames, patch)} />
+    </Section>;
+  }
 
   if (node.type === 'state-node') {
     return (

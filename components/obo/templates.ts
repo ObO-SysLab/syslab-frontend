@@ -10,6 +10,10 @@ export type NodeComponentType =
   | 'state-node'
   | 'resource-square'
   | 'slot-grid'
+  | 'queue-strip'
+  | 'table-grid'
+  | 'memory-range'
+  | 'process-box'
   | 'counter-badge';
 
 export type ChartComponentType =
@@ -43,7 +47,13 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   { type: 'text-label',    group: 'text',  label: 'Text Label',      description: '텍스트/주석' },
   { type: 'gantt-lane', group: 'chart', label: '간트 줄', description: '프로세스별 실행 구간' },
   { type: 'slot-grid', group: 'node', label: '칸 묶음', description: '칸의 값과 장면별 변화' },
-  // 비활성: counter-badge, resource-square, line-chart
+  { type: 'resource-square', group: 'node', label: '자원', description: '자원 개수와 사용 상태' },
+  { type: 'counter-badge', group: 'node', label: '숫자 표시', description: '개수와 장면별 값' },
+  { type: 'queue-strip', group: 'node', label: '버퍼·큐', description: '용량과 항목 순서' },
+  { type: 'table-grid', group: 'node', label: '표', description: '행·열·셀 값' },
+  { type: 'memory-range', group: 'node', label: '메모리 구간', description: '주소와 구간 길이' },
+  { type: 'process-box', group: 'node', label: '프로세스 영역', description: '공유 공간과 스레드' },
+  { type: 'line-chart', group: 'chart', label: '꺾은선 그래프', description: '좌표와 현재 점' },
 ];
 
 export const PALETTE_GROUPS = [

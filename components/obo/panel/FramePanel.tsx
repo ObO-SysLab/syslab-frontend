@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, X, Copy, ArrowUp, ArrowDown } from 'lucide-react';
 import type { Node, Edge } from '@xyflow/react';
 import type { Frame } from '../types';
-import { OVERRIDABLE_NODE_TYPES } from '../lib/overrideFields';
+import { MANUAL_OVERRIDE_TYPES, sceneConflicts } from '../authoring/model';
 import { NodeOverrideEditor } from './overrides/NodeOverrideEditor';
 
 interface FramePanelProps {
+  onUpdateFrameVisibleEdges: (frameId: string, visibleEdges: string[] | undefined) => void;
   frames: Frame[];
   selectedFrameId: string | null;
   onSelectFrame: (id: string) => void;
@@ -39,6 +40,7 @@ function edgeLabel(edges: Edge[], id: string): string {
 }
 
 export function FramePanel({
+  onUpdateFrameVisibleEdges,
   frames, selectedFrameId,
   onSelectFrame, onAddFrame, onRemoveFrame, onUpdateLabel,
   onDuplicateFrame, onMoveFrame,
@@ -49,6 +51,17 @@ export function FramePanel({
   const selectedFrame = frames.find(f => f.id === selectedFrameId) ?? null;
   const selectedFrameIndex = selectedFrame ? frames.findIndex(f => f.id === selectedFrame.id) : -1;
   const [pickerNodeId, setPickerNodeId] = useState('');
+  const [removeError, setRemoveError] = useState('');
+  useEffect(() => setRemoveError(''), [selectedFrameId, frames]);
+  const removeOverride = (node: Node) => {
+    if (!selectedFrame) return;
+    const overrides = { ...selectedFrame.nodeDataOverrides };
+    delete overrides[node.id];
+    const next = frames.map(f => f.id === selectedFrame.id ? { ...f, nodeDataOverrides: overrides } : f);
+    const conflicts = sceneConflicts(node, next, {});
+    if (conflicts.length) { setRemoveError(conflicts[0] + ' · 장면 값을 유지했습니다.'); return; }
+    onRemoveNodeOverride(selectedFrame.id, node.id);
+  };
 
   return (
     <div className="p-3 space-y-3">
@@ -189,25 +202,37 @@ export function FramePanel({
             캔버스에서 노드/엣지를 클릭하면 이 프레임에 추가됩니다
           </p>
 
-          {/* 오버라이드 */}
+          <section className="space-y-2 rounded-lg border border-slate-200 p-2" aria-label="장면 연결선 표시">
+            <h4 className="text-xs font-semibold text-slate-700">이 장면의 연결선</h4>
+            <label className="flex gap-2 text-xs"><input type="checkbox" aria-label="표시할 연결선 직접 선택" checked={Array.isArray(selectedFrame.visibleEdges)} onChange={e => onUpdateFrameVisibleEdges(selectedFrame.id, e.target.checked ? edges.map(edge => edge.id) : undefined)} />표시할 연결선 직접 선택</label>
+            {Array.isArray(selectedFrame.visibleEdges) ? <>
+              <div className="flex gap-2"><button type="button" className="text-xs text-indigo-600" onClick={() => onUpdateFrameVisibleEdges(selectedFrame.id, edges.map(e => e.id))}>모두 표시</button><button type="button" className="text-xs text-slate-600" onClick={() => onUpdateFrameVisibleEdges(selectedFrame.id, [])}>모두 숨김</button></div>
+              {edges.map(edge => <label key={edge.id} className="flex items-start gap-2 text-xs text-slate-600"><input type="checkbox" aria-label={`연결선 ${edge.id} 표시`} checked={selectedFrame.visibleEdges!.includes(edge.id)} onChange={e => onUpdateFrameVisibleEdges(selectedFrame.id, e.target.checked ? [...selectedFrame.visibleEdges!, edge.id] : selectedFrame.visibleEdges!.filter(id => id !== edge.id))}/><span>{nodeLabel(nodes, edge.source)} → {nodeLabel(nodes, edge.target)} · {edgeLabel(edges, edge.id)}</span></label>)}
+              {!edges.length && <p className="text-xs text-slate-500">기본 그림에서 연결선을 먼저 만드세요.</p>}
+            </> : <p className="text-xs text-slate-500">기본 그림의 모든 연결선을 표시합니다.</p>}
+          </section>
+
+          {/* 수동 장면 값: 코딩 출력 필드 목록과 분리 */}
           <div className="border-t pt-3 space-y-2">
-            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">오버라이드</label>
+            <label className="text-xs font-semibold text-slate-600">장면별 값</label>
+            {removeError && <p role="alert" className="rounded bg-rose-50 p-2 text-xs text-rose-700">{removeError}</p>}
             {(() => {
               const overrides = selectedFrame.nodeDataOverrides ?? {};
               const overriddenIds = Object.keys(overrides);
               const candidates = nodes.filter(n =>
-                n.type && OVERRIDABLE_NODE_TYPES.includes(n.type) && !overriddenIds.includes(n.id)
+                n.type && MANUAL_OVERRIDE_TYPES.includes(n.type) && !overriddenIds.includes(n.id)
               );
               return (
                 <>
                   {candidates.length > 0 && (
                     <div className="flex items-center gap-1.5">
                       <select
+                        aria-label="장면 값을 정할 요소"
                         value={pickerNodeId}
                         onChange={e => setPickerNodeId(e.target.value)}
                         className="flex-1 text-xs border border-slate-200 rounded px-2 py-1 bg-white"
                       >
-                        <option value="">노드 선택...</option>
+                        <option value="">요소 선택...</option>
                         {candidates.map(n => (
                           <option key={n.id} value={n.id}>{nodeLabel(nodes, n.id)}</option>
                         ))}
@@ -227,18 +252,19 @@ export function FramePanel({
                   )}
 
                   {overriddenIds.length === 0 ? (
-                    <p className="text-[10px] text-slate-400 italic">오버라이드된 노드가 없습니다</p>
+                    <p className="text-xs text-slate-400">이 장면에 따로 정한 값이 없습니다.</p>
                   ) : (
                     <div className="space-y-3">
                       {overriddenIds.map(nodeId => {
                         const node = nodes.find(n => n.id === nodeId);
                         if (!node) return null;
                         return (
-                          <div key={nodeId} className="border border-slate-100 rounded-lg p-2 space-y-2">
+                          <div key={nodeId} data-scene-element={nodeId} className="border border-slate-100 rounded-lg p-2 space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="text-[11px] font-bold text-slate-600 truncate">{nodeLabel(nodes, nodeId)}</span>
                               <button
-                                onClick={() => onRemoveNodeOverride(selectedFrame.id, nodeId)}
+                                aria-label={`${nodeLabel(nodes, nodeId)} 장면 값 삭제`}
+                                onClick={() => removeOverride(node)}
                                 className="text-slate-300 hover:text-red-400 transition-colors shrink-0"
                               >
                                 <X size={11} />

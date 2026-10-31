@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { duplicateFrame, moveFrame } from './lib/frameEdits';
 import { resizeSlotFrames } from './slots/model';
+import { pruneFrameReferences } from './authoring/model';
 
 export function OBOEditorPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<OBOTemplate | null>(null);
@@ -72,24 +73,14 @@ export function OBOEditorPage() {
     if (selectedKind === 'node') {
       setNodes(nds => nds.filter(n => n.id !== selectedId));
       setEdges(eds => eds.filter(e => e.source !== selectedId && e.target !== selectedId));
-      setFrames(fs => fs.map(f => {
-        if (!f.nodeDataOverrides?.[selectedId]) {
-          return { ...f, highlightNodes: f.highlightNodes.filter(id => id !== selectedId) };
-        }
-        const { [selectedId]: _removed, ...restOverrides } = f.nodeDataOverrides;
-        return {
-          ...f,
-          highlightNodes: f.highlightNodes.filter(id => id !== selectedId),
-          nodeDataOverrides: restOverrides,
-        };
-      }));
+      setFrames(fs => pruneFrameReferences(fs, [selectedId], edges.filter(e => e.source === selectedId || e.target === selectedId).map(e => e.id)));
     } else {
       setEdges(eds => eds.filter(e => e.id !== selectedId));
-      setFrames(fs => fs.map(f => ({ ...f, highlightEdges: f.highlightEdges.filter(id => id !== selectedId) })));
+      setFrames(fs => pruneFrameReferences(fs, [], [selectedId]));
     }
     setSelectedId(null);
     setSelectedKind(null);
-  }, [selectedId, selectedKind, setNodes, setEdges]);
+  }, [selectedId, selectedKind, setNodes, setEdges, edges]);
 
   // ── 프레임 탭 콜백 ──────────────────────────────────────
   const addFrame = useCallback(() => {
@@ -312,6 +303,7 @@ export function OBOEditorPage() {
           onSetOverrideField={setOverrideField}
           onClearOverrideField={clearOverrideField}
           onUpdateFrameCursorTime={updateFrameCursorTime}
+          onUpdateFrameVisibleEdges={(id, visibleEdges) => setFrames(fs => fs.map(f => f.id === id ? { ...f, visibleEdges } : f))}
           traceText=""
           onTraceTextChange={() => {}}
         />
