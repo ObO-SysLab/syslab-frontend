@@ -5,6 +5,10 @@ export const DEFAULT_NODE_DATA: Record<string, object> = {
   'resource-square': {
     label: 'R1', instances: 2, allocated: 1,
   },
+  'queue-strip': { label: '버퍼', capacity: 3, items: ['A'], direction: 'ltr' },
+  'table-grid': { label: '표', headers: ['이름', '값'], rows: [['A', 0]], width: 300, activeRow: null },
+  'memory-range': { label: '메모리', start: 0, size: 16, segments: [{ id: 'region-1', start: 0, size: 8, label: 'A' }, { id: 'region-2', start: 8, size: 8, label: '빈 공간', free: true }], activeIds: [] },
+  'process-box': { label: '프로세스', sections: [{ name: '데이터', value: 'x = 0', shared: true }], threads: [{ id: 'thread-1', label: 'T1', pc: '시작', register: '0', stack: '지역값 0' }], activeThreadId: null },
   'slot-grid': {
     label: '칸', pointerLabel: '다음',
     slotCount: 4, slots: [null, null, null, null],
