@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -8,6 +8,7 @@ import {
   Background,
   BackgroundVariant,
   ConnectionMode,
+  useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { SkipBack, ChevronLeft, ChevronRight, Play, Pause, RotateCcw } from 'lucide-react';
@@ -17,6 +18,7 @@ import { nodeTypes } from './nodes';
 import { OboEdge } from './edges/OboEdge';
 import { FrameContext } from './FrameContext';
 import { applyFrame } from './lib/applyFrame';
+import { frameEdges } from './lib/frameEdges';
 import type { OboBlob, Frame } from './types';
 import { GanttContext } from './gantt/GanttContext';
 import { ganttLayouts, alignGanttRows } from './gantt/model';
@@ -31,6 +33,8 @@ interface OboPlayerProps {
 }
 
 function PlayerInner({ blob, maxFrameIndex, checkpointStatusByFrame, autoPlay }: OboPlayerProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { fitView } = useReactFlow();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playing, setPlaying] = useState(autoPlay ?? false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
@@ -39,8 +43,29 @@ function PlayerInner({ blob, maxFrameIndex, checkpointStatusByFrame, autoPlay }:
   const hasFrames = frames.length > 0;
   const currentFrame: Frame | null = hasFrames ? frames[currentIndex] : null;
   const effectiveLastIndex = Math.min(maxFrameIndex ?? frames.length - 1, frames.length - 1);
+  // Reserve authored line breaks across accessible scenes so captions do not shrink the graph.
+  const captionMinLines = frames.slice(0, effectiveLastIndex + 1)
+    .reduce((lines, frame) => Math.max(lines, (frame.label || '').split('\n').length), 1);
   const atEnd = currentIndex >= effectiveLastIndex;
   const playLabel = playing ? '일시 정지' : atEnd && effectiveLastIndex > 0 ? '다시 재생' : '재생';
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    let previous: { width: number; height: number } | undefined;
+    let request = 0;
+    // Observe the whole player, not the scene caption: scene changes retain zoom/pan.
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (previous && width > 0 && height > 0 && (width !== previous.width || height !== previous.height)) {
+        cancelAnimationFrame(request);
+        request = requestAnimationFrame(() => { void fitView({ padding: 0.12, maxZoom: 1.25 }); });
+      }
+      previous = { width, height };
+    });
+    observer.observe(container);
+    return () => { observer.disconnect(); cancelAnimationFrame(request); };
+  }, [fitView]);
 
   useEffect(() => {
     if (!playing) return;
@@ -52,7 +77,7 @@ function PlayerInner({ blob, maxFrameIndex, checkpointStatusByFrame, autoPlay }:
   const layouts = ganttLayouts(blob.nodes as Node[], frames.slice(0, effectiveLastIndex + 1));
   const nodes = alignGanttRows(applyFrame(blob.nodes as Node[], frames, hasFrames ? currentIndex : -1), layouts)
     .map(n => ({ ...n, selectable: false, draggable: false }));
-  const edges = blob.edges.map(e => ({ ...e, type: 'obo-edge' as const, selectable: false }));
+  const edges = frameEdges(blob.edges, currentFrame).map(e => ({ ...e, type: 'obo-edge' as const, selectable: false }));
 
   const prev = () => { setCurrentIndex(i => Math.max(0, i - 1)); setPlaying(false); };
   const next = () => { setCurrentIndex(i => Math.min(effectiveLastIndex, i + 1)); setPlaying(false); };
@@ -60,7 +85,7 @@ function PlayerInner({ blob, maxFrameIndex, checkpointStatusByFrame, autoPlay }:
   const checkpointStatus = currentFrame ? checkpointStatusByFrame?.[currentFrame.id] : undefined;
 
   return (
-    <div className="flex flex-col h-full rounded-2xl overflow-hidden border border-slate-100 bg-white">
+    <div ref={containerRef} className="flex flex-col h-full rounded-2xl overflow-hidden border border-slate-100 bg-white">
       <div className="min-h-0 flex-1 relative">
         <GanttContext.Provider value={{ layouts }}>
         <FrameContext.Provider value={{ previewFrame: currentFrame, checkpointStatus }}>
@@ -91,7 +116,7 @@ function PlayerInner({ blob, maxFrameIndex, checkpointStatusByFrame, autoPlay }:
           {/* 현재 프레임 설명 */}
           <div className="mx-auto max-w-3xl text-center" aria-live="polite" aria-atomic="true">
             <p className="mb-1 text-xs font-semibold text-indigo-600">장면 {currentIndex + 1} / {frames.length}</p>
-            <p className="min-h-6 whitespace-pre-wrap break-words text-base font-semibold leading-relaxed text-slate-700">{currentFrame?.label || '설명이 없는 장면입니다.'}</p>
+            <p style={{ minHeight: captionMinLines > 1 ? `${captionMinLines * 1.625}rem` : undefined }} className="min-h-6 whitespace-pre-wrap break-words text-base font-semibold leading-relaxed text-slate-700">{currentFrame?.label || '설명이 없는 장면입니다.'}</p>
           </div>
 
           {/* 재생 컨트롤 + 스텝 인디케이터 */}

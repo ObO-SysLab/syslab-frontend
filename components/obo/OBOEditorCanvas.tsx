@@ -29,6 +29,7 @@ import { DEFAULT_NODE_DATA } from './nodes/defaultNodeData';
 import { OboEdge } from './edges/OboEdge';
 import { nextNodeId, nextEdgeId } from './lib/id';
 import { applyFrame } from './lib/applyFrame';
+import { frameEdges } from './lib/frameEdges';
 import { makeUniqueLabel, collectLabels } from './lib/label';
 import { Lock, Unlock } from 'lucide-react';
 import { GanttContext } from './gantt/GanttContext';
@@ -218,7 +219,7 @@ function CanvasInner({
         )}
         <ReactFlow
           nodes={displayNodes}
-          edges={edges}
+          edges={frameEdges(edges, previewFrame)}
           onNodesChange={changes => onNodesChange(expandGanttMoves(changes, displayNodes))}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
