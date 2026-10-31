@@ -1,6 +1,7 @@
 import type { Node } from '@xyflow/react';
 import type { OboTraceStep } from '../types';
 import { getStateFields } from './overrideFields';
+import {parseBoundedJson} from '../runtime/index.mjs';
 
 function parseValueToken(raw: string): unknown {
   try {
@@ -36,6 +37,7 @@ export function parseTraceText(text: string, nodes: Node[]): OboTraceStep[] {
     .map(line => line.trim())
     .filter(line => line.length > 0)
     .map(line => {
+      if(line.startsWith('{')){const step=parseBoundedJson(line) as unknown as OboTraceStep&{v:number};if(step.v!==1)throw Error('출력 버전을 확인하세요.');return {overrides:step.overrides??{},highlightNodes:step.highlightNodes??[],...(step.visibleEdges!==undefined?{visibleEdges:step.visibleEdges}:{})};}
       const tokens = line.split(/\s+/);
       const overrides: Record<string, Record<string, unknown>> = {};
       const highlightNodes: string[] = [];
@@ -63,6 +65,13 @@ export function parseTraceText(text: string, nodes: Node[]): OboTraceStep[] {
 // parseTraceText의 역변환 — 저장된 구조화 트레이스를 편집용 텍스트로 되돌린다
 // (기존 문제를 에디터에서 다시 열었을 때 textarea 초기값 복원용).
 export function stringifyTrace(trace: OboTraceStep[], nodes: Node[]): string {
+  const legacy=stringifyLegacyTrace(trace,nodes);
+  try {if(JSON.stringify(parseTraceText(legacy,nodes))===JSON.stringify(trace))return legacy;}catch{}
+  return trace.map(step=>JSON.stringify({v:1,...step})).join('\n');
+}
+
+
+function stringifyLegacyTrace(trace: OboTraceStep[], nodes: Node[]): string {
   const nodeTypeById = new Map(nodes.map(n => [n.id, n.type]));
   // 노드 참조는 라벨(공백 없을 때) 우선으로 출력 → 재오픈 시 사용자가 지은 이름 그대로 보인다.
   const labelById = new Map(

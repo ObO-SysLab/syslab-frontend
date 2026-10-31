@@ -1,4 +1,5 @@
 "use client";
+import {problemApi,problemToken} from "@/lib/problemApi";
 
 import Link from "next/link";
 import { isSubmissionPending } from "@/lib/submission-status";
@@ -97,13 +98,13 @@ function ProblemDetailContent() {
 
   useEffect(() => {
     const fetchProfileImage = async () => {
-      const token = localStorage.getItem("token");
+      const token = problemToken();
       if (!token) return;
 
       setIsLoggedIn(true);
 
       try {
-        const response = await fetch("https://diveon.net/api/profile/show", {
+        const response = await fetch(problemApi("/api/profile/show"), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -133,14 +134,14 @@ function ProblemDetailContent() {
     const fetchPageData = async () => {
       setIsLoading(true); // 로딩 시작
 
-      const token = localStorage.getItem("token");
+      const token = problemToken();
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
       try {
         const [probRes, rankRes] = await Promise.all([
-          fetch(`https://diveon.net/api/problems/${probId}`, { headers }),
-          fetch(`https://diveon.net/api/problems/${probId}/ranking?page=1`, { headers }) // 20개씩 가져오는 1페이지 노크
+          fetch(problemApi(`/api/problems/${probId}`), { headers }),
+          fetch(problemApi(`/api/problems/${probId}/ranking?page=1`), { headers }) // 20개씩 가져오는 1페이지 노크
         ]);
 
         // 1. 문제 상세 정보 매립
@@ -183,9 +184,9 @@ function ProblemDetailContent() {
 
   // [API] 채점 탭 데이터 요청
   const fetchSubmissions = async () => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/board?page=1&size=50`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/board?page=1&size=50`), {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -234,12 +235,12 @@ function ProblemDetailContent() {
     if (pendingItems.length === 0) return;
 
     const timer = setTimeout(async () => {
-      const token = localStorage.getItem("token");
+      const token = problemToken();
 
       const results = await Promise.all(
         pendingItems.map(async (item) => {
           try {
-            const res = await fetch(`https://diveon.net/api/submissions/${item.submissionId}/status`, {
+            const res = await fetch(problemApi(`/api/submissions/${item.submissionId}/status`), {
               headers: { "Authorization": `Bearer ${token}` }
             });
             if (res.ok) {
@@ -287,9 +288,9 @@ function ProblemDetailContent() {
     }
 
     setIsSubmittingAnswer(true);
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/submissions/grade`, {
+      const res = await fetch(problemApi(`/api/submissions/grade`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
@@ -333,10 +334,10 @@ function ProblemDetailContent() {
 
   // [API] 댓글 목록 새로고침
   const fetchComments = async () => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     const headers: HeadersInit = { "Authorization": `Bearer ${token}` };
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments`, { headers });
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments`), { headers });
       const text = await res.text();
 
       // 텍스트가 비어있지 않은 경우에만 JSON 파싱을 시도합니다.
@@ -358,12 +359,12 @@ function ProblemDetailContent() {
 
   // [API] 랭킹 불러오기
   const fetchRanking = async (page = 1) => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     const headers: HeadersInit = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/ranking?page=${page}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/ranking?page=${page}`), {
         method: "GET",
         headers
       });
@@ -392,10 +393,10 @@ function ProblemDetailContent() {
   const handleOpenGroupModal = async () => {
     setShowGroupModal(true);
     setIsFetchingGroups(true);
-    const token = localStorage.getItem("token");
+    const token = problemToken();
 
     try {
-      const res = await fetch(`https://diveon.net/api/groups/me?problemId=${probId}`, {
+      const res = await fetch(problemApi(`/api/groups/me?problemId=${probId}`), {
         method: "GET",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -413,9 +414,9 @@ function ProblemDetailContent() {
 
   // [API] 선택한 그룹에 문제 추가하기
   const handleAddToGroup = async (targetGroupId: number) => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/groups/${targetGroupId}/problems`, {
+      const res = await fetch(problemApi(`/api/groups/${targetGroupId}/problems`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -459,9 +460,9 @@ function ProblemDetailContent() {
   const handleDeleteProblem = async () => {
     if (!confirm("정말로 이 문제를 삭제하시겠습니까?\n삭제된 문제는 복구할 수 없습니다.")) return;
 
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}`), {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -484,9 +485,9 @@ function ProblemDetailContent() {
 
   // [API] 특정 댓글(대댓글 포함) 상세 조회
   const handleSelectComment = async (comment: any) => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${comment.commentId}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments/${comment.commentId}`), {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const json = await res.json();
@@ -501,13 +502,13 @@ function ProblemDetailContent() {
     const content = parentId ? replyInput : commentInput;
     if (!content.trim()) return;
 
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
       // API 명세에 맞게 isPrivate 추가 및 parentId 선택적 할당
       const payload: any = { content, isPrivate: false };
       if (parentId) payload.parentId = parentId;
 
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(payload) // 수정된 payload 전송
@@ -529,9 +530,9 @@ function ProblemDetailContent() {
     e.stopPropagation(); // 클릭 이벤트 버블링 방지 (상세 창으로 넘어가지 않게)
     if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
 
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${commentId}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments/${commentId}`), {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -548,9 +549,9 @@ function ProblemDetailContent() {
     e.stopPropagation();
     if (!editContent || !editContent.trim()) return;
 
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${commentId}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments/${commentId}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ content: editContent, isPrivate: false })
@@ -568,7 +569,7 @@ function ProblemDetailContent() {
 
   // 페이지 로드 시 로그인 상태 확인
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     if (token) {
       setIsLoggedIn(true);
     }
@@ -865,10 +866,10 @@ function ProblemDetailContent() {
                       const isSelected = orderIndex !== -1;
 
                       return (
-                        <div
+                        <button type="button" aria-pressed={isSelected}
                           key={choice.index}
                           onClick={() => handleChoiceToggle(choice.index)}
-                          className={`p-4 border-2 rounded-xl flex items-center gap-4 cursor-pointer transition-all ${isSelected
+                          className={`w-full text-left p-4 border-2 rounded-xl flex items-center gap-4 cursor-pointer transition-all ${isSelected
                             ? "border-indigo-600 bg-indigo-50/50 shadow-sm"
                             : "border-slate-100 bg-slate-50 hover:border-slate-300 hover:bg-slate-100"
                             }`}
@@ -884,7 +885,7 @@ function ProblemDetailContent() {
                           <span className={`text-sm ${isSelected ? "text-indigo-950 font-bold" : "text-slate-700"}`}>
                             {choice.content}
                           </span>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>

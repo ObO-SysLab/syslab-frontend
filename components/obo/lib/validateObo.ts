@@ -1,5 +1,6 @@
 import type { ProblemOboData } from '../types';
 import { validateDocument } from '../runtime/document.mjs';
+import { validateFreeDiagram } from '../runtime/freeDiagram.mjs';
 
 // 저장 전 OBO 무결성 검사. 사람이 읽는 오류 메시지 배열을 반환(빈 배열 = 통과).
 // 토큰 단위 검증은 저작 중 TracePanel(validateTrace)이 담당하고, 여기서는 저장 직전
@@ -15,6 +16,8 @@ export function validateProblemObo(
     return errors;
   }
 
+  try { validateFreeDiagram(data); }
+  catch (error) { return [error instanceof Error ? error.message : '그림 자료를 확인하세요.']; }
   if (data.mode === 'single') {
     if (!data.single?.nodes.length) errors.push('다이어그램에 노드가 없습니다');
   } else if (data.mode === 'coding_diff') {
