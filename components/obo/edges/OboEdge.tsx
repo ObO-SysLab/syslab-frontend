@@ -9,6 +9,7 @@ interface OboEdgeData {
   style?: 'solid' | 'dashed';
   role?: 'transition' | 'request' | 'allocation';
   emphasize?: boolean;
+  color?: string;
 }
 
 export function OboEdge({
@@ -26,7 +27,7 @@ export function OboEdge({
   const { previewFrame } = useFrameCtx();
   const frameHighlighted = previewFrame?.highlightEdges.includes(id) ?? false;
   // Keep the entire graph readable; emphasis adds contrast instead of dimming context.
-  const stroke = frameHighlighted ? '#b45309' : d.emphasize ? '#dc2626' : selected ? '#6366f1' : '#94a3b8';
+  const stroke = frameHighlighted ? '#b45309' : d.emphasize ? '#dc2626' : selected ? '#6366f1' : d.color ?? '#94a3b8';
   const strokeWidth = frameHighlighted ? 3.5 : selected ? 3 : 1.8;
   const strokeDasharray = d.style === 'dashed' ? '6 3' : undefined;
   const mkId = `obo-mk-${id}`;

@@ -2,6 +2,7 @@ import type { Node, Edge } from '@xyflow/react';
 import type { Frame } from './types';
 import { ROUND_ROBIN_TEMPLATE } from './gantt/roundRobinExample';
 import { PAGE_REPLACEMENT_TEMPLATE } from './slots/pageReplacementExample';
+import { RESOURCE_ALLOCATION_TEMPLATE } from './resourceAllocationExample';
 
 // ── 팔레트 원소 타입 ───────────────────────────────────────────────
 export type NodeComponentType =
@@ -278,18 +279,20 @@ export const ALL_OBO_TEMPLATES: OBOTemplate[] = [
     ],
   },
   ROUND_ROBIN_TEMPLATE,
-  // 비활성: P2, P3, S3
+  RESOURCE_ALLOCATION_TEMPLATE,
+  // 비활성: P2, P3
 ];
 
-// 검토한 ST2/G1/G2/S1을 노출하고 나머지는 정의만 보존한다.
-const ACTIVE_TEMPLATE_IDS = ['ST2', 'G1', 'G2', 'S1'];
+// 검토한 템플릿을 노출하고 나머지는 정의만 보존한다.
+const ACTIVE_TEMPLATE_IDS = ['ST2', 'G1', 'G2', 'S1', 'S3'];
 
 export const OBO_TEMPLATES: OBOTemplate[] = ALL_OBO_TEMPLATES.filter(
   t => ACTIVE_TEMPLATE_IDS.includes(t.id)
 );
 
 export const CATEGORIES = [
-  { id: 'all', label: '전체', count: 4 },
+  { id: 'all', label: '전체', count: 5 },
   { id: 'cpu', label: 'CPU',  count: 3 },
   { id: 'memory', label: '메모리', count: 1 },
+  { id: 'sync', label: '동기화', count: 1 },
 ] as const;

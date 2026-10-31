@@ -5,6 +5,8 @@ export interface Frame {
   label: string;
   highlightNodes: string[];
   highlightEdges: string[];
+  /** Complete edge visibility for this scene; omitted means all base edges (legacy). */
+  visibleEdges?: string[];
   nodeDataOverrides?: Record<string, Record<string, unknown>>;
   cursorTime?: number;
 }
