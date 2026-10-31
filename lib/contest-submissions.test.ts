@@ -75,8 +75,9 @@ describe("contest results remain in the contest namespace", () => {
       code: "/challenges/submissions?id=92", obo: "/challenges/obo?id=92",
     });
   });
-  it.each(["objective", "practice"])("never uses a contest ID for a generic %s result", type => {
-    expect(contestCodingLinks(type, submission())).toBeNull();
+  it("uses the dedicated contest route for completed objective submissions", () => {
+    expect(contestCodingLinks('objective', submission())).toEqual({code:null,obo:`/challenges/obo?contestSubmissionId=${submission().submissionId}`});
+    expect(contestCodingLinks('practice', submission())).toBeNull();
   });
   it("missing linked ID or failed coding result has no generic result link", () => {
     expect(contestCodingLinks("coding", submission())).toBeNull();

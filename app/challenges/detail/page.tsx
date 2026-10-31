@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { OboPlayer } from "@/components/obo/OboPlayer";
+import { CodingRules } from '@/components/obo/simulation/CodingRules';
 import { resolveOboBlob, type OboBlob, type ProblemOboData } from "@/components/obo/types";
 import { Header } from "@/components/Header";
 
@@ -444,6 +445,7 @@ function ProblemDetailContent() {
         // 이미 선택된 보기를 다시 누르면 제거
         return prev.filter((i) => i !== index);
       } else {
+        if (problemData?.selectionMode === 'single') return [index];
         if (problemData?.isOrderedAnswer) {
           return [...prev, index];
         }
@@ -889,6 +891,7 @@ function ProblemDetailContent() {
                 )}
 
                 {/* 코딩형 입출력 예시 동적 렌더링 */}
+                <CodingRules contract={problemData?.oboContract}/>
                 {problemData?.type === "coding" && problemData?.testcases && problemData.testcases.length > 0 && (
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* 입력 예시 */}

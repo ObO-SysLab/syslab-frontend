@@ -1,4 +1,5 @@
 "use client";
+import { CodingRules } from '@/components/obo/simulation/CodingRules';
 
 import Link from "next/link";
 import { isSubmissionPending } from "@/lib/submission-status";
@@ -203,6 +204,7 @@ function ProblemDetailContent() {
 
 	// 객관식 보기 선택 핸들러
 	const handleChoiceToggle = (index: number) => {
+		if(problemData?.selectionMode==='single'){setSelectedChoices([index]);return;}
 		setSelectedChoices(prev =>
 			prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
 		);
@@ -454,6 +456,7 @@ function ProblemDetailContent() {
 								)}
 
 								{/* 코딩형 입출력 예시 동적 렌더링 */}
+								<CodingRules contract={problemData?.oboContract}/>
 								{problemData?.type === "coding" && problemData?.testcases && problemData.testcases.length > 0 && (
 									<div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
 										{/* 입력 예시 */}
@@ -617,9 +620,9 @@ function ProblemDetailContent() {
 															{/* 2. 코딩: 코드 보기 / OBO 보기 2가지 버튼 제공 */}
 															{detailLinks && (
 																<div className="flex justify-center gap-1.5">
-																	<Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold text-slate-600" asChild>
+																	{detailLinks.code && <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold text-slate-600" asChild>
 																		<Link href={detailLinks.code}>코드</Link>
-																	</Button>
+																	</Button>}
 																	<Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50" asChild>
 																		<Link href={detailLinks.obo}>OBO</Link>
 																	</Button>

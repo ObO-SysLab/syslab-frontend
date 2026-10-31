@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import type { ProblemOboData } from "@/components/obo/types";
 import { OboEditorSection } from "@/components/obo/OboEditorSection";
+import { freshId } from '@/components/obo/runtime/document.mjs';
+import { CodingExampleControl } from '@/components/obo/simulation/CodingExampleControl';
 import { validateProblemObo } from "@/components/obo/lib/validateObo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -73,17 +75,21 @@ function ProblemCreateContent() {
 
   // [STATE] 객관식 문제 전용
   const [choices, setChoices] = useState([
-    { index: 1, content: "" }, { index: 2, content: "" }, { index: 3, content: "" }, { index: 4, content: "" }
+    { id: 'choice_1', index: 1, content: "" }, { id: 'choice_2', index: 2, content: "" }, { id: 'choice_3', index: 3, content: "" }, { id: 'choice_4', index: 4, content: "" }
   ]);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([1]);
   const [isOrderedAnswer, setIsOrderedAnswer] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editLoaded,setEditLoaded]=useState(!editId);
+  const [editError,setEditError]=useState('');
 
   // 객관식 정답 토글 핸들러
   // [상태 관리] OBO 시각화
   const [oboEnabled, setOboEnabled] = useState(false);
   const [oboData, setOboData] = useState<ProblemOboData>({ mode: 'single', single: { nodes: [], edges: [], frames: [] } });
   const [oboModalOpen, setOboModalOpen] = useState(false);
+  const modernObjective=oboEnabled&&oboData.mode==='simulation';
+  const orderedSelection=isOrderedAnswer&&!modernObjective;
   const [oboDataSnapshot, setOboDataSnapshot] = useState<ProblemOboData | null>(null);
 
   const openOboModal = () => {
@@ -102,6 +108,10 @@ function ProblemCreateContent() {
   // 2. 객관식 정답 토글 핸들러
   const toggleAnswer = (idx: number) => {
     const val = idx + 1;
+    if (oboEnabled && oboData.mode === 'simulation' && oboData.simulation?.question.selectionMode === 'single') {
+      setSelectedAnswers([val]);
+      return;
+    }
 
     if (selectedAnswers.includes(val)) {
       // 해제한 후 정답이 0개가 되는 '결과론적 상황'만 차단
@@ -112,17 +122,12 @@ function ProblemCreateContent() {
       setSelectedAnswers(selectedAnswers.filter((a) => a !== val));
     } else {
       // 순서 일치 옵션이 켜져 있다면 .sort()를 생략하고 누른 순서 그대로 push
-      const next = isOrderedAnswer
+      const next = orderedSelection
         ? [...selectedAnswers, val]                     // 1. 순서 지정 모드: 누른 데이터 뒤에 차례로 누적 [4, 2, 1]
         : [...selectedAnswers, val].sort((a, b) => a - b); // 2. 일반 다중 모드: 기존처럼 번호 순 정렬 [1, 2, 4]
 
       setSelectedAnswers(next);
 
-      // 다중 정답으로 전환되면 OBO는 사용할 수 없으므로 자동으로 끈다.
-      if (next.length > 1 && oboEnabled) {
-        setOboData({ mode: 'single', single: { nodes: [], edges: [], frames: [] } });
-        setOboEnabled(false);
-      }
     }
   };
 
@@ -162,6 +167,11 @@ function ProblemCreateContent() {
 
     // 정답이 하나도 남지 않게 되는 경우 방지 (최소 1번은 선택되게)
     setSelectedAnswers(newAnswers.length > 0 ? newAnswers : [1]);
+    if (oboData.mode === 'simulation' && oboData.simulation) {
+      const explanations = {...oboData.simulation.explanations.choices};
+      delete explanations[choices[indexToRemove].id];
+      setOboData({...oboData, simulation: {...oboData.simulation, explanations: {...oboData.simulation.explanations, choices: explanations}}});
+    }
 
     // 3. OBO per_choice 키 동기화 (삭제된 번호 제거 + 이후 번호 한 칸씩 당김)
     if (oboData.mode === 'per_choice' && oboData.perChoice) {
@@ -177,6 +187,7 @@ function ProblemCreateContent() {
 
   // [API] 제출 핸들러
   const handleSubmit = async () => {
+    if(!editLoaded)return;
     if (!title || !category || !description) {
       alert("제목, 카테고리, 문제 설명은 필수입니다.");
       return;
@@ -219,7 +230,14 @@ function ProblemCreateContent() {
           summary: summary || title,
           description,
           difficulty: difficulty,
-          oboJson: oboEnabled ? oboData : null
+          oboAction: oboEnabled ? 'replace' : 'remove',
+          oboJson: oboEnabled ? oboData : null,
+          ...(problemType==='objective'?{choices,answer:selectedAnswers}:{}),
+          ...(problemType==='coding'?{
+            constraints:{timeLimitMs:timeLimit*1000,memoryLimitMb:memoryLimit,allowedLanguages},
+            inputDescription:inputDesc,outputDescription:outputDesc,
+            testcases:testcases.map(tc=>({index:tc.index,input:tc.input,output:tc.output,isSample:tc.is_sample})),
+          }:{}),
         };
 
         bodyData = JSON.stringify(patchPayload);
@@ -300,14 +318,18 @@ function ProblemCreateContent() {
               },
               inputDescription: inputDesc || "입력 설명",
               outputDescription: outputDesc || "출력 설명",
-              testcases: testcases.map(tc => ({ ...tc, index: Number(tc.index) })),
+              testcases: testcases.map(tc => ({ index: Number(tc.index), input: tc.input, output: tc.output, isSample: tc.is_sample })),
               obo: { enabled: false, initialImageUrl: null },
               oboJson: oboEnabled ? oboData : null,
               isDraft: false
             };
           } else if (problemType === "objective") {
             endpoint = `https://diveon.net/api/problems/objective`;
-            const validChoices = choices.filter(c => c.content.trim() !== "").map((c, i) => ({ index: i + 1, content: c.content, image_url: null }));
+            if (choices.some(c => !c.content.trim())) {
+              setIsSubmitting(false);
+              return alert('빈 보기의 내용을 입력하거나 해당 보기를 삭제하세요.');
+            }
+            const validChoices = choices.map((c, i) => ({ id: c.id, index: i + 1, content: c.content, imageUrl: null }));
             if (validChoices.length < 2) {
               setIsSubmitting(false);
               return alert("보기를 2개 이상 입력하세요.");
@@ -360,9 +382,18 @@ function ProblemCreateContent() {
       fetch(`https://diveon.net/api/problems/${editId}`, {
         headers: { "Authorization": `Bearer ${token}` }
       })
-        .then(res => res.json())
-        .then(json => {
+        .then(res => {if(!res.ok)throw new Error('문제를 불러오지 못했습니다.');return res.json();})
+        .then(async json => {
           const data = json.data;
+          if(!data?.isOwner)throw new Error('작성자만 문제를 수정할 수 있습니다.');
+          if (data.isOwner && (data.type === 'objective' || data.type === 'coding')) {
+            const authorObo = await fetch(`https://diveon.net/api/challenges/obo/author/settings?id=${editId}`, {
+              headers: { Authorization: `Bearer ${token}` }, cache: 'no-store',
+            });
+            if (!authorObo.ok) throw new Error('작성자 OBO를 불러오지 못했습니다.');
+            const text = await authorObo.text();
+            Object.assign(data, text ? JSON.parse(text) : {});
+          }
           // 공통 필드 채우기
           setTitle(data.title);
           setSummary(data.summary || "");
@@ -373,12 +404,15 @@ function ProblemCreateContent() {
 
           // 유형별 상세 필드 채우기
           if (data.type === "coding") {
-            setTimeLimit((data.constraints?.time_limit_ms || 1000) / 1000);
-            setMemoryLimit(data.constraints?.memory_limit_mb || 256);
-            setTestcases(data.testcases || []);
+            setTimeLimit((data.constraints?.timeLimitMs || 1000) / 1000);
+            setMemoryLimit(data.constraints?.memoryLimitMb || 256);
+            setAllowedLanguages(data.constraints?.allowedLanguages ?? ['c','cpp','python']);
+            setInputDesc(data.inputDescription ?? '');setOutputDesc(data.outputDescription ?? '');
+            setTestcases((data.testcases || []).map((tc: {index:number;input:string;output:string;isSample?:boolean;is_sample?:boolean}) => ({index:tc.index,input:tc.input,output:tc.output,is_sample:tc.isSample??tc.is_sample??false})));
           } else if (data.type === "objective") {
-            setChoices(data.choices || []);
+            setChoices((data.choices || []).map((choice: {id?:string;index:number;content:string}) => ({...choice,id:choice.id??`choice_${choice.index}`})));
             setSelectedAnswers(data.answer?.length ? data.answer : [1]);
+            setIsOrderedAnswer(data.isSeqeuntialAnswer??false);
           } else if (data.type === "practice") {
             setFlag(data.flag || "");
 
@@ -392,11 +426,10 @@ function ProblemCreateContent() {
             }
           }
 
-          const isMultiAnswerObjective = data.type === "objective" && (data.answer?.length ?? 0) > 1;
-          if (data.oboJson && !isMultiAnswerObjective) {
+          if (data.oboJson) {
             // 이전 형식(OboBlob 직접 저장) 호환성 처리
             const raw = data.oboJson;
-            if (raw.mode === 'single' || raw.mode === 'per_choice') {
+            if (raw.mode === 'single' || raw.mode === 'per_choice' || raw.mode === 'coding_diff' || raw.mode === 'simulation') {
               setOboData(raw);
             } else {
               // legacy: OboBlob 그대로 저장된 경우
@@ -404,9 +437,10 @@ function ProblemCreateContent() {
             }
             setOboEnabled(true);
           }
-
+          setEditLoaded(true);setEditError('');
         })
         .catch(err => {
+          setEditError(err instanceof Error?err.message:'문제를 불러오지 못했습니다.');
           console.error(err);
         });
     }
@@ -491,7 +525,6 @@ function ProblemCreateContent() {
   }, [visibility])
 
   // 다중 정답(객관식) 문제는 선택지 하나에 종속되는 OBO를 만들 수 없다.
-  const oboBlockedByMultiAnswer = problemType === "objective" && selectedAnswers.length > 1;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -580,7 +613,8 @@ function ProblemCreateContent() {
                 <Eye size={16} className="mr-2 text-slate-400 group-hover:text-indigo-500 transition-colors" />문제 미리보기
               </Button>
               {/* 제출 버튼에 onClick 연결 */}
-              <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {editError&&<p role="alert" className="text-sm text-red-600">{editError}</p>}
+              <Button onClick={handleSubmit} disabled={isSubmitting||!editLoaded}>
                 <Zap size={16} className="mr-2" />
                 {isSubmitting ? "처리 중..." : (isEditMode ? "수정 완료" : "문제 등록")}
               </Button>
@@ -1088,7 +1122,7 @@ function ProblemCreateContent() {
                 <div className="space-y-5 animate-in fade-in-30 duration-300">
 
                   {/* 순서 매칭 옵션 설정 카드 피처 */}
-                  <div className="flex items-center justify-between p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                  {!modernObjective&&<div className="flex items-center justify-between p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl">
                     <div className="space-y-0.5">
                       <Label className="text-sm font-bold text-slate-900 cursor-pointer" htmlFor="toggle-order">
                         정답 선택 순서 일치 옵션 활성화
@@ -1108,13 +1142,13 @@ function ProblemCreateContent() {
                       }}
                       className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                     />
-                  </div>
+                  </div>}
 
                   <div className="space-y-4 pt-1">
                     <Label className="flex justify-between items-center">
                       <span>보기 설정 및 정답 선택 <span className="text-red-500">*</span></span>
                       <span className="text-[10px] text-slate-400">
-                        {isOrderedAnswer ? "번호를 누른 순서가 정답 순서가 됩니다." : "정답 체크박스를 선택하세요 (중복 가능)"}
+                        {orderedSelection ? "번호를 누른 순서가 정답 순서가 됩니다." : modernObjective&&oboData.simulation?.question.selectionMode==='single'?'정답 하나를 선택하세요.':"정답 보기를 모두 선택하세요."}
                       </span>
                     </Label>
 
@@ -1135,7 +1169,7 @@ function ProblemCreateContent() {
                                 }`}
                             >
                               {/* 순서 모드이고 선택됐다면 순서 번호(1, 2..)를 노출하고, 아니면 체크 아이콘 배치 */}
-                              {isSelected && isOrderedAnswer ? orderIndex + 1 : <CheckCircle2 size={14} />}
+                              {isSelected && orderedSelection ? orderIndex + 1 : <CheckCircle2 size={14} />}
                             </div>
 
                             <span className="font-bold text-slate-400 w-4">{idx + 1}.</span>
@@ -1170,7 +1204,7 @@ function ProblemCreateContent() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setChoices([...choices, { index: choices.length + 1, content: "" }])}
+                      onClick={() => setChoices([...choices, { id: freshId('choice'), index: choices.length + 1, content: "" }])}
                       className="w-full border-dashed text-slate-500 mt-2"
                     >
                       <PlusCircle className="w-4 h-4 mr-2" /> 보기 추가
@@ -1191,14 +1225,11 @@ function ProblemCreateContent() {
                     OBO 시각화 포함
                   </CardTitle>
                   <CardDescription>
-                    {oboBlockedByMultiAnswer
-                      ? "다중 정답 문제는 OBO를 생성할 수 없습니다. 정답을 1개만 선택하면 활성화됩니다."
-                      : "문제에 운영체제 동작 시각화(OBO)를 첨부합니다."}
+                    문제에 운영체제 동작 시각화(OBO)를 첨부합니다. 복수 선택 문제도 보기별 해설을 제공합니다.
                   </CardDescription>
                 </div>
-                <div
+                <button type="button" role="switch" aria-label="OBO 시각화 포함" aria-checked={oboEnabled}
                   onClick={() => {
-                    if (oboBlockedByMultiAnswer) return;
                     if (oboEnabled) {
                       const ok = window.confirm("OBO를 비활성화하면 편집한 내용이 초기화됩니다. 계속할까요?");
                       if (!ok) return;
@@ -1206,19 +1237,26 @@ function ProblemCreateContent() {
                     }
                     setOboEnabled(v => !v);
                   }}
-                  className={`w-11 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0 ${oboBlockedByMultiAnswer ? "opacity-50 cursor-not-allowed pointer-events-none" : "cursor-pointer"
-                    } ${oboEnabled ? "bg-indigo-600" : "bg-slate-200"}`}
+                  className={`w-11 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0 cursor-pointer ${oboEnabled ? "bg-indigo-600" : "bg-slate-200"}`}
                 >
                   <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${oboEnabled ? "translate-x-5" : "translate-x-0"}`} />
-                </div>
+                </button>
               </div>
             </CardHeader>
 
             {oboEnabled && (
               <CardContent className="pt-0">
+                {problemType==='coding'&&oboData.mode==='simulation'&&oboData.simulation?.question.judgeProfile==='obo-v1'&&<CodingExampleControl document={oboData.simulation} onAdd={(input,output)=>{
+                  setTestcases(previous=>{
+                    const kept=previous.filter(tc=>tc.input.trim()||tc.output.trim());
+                    return [...kept,{index:kept.length+1,input,output,is_sample:true}];
+                  });
+                }}/>}
                 <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl">
                   <p className="text-sm text-slate-500">
-                    {oboData.mode === 'per_choice' ? (
+                    {oboData.mode === 'simulation' ? (
+                      <>규칙 기반 시뮬레이션 · {oboData.simulation?.instances.length ?? 0}개 독립 실행</>
+                    ) : oboData.mode === 'per_choice' ? (
                       <>보기별 모드 &nbsp;·&nbsp; 보기 <span className="font-bold text-slate-800">{Object.keys(oboData.perChoice ?? {}).length}</span>개 설정됨</>
                     ) : oboData.mode === 'coding_diff' ? (
                       <>
@@ -1259,7 +1297,7 @@ function ProblemCreateContent() {
                   value={oboData}
                   onChange={setOboData}
                   choices={problemType === 'objective'
-                    ? choices.map(c => ({ id: `choice_${c.index}`, text: c.content }))
+                    ? choices.map(c => ({ id: oboData.mode === 'simulation' ? c.id : `choice_${c.index}`, text: c.content }))
                     : undefined}
                   allowCodingDiff={problemType === 'coding'}
                   testcaseOutputs={problemType === 'coding'

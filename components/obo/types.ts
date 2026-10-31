@@ -9,7 +9,7 @@ export interface Frame {
   cursorTime?: number;
 }
 
-export type OboMode = 'single' | 'per_choice' | 'coding_diff';
+export type OboMode = 'single' | 'per_choice' | 'coding_diff' | 'simulation';
 
 // 트레이스 한 스텝. overrides는 그 시점의 nodeDataOverrides(Frame.nodeDataOverrides와 같은 모양,
 // carry-forward 대상)이고, highlightNodes는 그 스텝에서 강조되는 노드 id들(carry-forward 없음).
@@ -27,6 +27,8 @@ export interface OboCodingSchema {
 
 export interface ProblemOboData {
   mode: OboMode;
+  schemaVersion?: 2;
+  simulation?: import('./runtime/document.mjs').SimulationDocument;
   single?: OboBlob;
   perChoice?: Record<string, OboBlob>;
   codingDiff?: OboCodingSchema;
@@ -57,6 +59,7 @@ export function resolveOboBlob(
   selectedChoiceIndex?: number | null
 ): OboBlob | null {
   if (!data) return null;
+  if ('mode' in data && data.mode === 'simulation') return null;
 
   const normalized: ProblemOboData = (data as ProblemOboData).mode
     ? (data as ProblemOboData)
@@ -74,4 +77,18 @@ export function resolveOboBlob(
 
   if (selectedChoiceIndex == null) return null;
   return normalized.perChoice?.[`choice_${selectedChoiceIndex}`] ?? null;
+}
+
+/** All authored explanations remain navigable after server-side disclosure; selected choices come first. */
+export function listOboExplanations(data: ProblemOboData | OboBlob | null, selectedAnswers: number[] = []) {
+  if (!data) return [];
+  if ('mode' in data && data.mode === 'per_choice') {
+    const selected = new Set(selectedAnswers);
+    return Object.entries(data.perChoice ?? {}).map(([key, blob]) => {
+      const index = Number(key.replace(/^choice_/, ''));
+      return { id: key, label: Number.isInteger(index) ? `보기 ${index}` : key, selected: selected.has(index), blob };
+    }).sort((a, b) => Number(b.selected) - Number(a.selected) || a.id.localeCompare(b.id, undefined, {numeric: true}));
+  }
+  const blob = resolveOboBlob(data);
+  return blob ? [{id: 'common', label: '공통 해설', selected: false, blob}] : [];
 }

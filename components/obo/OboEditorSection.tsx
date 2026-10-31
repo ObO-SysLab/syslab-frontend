@@ -13,10 +13,13 @@ import { PropertyPanel } from './panel/PropertyPanel';
 import { OboPlayer } from './OboPlayer';
 import { Button } from '@/components/ui/button';
 import { nextFrameId, nextNodeId } from './lib/id';
+import { duplicateFrame, moveFrame } from './lib/frameEdits';
 import { generateFramesFromTrace } from './lib/trace';
 import { parseTraceText, stringifyTrace } from './lib/traceParser';
 import { traceTokenFor, makeUniqueLabel, collectLabels } from './lib/label';
 import { exampleStateValue } from './lib/overrideFields';
+import { SimulationEditor } from './simulation/SimulationEditor';
+import { createDocument } from './runtime/document.mjs';
 
 export interface OboChoice { id: string; text: string; }
 
@@ -35,7 +38,28 @@ const MODE_LABEL: Record<OboMode, string> = {
   single: '단일 다이어그램',
   per_choice: '보기별',
   coding_diff: '코딩 자동 채점',
+  simulation: '규칙 기반 시뮬레이션',
 };
+
+export const OboEditorSection = React.memo(function OboEditorSection(props: Props) {
+  const legacy = useRef<ProblemOboData | null>(props.value?.mode === 'simulation' ? null : props.value);
+  const simulation = useRef<ProblemOboData | null>(props.value?.mode === 'simulation' ? props.value : null);
+  const modern = props.value?.mode === 'simulation';
+  const update = (next: ProblemOboData) => {
+    if (next.mode === 'simulation') simulation.current = next; else legacy.current = next;
+    props.onChange(next);
+  };
+  return <div className="flex h-full min-h-0 flex-col">
+    <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-slate-50 px-4 py-2">
+      <Button type="button" size="sm" variant={modern ? 'default' : 'outline'} onClick={() => update(simulation.current ?? {schemaVersion: 2, mode: 'simulation', simulation: createDocument()})}>규칙 기반 시뮬레이션</Button>
+      <Button type="button" size="sm" variant={modern ? 'outline' : 'default'} onClick={() => update(legacy.current ?? {mode: 'single', single: EMPTY_BLOB})}>기존 다이어그램</Button>
+      <span className="text-xs text-slate-500">편집 중 전환한 구성은 이 창을 닫기 전까지 보관됩니다.</span>
+    </div>
+    {modern && props.value?.simulation ? <div className="min-h-0 flex-1 overflow-auto bg-slate-50 p-4">
+      <SimulationEditor value={props.value.simulation} onChange={document => update({schemaVersion: 2, mode: 'simulation', simulation: document})} choices={props.choices} allowCoding={props.allowCodingDiff}/>
+    </div> : <div className="min-h-0 flex-1"><LegacyOboEditorSection {...props} onChange={update}/></div>}
+  </div>;
+});
 
 function serialize(nodes: Node[], edges: Edge[], frames: Frame[]): OboBlob {
   return {
@@ -52,7 +76,7 @@ function serialize(nodes: Node[], edges: Edge[], frames: Frame[]): OboBlob {
   };
 }
 
-export const OboEditorSection = React.memo(function OboEditorSection({
+export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection({
   value, onChange, choices = [], allowCodingDiff = false, testcaseOutputs,
 }: Props) {
   // 모드는 문제 유형이 결정한다(저작자 선택 없음): 코딩→coding_diff, 객관식(보기 있음)→per_choice.
@@ -276,6 +300,18 @@ export const OboEditorSection = React.memo(function OboEditorSection({
     setSelectedFrameId(prev => prev === id ? null : prev);
   }, []);
 
+  const handleDuplicateFrame = useCallback((id: string) => {
+    const index = frames.findIndex(frame => frame.id === id);
+    if (index < 0) return;
+    const next = duplicateFrame(frames, id);
+    setFrames(next);
+    setSelectedFrameId(next[index + 1].id);
+  }, [frames]);
+
+  const handleMoveFrame = useCallback((id: string, direction: -1 | 1) => {
+    setFrames(current => moveFrame(current, id, direction));
+  }, []);
+
   const updateFrameLabel = useCallback((id: string, label: string) => {
     setFrames(fs => fs.map(f => f.id === id ? { ...f, label } : f));
   }, []);
@@ -492,6 +528,7 @@ export const OboEditorSection = React.memo(function OboEditorSection({
           activeTab={activeTab}
           frames={frames}
           previewFrame={previewFrame}
+          setFrames={setFrames}
           onFrameNodeClick={handleFrameNodeClick}
           onFrameEdgeClick={handleFrameEdgeClick}
           traceMode={mode === 'coding_diff'}
@@ -522,6 +559,8 @@ export const OboEditorSection = React.memo(function OboEditorSection({
           selectedFrameId={selectedFrameId}
           onSelectFrame={setSelectedFrameId}
           onAddFrame={addFrame}
+          onDuplicateFrame={handleDuplicateFrame}
+          onMoveFrame={handleMoveFrame}
           onRemoveFrame={removeFrame}
           onUpdateFrameLabel={updateFrameLabel}
           onRemoveHighlightNode={removeHighlightNode}

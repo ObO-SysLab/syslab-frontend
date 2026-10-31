@@ -12,6 +12,7 @@ import { OboPlayer } from './OboPlayer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { duplicateFrame, moveFrame } from './lib/frameEdits';
 
 export function OBOEditorPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<OBOTemplate | null>(null);
@@ -98,6 +99,18 @@ export function OBOEditorPage() {
   const removeFrame = useCallback((id: string) => {
     setFrames(fs => fs.filter(f => f.id !== id));
     setSelectedFrameId(prev => prev === id ? null : prev);
+  }, []);
+
+  const handleDuplicateFrame = useCallback((id: string) => {
+    const index = frames.findIndex(frame => frame.id === id);
+    if (index < 0) return;
+    const next = duplicateFrame(frames, id);
+    setFrames(next);
+    setSelectedFrameId(next[index + 1].id);
+  }, [frames]);
+
+  const handleMoveFrame = useCallback((id: string, direction: -1 | 1) => {
+    setFrames(current => moveFrame(current, id, direction));
   }, []);
 
   const updateFrameLabel = useCallback((id: string, label: string) => {
@@ -260,6 +273,7 @@ export function OBOEditorPage() {
           activeTab={activeTab}
           frames={frames}
           previewFrame={previewFrame}
+          setFrames={setFrames}
           onFrameNodeClick={handleFrameNodeClick}
           onFrameEdgeClick={handleFrameEdgeClick}
         />
@@ -285,6 +299,8 @@ export function OBOEditorPage() {
           selectedFrameId={selectedFrameId}
           onSelectFrame={setSelectedFrameId}
           onAddFrame={addFrame}
+          onDuplicateFrame={handleDuplicateFrame}
+          onMoveFrame={handleMoveFrame}
           onRemoveFrame={removeFrame}
           onUpdateFrameLabel={updateFrameLabel}
           onRemoveHighlightNode={removeHighlightNode}
