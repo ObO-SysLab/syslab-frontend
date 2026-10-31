@@ -3,6 +3,7 @@ import type { Frame } from './types';
 import { ROUND_ROBIN_TEMPLATE } from './gantt/roundRobinExample';
 import { PAGE_REPLACEMENT_TEMPLATE } from './slots/pageReplacementExample';
 import { RESOURCE_ALLOCATION_TEMPLATE } from './resourceAllocationExample';
+import { REMAINING_TEMPLATES } from './examples/remaining';
 
 // ── 팔레트 원소 타입 ───────────────────────────────────────────────
 export type NodeComponentType =
@@ -216,83 +217,24 @@ export const ALL_OBO_TEMPLATES: OBOTemplate[] = [
       { id: 'f_4', label: '시간 9 · 예제의 모든 실행 구간이 끝났습니다.', cursorTime: 9, highlightNodes: [], highlightEdges: [] },
     ],
   },
-  {
-    id: 'C1',
-    name: '세마포어 (생산자-소비자)',
-    category: 'sync',
-    description: 'Counter Badge',
-    defaultNodes: [
-      {
-        id: 'producer',
-        type: 'state-node',
-        position: { x: 40, y: 140 },
-        data: { label: 'Producer', shape: 'box', fill: '#0d9488' },
-      },
-      {
-        id: 'empty-badge',
-        type: 'counter-badge',
-        position: { x: 280, y: 80 },
-        data: { label: 'empty', min: 0, max: 3, value: 3, delta: null },
-      },
-      {
-        id: 'full-badge',
-        type: 'counter-badge',
-        position: { x: 280, y: 200 },
-        data: { label: 'full', min: 0, max: 3, value: 0, delta: null },
-      },
-      {
-        id: 'consumer',
-        type: 'state-node',
-        position: { x: 520, y: 140 },
-        data: { label: 'Consumer', shape: 'box', fill: '#7c3aed' },
-      },
-    ],
-    defaultEdges: [
-      {
-        id: 'e-producer-empty',
-        source: 'producer', sourceHandle: 'r',
-        target: 'empty-badge', targetHandle: 'l',
-        type: 'obo-edge',
-        data: { label: 'wait(empty)', direction: 'forward', style: 'dashed', role: 'request', emphasize: false },
-      },
-      {
-        id: 'e-producer-full',
-        source: 'producer', sourceHandle: 'r',
-        target: 'full-badge', targetHandle: 'l',
-        type: 'obo-edge',
-        data: { label: 'signal(full)', direction: 'forward', style: 'solid', role: 'allocation', emphasize: false },
-      },
-      {
-        id: 'e-consumer-full',
-        source: 'consumer', sourceHandle: 'l',
-        target: 'full-badge', targetHandle: 'r',
-        type: 'obo-edge',
-        data: { label: 'wait(full)', direction: 'forward', style: 'dashed', role: 'request', emphasize: false },
-      },
-      {
-        id: 'e-consumer-empty',
-        source: 'consumer', sourceHandle: 'l',
-        target: 'empty-badge', targetHandle: 'r',
-        type: 'obo-edge',
-        data: { label: 'signal(empty)', direction: 'forward', style: 'solid', role: 'allocation', emphasize: false },
-      },
-    ],
-  },
   ROUND_ROBIN_TEMPLATE,
   RESOURCE_ALLOCATION_TEMPLATE,
+  ...REMAINING_TEMPLATES,
   // 비활성: P2, P3
 ];
 
 // 검토한 템플릿을 노출하고 나머지는 정의만 보존한다.
-const ACTIVE_TEMPLATE_IDS = ['ST2', 'G1', 'G2', 'S1', 'S3'];
+const ACTIVE_TEMPLATE_IDS = ['ST2', 'G1', 'G2', 'S1', 'S3', 'C1', 'TLB', 'MF', 'PT', 'IN', 'DS'];
 
 export const OBO_TEMPLATES: OBOTemplate[] = ALL_OBO_TEMPLATES.filter(
   t => ACTIVE_TEMPLATE_IDS.includes(t.id)
 );
 
 export const CATEGORIES = [
-  { id: 'all', label: '전체', count: 5 },
+  { id: 'all', label: '전체', count: 11 },
   { id: 'cpu', label: 'CPU',  count: 3 },
-  { id: 'memory', label: '메모리', count: 1 },
-  { id: 'sync', label: '동기화', count: 1 },
+  { id: 'memory', label: '메모리', count: 3 },
+  { id: 'sync', label: '동기화', count: 2 },
+  { id: 'process', label: '프로세스', count: 1 },
+  { id: 'fs', label: '파일·디스크', count: 2 },
 ] as const;

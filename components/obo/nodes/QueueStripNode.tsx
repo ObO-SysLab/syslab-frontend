@@ -1,47 +1,29 @@
-'use client';
-
+﻿'use client';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-
-interface QueueStripNodeData {
-  label: string;
-  items?: string[];
-  direction?: 'ltr' | 'rtl';
-  color?: string;
-}
-
-export function QueueStripNode({ data, selected }: NodeProps) {
-  const d = data as unknown as QueueStripNodeData;
-  const items = d.items ?? [];
-  const color = d.color ?? '#534AB7';
-  const dir = d.direction ?? 'ltr';
-  const displayItems = dir === 'rtl' ? [...items].reverse() : items;
-  return (
-    <div style={{
-      display: 'inline-flex', flexDirection: 'column', gap: 2,
-      cursor: 'grab', userSelect: 'none',
-      boxShadow: selected ? `0 0 0 3px ${color}40` : undefined,
-    }}>
-      <Handle id="l" type="target" position={Position.Left}  style={{ background: color, border: 'none' }} />
-      <Handle id="r" type="source" position={Position.Right} style={{ background: color, border: 'none' }} />
-      {d.label && (
-        <div style={{ fontSize: 10, fontWeight: 600, color, marginBottom: 2 }}>{d.label}</div>
-      )}
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {displayItems.map((item, i) => (
-          <div key={i} style={{
-            width: 36, height: 28,
-            border: `1.5px solid ${color}`,
-            marginLeft: i === 0 ? 0 : -1,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11, fontWeight: 600, color, backgroundColor: 'white',
-          }}>
-            {item}
-          </div>
-        ))}
-        <div style={{ marginLeft: 6, fontSize: 14, color, lineHeight: 1 }}>
-          {dir === 'ltr' ? '→' : '←'}
-        </div>
+import { useFrameCtx } from '../FrameContext';
+interface QueueData { label?: string; items?: string[]; capacity?: number; direction?: 'ltr' | 'rtl'; color?: string; }
+export function QueueStripNode({ id, data, selected }: NodeProps) {
+  const d = data as unknown as QueueData;
+  const items = Array.isArray(d.items) ? d.items : [];
+  const capacity = d.capacity ?? items.length;
+  const valid = Number.isInteger(capacity) && capacity >= items.length && capacity >= 0 && capacity <= 64;
+  const count = valid ? capacity : 0;
+  const { previewFrame } = useFrameCtx();
+  const active = previewFrame?.highlightNodes.includes(id);
+  const color = d.color ?? '#4f46e5';
+  const display = d.direction === 'rtl' ? [...items].reverse() : items;
+  return <div data-queue={id} style={{ width: Math.max(220, Math.min(count, 8) * 68 + 32), padding: 14, borderRadius: 12,
+    boxSizing: 'border-box', border: `2px solid ${active ? color : '#cbd5e1'}`, background: active ? '#eef2ff' : 'white',
+    outline: selected ? '3px dashed #6366f1' : undefined, outlineOffset: 4 }}>
+    <Handle id="l" type="target" position={Position.Left} /><Handle id="r" type="source" position={Position.Right} />
+    <div style={{ fontSize: 14, fontWeight: 800, color }}>{d.label || '버퍼'} · {items.length} / {valid ? count : '?'}개</div>
+    {!valid ? <p role="alert">항목 수와 버퍼 용량을 확인하세요.</p> : <>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+        {Array.from({ length: count }, (_, i) => <div key={i} data-queue-item={display[i] ?? ''} style={{ width: 60, height: 48,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1.5px ${i < items.length ? 'solid' : 'dashed'} ${i < items.length ? color : '#94a3b8'}`,
+          borderRadius: 6, background: i < items.length ? '#e0e7ff' : '#f8fafc', color: i < items.length ? '#312e81' : '#64748b', fontSize: 16, fontWeight: 700 }}>{display[i] ?? '빈칸'}</div>)}
       </div>
-    </div>
-  );
+      <p style={{ margin: '10px 0 0', fontSize: 12, color: '#475569' }}>{count === 0 ? '빈 버퍼 · 용량 0' : d.direction === 'rtl' ? '새 항목 → FIFO 순서 → 먼저 꺼냄' : '먼저 꺼냄 ← FIFO 순서 ← 새 항목'}</p>
+    </>}
+  </div>;
 }
