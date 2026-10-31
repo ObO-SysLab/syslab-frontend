@@ -5,6 +5,10 @@ import { PALETTE_ITEMS, EDGE_TYPES, type EdgeType, type PaletteComponentType } f
 
 // Static previews avoid introducing a second interactive canvas inside a drag source.
 function ElementPreview({ type }: { type: PaletteComponentType }) {
+  if (type === 'slot-grid') return <svg viewBox="0 0 100 78" className="h-[78px] w-full" aria-hidden="true">
+    {[7, 0, 1].map((value, i) => <g key={i}><rect x={8 + i * 29} y="25" width="26" height="30" rx="4" fill={i === 1 ? '#eef2ff' : 'white'} stroke={i === 1 ? '#6366f1' : '#94a3b8'} /><text x={21 + i * 29} y="45" textAnchor="middle" fill="#334155" fontSize="13" fontWeight="700">{value}</text></g>)}
+    <text x="50" y="17" textAnchor="middle" fill="#6366f1" fontSize="9">칸의 값과 변화</text>
+  </svg>;
   if (type === 'gantt-lane') return <svg viewBox="0 0 100 78" className="h-[78px] w-full" aria-hidden="true">
     <text x="8" y="22" fill="#475569" fontSize="10" fontWeight="700">P1</text>
     <rect x="8" y="30" width="84" height="22" rx="4" fill="white" stroke="#cbd5e1" />
@@ -57,7 +61,7 @@ export function Palette({ activeEdgeType, onEdgeTypeChange }: PaletteProps) {
         <p className="text-xs leading-relaxed text-slate-500">원하는 모양을 그림 위로 끌어 놓으세요.</p>
         <div className="grid grid-cols-2 gap-2">
           {PALETTE_ITEMS.map(item => {
-            const label = item.type === 'state-node' ? '상태' : item.type === 'text-label' ? '설명 글' : item.type === 'gantt-lane' ? '간트 줄' : item.label;
+            const label = item.type === 'state-node' ? '상태' : item.type === 'text-label' ? '설명 글' : item.type === 'gantt-lane' ? '간트 줄' : item.type === 'slot-grid' ? '칸 묶음' : item.label;
             return (
               <div key={item.type} draggable data-palette-type={item.type}
                 aria-label={`${label} — 끌어서 추가`} title={`${label}: 그림 위로 끌어서 추가`}

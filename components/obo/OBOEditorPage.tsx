@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { duplicateFrame, moveFrame } from './lib/frameEdits';
+import { resizeSlotFrames } from './slots/model';
 
 export function OBOEditorPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<OBOTemplate | null>(null);
@@ -58,6 +59,7 @@ export function OBOEditorPage() {
   }, []);
 
   const updateNodeData = useCallback((id: string, patch: Record<string, unknown>) => {
+    if (typeof patch.slotCount === 'number') setFrames(fs => resizeSlotFrames(fs, id, patch.slotCount as number));
     setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, ...patch } } : n));
   }, [setNodes]);
 

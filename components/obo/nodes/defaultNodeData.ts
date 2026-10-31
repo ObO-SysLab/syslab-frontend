@@ -6,6 +6,7 @@ export const DEFAULT_NODE_DATA: Record<string, object> = {
     label: 'R1', instances: 2, allocated: 1,
   },
   'slot-grid': {
+    label: '칸', pointerLabel: '다음',
     slotCount: 4, slots: [null, null, null, null],
     faultSlotIndex: null, hitSlotIndex: null,
   },
