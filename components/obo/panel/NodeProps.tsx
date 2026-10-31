@@ -131,7 +131,9 @@ export function NodeEditor({ node, onUpdate, takenLabels }: NodeEditorProps) {
     return (
       <div className="space-y-4">
         <Section>
-          <TextField label="트랙 ID" value={(d.trackId as string) ?? ''} onChange={v => onUpdate({ trackId: v })} />
+          <TextField label="프로세스 이름" value={(d.trackId as string) ?? ''} onChange={v => onUpdate({ trackId: v })} />
+          <TextField label="간트 묶음 이름" value={String(d.ganttGroup || '기본 간트')} onChange={v => onUpdate({ ganttGroup: v })} />
+          <p className="text-xs leading-relaxed text-slate-500">같은 이름의 묶음은 시간축을 공유하며 함께 이동합니다. 막대를 눌러 기본 구간을 수정하세요.</p>
         </Section>
         <Divider />
         <Section title="블록 목록">

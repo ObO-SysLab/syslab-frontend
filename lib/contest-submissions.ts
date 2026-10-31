@@ -59,6 +59,8 @@ export function contestResultLabel(row: Pick<ContestSubmission, "submissionStatu
 }
 
 export function contestCodingLinks(type: string, row: ContestSubmission) {
+  if(type==='objective' && row.submissionStatus==='COMPLETED' && validId(row.submissionId))
+    return {code:null,obo:`/challenges/obo?contestSubmissionId=${row.submissionId}`};
   if (type !== "coding" || row.submissionStatus !== "COMPLETED" || !validId(row.solveSubmissionId)) return null;
   return { code: `/challenges/submissions?id=${row.solveSubmissionId}`, obo: `/challenges/obo?id=${row.solveSubmissionId}` };
 }

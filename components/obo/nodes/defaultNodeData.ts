@@ -10,7 +10,7 @@ export const DEFAULT_NODE_DATA: Record<string, object> = {
     faultSlotIndex: null, hitSlotIndex: null,
   },
   'gantt-lane': {
-    trackId: 'P1', blocks: [], activeBlockIndex: null,
+    trackId: 'P1', blocks: [], activeBlockIndex: null, ganttGroup: '기본 간트',
   },
   'counter-badge': {
     label: 'Counter', min: 0, max: 10, value: 0, delta: null,

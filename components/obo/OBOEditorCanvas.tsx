@@ -31,6 +31,8 @@ import { nextNodeId, nextEdgeId } from './lib/id';
 import { applyFrame } from './lib/applyFrame';
 import { makeUniqueLabel, collectLabels } from './lib/label';
 import { Lock, Unlock } from 'lucide-react';
+import { GanttContext } from './gantt/GanttContext';
+import { ganttLayouts, alignGanttRows, expandGanttMoves, blocksOf, groupOf, type GanttBlock } from './gantt/model';
 
 const edgeTypes = { 'obo-edge': OboEdge } as const;
 
@@ -49,6 +51,7 @@ interface OBOEditorCanvasProps {
   // 프레임 탭
   activeTab: 'property' | 'frame';
   frames: Frame[];
+  setFrames?: (updater: (frames: Frame[]) => Frame[]) => void;
   previewFrame: Frame | null;
   onFrameNodeClick: (nodeId: string) => void;
   onFrameEdgeClick: (edgeId: string) => void;
@@ -64,7 +67,7 @@ interface OBOEditorCanvasProps {
 function CanvasInner({
   nodes, edges, onNodesChange, onEdgesChange,
   setNodes, setEdges, activeEdgeType, onSelect, fitSignal = 0,
-  activeTab, frames, previewFrame, onFrameNodeClick, onFrameEdgeClick,
+  activeTab, frames, setFrames, previewFrame, onFrameNodeClick, onFrameEdgeClick,
   traceMode = false, onTraceNodeClick,
   onDuplicateNode, onDeleteNode, onDeleteEdge,
 }: OBOEditorCanvasProps) {
@@ -77,20 +80,30 @@ function CanvasInner({
   useEffect(() => {
     if (fitSignal === 0) return;
     const id = window.setTimeout(
-      () => fitView({ padding: 0.3, maxZoom: 0.75, duration: 300 }),
+      () => fitView({ padding: 0.12, maxZoom: 1.25, duration: 250 }),
       60,
     );
     return () => window.clearTimeout(id);
   }, [fitSignal, fitView]);
 
-  // 화면 이동(pan) 기본 잠금. Controls 자물쇠로 토글. 노드 드래그/편집은 영향 없음.
-  const [panLocked, setPanLocked] = useState(true);
+  // 빈 공간을 드래그해 화면 이동. 필요할 때만 자물쇠로 잠근다. 노드 편집은 영향 없음.
+  const [panLocked, setPanLocked] = useState(false);
 
   const previewIndex = previewFrame ? frames.findIndex(f => f.id === previewFrame.id) : -1;
+  const layouts = useMemo(() => ganttLayouts(nodes, frames), [nodes, frames]);
   const displayNodes = useMemo(
-    () => (previewIndex >= 0 ? applyFrame(nodes, frames, previewIndex) : nodes),
-    [nodes, frames, previewIndex]
+    () => alignGanttRows(previewIndex >= 0 ? applyFrame(nodes, frames, previewIndex) : nodes, layouts),
+    [nodes, frames, previewIndex, layouts]
   );
+  const editBlock = (id: string, index: number, block: GanttBlock) => {
+    const node = displayNodes.find(n => n.id === id);
+    if (!node) return;
+    const blocks = [...blocksOf(node.data)]; blocks[index] = block;
+    if (activeTab === 'frame' && previewFrame && setFrames) {
+      setFrames(fs => fs.map(frame => frame.id !== previewFrame.id ? frame : { ...frame,
+        nodeDataOverrides: { ...frame.nodeDataOverrides, [id]: { ...frame.nodeDataOverrides?.[id], blocks } } }));
+    } else if (activeTab === 'property') setNodes(ns => ns.map(n => n.id === id ? { ...n, data: { ...n.data, blocks } } : n));
+  };
 
   const onConnect = useCallback((params: Connection) => {
     const isBidi  = activeEdgeType === 'bidirectional';
@@ -121,6 +134,16 @@ function CanvasInner({
     const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     setNodes(nds => {
       const data = { ...(DEFAULT_NODE_DATA[type] ?? { label: type }) } as Record<string, unknown>;
+      if (type === 'gantt-lane') {
+        const rows = nds.filter(n => n.type === 'gantt-lane');
+        if (rows.length) {
+          data.ganttGroup = groupOf(rows[0]);
+          const group = rows.filter(n => groupOf(n) === data.ganttGroup);
+          position.x = group[0].position.x;
+          position.y = Math.max(...group.map(n => n.position.y)) + 128;
+        }
+        data.trackId = makeUniqueLabel('P', new Set(rows.map(n => String(n.data.trackId))));
+      }
       // 라벨이 있는 노드는 유일한 기본 라벨을 부여(State → State2 …) — 트레이스 키 충돌 방지.
       if (typeof data.label === 'string') {
         data.label = makeUniqueLabel(data.label, collectLabels(nds));
@@ -165,6 +188,9 @@ function CanvasInner({
   const closeMenu = useCallback(() => setMenu(null), []);
 
   return (
+    <GanttContext.Provider value={{ layouts, traceMode,
+      editLabel: activeTab === 'frame' ? `장면 ${previewIndex + 1} 수정 · 이후 장면에도 이어집니다` : '기본 그림 수정',
+      onEditBlock: !traceMode && (activeTab === 'property' || (!!previewFrame && !!setFrames)) ? editBlock : undefined }}>
     <FrameContext.Provider value={{ previewFrame }}>
       <div className="flex-1 overflow-hidden relative" onDrop={onDrop} onDragOver={onDragOver}>
         {nodes.length === 0 && (
@@ -178,7 +204,7 @@ function CanvasInner({
         <ReactFlow
           nodes={displayNodes}
           edges={edges}
-          onNodesChange={onNodesChange}
+          onNodesChange={changes => onNodesChange(expandGanttMoves(changes, displayNodes))}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onReconnect={activeTab === 'property' ? onReconnect : undefined}
@@ -198,13 +224,15 @@ function CanvasInner({
           snapToGrid
           snapGrid={[16, 16]}
           fitView
-          fitViewOptions={{ padding: 0.3, maxZoom: 0.75 }}
+          fitViewOptions={{ padding: 0.12, maxZoom: 1.25 }}
+          minZoom={0.05}
         >
           <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#e2e8f0" />
-          <Controls showInteractive={false}>
+          <Controls showInteractive={false} fitViewOptions={{padding:0.12,maxZoom:1.25}}>
             <ControlButton
               onClick={() => setPanLocked(v => !v)}
               title={panLocked ? '화면 이동 잠금 해제' : '화면 이동 잠금'}
+              aria-label={panLocked ? '화면 이동 잠금 해제' : '화면 이동 잠금'}
             >
               {panLocked ? <Lock /> : <Unlock />}
             </ControlButton>
@@ -238,6 +266,7 @@ function CanvasInner({
         )}
       </div>
     </FrameContext.Provider>
+    </GanttContext.Provider>
   );
 }
 

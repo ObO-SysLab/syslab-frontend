@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { Frame } from './types';
+import { ROUND_ROBIN_TEMPLATE } from './gantt/roundRobinExample';
 
 // ── 팔레트 원소 타입 ───────────────────────────────────────────────
 export type NodeComponentType =
@@ -37,7 +38,8 @@ export interface PaletteItem {
 export const PALETTE_ITEMS: PaletteItem[] = [
   { type: 'state-node',    group: 'node',  label: 'State Node',      description: '상태/엔터티 (ST2)' },
   { type: 'text-label',    group: 'text',  label: 'Text Label',      description: '텍스트/주석' },
-  // 비활성: slot-grid, gantt-lane, counter-badge, resource-square, line-chart
+  { type: 'gantt-lane', group: 'chart', label: '간트 줄', description: '프로세스별 실행 구간' },
+  // 비활성: slot-grid, counter-badge, resource-square, line-chart
 ];
 
 export const PALETTE_GROUPS = [
@@ -239,62 +241,60 @@ export const ALL_OBO_TEMPLATES: OBOTemplate[] = [
     id: 'G1',
     name: 'CPU 스케줄링 (FCFS)',
     category: 'cpu',
-    description: 'Timeline Block',
+    description: '간트 차트',
     defaultNodes: [
       {
         id: 'schedule-title',
         type: 'text-label',
         position: { x: 40, y: 20 },
-        data: { text: 'FCFS 스케줄링 · P1(3) → P2(3) → P3(3)', variant: 'plain', color: '#334155' },
+        data: { text: 'FCFS 예제 · P1 → P2 → P3 · 시간 단위', variant: 'plain', color: '#334155' },
       },
       {
         id: 'status',
         type: 'text-label',
         position: { x: 40, y: 52 },
-        data: { text: '프레임 탭에서 재생해 보세요 →', variant: 'pill', color: '#6366f1' },
+        data: { text: '같은 시간축에서 비교 · 막대를 눌러 구간 확인', variant: 'plain', color: '#64748b' },
       },
       {
         id: 'track-p1',
         type: 'gantt-lane',
         position: { x: 40, y: 100 },
-        data: { trackId: 'P1', blocks: [], activeBlockIndex: null },
+        data: { trackId: 'P1', ganttGroup: '기본 간트', axisEnd: 9, blocks: [{ start: 0, end: 3, colorKey: 'teal' }], activeBlockIndex: null },
       },
       {
         id: 'track-p2',
         type: 'gantt-lane',
-        position: { x: 40, y: 160 },
-        data: { trackId: 'P2', blocks: [], activeBlockIndex: null },
+        position: { x: 40, y: 228 },
+        data: { trackId: 'P2', ganttGroup: '기본 간트', axisEnd: 9, blocks: [{ start: 3, end: 6, colorKey: 'indigo' }], activeBlockIndex: null },
       },
       {
         id: 'track-p3',
         type: 'gantt-lane',
-        position: { x: 40, y: 220 },
-        data: { trackId: 'P3', blocks: [], activeBlockIndex: null },
+        position: { x: 40, y: 356 },
+        data: { trackId: 'P3', ganttGroup: '기본 간트', axisEnd: 9, blocks: [{ start: 6, end: 9, colorKey: 'amber' }], activeBlockIndex: null },
       },
     ],
     defaultEdges: [],
     defaultFrames: [
       {
-        id: 'f_1', label: 'P1 디스패치 (0~3)', highlightNodes: [], highlightEdges: [],
+        id: 'f_1', label: '시간 0 · P1이 실행을 시작합니다. 실행 구간은 0–3입니다.', cursorTime: 0, highlightNodes: [], highlightEdges: [],
         nodeDataOverrides: {
-          'track-p1': { blocks: [{ start: 0, end: 3, colorKey: 'teal' }], activeBlockIndex: 0 },
-          status: { text: 'P1 디스패치 (0~3)' },
+          'track-p1': { activeBlockIndex: 0 },
         },
       },
       {
-        id: 'f_2', label: 'P2 디스패치 (3~6)', highlightNodes: [], highlightEdges: [],
+        id: 'f_2', label: '시간 3 · P1이 끝나고 P2가 실행을 시작합니다.', cursorTime: 3, highlightNodes: [], highlightEdges: [],
         nodeDataOverrides: {
-          'track-p2': { blocks: [{ start: 3, end: 6, colorKey: 'indigo' }], activeBlockIndex: 0 },
-          status: { text: 'P1 종료 → P2 디스패치 (3~6)' },
+          'track-p2': { activeBlockIndex: 0 },
         },
       },
       {
-        id: 'f_3', label: 'P3 디스패치 (6~9)', highlightNodes: [], highlightEdges: [],
+        id: 'f_3', label: '시간 6 · P2가 끝나고 P3가 실행을 시작합니다.', cursorTime: 6, highlightNodes: [], highlightEdges: [],
         nodeDataOverrides: {
-          'track-p3': { blocks: [{ start: 6, end: 9, colorKey: 'amber' }], activeBlockIndex: 0 },
-          status: { text: 'P2 종료 → P3 디스패치 (6~9) · 모든 프로세스 완료' },
+          'track-p3': { activeBlockIndex: 0 },
         },
       },
+      { id: 'f_4', label: '시간 9 · 예제의 모든 실행 구간이 끝났습니다.', cursorTime: 9, highlightNodes: [], highlightEdges: [] },
     ],
   },
   {
@@ -359,17 +359,18 @@ export const ALL_OBO_TEMPLATES: OBOTemplate[] = [
       },
     ],
   },
-  // 비활성: G2, P2, P3, S3
+  ROUND_ROBIN_TEMPLATE,
+  // 비활성: P2, P3, S3
 ];
 
-// 현재 활성 템플릿: ST2만. 나머지(S1, G1, C1)는 정의는 보존하되 팔레트/사이드바에 노출하지 않음.
-const ACTIVE_TEMPLATE_IDS = ['ST2'];
+// 검토한 ST2/G1/G2를 노출하고 나머지는 정의만 보존한다.
+const ACTIVE_TEMPLATE_IDS = ['ST2', 'G1', 'G2'];
 
 export const OBO_TEMPLATES: OBOTemplate[] = ALL_OBO_TEMPLATES.filter(
   t => ACTIVE_TEMPLATE_IDS.includes(t.id)
 );
 
 export const CATEGORIES = [
-  { id: 'all', label: '전체', count: 1 },
-  { id: 'cpu', label: 'CPU',  count: 1 },
+  { id: 'all', label: '전체', count: 3 },
+  { id: 'cpu', label: 'CPU',  count: 3 },
 ] as const;
