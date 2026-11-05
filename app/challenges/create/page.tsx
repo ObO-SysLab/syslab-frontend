@@ -371,7 +371,9 @@ function ProblemCreateContent() {
         const savedResponse=await response.json().catch(()=>null);
         const savedId=isEditMode?editId:savedResponse?.data?.probId;
         draft.markSaved();
-        alert(isEditMode ? "수정되었습니다!" : "등록되었습니다!");
+        alert(isEditMode ? "수정되었습니다!" : problemType === 'practice'
+          ? "문제가 등록되었습니다. 상세 화면에서 실습 환경 제작 상태를 확인할 수 있습니다."
+          : "등록되었습니다!");
         window.location.href = savedId ? `/challenges/detail?id=${savedId}` : "/challenges";
       } else {
         if(response.status===409){setSaveNotice('다른 창에서 수정되었습니다. 내 초안은 유지됩니다. 파일로 보관하거나 최신 서버 자료를 다시 연 뒤 비교하세요.');return;}
@@ -1133,6 +1135,7 @@ function ProblemCreateContent() {
 
                   <div className="space-y-2.5 pt-2">
                     <Label>Dockerfile 업로드 (.zip) <span className="text-red-500">*</span></Label>
+                    <p className="text-xs text-slate-500">등록 후 실습 환경을 제작합니다. 상세 화면에서 제작 중·완료·실패 상태를 확인할 수 있으며, 제작 완료 후 실습을 시작할 수 있습니다.</p>
                     <div className="relative p-5 border-2 border-dashed border-slate-200 rounded-2xl text-center bg-slate-50 hover:bg-slate-100/50 cursor-pointer transition-colors">
                       <input
                         type="file"
