@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { connectTerminal } from "@/lib/terminal-connection";
 import { readVmSession, stopVmSession } from "@/lib/vm-session";
+import { readPracticeBuild, practiceBuildPresentation } from "@/lib/practice-build";
 
 function PracticeContent() {
   // 라우터와 URL 파라미터 가져오기
@@ -62,8 +63,16 @@ function PracticeContent() {
           const json = await probRes.json();
           setProblemTitle(json.data.title);
           if (json.data.vmInfo?.osImage) setOsImage(json.data.vmInfo.osImage);
+          const build = readPracticeBuild(json.data.practiceBuild);
+          if (!build.canStart) {
+            alert(practiceBuildPresentation(build).message);
+            router.replace(`/challenges/detail?id=${probId}`);
+            return;
+          }
         } else {
           setProblemTitle("알 수 없는 실습 문제");
+          router.replace(`/challenges/detail?id=${probId}`);
+          return;
         }
 
         // 2. VM 생성 요청 (POST /api/vm/create)
