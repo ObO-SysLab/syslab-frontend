@@ -1,4 +1,5 @@
 "use client";
+import { problemApi, problemToken } from "@/lib/problemApi";
 
 import { useState, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
@@ -38,13 +39,13 @@ function MonacoSubmitContent() {
 
   useEffect(() => {
     const fetchProfileImage = async () => {
-      const token = localStorage.getItem("token");
+      const token = problemToken();
       if (!token) return;
 
       setIsLoggedIn(true);
 
       try {
-        const response = await fetch("https://diveon.net/api/profile/show", {
+        const response = await fetch(problemApi("/api/profile/show"), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -76,9 +77,9 @@ function MonacoSubmitContent() {
         return;
       }
 
-      const token = localStorage.getItem("token");
+      const token = problemToken();
       try {
-        const res = await fetch(`https://diveon.net/api/problems/${probId}`, {
+        const res = await fetch(problemApi(`/api/problems/${probId}`), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -126,10 +127,10 @@ function MonacoSubmitContent() {
     }
 
     setIsSubmitting(true);
-    const token = localStorage.getItem("token");
+    const token = problemToken();
 
     try {
-      const response = await fetch(`https://diveon.net/api/submissions/grade`, {
+      const response = await fetch(problemApi('/api/submissions/grade'), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -272,6 +273,7 @@ function MonacoSubmitContent() {
         <div className="flex-1 min-h-0">
           <div className="h-full w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-[#1e1e1e]">
             <Editor
+              loading={<textarea aria-label="코드 입력 (편집기 로딩 중)" className="h-full w-full resize-none bg-[#1e1e1e] p-6 font-mono text-sm text-white outline-none" spellCheck={false} value={code} onChange={event=>setCode(event.target.value)} />}
               height="calc(100vh - 240px)"
               width="100%"
               language={language}
