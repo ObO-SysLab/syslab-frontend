@@ -8,7 +8,7 @@ permissions:
   contents: read
 concurrency:
   group: frontend-ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -21,6 +21,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: python3 -m unittest discover -s scripts -p 'test_deploy_static.py'
       - run: npx tsc --noEmit
       - run: npm run build
       - name: Prepare versioned static files
@@ -32,3 +33,51 @@ jobs:
           name: frontend-${{ github.sha }}
           path: out/
           if-no-files-found: error
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: frontend-production
+      cancel-in-progress: false
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      FRONTEND_BUCKET: syslab-frontend
+      CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-${{ github.sha }}
+          path: out/
+      - name: Set rollback location
+        run: printf 'BACKUP_DIR=%s/frontend-rollback\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Preserve objects that this release will replace
+        run: python3 scripts/deploy-static.py prepare --revision "$GITHUB_SHA" --bucket "$FRONTEND_BUCKET" --backup "$BACKUP_DIR"
+      - name: Save rollback files before changing production
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-rollback-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.BACKUP_DIR }}/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Publish verified files while preserving user uploads
+        id: publish
+        run: python3 scripts/deploy-static.py upload --revision "$GITHUB_SHA" --bucket "$FRONTEND_BUCKET" --backup "$BACKUP_DIR"
+      - name: Refresh CloudFront
+        run: |
+          invalidation=$(aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths '/*' --query Invalidation.Id --output text)
+          aws cloudfront wait invalidation-completed --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --id "$invalidation"
+      - name: Record completed release
+        run: python3 scripts/deploy-static.py finalize --revision "$GITHUB_SHA" --bucket "$FRONTEND_BUCKET" --backup "$BACKUP_DIR"
+      - name: Restore prior static files after a deployment failure
+        if: failure() && (steps.publish.outcome == 'failure' || steps.publish.outcome == 'success')
+        run: |
+          python3 scripts/deploy-static.py rollback --revision "$GITHUB_SHA" --bucket "$FRONTEND_BUCKET" --backup "$BACKUP_DIR"
+          aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths '/*'
