@@ -14,11 +14,9 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Header } from "@/components/Header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toApiCategory } from "@/lib/utils";
 
 export default function ProblemListPage() {
-  // [STATE] API 연동 스위치
-  const USE_API_REQUEST = true;
-
   // [STATE] 페이지 상태
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +48,8 @@ export default function ProblemListPage() {
     "Process": <Activity size={16} />,
     "Thread": <GitBranch size={16} />,
     "Memory": <Database size={16} />,
-    "File System": <FileCode2 size={16} />
+    "File System": <FileCode2 size={16} />,
+    "FileSystem": <FileCode2 size={16} /> // 서버 응답 값
   };
 
   const levelMap: Record<string, { depth: string; zone: string }> = {
@@ -132,7 +131,7 @@ export default function ProblemListPage() {
       params.append("size", "10");
       if (searchTerm.trim()) params.append("title", searchTerm.trim());
       if (selectedType !== "All") params.append("type", selectedType);
-      if (selectedCategory !== "All") params.append("category", selectedCategory.toLowerCase());
+      if (selectedCategory !== "All") params.append("category", toApiCategory(selectedCategory)); // "File System" → "FileSystem"
       if (selectedLevel) params.append("difficulty", selectedLevel);
       if (showUnsolved) params.append("onlyUnsolved", "true");
       if (showMyProblems) params.append("onlyMine", "true");

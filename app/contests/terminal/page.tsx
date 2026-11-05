@@ -20,8 +20,7 @@ function PracticeContent() {
   const contestProbId = searchParams.get('contestProblemId');
   const contestId = searchParams.get('contestId');
 
-  // API 연동 스위치 및 동적 상태 선언
-  const USE_API_REQUEST = true;
+  // 동적 상태 선언
   const [problemTitle, setProblemTitle] = useState("실습 환경 구성 중...");
   const [osImage, setOsImage] = useState("Ubuntu 22.04 LTS"); // 기본 OS
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -30,7 +29,7 @@ function PracticeContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(2700); // 45분 (초 단위)
 
-  // API 연동 스위치 및 동적 상태 선언 아래에 추가
+  // VM 상태
   const [containerId, setContainerId] = useState<string | null>(null);
   const [isVmLoading, setIsVmLoading] = useState(true); // VM 생성 로딩 상태
 
@@ -42,12 +41,6 @@ function PracticeContent() {
     hasFetched.current = true;
 
     const fetchProblemDataAndCreateVm = async () => {
-      if (!USE_API_REQUEST) {
-        setProblemTitle(`MOCK 데이터 실습 문제 #${probId}`);
-        setIsVmLoading(false);
-        return;
-      }
-
       const token = localStorage.getItem("token");
       const headers = {
         "Content-Type": "application/json",
@@ -101,11 +94,6 @@ function PracticeContent() {
   //  실습 종료 시 문제 상세 페이지로 복귀
   const handleEndPractice = async () => {
     if (!confirm("실습을 종료하시겠습니까? 진행 중인 모든 데이터가 삭제(초기화)됩니다.")) {
-      return;
-    }
-
-    if (!USE_API_REQUEST) {
-      router.push(`/challenges/detail?id=${probId}`);
       return;
     }
 

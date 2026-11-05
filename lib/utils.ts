@@ -5,6 +5,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// datetime-local 값("2026-06-25T14:00") 또는 서버 값("2026-06-25T14:00:00")을
+// 서버 명세 형식인 로컬 시각 "YYYY-MM-DDTHH:mm:ss"(타임존 없음)로 맞춘다.
+// toISOString()은 UTC로 바꾸므로 KST 기준 9시간 어긋나서 쓰면 안 된다.
+export const toApiLocalDateTime = (value: string) => {
+  if (!value) return value;
+  const base = value.slice(0, 19);
+  return base.length === 16 ? `${base}:00` : base;
+};
+
+// 문제 카테고리 명세 값: Process, Memory, Kernel, Thread, FileSystem
+// 화면 라벨("File System")이나 예전에 소문자로 저장된 값("file system")을 명세 값으로 맞춘다.
+export const PROBLEM_CATEGORIES = ["Kernel", "Process", "Thread", "Memory", "FileSystem"] as const;
+
+export const toApiCategory = (value: string) => {
+  if (!value) return value;
+  const key = value.replace(/\s+/g, "").toLowerCase();
+  return PROBLEM_CATEGORIES.find((c) => c.toLowerCase() === key) ?? value;
+};
+
 // 숫자 난이도를 문자열로 매핑하는 변환기
 export const getLevelLabel = (lvl: string | number) => {
   const tierStr = String(lvl);

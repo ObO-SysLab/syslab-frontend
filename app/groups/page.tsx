@@ -26,9 +26,6 @@ function GroupListContent() {
     }
   }, [searchParams]);
   
-  // API 연동 스위치
-  const USE_API_REQUEST = false;
-
   // [STATE] 페이지 전체
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
