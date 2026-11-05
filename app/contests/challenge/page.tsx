@@ -623,9 +623,9 @@ function ProblemDetailContent() {
 																	{detailLinks.code && <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold text-slate-600" asChild>
 																		<Link href={detailLinks.code}>코드</Link>
 																	</Button>}
-																	<Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50" asChild>
-																		<Link href={detailLinks.obo}>OBO</Link>
-																	</Button>
+																	{detailLinks.obo && <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50" asChild>
+																		<Link href={detailLinks.obo}>{problemData?.type === "objective" ? "결과 확인" : "OBO"}</Link>
+																	</Button>}
 																</div>
 															)}
 
