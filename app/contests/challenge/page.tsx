@@ -2,8 +2,8 @@
 import { CodingRules } from '@/components/obo/simulation/CodingRules';
 
 import Link from "next/link";
-import { isSubmissionPending } from "@/lib/submission-status";
-import { watchContestBoard, contestCodingLinks, contestResultLabel, type ContestSubmission } from "@/lib/contest-submissions";
+import { submissionVerdict } from "@/lib/submission-status";
+import { watchContestBoard, contestCodingLinks, type ContestSubmission } from "@/lib/contest-submissions";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -561,10 +561,10 @@ function ProblemDetailContent() {
 												const detailLinks = contestCodingLinks(problemData?.type, sub);
 
 												// 렌더링 상태 판별
-												const isPending = isSubmissionPending(sub);
-												const isSuccess = sub.isCorrect === true;
-
-												const resultText = contestResultLabel(sub);
+												const verdict = submissionVerdict(sub);
+												const isPending = verdict.kind === "pending";
+												const isSuccess = verdict.kind === "correct";
+												const resultText = verdict.label;
 
 												return (
 													<TableRow
@@ -585,13 +585,16 @@ function ProblemDetailContent() {
 																	</Badge>
 																</div>
 															) : (
-																<Badge
-																	variant={isSuccess ? "default" : "destructive"}
-																	className={isSuccess ? "bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm shadow-indigo-100" : "font-bold"}
-																>
-																	{isSuccess ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
-																	{resultText}
-																</Badge>
+																<div className="space-y-1">
+																	<Badge
+																		variant={isSuccess ? "default" : verdict.kind === "unknown" || verdict.kind === "error" ? "outline" : "destructive"}
+																		className={isSuccess ? "bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm shadow-indigo-100" : verdict.kind === "error" ? "font-bold border-amber-200 bg-amber-50 text-amber-800" : "font-bold"}
+																	>
+																		{isSuccess ? <CheckCircle2 className="w-3 h-3 mr-1" /> : verdict.kind === "unknown" ? <Clock className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+																		{resultText}
+																	</Badge>
+																	{verdict.hint && <p className="text-xs text-slate-500">{verdict.hint}</p>}
+																</div>
 															)}
 														</TableCell>
 

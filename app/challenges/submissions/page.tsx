@@ -1,5 +1,6 @@
 "use client";
 import { problemApi, problemToken } from "@/lib/problemApi";
+import { submissionVerdict } from "@/lib/submission-status";
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
@@ -120,15 +121,8 @@ function SubmissionDetailContent() {
   };
 
   // 상태 배지 렌더링 함수
-  const getVerdictBadge = (isCorrect: boolean | null | undefined) => {
-    if (isCorrect === true) {
-      return <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 text-sm font-bold shadow-sm"><CheckCircle2 className="w-4 h-4 mr-1.5" /> 맞았습니다!</Badge>;
-    } else if (isCorrect === false) {
-      return <Badge variant="destructive" className="px-3 py-1 text-sm font-bold shadow-sm"><XCircle className="w-4 h-4 mr-1.5" /> 틀렸습니다</Badge>;
-    } else {
-      return <Badge variant="outline" className="px-3 py-1 text-sm font-bold text-slate-500"><Code2 className="w-4 h-4 mr-1.5" /> 상태 확인 불가</Badge>;
-    }
-  };
+  const verdict = submissionVerdict(submissionData);
+  const isSuccess = verdict.kind === "correct";
 
   // 로딩 화면 (빙글빙글 도는 UI)
   if (isLoading) return (
@@ -249,7 +243,14 @@ function SubmissionDetailContent() {
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Result</p>
-                {getVerdictBadge(submissionData?.isCorrect)}
+                <Badge
+                  variant={isSuccess ? "default" : verdict.kind === "wrong" || verdict.kind === "failed" ? "destructive" : "outline"}
+                  className={`px-3 py-1 text-sm font-bold ${isSuccess ? "bg-indigo-600 hover:bg-indigo-700 text-white" : verdict.kind === "error" ? "border-amber-200 bg-amber-50 text-amber-800" : ""}`}
+                >
+                  {isSuccess ? <CheckCircle2 className="w-4 h-4 mr-1.5" /> : verdict.kind === "pending" || verdict.kind === "unknown" ? <Clock className="w-4 h-4 mr-1.5" /> : <XCircle className="w-4 h-4 mr-1.5" />}
+                  {verdict.label}
+                </Badge>
+                {verdict.hint && <p className="text-xs text-slate-500">{verdict.hint}</p>}
               </div>
             </div>
 
