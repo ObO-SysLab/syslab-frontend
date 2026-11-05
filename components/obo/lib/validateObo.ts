@@ -22,7 +22,7 @@ export function validateProblemObo(
     if (!data.single?.nodes.length) errors.push('다이어그램에 노드가 없습니다');
   } else if (data.mode === 'coding_diff') {
     if (!data.codingDiff?.nodes.length) errors.push('다이어그램에 노드가 없습니다');
-    if (!data.codingDiff?.referenceTrace.length) errors.push('정답 트레이스가 비어 있습니다');
+    if (!data.codingDiff?.referenceTrace.length) errors.push('참고 출력 기록이 비어 있습니다. OBO 편집기에서 기록을 작성하거나 공개 테스트 출력을 가져오세요.');
   } else if (data.mode === 'per_choice') {
     const set = data.perChoice ?? {};
     const filled = Object.values(set).filter(b => b.nodes.length > 0).length;

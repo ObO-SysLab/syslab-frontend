@@ -10,6 +10,8 @@ import type { ProblemOboData } from "@/components/obo/types";
 import { OboEditorSection } from "@/components/obo/OboEditorSection";
 import { freshId } from '@/components/obo/runtime/document.mjs';
 import { CodingExampleControl } from '@/components/obo/simulation/CodingExampleControl';
+import { CodingRules } from '@/components/obo/simulation/CodingRules';
+import { describeCodingContract } from '@/components/obo/guidance/codingContract';
 import { validateProblemObo } from "@/components/obo/lib/validateObo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -51,6 +53,7 @@ function ProblemCreateContent() {
 
   // [STATE] 문제 유형 (coding / ctf / objective) - API 명세에 맞춰 내부 값 변경
   const [problemType, setProblemType] = useState("coding");
+  const [descriptionTab,setDescriptionTab]=useState('desc');
 
   // [STATE] 공통 정보
   const [title, setTitle] = useState("");
@@ -634,8 +637,8 @@ function ProblemCreateContent() {
             </div>
             <div className="flex gap-2">
               <Button variant="secondary" className="px-6" onClick={draft.save}>브라우저에 보관</Button>
-              <Button variant="outline" className="px-6 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group">
-                <Eye size={16} className="mr-2 text-slate-400 group-hover:text-indigo-500 transition-colors" />문제 미리보기
+              <Button variant="outline" onClick={()=>{setDescriptionTab('prev');document.getElementById(problemType==='coding'?'learner-preview':'problem-description')?.scrollIntoView({behavior:'smooth',block:'start'});}} className="px-6 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group">
+                <Eye size={16} className="mr-2 text-slate-400 group-hover:text-indigo-500 transition-colors" />{problemType==='coding'?'학습자 미리보기':'문제 미리보기'}
               </Button>
               {/* 제출 버튼에 onClick 연결 */}
               {editError&&<p role="alert" className="text-sm text-red-600">{editError}</p>}
@@ -878,8 +881,8 @@ function ProblemCreateContent() {
           </Card>
 
           {/* 2. 문제 본문 카드 */}
-          <Card className="border-slate-100 shadow-sm rounded-2xl overflow-hidden">
-            <Tabs defaultValue="desc">
+          <Card id="problem-description" className="scroll-mt-20 border-slate-100 shadow-sm rounded-2xl overflow-hidden">
+            <Tabs value={descriptionTab} onValueChange={setDescriptionTab}>
               <CardHeader className="bg-slate-50/50 pb-0 border-b">
                 <TabsList className="bg-slate-100 p-0.5 h-auto">
                   <TabsTrigger value="desc" className="px-5 py-2.5 text-xs">문제 설명 (Markdown) <span className="text-red-500">*</span></TabsTrigger>
@@ -1293,7 +1296,7 @@ function ProblemCreateContent() {
                       <>보기별 모드 &nbsp;·&nbsp; 보기 <span className="font-bold text-slate-800">{Object.keys(oboData.perChoice ?? {}).length}</span>개 설정됨</>
                     ) : oboData.mode === 'coding_diff' ? (
                       <>
-                        코딩 채점 모드 &nbsp;·&nbsp;
+                        출력 기록 재생 &nbsp;·&nbsp;
                         노드 <span className="font-bold text-slate-800">{oboData.codingDiff?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
                         엣지 <span className="font-bold text-slate-800">{oboData.codingDiff?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
                         트레이스 <span className="font-bold text-slate-800">{oboData.codingDiff?.referenceTrace.length ?? 0}</span>스텝
@@ -1314,6 +1317,16 @@ function ProblemCreateContent() {
               </CardContent>
             )}
           </Card>}
+
+          {problemType==='coding'&&<section id="learner-preview" className="scroll-mt-20 rounded-2xl border bg-white p-5">
+            <h2 className="font-semibold">학습자 제출 안내 미리보기</h2>
+            <p className="mt-2 text-sm text-slate-600">저장 전 현재 작성 내용으로 확인합니다. 공개 예제만 표시하며, 실제 저장은 문제 등록·수정 버튼을 눌러야 합니다.</p>
+            <div className="my-4 border-b pb-4"><h3 className="font-semibold">{title||'문제 제목'}</h3><p className="mt-2 whitespace-pre-wrap break-words text-sm">{description||'문제 설명을 작성하세요.'}</p></div>
+            {oboEnabled&&oboData.mode==='coding_diff'&&<p className="mt-2 text-sm text-indigo-700">아래 요소 ID·종류·허용 필드·연결선 ID는 제출 전 공개됩니다. ID에 정답을 넣지 마세요. 기본값·라벨·배치·연결 관계·참고 출력은 공개하지 않습니다. 풀이에 필요한 초기 조건과 칸 수는 위 입력·출력 설명에 작성하세요.</p>}
+            <CodingRules contract={describeCodingContract(oboEnabled?oboData:null)} inputDescription={inputDesc} outputDescription={outputDesc} allowedLanguages={allowedLanguages}/>
+            <h3 className="font-medium">공개 입출력 예제</h3>
+            {testcases.filter(tc=>tc.is_sample).length?testcases.filter(tc=>tc.is_sample).map((tc,i)=><div key={tc.index} className="mt-3 grid gap-3 md:grid-cols-2"><div><p className="text-xs font-semibold">입력 예제 {i+1}</p><pre className="overflow-auto rounded bg-slate-50 p-3 text-xs">{tc.input}</pre></div><div><p className="text-xs font-semibold">출력 예제 {i+1}</p><pre className="overflow-auto rounded bg-slate-50 p-3 text-xs">{tc.output}</pre></div></div>):<p className="mt-2 text-sm text-amber-700">공개 예제가 없습니다. 학습자가 형식을 확인할 수 있도록 테스트케이스에서 공개 예제를 지정하세요.</p>}
+          </section>}
 
           {/* OBO 전체화면 모달 */}
           {oboModalOpen && (
