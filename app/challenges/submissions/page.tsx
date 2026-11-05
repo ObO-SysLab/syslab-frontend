@@ -16,6 +16,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+const sourceExtensions = new Map([
+  ["python", "py"], ["python3", "py"],
+  ["c", "c"], ["cpp", "cpp"], ["java", "java"],
+]);
+
 function SubmissionDetailContent() {
   const searchParams = useSearchParams(); // URL 쿼리 파라미터 가져오기
   const router = useRouter();
@@ -299,7 +304,7 @@ function SubmissionDetailContent() {
                 <div className="w-3 h-3 rounded-full bg-emerald-500/20 border border-emerald-500/50"></div>
               </div>
               <span className="ml-4 text-xs font-mono font-medium text-slate-400">
-                solution.{submissionData?.language === 'python3' ? 'py' : submissionData?.language === 'java' ? 'java' : 'cpp'}
+                solution.{sourceExtensions.get(submissionData?.language) ?? "txt"}
               </span>
             </div>
 
