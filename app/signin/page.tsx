@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react"; 
 import { useSearchParams } from "next/navigation";
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
+import { problemApi } from "@/lib/problemApi";
 
 function LoginContent() {
   const router = useRouter();
@@ -23,7 +24,7 @@ function LoginContent() {
       setIsLoading(true);
       try {
         // 구글이 준 인가 코드를 백엔드 API로 POST 토스
-        const res = await fetch("https://diveon.net/api/auth/google/login", {
+        const res = await fetch(problemApi("/api/auth/google/login"), {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
@@ -148,8 +149,7 @@ export default function LoginPage() {
         </div>
       }
     >
-      {/* clientId에 환경변수 대신 전달받은 구글 ID 문자열을 직접 주입했습니다. */}
-      <GoogleOAuthProvider clientId="556818462420-piu9374s4b65qj329f5l5h6m344j2l26.apps.googleusercontent.com">
+      <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "556818462420-piu9374s4b65qj329f5l5h6m344j2l26.apps.googleusercontent.com"}>
         <LoginContent />
       </GoogleOAuthProvider>
     </Suspense>
