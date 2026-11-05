@@ -6,6 +6,7 @@ import json
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
+from static_routes import load_aliases, page_key
 
 
 def aws(*args):
@@ -41,21 +42,28 @@ def verified_files(root, revision):
 
 def prepare(root, revision, bucket, backup):
     files = verified_files(root, revision)
+    aliases = load_aliases(root, files)
+    files.update(aliases)
     backup.mkdir(parents=True, exist_ok=False)
     listing = aws('s3api', 'list-objects-v2', '--bucket', bucket, '--output', 'json')
     existing = {item['Key'] for item in listing.get('Contents', [])}
     assert 'index.html' in existing, 'Expected existing production website is missing'
 
     def save(key):
-        target = backup / 'files' / key
+        # S3 permits both "challenges" and "challenges/editor"; a local filesystem does not.
+        stored_file = 'objects/' + hashlib.sha256(key.encode()).hexdigest()
+        target = backup / stored_file
         target.parent.mkdir(parents=True, exist_ok=True)
         metadata = aws('s3api', 'get-object', '--bucket', bucket, '--key', key, target)
-        return key, {'metadata': metadata, 'sha256': hashlib.sha256(target.read_bytes()).hexdigest()}
+        return key, {'file': stored_file, 'metadata': metadata,
+                     'sha256': hashlib.sha256(target.read_bytes()).hexdigest()}
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         saved = dict(pool.map(save, sorted(set(files) & existing)))
     manifest = {'bucket': bucket, 'revision': revision, 'saved': saved,
-                'newKeys': sorted(set(files) - existing)}
+                'newKeys': sorted(set(files) - existing),
+                'newAliases': {key: hashlib.sha256(path.read_bytes()).hexdigest()
+                               for key, path in aliases.items() if key not in existing}}
     (backup / 'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
     print(f'Backed up {len(saved)} overwritten objects; all unrelated keys will be retained.')
 
@@ -67,7 +75,8 @@ def load_backup(backup, bucket, revision):
 
 
 def upload(root, revision, bucket, backup):
-    verified_files(root, revision)
+    files = verified_files(root, revision)
+    aliases = load_aliases(root, files)
     load_backup(backup, bucket, revision)
     # Do not use --delete: this bucket also contains user profile uploads and old hashed assets.
     common = ['s3', 'cp', str(root) + '/', 's3://' + bucket + '/', '--recursive',
@@ -75,8 +84,14 @@ def upload(root, revision, bucket, backup):
     aws(*common, '--exclude', '*.html', '--exclude', '*.js', '--exclude', '*.mjs', '--exclude', 'REVISION')
     aws(*common, '--exclude', '*', '--include', '*.js', '--include', '*.mjs',
         '--content-type', 'text/javascript')
-    # Mutable HTML is published after all referenced assets, with the existing S3 website keys.
+    # Mutable HTML is published after all referenced assets; retain existing .html URLs.
     aws(*common, '--exclude', '*', '--include', '*.html', '--content-type', 'text/html; charset=utf-8')
+    def publish_alias(item):
+        key, source = item
+        aws('s3api', 'put-object', '--bucket', bucket, '--key', key, '--body', source,
+            '--content-type', 'text/html; charset=utf-8', '--cache-control', 'no-cache')
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(publish_alias, sorted(aliases.items())))
 
 
 def finalize(root, revision, bucket, backup):
@@ -93,25 +108,47 @@ def rollback(bucket, revision, backup):
               'ServerSideEncryption', 'SSEKMSKeyId', 'BucketKeyEnabled']
 
     prepared = []
+    def stored_source(key, saved):
+        if 'file' in saved:
+            assert saved['file'] == 'objects/' + hashlib.sha256(key.encode()).hexdigest()
+            return backup / saved['file']
+        return backup / 'files' / key  # Backups from the previous deployment script.
+
     for key, saved in record['saved'].items():
         assert not key.startswith('profiles/') and not PurePosixPath(key).is_absolute()
         assert '..' not in PurePosixPath(key).parts
-        source = backup / 'files' / key
+        source = stored_source(key, saved)
         assert hashlib.sha256(source.read_bytes()).hexdigest() == saved['sha256'], 'Corrupt rollback file'
         prepared.append((key, saved))
+    for key, digest in record.get('newAliases', {}).items():
+        page_key(key.removesuffix('/index.html'))
+        assert key in record['newKeys'] and re.fullmatch(r'[0-9a-f]{64}', digest)
 
     def restore(item):
         key, saved = item
-        source = backup / 'files' / key
+        source = stored_source(key, saved)
         params = {k: v for k, v in saved['metadata'].items() if k in fields}
         params.update(Bucket=bucket, Key=key)
         aws('s3api', 'put-object', '--cli-input-json', json.dumps(params), '--body', source)
 
     # Restore old assets before old entry points. New, unreferenced assets remain intentionally.
-    ordered = sorted(prepared, key=lambda item: (item[0].endswith('.html'), item[0]))
+    def is_html(item):
+        return item[0].endswith('.html') or item[1]['metadata'].get('ContentType', '').startswith('text/html')
+    ordered = sorted(prepared, key=lambda item: (is_html(item), item[0]))
     for html in [False, True]:
         with ThreadPoolExecutor(max_workers=8) as pool:
-            list(pool.map(restore, [item for item in ordered if item[0].endswith('.html') == html]))
+            list(pool.map(restore, [item for item in ordered if is_html(item) == html]))
+    for key, digest in record.get('newAliases', {}).items():
+        target = backup / ('new-alias-' + hashlib.sha256(key.encode()).hexdigest())
+        try:
+            aws('s3api', 'get-object', '--bucket', bucket, '--key', key, target)
+        except subprocess.CalledProcessError as error:
+            if 'NoSuchKey' not in error.stderr and '(404)' not in error.stderr:
+                raise
+        else:
+            # Remove only new route aliases still containing this failed release's exact HTML.
+            if hashlib.sha256(target.read_bytes()).hexdigest() == digest:
+                aws('s3api', 'delete-object', '--bucket', bucket, '--key', key)
     if 'REVISION' in record['newKeys']:
         # The old pipeline had no marker. Remove only this release's own newly created marker.
         target = backup / 'failed-revision'

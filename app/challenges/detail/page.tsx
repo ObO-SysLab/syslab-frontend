@@ -583,19 +583,6 @@ function ProblemDetailContent() {
     window.location.reload(); // 상태 초기화를 위해 새로고침
   };
 
-  // 숫자/문자열 티어 값을 이름으로 정제해주는 함수
-  const formatTierName = (tier: string | number) => {
-    const t = String(tier);
-    if (t === "7") return "Challenger";
-    if (t === "6") return "Master";
-    if (t === "5") return "Diamond";
-    if (t === "4") return "Platinum";
-    if (t === "3") return "Gold";
-    if (t === "2") return "Silver";
-    if (t === "1") return "Bronze";
-    return t || "Bronze"; // 기본값
-  };
-
   // 티어 명칭에 따라 배경/글자/테두리 색상 클래스를 리턴하는 함수
   const getTierColor = (tier: number | null | undefined) => {
     const tierName = submissionTierLabel(tier);
@@ -1161,9 +1148,9 @@ function ProblemDetailContent() {
                         <TableCell className="text-center">
                           <Badge
                             variant="outline"
-                            className={`font-mono text-[10px] font-bold border ${getTierColor(rank.rank)}`}
+                            className={`font-mono text-[10px] font-bold border ${getTierColor(rank.userTier)}`}
                           >
-                            {formatTierName(rank.rank)}
+                            {submissionTierLabel(rank.userTier)}
                           </Badge>
                         </TableCell>
 
