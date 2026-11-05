@@ -61,7 +61,7 @@ function ProblemCreateContent() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("kernel");
   const [difficulty, setDifficulty] = useState("1");
-  const [visibility, setVisibility] = useState("public");
+  const [visibility, setVisibility] = useState(isEditMode ? "" : "public");
 
   // [STATE] 코딩 문제 전용
   const [timeLimit, setTimeLimit] = useState(1);
@@ -205,7 +205,7 @@ function ProblemCreateContent() {
       return;
     }
 
-    if (visibility === "group" && !selectedGroupId) {
+    if (!isEditMode && visibility === "group" && !selectedGroupId) {
       alert("공개할 그룹을 선택해주세요.");
       return;
     }
@@ -407,6 +407,7 @@ function ProblemCreateContent() {
         .then(async json => {
           const data = json.data;
           if(!data?.isOwner)throw new Error('작성자만 문제를 수정할 수 있습니다.');
+          if(!['public','private','group','contest'].includes(data.visibility))throw new Error('공개 범위를 확인할 수 없습니다. 문제를 다시 열어주세요.');
           if (data.isOwner && (data.type === 'objective' || data.type === 'coding')) {
             const authorObo = await fetch(problemApi(`/api/challenges/obo/author/settings?id=${editId}`), {
               headers: { Authorization: `Bearer ${token}` }, cache: 'no-store',
@@ -422,6 +423,7 @@ function ProblemCreateContent() {
           setDescription(data.description);
           setCategory(data.category?.toLowerCase() || "");
           setDifficulty(String(data.difficulty));
+          setVisibility(data.visibility);
           setProblemType(data.type); // 'coding', 'objective', 'practice' 중 하나
 
           // 유형별 상세 필드 채우기
@@ -508,7 +510,7 @@ function ProblemCreateContent() {
 
   // [API] 공개 범위가 'group'일 때 내 그룹 목록 불러오기
   useEffect(() => {
-    if (visibility === "group" && myGroups.length === 0) {
+    if (!isEditMode && visibility === "group" && myGroups.length === 0) {
       setIsFetchingGroups(true);
       const token = problemToken();
       fetch(problemApi("/api/groups/me"), {
@@ -530,7 +532,7 @@ function ProblemCreateContent() {
 
   // [API] 공개 범위가 'contest'일 때 내 대회 목록 불러오기
   useEffect(() => {
-    if (visibility === "contest" && myContests.length === 0) {
+    if (!isEditMode && visibility === "contest" && myContests.length === 0) {
       setIsFetchingContests(true);
       const token = problemToken();
       fetch(problemApi("/api/contests/me/owned"), {
@@ -549,7 +551,9 @@ function ProblemCreateContent() {
   // 다중 정답(객관식) 문제는 선택지 하나에 종속되는 OBO를 만들 수 없다.
   const draftValue:ProblemDraft={problemType,title,summary,description,category,difficulty,visibility,timeLimit,memoryLimit,inputDesc,outputDesc,allowedLanguages,testcases,choices,selectedAnswers,isOrderedAnswer,oboEnabled,oboData,editVersion,selectedGroupId,selectedContestId,oboAlternates};
   const restoreDraft=(d:ProblemDraft)=>{
-    setProblemType(d.problemType);setTitle(d.title);setSummary(d.summary);setDescription(d.description);setCategory(d.category);setDifficulty(d.difficulty);setVisibility(d.visibility);
+    setProblemType(d.problemType);setTitle(d.title);setSummary(d.summary);setDescription(d.description);setCategory(d.category);setDifficulty(d.difficulty);
+    // Updates preserve the server's audience; old drafts must not replace its displayed scope.
+    if(!isEditMode)setVisibility(d.visibility);
     setTimeLimit(d.timeLimit);setMemoryLimit(d.memoryLimit);setInputDesc(d.inputDesc);setOutputDesc(d.outputDesc);setAllowedLanguages(d.allowedLanguages);setTestcases(d.testcases);
     setChoices(d.choices);setSelectedAnswers(d.selectedAnswers);setIsOrderedAnswer(d.isOrderedAnswer);setOboEnabled(d.oboEnabled);setOboData(d.oboData);setEditVersion(d.editVersion);
     setSelectedGroupId(d.selectedGroupId);setSelectedContestId(d.selectedContestId);setOboAlternates(d.oboAlternates);setOboModalOpen(false);
@@ -749,7 +753,7 @@ function ProblemCreateContent() {
                 </div>
                 <div className="space-y-2">
                   <Label>공개범위</Label>
-                  <Select value={visibility} onValueChange={setVisibility}>
+                  <Select value={visibility} onValueChange={setVisibility} disabled={isEditMode}>
                     <SelectTrigger><SelectValue placeholder="공개범위 선택" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="public" className="text-emerald-600 font-bold">전체 공개</SelectItem>
@@ -758,10 +762,11 @@ function ProblemCreateContent() {
                       <SelectItem value="private" className="text-amber-600 font-bold">비공개</SelectItem>
                     </SelectContent>
                   </Select>
+                  {isEditMode && <p className="text-xs text-slate-500">현재 공개 범위입니다. 이 수정 화면에서는 변경할 수 없습니다.</p>}
                 </div>
               </div>
 
-              {visibility === "group" && (
+              {!isEditMode && visibility === "group" && (
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 animate-in fade-in duration-300 mt-4">
 
                   { /* [임시] */}
@@ -841,7 +846,7 @@ function ProblemCreateContent() {
                 </div>
               )}
 
-              {visibility === "contest" && (
+              {!isEditMode && visibility === "contest" && (
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 animate-in fade-in duration-300 mt-4">
                   <Label className="font-bold flex items-center gap-2">
                     공개할 대회 선택 <span className="text-red-500">*</span>
