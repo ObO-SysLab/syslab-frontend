@@ -1,8 +1,11 @@
+import { submissionVerdict, type SubmissionResult } from "./submission-status";
+
 export type ContestSubmission = {
   submissionId: number;
   solveSubmissionId: number | null;
   submissionStatus: "PENDING" | "JUDGING" | "COMPLETED" | "FAILED";
   isCorrect: boolean | null;
+  resultStatus?: string | null;
   submittedAt: string;
   nickname: string;
   userTier: number | null;
@@ -53,11 +56,8 @@ export function contestBoardPending(board: ContestBoard) {
   return board.submissions.some(row => row.submissionStatus === "PENDING" || row.submissionStatus === "JUDGING");
 }
 
-export function contestResultLabel(row: Pick<ContestSubmission, "submissionStatus" | "isCorrect">) {
-  if (row.submissionStatus === "FAILED") return "채점 실패 · 잠시 후 다시 제출해주세요";
-  if (row.submissionStatus === "PENDING" || row.submissionStatus === "JUDGING") return "채점 중";
-  if (row.isCorrect === null) return "결과 확인 필요";
-  return row.isCorrect ? "정답" : "오답";
+export function contestResultLabel(row: SubmissionResult) {
+  return submissionVerdict(row).label;
 }
 
 export function contestCodingLinks(type: string, row: ContestSubmission) {

@@ -2,7 +2,7 @@
 import {problemApi,problemToken} from "@/lib/problemApi";
 
 import Link from "next/link";
-import { isSubmissionPending } from "@/lib/submission-status";
+import { isSubmissionPending, submissionVerdict } from "@/lib/submission-status";
 import { submissionTierLabel } from "@/lib/submission-display";
 import { readPracticeBuild, practiceBuildPresentation, watchPracticeBuild } from "@/lib/practice-build";
 import { useState, useEffect, useRef, Suspense } from "react";
@@ -285,7 +285,8 @@ function ProblemDetailContent() {
             // 채점이 끝났다면?
             if (updatedData.submissionStatus === "COMPLETED" || updatedData.submissionStatus === "FAILED") {
 
-              return { ...sub, _isPending: false, progress: 100, submissionStatus: updatedData.submissionStatus };
+              return { ...sub, _isPending: false, progress: 100, submissionStatus: updatedData.submissionStatus,
+                ...(Object.prototype.hasOwnProperty.call(updatedData, 'resultStatus') ? {resultStatus: updatedData.resultStatus} : {}) };
             }
             return { ...sub, progress: updatedData.progress, submissionStatus: updatedData.submissionStatus };
           }
@@ -1023,14 +1024,11 @@ function ProblemDetailContent() {
                         const isCoding = problemData?.type === "coding";
 
                         // 렌더링 상태 판별
-                        const isPending = isSubmissionPending(sub);
-                        const isSuccess = sub.isCorrect === true;
-                        const isFailed = sub.submissionStatus === "FAILED";
-
-                        let resultText = "결과 대기";
-                        if (isFailed) resultText = "채점 실패 · 잠시 후 다시 제출해주세요";
-                        else if (isPending) resultText = `채점 중 (${sub.progress || 0}%)`;
-                        else resultText = isSuccess ? "정답" : "오답";
+                        const verdict = submissionVerdict(sub);
+                        const isPending = verdict.kind === "pending";
+                        const isSuccess = verdict.kind === "correct";
+                        const isFailed = verdict.kind === "failed";
+                        const resultText = isPending ? `${verdict.label} (${sub.progress || 0}%)` : verdict.label;
 
                         return (
                           <TableRow
@@ -1069,13 +1067,16 @@ function ProblemDetailContent() {
                                   )}
                                 </div>
                               ) : (
-                                <Badge
-                                  variant={isSuccess ? "default" : "destructive"}
-                                  className={isSuccess ? "bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm shadow-indigo-100" : "font-bold"}
-                                >
-                                  {isSuccess ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
-                                  {resultText}
-                                </Badge>
+                                <div className="space-y-1">
+                                  <Badge
+                                    variant={isSuccess ? "default" : verdict.kind === "unknown" || verdict.kind === "error" ? "outline" : "destructive"}
+                                    className={isSuccess ? "bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm shadow-indigo-100" : verdict.kind === "error" ? "font-bold border-amber-200 bg-amber-50 text-amber-800" : "font-bold"}
+                                  >
+                                    {isSuccess ? <CheckCircle2 className="w-3 h-3 mr-1" /> : verdict.kind === "unknown" ? <Clock className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                                    {resultText}
+                                  </Badge>
+                                  {verdict.hint && <p className="text-xs text-slate-500">{verdict.hint}</p>}
+                                </div>
                               )}
                             </TableCell>
 

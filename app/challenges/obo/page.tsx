@@ -2,10 +2,11 @@
 import {DiagramOutputPlayer,type DiagramOutputRecord} from '@/components/obo/DiagramOutputPlayer';
 import type {OboCodingSchema} from '@/components/obo/types';
 import {problemApi,problemToken} from '@/lib/problemApi';
+import { submissionVerdict, type SubmissionResult } from '@/lib/submission-status';
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Activity, ChevronLeft, Share2, CheckCircle2, XCircle } from "lucide-react";
+import { Activity, ChevronLeft, Share2, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,7 @@ function OboResultContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<PageError>(null);
   const [probId, setProbId] = useState<number | null>(null);
-  const [isCorrect, setIsCorrect] = useState<boolean | null | undefined>(undefined);
+  const [result, setResult] = useState<SubmissionResult | null>(null);
   const [explanations, setExplanations] = useState<ReturnType<typeof listOboExplanations>>([]);
   const [activeExplanation, setActiveExplanation] = useState('');
   const [legacyRevision, setLegacyRevision] = useState(false);
@@ -39,6 +40,8 @@ function OboResultContent() {
   const [choices,setChoices]=useState<ExplanationChoice[]>([]);
   const [selectedAnswers,setSelectedAnswers]=useState<number[]>([]);
   const blob = explanations.find(item => item.id === activeExplanation)?.blob ?? explanations[0]?.blob ?? null;
+  const verdict = submissionVerdict(result);
+  const isSuccess = verdict.kind === 'correct';
 
   useEffect(() => {
     if (!submissionId && !contestSubmissionId) {
@@ -64,7 +67,8 @@ function OboResultContent() {
         const subJson = await subRes.json();
         const subData = contestSubmissionId ? subJson : subJson.data;
         setProbId(subData.probId);
-        setIsCorrect(subData.isCorrect);
+        setResult({submissionStatus: subData.submissionStatus, isCorrect: subData.isCorrect,
+          ...(Object.prototype.hasOwnProperty.call(subData, 'resultStatus') ? {resultStatus: subData.resultStatus} : {})});
 
         // 2. 문제에 연결된 OBO JSON 조회 (없으면 200 + null body)
         let released = subData.explanation;
@@ -144,12 +148,16 @@ function OboResultContent() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            {isCorrect === true && (
-              <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 text-sm font-bold"><CheckCircle2 className="w-4 h-4 mr-1.5" /> 정답</Badge>
-            )}
-            {isCorrect === false && (
-              <Badge variant="destructive" className="px-3 py-1 text-sm font-bold"><XCircle className="w-4 h-4 mr-1.5" /> 오답</Badge>
-            )}
+            <div className="space-y-1">
+              <Badge
+                variant={isSuccess ? "default" : verdict.kind === "wrong" || verdict.kind === "failed" ? "destructive" : "outline"}
+                className={`px-3 py-1 text-sm font-bold ${isSuccess ? "bg-indigo-600 hover:bg-indigo-700 text-white" : verdict.kind === "error" ? "border-amber-200 bg-amber-50 text-amber-800" : ""}`}
+              >
+                {isSuccess ? <CheckCircle2 className="w-4 h-4 mr-1.5" /> : verdict.kind === "pending" || verdict.kind === "unknown" ? <Clock className="w-4 h-4 mr-1.5" /> : <XCircle className="w-4 h-4 mr-1.5" />}
+                {verdict.label}
+              </Badge>
+              {verdict.hint && <p className="text-xs text-slate-500">{verdict.hint}</p>}
+            </div>
             <Button variant="outline" size="sm" className="rounded-xl border-slate-200 text-slate-600 gap-2 font-bold">
               <Share2 className="w-4 h-4" /> 공유하기
             </Button>
