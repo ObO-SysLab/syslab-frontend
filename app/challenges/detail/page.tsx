@@ -4,7 +4,8 @@ import {problemApi,problemToken} from "@/lib/problemApi";
 import Link from "next/link";
 import { isSubmissionPending } from "@/lib/submission-status";
 import { submissionTierLabel } from "@/lib/submission-display";
-import { useState, useEffect, Suspense } from "react";
+import { readPracticeBuild, practiceBuildPresentation, watchPracticeBuild } from "@/lib/practice-build";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Search, Settings, LogOut, User, Menu, MessageSquare, Bell, Share2,
@@ -70,6 +71,11 @@ function ProblemDetailContent() {
   // API 연동용 상태
   const [problemData, setProblemData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [practiceStatusError, setPracticeStatusError] = useState('');
+  const [practiceStatusRetry, setPracticeStatusRetry] = useState(0);
+  const practiceStatusRequested = useRef(0);
+  const practiceBuild = readPracticeBuild(isLoading ? null : problemData?.practiceBuild);
+  const practiceStatus = practiceBuildPresentation(practiceBuild);
   const [comments, setComments] = useState<any[]>([]);
   const [rankings, setRankings] = useState<any[]>([]);
   const [firstBlood, setFirstBlood] = useState<any>({ user: "", prifile_url: "", date: "" });
@@ -182,6 +188,22 @@ function ProblemDetailContent() {
       fetchPageData();
     }
   }, [probId]);
+
+  useEffect(() => {
+    if (isLoading || !probId || problemData?.type !== 'practice') return;
+    setPracticeStatusError('');
+    const manualRefresh = practiceStatusRetry !== practiceStatusRequested.current;
+    practiceStatusRequested.current = practiceStatusRetry;
+    if (practiceBuild.status !== 'PENDING' && !manualRefresh) return;
+    return watchPracticeBuild({
+      probId, token: problemToken(),
+      onUpdate: state => {
+        setPracticeStatusError('');
+        setProblemData((previous: any) => ({ ...previous, practiceBuild: state }));
+      },
+      onError: setPracticeStatusError,
+    });
+  }, [probId, isLoading, problemData?.type, practiceBuild.status, practiceStatusRetry]);
 
   // [API] 채점 탭 데이터 요청
   const fetchSubmissions = async () => {
@@ -763,6 +785,14 @@ function ProblemDetailContent() {
                 </div>
               </div>
 
+              {problemData?.type === 'practice' && <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4" aria-label="실습 환경 제작 상태">
+                <p className="font-bold text-sm" role="status" aria-live="polite">{practiceStatus.label}</p>
+                <p className="mt-1 text-sm text-slate-600">{practiceStatus.message}</p>
+                {practiceStatusError && <p className="mt-2 text-sm text-amber-700" role="alert">{practiceStatusError}</p>}
+                {(practiceStatusError || practiceBuild.status === 'FAILED' || practiceBuild.status === 'UNAVAILABLE') &&
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setPracticeStatusRetry(value => value + 1)}>다시 확인</Button>}
+              </div>}
+
               <div className="flex items-center justify-between w-full">
                 {/* 왼쪽 버튼 그룹 (제출, 공유) */}
                 <div className="flex gap-2">
@@ -782,11 +812,11 @@ function ProblemDetailContent() {
                       {isSubmittingAnswer ? "제출 중..." : "답안 제출하기"}
                     </Button>
                   ) : problemData?.type === "practice" ? (
-                    <Link href={`/challenges/terminal?id=${probId}`}>
+                    practiceBuild.canStart && !practiceStatusError ? <Link href={`/challenges/terminal?id=${probId}`}>
                       <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md shadow-emerald-200">
                         실습 환경 켜기
                       </Button>
-                    </Link>
+                    </Link> : <Button disabled className="bg-emerald-600 text-white font-bold">실습 환경 켜기</Button>
                   ) : (
                     <Button className="bg-slate-800 hover:bg-slate-700">답안 제출하기</Button> // Fallback
                   )}
