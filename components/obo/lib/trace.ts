@@ -27,6 +27,7 @@ export function generateFramesFromTrace(trace: OboTraceStep[], edges: OboBlob['e
       highlightNodes: step.highlightNodes,
       highlightEdges,
       nodeDataOverrides: step.overrides,
+      ...(step.visibleEdges!==undefined?{visibleEdges:step.visibleEdges}:{}),
     };
   });
 }

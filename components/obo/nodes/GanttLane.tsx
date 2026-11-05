@@ -1,101 +1,52 @@
-'use client';
-
+﻿'use client';
+import { useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { TIMELINE_COLOR_PALETTE, DEFAULT_TIMELINE_COLOR_KEY } from './ganttColors';
+import { TIMELINE_COLOR_PALETTE } from './ganttColors';
 import { useFrameCtx } from '../FrameContext';
 import { CheckpointStatusRing } from './CheckpointStatusRing';
-
-interface TimelineBlock {
-  start: number;
-  end: number;
-  colorKey: string;
-}
-
-interface TimelineBlockData {
-  trackId?: string;
-  blocks?: TimelineBlock[];
-  activeBlockIndex?: number | null;
-}
-
-const SCALE = 26; // px per time unit
-const TRACK_H = 40;
-
-function colorFor(colorKey: string): string {
-  return TIMELINE_COLOR_PALETTE[colorKey] ?? TIMELINE_COLOR_PALETTE[DEFAULT_TIMELINE_COLOR_KEY];
-}
+import { useGantt } from '../gantt/GanttContext';
+import { blocksOf, validBlock } from '../gantt/model';
+import { GanttBlockDialog } from '../gantt/GanttBlockDialog';
 
 export function GanttLane({ id, data, selected }: NodeProps) {
-  const d = (data as unknown) as TimelineBlockData;
-  const blocks = d.blocks ?? [];
-  const activeBlockIndex = d.activeBlockIndex ?? null;
-  const axisMax = Math.max(1, ...blocks.map(b => b.end), 1);
-  const totalW = axisMax * SCALE;
-  const trackColor = TIMELINE_COLOR_PALETTE[DEFAULT_TIMELINE_COLOR_KEY];
-  const { checkpointStatus } = useFrameCtx();
-  const status = checkpointStatus?.[id] ?? null;
-
-  const ticks = [...new Set([0, ...blocks.flatMap(b => [b.start, b.end]), axisMax])].sort((a, b) => a - b);
-
-  return (
-    <CheckpointStatusRing status={status}>
-      <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 10,
-        cursor: 'grab', userSelect: 'none', position: 'relative',
-      }}>
-        <Handle id="t" type="source" position={Position.Top}    style={{ background: trackColor, border: 'none' }} />
-        <Handle id="b" type="source" position={Position.Bottom} style={{ background: trackColor, border: 'none' }} />
-
-        {d.trackId && (
-          <div style={{
-            fontSize: 11, fontWeight: 800, color: '#475569',
-            background: '#f1f5f9', borderRadius: 8, padding: '5px 9px',
-            minWidth: 28, textAlign: 'center', flexShrink: 0,
-          }}>
-            {d.trackId}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <div style={{
-            position: 'relative', width: totalW, height: TRACK_H,
-            backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8,
-            boxShadow: selected ? `0 0 0 3px ${trackColor}40` : undefined,
-          }}>
-            {blocks.map((b, i) => {
-              const color = colorFor(b.colorKey);
-              const isActive = i === activeBlockIndex;
-              return (
-                <div key={i} style={{
-                  position: 'absolute', top: 3, bottom: 3,
-                  left: b.start * SCALE + (b.start === 0 ? 0 : 1),
-                  width: (b.end - b.start) * SCALE - (b.start === 0 ? 1 : 2),
-                }}>
-                  {isActive && (
-                    <div
-                      className="absolute -inset-1.5 rounded-lg opacity-70 animate-pulse pointer-events-none"
-                      style={{ boxShadow: `0 0 0 2.5px ${color}` }}
-                    />
-                  )}
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    backgroundColor: color,
-                    borderRadius: 5,
-                    boxShadow: isActive ? `0 2px 6px ${color}80` : '0 1px 2px rgba(15,23,42,0.12)',
-                  }} />
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ position: 'relative', width: totalW, height: 12 }}>
-            {ticks.map(t => (
-              <span key={t} style={{
-                position: 'absolute', left: t * SCALE - 4,
-                fontSize: 9, color: '#94a3b8', fontWeight: 600,
-              }}>{t}</span>
-            ))}
-          </div>
+  const blocks = blocksOf(data), name = String(data.trackId || '프로세스');
+  const { previewFrame, checkpointStatus } = useFrameCtx();
+  const { layouts, onEditBlock, editLabel, traceMode } = useGantt();
+  const layout = layouts[id] ?? { end: 1, width: 360, ticks: [0, 1] };
+  const scale = layout.width / layout.end;
+  const cursor = previewFrame?.cursorTime;
+  const showCursor = typeof cursor === 'number' && Number.isFinite(cursor) && cursor >= 0 && cursor <= layout.end;
+  const [editing, setEditing] = useState<number | null>(null);
+  const nextStart = Math.max(0, ...blocks.filter(validBlock).map(b => b.end));
+  return <CheckpointStatusRing status={checkpointStatus?.[id]}>
+    <div data-gantt-row={id} className="relative flex items-start gap-4 rounded-xl bg-white p-3" style={{ outline: selected ? '2px dashed #6366f1' : undefined, outlineOffset: 3 }}>
+      <Handle id="t" type="source" position={Position.Top} style={{ background: '#64748b' }} />
+      <Handle id="b" type="source" position={Position.Bottom} style={{ background: '#64748b' }} />
+      <div className="flex h-[76px] w-28 shrink-0 items-center"><span title={name} className="line-clamp-3 w-full break-all text-sm font-bold leading-tight text-slate-700">{name}</span></div>
+      <div className="relative pt-7" style={{ width: layout.width }}>
+        {showCursor && <div className="pointer-events-none absolute top-0 z-20 h-[76px] border-l-2 border-rose-500" data-gantt-cursor style={{ left: cursor * scale }}>
+          <span className="absolute top-0 whitespace-nowrap rounded bg-rose-50 px-1 text-[11px] font-bold text-rose-700" style={{ transform: cursor > layout.end * .8 ? 'translateX(-100%)' : 'none' }}>t = {cursor}</span>
+        </div>}
+        <div data-gantt-axis className="relative h-12 rounded-lg border border-slate-200 bg-slate-50">
+          {layout.ticks.map(t => <div key={t} className="pointer-events-none absolute inset-y-0 border-l border-slate-200" style={{ left: t * scale }} />)}
+          {blocks.map((block, index) => {
+            if (!validBlock(block)) return null;
+            const color = TIMELINE_COLOR_PALETTE[block.colorKey] ?? '#64748b';
+            const active = data.activeBlockIndex === index;
+            const width = Math.max(1, (block.end - block.start) * scale - 2);
+            return <button key={index} type="button" className="nodrag nopan pointer-events-auto absolute top-1 bottom-1 overflow-hidden rounded-md text-xs font-semibold transition-[background-color,box-shadow] duration-200"
+              data-gantt-block={index} data-active={active} aria-label={`${name} 구간 ${index + 1}: ${block.start}–${block.end}, ${Number((block.end - block.start).toPrecision(12))} 시간 단위`}
+              onClick={event => { if (traceMode) return; event.stopPropagation(); setEditing(index); }}
+              style={{ left: block.start * scale, width, background: active ? color : `${color}24`, border: `2px solid ${color}`, color: active && block.colorKey !== 'amber' ? 'white' : '#334155', boxShadow: active ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none' }}>
+              {width >= 65 ? `${block.start}–${block.end}` : ''}
+            </button>;
+          })}
+          {blocks.length === 0 && onEditBlock && <button type="button" className="nodrag nopan absolute inset-0 text-xs text-slate-500" onClick={e => { e.stopPropagation(); setEditing(0); }}>+ 구간 추가</button>}
         </div>
+        <div className="relative mt-2 h-5 text-xs font-medium text-slate-600">{layout.ticks.map(t => <span key={t} className="absolute" style={{ left: t * scale, transform: t === 0 ? 'none' : t === layout.end ? 'translateX(-100%)' : 'translateX(-50%)' }}>{t}</span>)}</div>
       </div>
-    </CheckpointStatusRing>
-  );
+      {editing !== null && <GanttBlockDialog block={blocks[editing] ?? { start: nextStart, end: nextStart + 1, colorKey: 'teal' }} title={`${name} · ${editing + 1}번 구간`} editLabel={editLabel}
+        onSave={onEditBlock ? block => onEditBlock(id, editing, block) : undefined} onClose={() => setEditing(null)} />}
+    </div>
+  </CheckpointStatusRing>;
 }
