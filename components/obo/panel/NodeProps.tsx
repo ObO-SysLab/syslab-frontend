@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import type { Node } from '@xyflow/react';
+import type { Frame } from '../types';
+import { ElementFields } from '../authoring/ElementFields';
+import { AUTHORING_FIELDS, sceneConflicts } from '../authoring/model';
 import { makeUniqueLabel } from '../lib/label';
 import { TextField } from './fields/Text';
 import { NumField } from './fields/Num';
@@ -9,6 +12,8 @@ import { ColorField } from './fields/Color';
 import { SegField } from './fields/Seg';
 import { ToggleField } from './fields/Toggle';
 import { ListEditor, type GanttBlock, type ChartSeries } from './fields/ListEditor';
+import { SlotCountField, SlotGridFields } from '../slots/SlotGridFields';
+import { slotCountOf, slotValues, resizeSlotData } from '../slots/model';
 
 // 노드 라벨 전용 필드. 라벨은 트레이스 키라 유일해야 하므로, 편집 확정(blur/Enter) 시
 // 다른 노드와 중복이면 자동으로 접미 숫자를 붙여 유일화한다(입력 중엔 방해하지 않음).
@@ -58,14 +63,22 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
 }
 
 interface NodeEditorProps {
+  frames?: Frame[];
   node: Node;
   onUpdate: (patch: Record<string, unknown>) => void;
   // 이 노드를 제외한 다른 노드들의 라벨 집합 — 라벨 유일성 검사에 사용.
   takenLabels: Set<string>;
 }
 
-export function NodeEditor({ node, onUpdate, takenLabels }: NodeEditorProps) {
+export function NodeEditor({ node, onUpdate, takenLabels, frames = [] }: NodeEditorProps) {
   const d = node.data as Record<string, unknown>;
+
+  if (node.type && node.type !== 'state-node' && node.type in AUTHORING_FIELDS) {
+    return <Section>
+      <UniqueLabelField label="요소 이름" value={String(d.label ?? '')} taken={takenLabels} onCommit={label => onUpdate({ label })} />
+      <ElementFields key={node.id} type={node.type} data={d} onApply={onUpdate} validatePatch={patch => sceneConflicts(node, frames, patch)} />
+    </Section>;
+  }
 
   if (node.type === 'state-node') {
     return (
@@ -94,34 +107,14 @@ export function NodeEditor({ node, onUpdate, takenLabels }: NodeEditorProps) {
   }
 
   if (node.type === 'slot-grid') {
-    const slotCount = (d.slotCount as number) ?? 0;
-    const slots = (d.slots as (number | null)[]) ?? [];
-    const resize = (count: number) => {
-      const next = Array.from({ length: count }, (_, i) => slots[i] ?? null);
-      onUpdate({ slotCount: count, slots: next });
-    };
-    const updateSlot = (i: number, raw: string) => {
-      const next = [...slots];
-      next[i] = raw === '' ? null : Number(raw);
-      onUpdate({ slots: next });
-    };
     return (
       <Section>
-        <NumField label="슬롯 개수" value={slotCount} min={1} max={16} onChange={resize} />
-        <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">초기 슬롯 값</label>
-          <div className="flex flex-wrap gap-1.5">
-            {Array.from({ length: slotCount }).map((_, i) => (
-              <input
-                key={i}
-                value={slots[i] ?? ''}
-                onChange={e => updateSlot(i, e.target.value)}
-                placeholder="-"
-                className="w-10 px-1 py-1 text-xs text-center border border-slate-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-indigo-300"
-              />
-            ))}
-          </div>
-        </div>
+        <UniqueLabelField label="칸 묶음 이름" value={String(d.label || '')} taken={takenLabels} onCommit={label => onUpdate({ label })} />
+        <SlotCountField count={slotCountOf(d)} onChange={count => onUpdate({ ...resizeSlotData(d, count), slotCount: count, slots: slotValues(d, count) })} />
+        <p className="text-xs font-semibold text-slate-600">기본 그림의 값</p>
+        <SlotGridFields values={slotValues(d)} onChange={slots => onUpdate({ slots })} />
+        <TextField label="다음 위치 표식 이름" value={String(d.pointerLabel || '다음')} onChange={pointerLabel => onUpdate({ pointerLabel })} />
+        <p className="text-xs leading-relaxed text-slate-500">장면별 값과 강조는 프레임 탭에서 바꿉니다. 그림의 칸을 눌러도 값을 수정할 수 있습니다.</p>
       </Section>
     );
   }
@@ -131,7 +124,9 @@ export function NodeEditor({ node, onUpdate, takenLabels }: NodeEditorProps) {
     return (
       <div className="space-y-4">
         <Section>
-          <TextField label="트랙 ID" value={(d.trackId as string) ?? ''} onChange={v => onUpdate({ trackId: v })} />
+          <TextField label="프로세스 이름" value={(d.trackId as string) ?? ''} onChange={v => onUpdate({ trackId: v })} />
+          <TextField label="간트 묶음 이름" value={String(d.ganttGroup || '기본 간트')} onChange={v => onUpdate({ ganttGroup: v })} />
+          <p className="text-xs leading-relaxed text-slate-500">같은 이름의 묶음은 시간축을 공유하며 함께 이동합니다. 막대를 눌러 기본 구간을 수정하세요.</p>
         </Section>
         <Divider />
         <Section title="블록 목록">

@@ -1,11 +1,19 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { Frame } from './types';
+import { ROUND_ROBIN_TEMPLATE } from './gantt/roundRobinExample';
+import { PAGE_REPLACEMENT_TEMPLATE } from './slots/pageReplacementExample';
+import { RESOURCE_ALLOCATION_TEMPLATE } from './resourceAllocationExample';
+import { REMAINING_TEMPLATES } from './examples/remaining';
 
 // ── 팔레트 원소 타입 ───────────────────────────────────────────────
 export type NodeComponentType =
   | 'state-node'
   | 'resource-square'
   | 'slot-grid'
+  | 'queue-strip'
+  | 'table-grid'
+  | 'memory-range'
+  | 'process-box'
   | 'counter-badge';
 
 export type ChartComponentType =
@@ -37,7 +45,15 @@ export interface PaletteItem {
 export const PALETTE_ITEMS: PaletteItem[] = [
   { type: 'state-node',    group: 'node',  label: 'State Node',      description: '상태/엔터티 (ST2)' },
   { type: 'text-label',    group: 'text',  label: 'Text Label',      description: '텍스트/주석' },
-  // 비활성: slot-grid, gantt-lane, counter-badge, resource-square, line-chart
+  { type: 'gantt-lane', group: 'chart', label: '간트 줄', description: '프로세스별 실행 구간' },
+  { type: 'slot-grid', group: 'node', label: '칸 묶음', description: '칸의 값과 장면별 변화' },
+  { type: 'resource-square', group: 'node', label: '자원', description: '자원 개수와 사용 상태' },
+  { type: 'counter-badge', group: 'node', label: '숫자 표시', description: '개수와 장면별 값' },
+  { type: 'queue-strip', group: 'node', label: '버퍼·큐', description: '용량과 항목 순서' },
+  { type: 'table-grid', group: 'node', label: '표', description: '행·열·셀 값' },
+  { type: 'memory-range', group: 'node', label: '메모리 구간', description: '주소와 구간 길이' },
+  { type: 'process-box', group: 'node', label: '프로세스 영역', description: '공유 공간과 스레드' },
+  { type: 'line-chart', group: 'chart', label: '꺾은선 그래프', description: '좌표와 현재 점' },
 ];
 
 export const PALETTE_GROUPS = [
@@ -150,226 +166,85 @@ export const ALL_OBO_TEMPLATES: OBOTemplate[] = [
       },
     ],
   },
-  {
-    id: 'S1',
-    name: '페이지 교체 (FIFO)',
-    category: 'memory',
-    description: 'Slot Grid',
-    defaultNodes: [
-      {
-        id: 'ref-string',
-        type: 'text-label',
-        position: { x: 40, y: 30 },
-        data: { text: '참조열: 7 0 1 2 0 3 0 4  (프레임 3개, FIFO)', variant: 'plain', color: '#334155' },
-      },
-      {
-        id: 'status',
-        type: 'text-label',
-        position: { x: 40, y: 62 },
-        data: { text: '프레임 탭에서 재생해 보세요 →', variant: 'pill', color: '#6366f1' },
-      },
-      {
-        id: 'frames',
-        type: 'slot-grid',
-        position: { x: 40, y: 110 },
-        data: { slotCount: 3, slots: [null, null, null], faultSlotIndex: null, hitSlotIndex: null },
-      },
-    ],
-    defaultEdges: [],
-    defaultFrames: [
-      {
-        id: 'f_1', label: '참조 7 (fault)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [7, null, null], faultSlotIndex: 0 },
-          status: { text: '참조 7 → FAULT · slot 0에 적재' },
-        },
-      },
-      {
-        id: 'f_2', label: '참조 0 (fault)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [7, 0, null], faultSlotIndex: 1 },
-          status: { text: '참조 0 → FAULT · slot 1에 적재' },
-        },
-      },
-      {
-        id: 'f_3', label: '참조 1 (fault)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [7, 0, 1], faultSlotIndex: 2 },
-          status: { text: '참조 1 → FAULT · slot 2에 적재 (프레임 가득 참)' },
-        },
-      },
-      {
-        id: 'f_4', label: '참조 2 (fault, 교체)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [2, 0, 1], faultSlotIndex: 0 },
-          status: { text: '참조 2 → FAULT · 가장 먼저 들어온 slot 0(7) 교체' },
-        },
-      },
-      {
-        id: 'f_5', label: '참조 0 (hit)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { hitSlotIndex: 1 },
-          status: { text: '참조 0 → HIT · slot 1' },
-        },
-      },
-      {
-        id: 'f_6', label: '참조 3 (fault, 교체)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [2, 3, 1], faultSlotIndex: 1 },
-          status: { text: '참조 3 → FAULT · 가장 먼저 들어온 slot 1(0) 교체' },
-        },
-      },
-      {
-        id: 'f_7', label: '참조 0 (fault, 교체)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [2, 3, 0], faultSlotIndex: 2 },
-          status: { text: '참조 0 → FAULT · 가장 먼저 들어온 slot 2(1) 교체' },
-        },
-      },
-      {
-        id: 'f_8', label: '참조 4 (fault, 교체)', highlightNodes: [], highlightEdges: [],
-        nodeDataOverrides: {
-          frames: { slots: [4, 3, 0], faultSlotIndex: 0 },
-          status: { text: '참조 4 → FAULT · 가장 먼저 들어온 slot 0(2) 교체 · 총 7 fault / 1 hit' },
-        },
-      },
-    ],
-  },
+  PAGE_REPLACEMENT_TEMPLATE,
   {
     id: 'G1',
     name: 'CPU 스케줄링 (FCFS)',
     category: 'cpu',
-    description: 'Timeline Block',
+    description: '간트 차트',
     defaultNodes: [
       {
         id: 'schedule-title',
         type: 'text-label',
         position: { x: 40, y: 20 },
-        data: { text: 'FCFS 스케줄링 · P1(3) → P2(3) → P3(3)', variant: 'plain', color: '#334155' },
+        data: { text: 'FCFS 예제 · P1 → P2 → P3 · 시간 단위', variant: 'plain', color: '#334155' },
       },
       {
         id: 'status',
         type: 'text-label',
         position: { x: 40, y: 52 },
-        data: { text: '프레임 탭에서 재생해 보세요 →', variant: 'pill', color: '#6366f1' },
+        data: { text: '같은 시간축에서 비교 · 막대를 눌러 구간 확인', variant: 'plain', color: '#64748b' },
       },
       {
         id: 'track-p1',
         type: 'gantt-lane',
         position: { x: 40, y: 100 },
-        data: { trackId: 'P1', blocks: [], activeBlockIndex: null },
+        data: { trackId: 'P1', ganttGroup: '기본 간트', axisEnd: 9, blocks: [{ start: 0, end: 3, colorKey: 'teal' }], activeBlockIndex: null },
       },
       {
         id: 'track-p2',
         type: 'gantt-lane',
-        position: { x: 40, y: 160 },
-        data: { trackId: 'P2', blocks: [], activeBlockIndex: null },
+        position: { x: 40, y: 228 },
+        data: { trackId: 'P2', ganttGroup: '기본 간트', axisEnd: 9, blocks: [{ start: 3, end: 6, colorKey: 'indigo' }], activeBlockIndex: null },
       },
       {
         id: 'track-p3',
         type: 'gantt-lane',
-        position: { x: 40, y: 220 },
-        data: { trackId: 'P3', blocks: [], activeBlockIndex: null },
+        position: { x: 40, y: 356 },
+        data: { trackId: 'P3', ganttGroup: '기본 간트', axisEnd: 9, blocks: [{ start: 6, end: 9, colorKey: 'amber' }], activeBlockIndex: null },
       },
     ],
     defaultEdges: [],
     defaultFrames: [
       {
-        id: 'f_1', label: 'P1 디스패치 (0~3)', highlightNodes: [], highlightEdges: [],
+        id: 'f_1', label: '시간 0 · P1이 실행을 시작합니다. 실행 구간은 0–3입니다.', cursorTime: 0, highlightNodes: [], highlightEdges: [],
         nodeDataOverrides: {
-          'track-p1': { blocks: [{ start: 0, end: 3, colorKey: 'teal' }], activeBlockIndex: 0 },
-          status: { text: 'P1 디스패치 (0~3)' },
+          'track-p1': { activeBlockIndex: 0 },
         },
       },
       {
-        id: 'f_2', label: 'P2 디스패치 (3~6)', highlightNodes: [], highlightEdges: [],
+        id: 'f_2', label: '시간 3 · P1이 끝나고 P2가 실행을 시작합니다.', cursorTime: 3, highlightNodes: [], highlightEdges: [],
         nodeDataOverrides: {
-          'track-p2': { blocks: [{ start: 3, end: 6, colorKey: 'indigo' }], activeBlockIndex: 0 },
-          status: { text: 'P1 종료 → P2 디스패치 (3~6)' },
+          'track-p2': { activeBlockIndex: 0 },
         },
       },
       {
-        id: 'f_3', label: 'P3 디스패치 (6~9)', highlightNodes: [], highlightEdges: [],
+        id: 'f_3', label: '시간 6 · P2가 끝나고 P3가 실행을 시작합니다.', cursorTime: 6, highlightNodes: [], highlightEdges: [],
         nodeDataOverrides: {
-          'track-p3': { blocks: [{ start: 6, end: 9, colorKey: 'amber' }], activeBlockIndex: 0 },
-          status: { text: 'P2 종료 → P3 디스패치 (6~9) · 모든 프로세스 완료' },
+          'track-p3': { activeBlockIndex: 0 },
         },
       },
+      { id: 'f_4', label: '시간 9 · 예제의 모든 실행 구간이 끝났습니다.', cursorTime: 9, highlightNodes: [], highlightEdges: [] },
     ],
   },
-  {
-    id: 'C1',
-    name: '세마포어 (생산자-소비자)',
-    category: 'sync',
-    description: 'Counter Badge',
-    defaultNodes: [
-      {
-        id: 'producer',
-        type: 'state-node',
-        position: { x: 40, y: 140 },
-        data: { label: 'Producer', shape: 'box', fill: '#0d9488' },
-      },
-      {
-        id: 'empty-badge',
-        type: 'counter-badge',
-        position: { x: 280, y: 80 },
-        data: { label: 'empty', min: 0, max: 3, value: 3, delta: null },
-      },
-      {
-        id: 'full-badge',
-        type: 'counter-badge',
-        position: { x: 280, y: 200 },
-        data: { label: 'full', min: 0, max: 3, value: 0, delta: null },
-      },
-      {
-        id: 'consumer',
-        type: 'state-node',
-        position: { x: 520, y: 140 },
-        data: { label: 'Consumer', shape: 'box', fill: '#7c3aed' },
-      },
-    ],
-    defaultEdges: [
-      {
-        id: 'e-producer-empty',
-        source: 'producer', sourceHandle: 'r',
-        target: 'empty-badge', targetHandle: 'l',
-        type: 'obo-edge',
-        data: { label: 'wait(empty)', direction: 'forward', style: 'dashed', role: 'request', emphasize: false },
-      },
-      {
-        id: 'e-producer-full',
-        source: 'producer', sourceHandle: 'r',
-        target: 'full-badge', targetHandle: 'l',
-        type: 'obo-edge',
-        data: { label: 'signal(full)', direction: 'forward', style: 'solid', role: 'allocation', emphasize: false },
-      },
-      {
-        id: 'e-consumer-full',
-        source: 'consumer', sourceHandle: 'l',
-        target: 'full-badge', targetHandle: 'r',
-        type: 'obo-edge',
-        data: { label: 'wait(full)', direction: 'forward', style: 'dashed', role: 'request', emphasize: false },
-      },
-      {
-        id: 'e-consumer-empty',
-        source: 'consumer', sourceHandle: 'l',
-        target: 'empty-badge', targetHandle: 'r',
-        type: 'obo-edge',
-        data: { label: 'signal(empty)', direction: 'forward', style: 'solid', role: 'allocation', emphasize: false },
-      },
-    ],
-  },
-  // 비활성: G2, P2, P3, S3
+  ROUND_ROBIN_TEMPLATE,
+  RESOURCE_ALLOCATION_TEMPLATE,
+  ...REMAINING_TEMPLATES,
+  // 비활성: P2, P3
 ];
 
-// 현재 활성 템플릿: ST2만. 나머지(S1, G1, C1)는 정의는 보존하되 팔레트/사이드바에 노출하지 않음.
-const ACTIVE_TEMPLATE_IDS = ['ST2'];
+// 검토한 템플릿을 노출하고 나머지는 정의만 보존한다.
+const ACTIVE_TEMPLATE_IDS = ['ST2', 'G1', 'G2', 'S1', 'S3', 'C1', 'TLB', 'MF', 'PT', 'IN', 'DS'];
 
 export const OBO_TEMPLATES: OBOTemplate[] = ALL_OBO_TEMPLATES.filter(
   t => ACTIVE_TEMPLATE_IDS.includes(t.id)
 );
 
 export const CATEGORIES = [
-  { id: 'all', label: '전체', count: 1 },
-  { id: 'cpu', label: 'CPU',  count: 1 },
+  { id: 'all', label: '전체', count: 11 },
+  { id: 'cpu', label: 'CPU',  count: 3 },
+  { id: 'memory', label: '메모리', count: 3 },
+  { id: 'sync', label: '동기화', count: 2 },
+  { id: 'process', label: '프로세스', count: 1 },
+  { id: 'fs', label: '파일·디스크', count: 2 },
 ] as const;

@@ -1,4 +1,5 @@
 "use client";
+import { problemApi, problemToken } from "@/lib/problemApi";
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
@@ -30,13 +31,13 @@ function SubmissionDetailContent() {
 
   useEffect(() => {
     const fetchProfileImage = async () => {
-      const token = localStorage.getItem("token");
+      const token = problemToken();
       if (!token) return;
 
       setIsLoggedIn(true);
 
       try {
-        const response = await fetch("https://diveon.net/api/profile/show", {
+        const response = await fetch(problemApi("/api/profile/show"), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -70,13 +71,13 @@ function SubmissionDetailContent() {
 
     const fetchSubmissionDetail = async () => {
       setIsLoading(true);
-      const token = localStorage.getItem("token");
+      const token = problemToken();
       if (token) {
         setIsLoggedIn(true);
       }
 
       try {
-        const res = await fetch(`https://diveon.net/api/submissions/${submissionId}/result`, {
+        const res = await fetch(problemApi(`/api/submissions/${submissionId}/result`), {
           headers: { "Authorization": `Bearer ${token}` }
         });
 

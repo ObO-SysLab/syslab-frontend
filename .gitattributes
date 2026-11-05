@@ -1,0 +1,125 @@
+# Preserve recorded OBO source bytes across checkout platforms.
+# Explicit paths keep unrelated files under their existing policy.
+/.gitignore text eol=crlf
+/app/challenges/create/page.tsx text eol=crlf
+/app/challenges/detail/page.tsx text eol=crlf
+/app/challenges/obo/lab/page.tsx text eol=lf
+/app/challenges/obo/page.tsx text eol=crlf
+/app/contests/challenge/page.tsx text eol=crlf
+/app/test/problem/address-translation-preview/page.tsx text eol=crlf
+/app/test/problem/disk-seek-preview/page.tsx text eol=crlf
+/app/test/problem/elements-preview/page.tsx text eol=lf
+/app/test/problem/gantt-preview/page.tsx text eol=lf
+/app/test/problem/inode-access-preview/page.tsx text eol=crlf
+/app/test/problem/memory-fragmentation-preview/page.tsx text eol=crlf
+/app/test/problem/page-replacement-preview/page.tsx text eol=lf
+/app/test/problem/process-threads-preview/page.tsx text eol=crlf
+/app/test/problem/producer-consumer-preview/page.tsx text eol=crlf
+/app/test/problem/resource-allocation-preview/page.tsx text eol=lf
+/app/test/problem/st2-preview/page.tsx text eol=lf
+/components/obo/OBOEditorCanvas.tsx text eol=crlf
+/components/obo/OBOEditorPage.tsx text eol=crlf
+/components/obo/OboEditorSection.tsx text eol=crlf
+/components/obo/OboPlayer.tsx text eol=crlf
+/components/obo/authoring/ElementFields.tsx text eol=lf
+/components/obo/authoring/model.test.ts text eol=lf
+/components/obo/authoring/model.ts text eol=lf
+/components/obo/edges/OboEdge.tsx text eol=crlf
+/components/obo/examples/TemplatePreview.tsx text eol=lf
+/components/obo/examples/memory.ts text eol=lf
+/components/obo/examples/remaining.test.ts text eol=lf
+/components/obo/examples/remaining.ts text eol=lf
+/components/obo/gantt/GanttBlockDialog.tsx text eol=lf
+/components/obo/gantt/GanttBlockList.tsx text eol=lf
+/components/obo/gantt/GanttContext.ts text eol=lf
+/components/obo/gantt/model.test.ts text eol=lf
+/components/obo/gantt/model.ts text eol=lf
+/components/obo/gantt/roundRobinExample.test.ts text eol=lf
+/components/obo/gantt/roundRobinExample.ts text eol=lf
+/components/obo/lib/explanations.test.ts text eol=lf
+/components/obo/lib/frameEdges.test.ts text eol=lf
+/components/obo/lib/frameEdges.ts text eol=lf
+/components/obo/lib/frameEdits.test.ts text eol=lf
+/components/obo/lib/frameEdits.ts text eol=lf
+/components/obo/lib/overrideFields.ts text eol=crlf
+/components/obo/lib/st2Preview.ts text eol=lf
+/components/obo/lib/validateObo.ts text eol=crlf
+/components/obo/nodes/GanttLane.tsx -text
+/components/obo/nodes/LineChart.tsx -text
+/components/obo/nodes/MemoryRangeNode.tsx text eol=lf
+/components/obo/nodes/ProcessBoxNode.tsx -text
+/components/obo/nodes/QueueStripNode.tsx -text
+/components/obo/nodes/ResourceSquare.tsx text eol=crlf
+/components/obo/nodes/SlotGrid.tsx -text
+/components/obo/nodes/StateNode.tsx -text
+/components/obo/nodes/TableGridNode.tsx -text
+/components/obo/nodes/defaultNodeData.ts text eol=crlf
+/components/obo/nodes/index.ts text eol=crlf
+/components/obo/panel/FramePanel.tsx text eol=crlf
+/components/obo/panel/NodeProps.tsx text eol=crlf
+/components/obo/panel/Palette.tsx text eol=crlf
+/components/obo/panel/PropertyPanel.tsx text eol=crlf
+/components/obo/panel/fields/ListEditor.tsx text eol=crlf
+/components/obo/panel/overrides/NodeOverrideEditor.tsx text eol=crlf
+/components/obo/panel/overrides/SlotGridOverrideForm.tsx -text
+/components/obo/panel/overrides/TimelineBlockOverrideForm.tsx -text
+/components/obo/resourceAllocationExample.ts text eol=lf
+/components/obo/runtime/checker.mjs text eol=lf
+/components/obo/runtime/contracts.mjs text eol=crlf
+/components/obo/runtime/cpu.mjs text eol=lf
+/components/obo/runtime/document.d.mts text eol=lf
+/components/obo/runtime/document.mjs text eol=lf
+/components/obo/runtime/document.test.mjs text eol=lf
+/components/obo/runtime/examples.ts text eol=lf
+/components/obo/runtime/flows.mjs text eol=lf
+/components/obo/runtime/index.d.mts text eol=lf
+/components/obo/runtime/index.mjs text eol=lf
+/components/obo/runtime/memory.mjs text eol=lf
+/components/obo/runtime/projection.d.mts text eol=lf
+/components/obo/runtime/projection.mjs text eol=lf
+/components/obo/runtime/runtime.test.mjs text eol=lf
+/components/obo/runtime/simulation.worker.mjs text eol=lf
+/components/obo/runtime/synchronization.mjs text eol=lf
+/components/obo/runtime/validation.mjs text eol=lf
+/components/obo/simulation/CodingExampleControl.tsx text eol=lf
+/components/obo/simulation/CodingRules.tsx text eol=lf
+/components/obo/simulation/InputForm.tsx text eol=lf
+/components/obo/simulation/PublicCasePlayer.tsx text eol=lf
+/components/obo/simulation/SimulationEditor.tsx text eol=lf
+/components/obo/simulation/SimulationPlayer.tsx text eol=lf
+/components/obo/simulation/SimulationScene.tsx text eol=lf
+/components/obo/simulation/explanationGroups.test.ts text eol=lf
+/components/obo/simulation/explanationGroups.ts text eol=lf
+/components/obo/simulation/useSimulation.ts text eol=lf
+/components/obo/slots/SlotGridContext.ts text eol=lf
+/components/obo/slots/SlotGridFields.tsx text eol=lf
+/components/obo/slots/SlotValueDialog.tsx text eol=lf
+/components/obo/slots/model.test.ts text eol=lf
+/components/obo/slots/model.ts text eol=lf
+/components/obo/slots/pageReplacementExample.ts text eol=lf
+/components/obo/templates.ts text eol=crlf
+/components/obo/types.ts text eol=crlf
+/lib/contest-submissions.test.ts text eol=lf
+/lib/contest-submissions.ts text eol=lf
+/package.json text eol=crlf
+/scripts/export-obo-browser.mjs text eol=lf
+/scripts/export-obo-runtime.mjs text eol=lf
+/tsconfig.json text eol=crlf
+
+# D35: preserve verified integration bytes, including mixed line endings.
+/app/test/problem/service-preview/page.tsx -text
+/components/obo/DiagramOutputPlayer.tsx -text
+/components/obo/authoring/problemDraft.ts -text
+/components/obo/runtime/diagramTrace.test.mjs -text
+/components/obo/runtime/freeDiagram.d.mts -text
+/components/obo/runtime/freeDiagram.mjs -text
+/components/obo/runtime/freeDiagram.test.mjs -text
+/lib/problemApi.ts -text
+
+# D35: preserve verified integration bytes, including mixed line endings.
+/.gitattributes -text
+
+# Preserve public-contract bytes and reviewed new-source evidence.
+/components/obo/runtime/diagram-contract.json -text
+/components/obo/guidance/codingContract.ts -text
+/components/obo/guidance/codingContract.test.ts -text

@@ -1,4 +1,7 @@
 "use client";
+import {DiagramOutputPlayer,type DiagramOutputRecord} from '@/components/obo/DiagramOutputPlayer';
+import type {OboCodingSchema} from '@/components/obo/types';
+import {problemApi,problemToken} from '@/lib/problemApi';
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -8,23 +11,37 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { OboPlayer } from "@/components/obo/OboPlayer";
-import { resolveOboBlob, type OboBlob, type ProblemOboData } from "@/components/obo/types";
+import { SimulationPlayer } from '@/components/obo/simulation/SimulationPlayer';
+import type { SimulationDocument } from '@/components/obo/runtime/document.mjs';
+import { PublicCasePlayer, type PublicCase } from '@/components/obo/simulation/PublicCasePlayer';
+import type {ExplanationChoice} from '@/components/obo/simulation/explanationGroups';
+import { listOboExplanations, type OboBlob, type ProblemOboData } from "@/components/obo/types";
 
-type PageError = "no_id" | "not_found" | null;
+type PageError = "no_id" | "not_found" | "locked" | "pending" | null;
 
 function OboResultContent() {
   const searchParams = useSearchParams();
   const submissionId = searchParams.get("id");
+  const contestSubmissionId = searchParams.get('contestSubmissionId');
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<PageError>(null);
   const [probId, setProbId] = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null | undefined>(undefined);
-  const [selectedChoiceIndex, setSelectedChoiceIndex] = useState<number | null>(null);
-  const [blob, setBlob] = useState<OboBlob | null>(null);
+  const [explanations, setExplanations] = useState<ReturnType<typeof listOboExplanations>>([]);
+  const [activeExplanation, setActiveExplanation] = useState('');
+  const [legacyRevision, setLegacyRevision] = useState(false);
+  const [simulation,setSimulation] = useState<SimulationDocument|null>(null);
+  const [publicCases,setPublicCases] = useState<PublicCase[]>([]);
+  const [diagramRecords,setDiagramRecords]=useState<DiagramOutputRecord[]>([]);
+  const [codingSchema,setCodingSchema]=useState<OboCodingSchema|null>(null);
+  const [availableAt,setAvailableAt] = useState<string|null>(null);
+  const [choices,setChoices]=useState<ExplanationChoice[]>([]);
+  const [selectedAnswers,setSelectedAnswers]=useState<number[]>([]);
+  const blob = explanations.find(item => item.id === activeExplanation)?.blob ?? explanations[0]?.blob ?? null;
 
   useEffect(() => {
-    if (!submissionId) {
+    if (!submissionId && !contestSubmissionId) {
       setError("no_id");
       setIsLoading(false);
       return;
@@ -32,35 +49,45 @@ function OboResultContent() {
 
     const load = async () => {
       setIsLoading(true);
-      const token = localStorage.getItem("token");
+      setError(null);setAvailableAt(null);
+      const token = problemToken();
       const headers: HeadersInit = { "Authorization": `Bearer ${token}` };
 
       try {
-        // 1. 제출 결과에서 문제 ID(및 객관식이라면 선택한 보기) 확인
-        const subRes = await fetch(`https://diveon.net/api/submissions/${submissionId}/result`, { headers });
+        const subRes = await fetch(contestSubmissionId
+          ? problemApi(`/api/challenges/obo/contest-submission?id=${contestSubmissionId}`)
+          : problemApi(`/api/submissions/${submissionId}/result`), { headers,cache:'no-store' });
         if (!subRes.ok) {
-          setError("not_found");
+          setError(subRes.status===409?'pending':'not_found');
           return;
         }
         const subJson = await subRes.json();
-        const subData = subJson.data;
+        const subData = contestSubmissionId ? subJson : subJson.data;
         setProbId(subData.probId);
         setIsCorrect(subData.isCorrect);
-        let choiceIndex: number | null = null;
-        if (Array.isArray(subData.selectedAnswers) && subData.selectedAnswers.length > 0) {
-          choiceIndex = subData.selectedAnswers[subData.selectedAnswers.length - 1];
-          setSelectedChoiceIndex(choiceIndex);
-        }
 
         // 2. 문제에 연결된 OBO JSON 조회 (없으면 200 + null body)
-        const oboRes = await fetch(`https://diveon.net/api/challenges/obo?id=${subData.probId}`, { headers });
-        if (oboRes.status === 404) {
+        let released = subData.explanation;
+        if(!contestSubmissionId){
+        const oboRes = await fetch(problemApi(`/api/challenges/obo/submission?id=${submissionId}`), { headers, cache: 'no-store' });
+        if (!oboRes.ok) {
           setError("not_found");
           return;
         }
         const oboText = await oboRes.text();
-        const oboJson: ProblemOboData | OboBlob | null = oboText ? JSON.parse(oboText) : null;
-        setBlob(resolveOboBlob(oboJson, choiceIndex));
+        released = oboText ? JSON.parse(oboText) : null;
+        }
+        if(released?.lockedReason){setError('locked');setAvailableAt(released.availableAt??null);return;}
+        setLegacyRevision(released?.legacyRevision ?? false);
+        setPublicCases((released?.publicCases ?? []).filter((r:{kind?:string})=>r.kind!=='diagram'));
+        setDiagramRecords((released?.publicCases ?? []).filter((r:{kind?:string})=>r.kind==='diagram'));
+        setCodingSchema(released?.obo?.mode==='coding_diff'?released.obo.codingDiff:null);
+        setChoices(released?.choices??[]);setSelectedAnswers(Array.isArray(subData.selectedAnswers)?subData.selectedAnswers:[]);
+        const oboJson: ProblemOboData | OboBlob | null = released?.obo ?? null;
+        setSimulation(oboJson && 'mode' in oboJson && oboJson.mode === 'simulation' ? oboJson.simulation ?? null : null);
+        const items = listOboExplanations(oboJson, Array.isArray(subData.selectedAnswers) ? subData.selectedAnswers : []);
+        setExplanations(items);
+        setActiveExplanation(items[0]?.id ?? '');
       } catch (e) {
         console.error("OBO 결과 로드 실패:", e);
         setError("not_found");
@@ -70,7 +97,7 @@ function OboResultContent() {
     };
 
     load();
-  }, [submissionId]);
+  }, [submissionId,contestSubmissionId]);
 
   if (isLoading) {
     return (
@@ -95,6 +122,12 @@ function OboResultContent() {
       </div>
     );
   }
+  if(error==='locked'||error==='pending')return <div className="min-h-screen bg-slate-50 p-8"><Card className="mx-auto max-w-xl space-y-3 p-8">
+    <h1 className="text-xl font-bold">해설이 아직 공개되지 않았습니다.</h1>
+    <p className="text-sm text-slate-600">{error==='pending'?'본인 제출의 채점이 완료되면 해설을 확인할 수 있습니다.':'참가 중인 대회가 끝나면 이 문제의 일반 학습 해설도 열립니다.'}</p>
+    {availableAt&&<p className="text-sm">공개 예정: {availableAt.replace('T',' ')}</p>}
+    <Link href={probId?`/challenges/detail?id=${probId}`:'/challenges'} className="text-sm text-indigo-600">문제로 돌아가기</Link>
+  </Card></div>;
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-6">
@@ -124,9 +157,20 @@ function OboResultContent() {
         </div>
 
         <div className="w-full max-w-4xl mx-auto">
-          {blob && blob.nodes.length > 0 ? (
+          {publicCases.length>0&&<div className="mb-8"><PublicCasePlayer records={publicCases}/></div>}
+          {codingSchema&&diagramRecords.length>0&&<div className="mb-8"><DiagramOutputPlayer schema={codingSchema} records={diagramRecords}/></div>}
+          {codingSchema&&blob&&<h2 className="mb-3 font-bold">출제자의 참고 출력 기록</h2>}
+          {legacyRevision && <p className="mb-3 text-sm text-slate-500">이전 제출은 당시 문제 설정이 보관되지 않아 현재 등록된 해설을 보여줍니다.</p>}
+          {explanations.length > 1 && <div className="mb-3 flex flex-wrap gap-2" aria-label="보기별 해설">
+            {explanations.map(item => <Button key={item.id} variant={item.id === activeExplanation ? 'default' : 'outline'} onClick={() => setActiveExplanation(item.id)}>
+              {item.label}{item.selected ? ' · 선택한 보기' : ''}
+            </Button>)}
+          </div>}
+          {simulation?.question.ioFormat === 'rr-segments-v1' ? (
+            publicCases.length === 0 && <p className="text-sm text-slate-500">공개된 실행 구간이 없습니다.</p>
+          ) : simulation ? <SimulationPlayer document={simulation} choices={choices} selectedAnswers={selectedAnswers}/> : blob && blob.nodes.length > 0 ? (
             <Card className="border-slate-100 shadow-xl bg-white overflow-hidden" style={{ height: 560 }}>
-              <OboPlayer blob={blob} />
+              <OboPlayer key={activeExplanation} blob={blob} />
             </Card>
           ) : (
             <Card className="border-slate-100 shadow-sm bg-white p-12 text-center text-slate-400 font-medium">

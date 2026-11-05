@@ -1,55 +1,31 @@
-'use client';
-
+﻿'use client';
 import type { OverrideFormProps } from './NodeOverrideEditor';
+import { SlotGridFields } from '../../slots/SlotGridFields';
+import { slotCountOf, slotValues, validSlotIndex, type SlotEventField } from '../../slots/model';
 
 export function SlotGridOverrideForm({ node, base, override, onFieldChange, onFieldClear }: OverrideFormProps) {
-  const slotCount = (node.data as { slotCount?: number }).slotCount ?? 0;
-  const slots = (override.slots as (number | null)[] | undefined) ?? (base.slots as (number | null)[] | undefined) ?? [];
-  const faultSlotIndex = (override.faultSlotIndex as number | null | undefined) ?? null;
-  const hitSlotIndex = (override.hitSlotIndex as number | null | undefined) ?? null;
-
-  const updateSlot = (i: number, raw: string) => {
-    const next = Array.from({ length: slotCount }, (_, j) => slots[j] ?? null);
-    next[i] = raw === '' ? null : Number(raw);
-    onFieldChange('slots', next);
-  };
-
-  const eventSelect = (
-    label: string,
-    field: 'faultSlotIndex' | 'hitSlotIndex',
-    value: number | null,
-  ) => (
-    <div className="space-y-1">
-      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{label}</label>
-      <select
-        value={value ?? ''}
-        onChange={e => e.target.value === '' ? onFieldClear(field) : onFieldChange(field, Number(e.target.value))}
-        className="w-full px-1.5 py-1 text-xs border border-slate-200 rounded bg-white"
-      >
-        <option value="">없음</option>
-        {Array.from({ length: slotCount }).map((_, i) => <option key={i} value={i}>슬롯 {i}</option>)}
-      </select>
-    </div>
-  );
-
-  return (
-    <div className="space-y-3">
-      <div className="space-y-1">
-        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">슬롯 값</label>
-        <div className="flex flex-wrap gap-1.5">
-          {Array.from({ length: slotCount }).map((_, i) => (
-            <input
-              key={i}
-              value={slots[i] ?? ''}
-              onChange={e => updateSlot(i, e.target.value)}
-              placeholder="-"
-              className="w-10 px-1 py-1 text-xs text-center border border-slate-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-indigo-300"
-            />
-          ))}
-        </div>
-      </div>
-      {eventSelect('폴트 슬롯 (이번 프레임)', 'faultSlotIndex', faultSlotIndex)}
-      {eventSelect('히트 슬롯 (이번 프레임)', 'hitSlotIndex', hitSlotIndex)}
-    </div>
-  );
+  const count = slotCountOf(node.data);
+  const values = slotValues({ ...base, ...override }, count);
+  const select = (label: string, field: SlotEventField) => <label className="block space-y-1 text-xs text-slate-600">{label}
+    <select aria-label={label} value={validSlotIndex(override[field], count) ? String(override[field]) : ''}
+      onChange={e => {
+        if (e.target.value === '') onFieldClear(field); else {
+          onFieldChange(field, Number(e.target.value));
+          if (field === 'faultSlotIndex') onFieldClear('hitSlotIndex');
+          if (field === 'hitSlotIndex') onFieldClear('faultSlotIndex');
+        }
+      }} className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs">
+      <option value="">없음</option>
+      {Array.from({ length: count }, (_, i) => <option key={i} value={i}>칸 {i}</option>)}
+    </select>
+  </label>;
+  return <div className="space-y-3" data-slot-override={node.id}>
+    <p className="text-xs leading-relaxed text-slate-500">값은 다음 장면에도 이어집니다. 아래 표식은 이 장면에만 표시됩니다.</p>
+    <SlotGridFields values={values} onChange={slots => onFieldChange('slots', slots)} />
+    {'slots' in override && <button type="button" className="text-xs text-indigo-600 underline" onClick={() => onFieldClear('slots')}>값 변경 취소 · 앞 장면 값 사용</button>}
+    {select('적재·교체 칸 (FAULT)', 'faultSlotIndex')}
+    {select('이미 있는 칸 (HIT)', 'hitSlotIndex')}
+    {select('이번 참조 위치', 'activeSlotIndex')}
+    {select('다음 위치 표시', 'pointerSlotIndex')}
+  </div>;
 }

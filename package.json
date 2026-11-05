@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/export-obo-browser.mjs",
+    "prebuild": "node scripts/export-obo-browser.mjs",
+    "pretest": "node scripts/export-obo-browser.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

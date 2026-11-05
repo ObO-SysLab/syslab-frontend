@@ -1,6 +1,8 @@
 "use client";
+import {problemApi,problemToken} from "@/lib/problemApi";
 
 import Link from "next/link";
+import { isSubmissionPending } from "@/lib/submission-status";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -18,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { OboPlayer } from "@/components/obo/OboPlayer";
+import { CodingRules } from '@/components/obo/simulation/CodingRules';
 import { resolveOboBlob, type OboBlob, type ProblemOboData } from "@/components/obo/types";
 import { Header } from "@/components/Header";
 
@@ -95,13 +98,13 @@ function ProblemDetailContent() {
 
   useEffect(() => {
     const fetchProfileImage = async () => {
-      const token = localStorage.getItem("token");
+      const token = problemToken();
       if (!token) return;
 
       setIsLoggedIn(true);
 
       try {
-        const response = await fetch("https://diveon.net/api/profile/show", {
+        const response = await fetch(problemApi("/api/profile/show"), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -131,14 +134,14 @@ function ProblemDetailContent() {
     const fetchPageData = async () => {
       setIsLoading(true); // 로딩 시작
 
-      const token = localStorage.getItem("token");
+      const token = problemToken();
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
       try {
         const [probRes, rankRes] = await Promise.all([
-          fetch(`https://diveon.net/api/problems/${probId}`, { headers }),
-          fetch(`https://diveon.net/api/problems/${probId}/ranking?page=1`, { headers }) // 20개씩 가져오는 1페이지 노크
+          fetch(problemApi(`/api/problems/${probId}`), { headers }),
+          fetch(problemApi(`/api/problems/${probId}/ranking?page=1`), { headers }) // 20개씩 가져오는 1페이지 노크
         ]);
 
         // 1. 문제 상세 정보 매립
@@ -181,9 +184,9 @@ function ProblemDetailContent() {
 
   // [API] 채점 탭 데이터 요청
   const fetchSubmissions = async () => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/board?page=1&size=50`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/board?page=1&size=50`), {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -192,7 +195,7 @@ function ProblemDetailContent() {
 
         // 1. 서버 응답 중 아직 채점이 안 끝난(isCorrect가 null인) 항목들은 폴링 대상(_isPending)으로 지정
         items = items.map((item: any) => {
-          if (item.isCorrect === null || item.submissionStatus === "PENDING" || item.submissionStatus === "JUDGING") {
+          if (isSubmissionPending(item)) {
             return { ...item, _isPending: true };
           }
           return item;
@@ -232,13 +235,12 @@ function ProblemDetailContent() {
     if (pendingItems.length === 0) return;
 
     const timer = setTimeout(async () => {
-      const token = localStorage.getItem("token");
-      let needsBoardRefresh = false;
+      const token = problemToken();
 
       const results = await Promise.all(
         pendingItems.map(async (item) => {
           try {
-            const res = await fetch(`https://diveon.net/api/submissions/${item.submissionId}/status`, {
+            const res = await fetch(problemApi(`/api/submissions/${item.submissionId}/status`), {
               headers: { "Authorization": `Bearer ${token}` }
             });
             if (res.ok) {
@@ -259,8 +261,8 @@ function ProblemDetailContent() {
           if (updatedData) {
             // 채점이 끝났다면?
             if (updatedData.submissionStatus === "COMPLETED" || updatedData.submissionStatus === "FAILED") {
-              needsBoardRefresh = true;
-              return { ...sub, progress: 100, submissionStatus: updatedData.submissionStatus };
+
+              return { ...sub, _isPending: false, progress: 100, submissionStatus: updatedData.submissionStatus };
             }
             return { ...sub, progress: updatedData.progress, submissionStatus: updatedData.submissionStatus };
           }
@@ -269,7 +271,7 @@ function ProblemDetailContent() {
       );
 
       // 하나라도 'COMPLETED'가 떨어졌다면 보드 갱신
-      if (needsBoardRefresh) {
+      if (results.some(r => r && (r.submissionStatus === "COMPLETED" || r.submissionStatus === "FAILED"))) {
         fetchSubmissions();
       }
 
@@ -286,9 +288,9 @@ function ProblemDetailContent() {
     }
 
     setIsSubmittingAnswer(true);
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/submissions/grade`, {
+      const res = await fetch(problemApi(`/api/submissions/grade`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
@@ -332,10 +334,10 @@ function ProblemDetailContent() {
 
   // [API] 댓글 목록 새로고침
   const fetchComments = async () => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     const headers: HeadersInit = { "Authorization": `Bearer ${token}` };
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments`, { headers });
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments`), { headers });
       const text = await res.text();
 
       // 텍스트가 비어있지 않은 경우에만 JSON 파싱을 시도합니다.
@@ -357,12 +359,12 @@ function ProblemDetailContent() {
 
   // [API] 랭킹 불러오기
   const fetchRanking = async (page = 1) => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     const headers: HeadersInit = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/ranking?page=${page}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/ranking?page=${page}`), {
         method: "GET",
         headers
       });
@@ -391,10 +393,10 @@ function ProblemDetailContent() {
   const handleOpenGroupModal = async () => {
     setShowGroupModal(true);
     setIsFetchingGroups(true);
-    const token = localStorage.getItem("token");
+    const token = problemToken();
 
     try {
-      const res = await fetch(`https://diveon.net/api/groups/me?problemId=${probId}`, {
+      const res = await fetch(problemApi(`/api/groups/me?problemId=${probId}`), {
         method: "GET",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -412,9 +414,9 @@ function ProblemDetailContent() {
 
   // [API] 선택한 그룹에 문제 추가하기
   const handleAddToGroup = async (targetGroupId: number) => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/groups/${targetGroupId}/problems`, {
+      const res = await fetch(problemApi(`/api/groups/${targetGroupId}/problems`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -444,6 +446,7 @@ function ProblemDetailContent() {
         // 이미 선택된 보기를 다시 누르면 제거
         return prev.filter((i) => i !== index);
       } else {
+        if (problemData?.selectionMode === 'single') return [index];
         if (problemData?.isOrderedAnswer) {
           return [...prev, index];
         }
@@ -457,9 +460,9 @@ function ProblemDetailContent() {
   const handleDeleteProblem = async () => {
     if (!confirm("정말로 이 문제를 삭제하시겠습니까?\n삭제된 문제는 복구할 수 없습니다.")) return;
 
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}`), {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -482,9 +485,9 @@ function ProblemDetailContent() {
 
   // [API] 특정 댓글(대댓글 포함) 상세 조회
   const handleSelectComment = async (comment: any) => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${comment.commentId}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments/${comment.commentId}`), {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const json = await res.json();
@@ -499,13 +502,13 @@ function ProblemDetailContent() {
     const content = parentId ? replyInput : commentInput;
     if (!content.trim()) return;
 
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
       // API 명세에 맞게 isPrivate 추가 및 parentId 선택적 할당
       const payload: any = { content, isPrivate: false };
       if (parentId) payload.parentId = parentId;
 
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(payload) // 수정된 payload 전송
@@ -527,9 +530,9 @@ function ProblemDetailContent() {
     e.stopPropagation(); // 클릭 이벤트 버블링 방지 (상세 창으로 넘어가지 않게)
     if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
 
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${commentId}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments/${commentId}`), {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -546,9 +549,9 @@ function ProblemDetailContent() {
     e.stopPropagation();
     if (!editContent || !editContent.trim()) return;
 
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${commentId}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments/${commentId}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ content: editContent, isPrivate: false })
@@ -566,7 +569,7 @@ function ProblemDetailContent() {
 
   // 페이지 로드 시 로그인 상태 확인
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     if (token) {
       setIsLoggedIn(true);
     }
@@ -863,10 +866,10 @@ function ProblemDetailContent() {
                       const isSelected = orderIndex !== -1;
 
                       return (
-                        <div
+                        <button type="button" aria-pressed={isSelected}
                           key={choice.index}
                           onClick={() => handleChoiceToggle(choice.index)}
-                          className={`p-4 border-2 rounded-xl flex items-center gap-4 cursor-pointer transition-all ${isSelected
+                          className={`w-full text-left p-4 border-2 rounded-xl flex items-center gap-4 cursor-pointer transition-all ${isSelected
                             ? "border-indigo-600 bg-indigo-50/50 shadow-sm"
                             : "border-slate-100 bg-slate-50 hover:border-slate-300 hover:bg-slate-100"
                             }`}
@@ -882,13 +885,14 @@ function ProblemDetailContent() {
                           <span className={`text-sm ${isSelected ? "text-indigo-950 font-bold" : "text-slate-700"}`}>
                             {choice.content}
                           </span>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
                 )}
 
                 {/* 코딩형 입출력 예시 동적 렌더링 */}
+                {problemData?.type==='coding'&&<CodingRules contract={problemData.oboContract} inputDescription={problemData.inputDescription} outputDescription={problemData.outputDescription} allowedLanguages={problemData.constraints?.allowedLanguages}/>}
                 {problemData?.type === "coding" && problemData?.testcases && problemData.testcases.length > 0 && (
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* 입력 예시 */}
@@ -1001,15 +1005,12 @@ function ProblemDetailContent() {
                         const isCoding = problemData?.type === "coding";
 
                         // 렌더링 상태 판별
-                        const isPending = sub._isPending ||
-                          sub.isCorrect === null ||
-                          sub.submissionStatus === "PENDING" ||
-                          sub.submissionStatus === "JUDGING";
+                        const isPending = isSubmissionPending(sub);
                         const isSuccess = sub.isCorrect === true;
                         const isFailed = sub.submissionStatus === "FAILED";
 
                         let resultText = "결과 대기";
-                        if (isFailed) resultText = "시스템 오류";
+                        if (isFailed) resultText = "채점 실패 · 잠시 후 다시 제출해주세요";
                         else if (isPending) resultText = `채점 중 (${sub.progress || 0}%)`;
                         else resultText = isSuccess ? "정답" : "오답";
 
@@ -1063,8 +1064,8 @@ function ProblemDetailContent() {
                             {/* 코딩 문제 전용 데이터 */}
                             {isCoding && (
                               <>
-                                <TableCell className="text-xs text-slate-500">{!isPending && sub.memoryUsage !== undefined ? `${sub.memoryUsage} MB` : "-"}</TableCell>
-                                <TableCell className="text-xs text-slate-500">{!isPending && sub.runtime !== undefined ? `${sub.runtime} ms` : "-"}</TableCell>
+                                <TableCell className="text-xs text-slate-500">{!isPending && sub.memoryUsage != null ? `${sub.memoryUsage} MB` : "-"}</TableCell>
+                                <TableCell className="text-xs text-slate-500">{!isPending && sub.runtime != null ? `${sub.runtime} ms` : "-"}</TableCell>
                                 <TableCell className="text-xs font-bold text-slate-600">{!isPending ? (sub.language || "-") : "-"}</TableCell>
                               </>
                             )}
@@ -1089,7 +1090,7 @@ function ProblemDetailContent() {
                               )}
 
                               {/* 2. 코딩: 코드 보기 / OBO 보기 2가지 버튼 제공 */}
-                              {problemData?.type === "coding" && !isPending && (
+                              {problemData?.type === "coding" && !isPending && !isFailed && (
                                 <div className="flex justify-center gap-1.5">
                                   <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold text-slate-600" asChild>
                                     <Link href={`/challenges/submissions?id=${sub.submissionId}`}>코드</Link>
@@ -1101,7 +1102,7 @@ function ProblemDetailContent() {
                               )}
 
                               {/* 3. 실습: 버튼 없음 (또는 채점 중일 때 대기 상태 표시) */}
-                              {(problemData?.type === "practice" || isPending) && (
+                              {(problemData?.type === "practice" || isPending || isFailed) && (
                                 <span className="text-xs text-slate-300">-</span>
                               )}
                             </TableCell>

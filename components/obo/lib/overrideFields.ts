@@ -1,10 +1,11 @@
 import type { Node } from '@xyflow/react';
 import { DEFAULT_TIMELINE_COLOR_KEY } from '../nodes/ganttColors';
+import { SLOT_EVENT_FIELDS } from '../slots/model';
 
 export const NODE_OVERRIDE_FIELDS: Record<string, { state: string[]; event: string[] }> = {
   'text-label':    { state: ['text'],   event: [] },
   'gantt-lane':    { state: ['blocks'], event: ['activeBlockIndex'] },
-  'slot-grid':     { state: ['slots'],  event: ['faultSlotIndex', 'hitSlotIndex'] },
+  'slot-grid':     { state: ['slots'],  event: [...SLOT_EVENT_FIELDS] },
   'counter-badge': { state: ['value'],  event: ['delta'] },
 };
 
