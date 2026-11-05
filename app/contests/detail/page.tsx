@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toApiLocalDateTime } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -92,7 +93,7 @@ function ContestDetailPage() {
 
   useEffect(() => {
     if (activeTab === "scoreboard") fetchScoreboard();
-  }, [scoreBoardCurrentPage, activeTab]);
+  }, [activeTab]); // 페이지 이동은 클라이언트에서 처리하므로 재요청하지 않음
 
   useEffect(() => {
     if (activeTab === "participants") fetchParticipants();
@@ -266,21 +267,20 @@ function ContestDetailPage() {
   const fetchScoreboard = async () => {
     const token = localStorage.getItem("token");
 
-    const params = new URLSearchParams();
-    params.append("page", scoreBoardCurrentPage.toString());
-    params.append("size", "10");
-
     try {
-      const res = await fetch(`https://diveon.net/api/contests/${contestId}/rankings?${params.toString()}`, {
+      // 명세: 페이지 파라미터 없음. 응답은 { contestId, isOngoing, rankings }(진행 중엔 상위 100명)뿐이라
+      // 페이지 수·참가자 수는 rankings로 계산하고, 페이지 나누기는 ScoreboardTab에서 클라이언트로 한다.
+      const res = await fetch(`https://diveon.net/api/contests/${contestId}/rankings`, {
         method: "GET",
         headers: { "Authorization": `Bearer ${token}` }
       });
 
       if (res.ok) {
         const json = await res.json();
-        setScoreBoardTotalPages(json.data.totalPages);
-        setTotalParticipants(json.data.totalElements);
-        setFullRankings(json.data.rankings);
+        const rankings = json.data?.rankings || [];
+        setFullRankings(rankings);
+        setTotalParticipants(rankings.length);
+        setScoreBoardTotalPages(Math.max(1, Math.ceil(rankings.length / 10)));
       }
 
     } catch (error) {
@@ -543,8 +543,8 @@ function ContestDetailPage() {
         body: JSON.stringify({
           title: title,
           description: description,
-          startTime: startTime,
-          endTime: endTime
+          startTime: toApiLocalDateTime(startTime), // 생성 API와 같은 "YYYY-MM-DDTHH:mm:ss" 형식
+          endTime: toApiLocalDateTime(endTime)
         })
       });
 
@@ -1272,7 +1272,7 @@ function ScoreboardTab({ myRank, fullRankings, scoreBoardTotalPages, scoreBoardC
   const itemsPerPage = 10;
 
   // 페이지네이션 계산 로직
-  const totalPages = Math.ceil(fullRankings.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(fullRankings.length / itemsPerPage));
   const startIndex = (scoreBoardCurrentPage - 1) * itemsPerPage;
   const currentRankings = fullRankings.slice(startIndex, startIndex + itemsPerPage);
 

@@ -22,9 +22,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 function ProblemDetailContent() {
 	const router = useRouter();
 
-	// API 연동 스위치
-	const USE_API_REQUEST = true;
-
 	// URL에서 가져온 값 상태
 	const searchParams = useSearchParams();
 	const probId = searchParams.get('probId');
@@ -256,7 +253,11 @@ function ProblemDetailContent() {
 
 		setIsSubmittingAnswer(true);
 		const token = localStorage.getItem("token");
-		const finalAnswer = selectedChoices[0]?.toString() || "";
+		// 명세: answer는 문자열. 단일 정답은 "2", 복수 정답은 JSON 배열 문자열 "[1,3]"
+		const sortedChoices = [...selectedChoices].sort((a, b) => a - b);
+		const finalAnswer = sortedChoices.length === 1
+			? String(sortedChoices[0])
+			: JSON.stringify(sortedChoices);
 
 		try {
 			const res = await fetch(`https://diveon.net/api/contests/${contestId}/problems/${contestProbId}/submit`, {
@@ -274,7 +275,7 @@ function ProblemDetailContent() {
 			if (res.ok) {
 				// const json = await res.json();
 				alert("정답을 제출하였습니다.");
-			} else if (res.status === 429) {
+			} else if (res.status === 409) { // conflict/contest-cooldown
 				alert("제출 쿨다운 제한 시간(30초)이 걸려있습니다. 잠시 후 다시 시도해 주세요.");
 			} else {
 				const err = await res.json();

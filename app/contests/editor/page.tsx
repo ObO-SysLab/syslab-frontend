@@ -29,7 +29,6 @@ function MonacoSubmitContent() {
   const probId = searchParams.get('probId');
   const contestProbId = searchParams.get('contestProblemId');
   const contestId = searchParams.get('contestId');
-  const USE_API_REQUEST = true;
   const [problemTitle, setProblemTitle] = useState("문제 정보 불러오는 중...");
   const [language, setLanguage] = useState("c");
   const [code, setCode] = useState(CODE_SNIPPETS.c);
@@ -73,11 +72,6 @@ function MonacoSubmitContent() {
 
   useEffect(() => {
     const fetchProblemTitle = async () => {
-      if (!USE_API_REQUEST) {
-        setProblemTitle(`MOCK 데이터 문제 #${probId}`);
-        return;
-      }
-
       const token = localStorage.getItem("token");
       try {
         const res = await fetch(`https://diveon.net/api/problems/${probId}`, {
@@ -102,7 +96,7 @@ function MonacoSubmitContent() {
     };
 
     fetchProblemTitle();
-  }, [probId, USE_API_REQUEST]);
+  }, [probId]);
 
   // 에디터 마운트 시 설정
   function handleEditorDidMount(editor: any) {

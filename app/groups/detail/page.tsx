@@ -905,21 +905,37 @@ function GroupDetailPage() {
     const token = localStorage.getItem("token");
 
     try {
-      const res = await fetch(`https://diveon.net/api/groups/${groupId}/members`, {
+      // 명세: 초대코드 가입은 POST /api/groups/join?code={초대코드} (Body 없음, 승인 없이 바로 가입)
+      // (POST /api/groups/{id}/members는 body를 받지 않는 일반 가입 신청 API라 코드 검증이 안 됨)
+      const res = await fetch(`https://diveon.net/api/groups/join?code=${encodeURIComponent(inputInviteCode.trim())}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ inviteCode: inputInviteCode.trim() }) // API 명세 초대코드 키
+        headers: { "Authorization": `Bearer ${token}` }
       });
 
       if (res.ok) {
-        alert("비공개 그룹 검증이 완료되어 그룹에 가입되었습니다!");
+        const json = await res.json();
+        const joined = json.data;
+
+        // 코드가 가리키는 그룹이 지금 보고 있는 그룹과 다르면 그 그룹으로 이동
+        if (joined?.groupId && String(joined.groupId) !== String(groupId)) {
+          alert(`초대 코드는 '${joined.groupTitle}' 그룹의 코드입니다. 해당 그룹으로 이동합니다.`);
+          router.push(`/groups/detail?id=${joined.groupId}`);
+          return;
+        }
+
+        alert(joined?.newStatus === "already_member"
+          ? "이미 가입된 그룹입니다."
+          : "비공개 그룹 검증이 완료되어 그룹에 가입되었습니다!");
         fetchGroupData(); // 그룹 정보 재로드 -> 멤버 상태(myStatus="member")로 변경됨
         fetchMembers();
+      } else if (res.status === 404) {
+        alert("유효하지 않은 초대 코드입니다.");
+      } else if (res.status === 410) {
+        alert("만료된 초대 코드입니다.");
+      } else if (res.status === 409) {
+        alert("그룹 정원이 가득 찼습니다.");
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         alert(`가입 실패: ${err.message || err.detail || "유효하지 않거나 만료된 초대 코드입니다."}`);
       }
     } catch (error) {

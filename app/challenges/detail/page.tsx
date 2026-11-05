@@ -42,9 +42,6 @@ function OboPlayerSection({ oboData, selectedChoiceIndex }: {
 }
 
 function ProblemDetailContent() {
-  // API 연동 스위치
-  const USE_API_REQUEST = true;
-
   // URL에서 가져온 값 상태
   const searchParams = useSearchParams();
   const probId = searchParams.get('id');
@@ -219,21 +216,32 @@ function ProblemDetailContent() {
           }
         }
 
-        setSubmissions(items);
+        // 3. 방금 제출해서 아직 보드에 없는 로컬 대기 항목은 유지 (보드 갱신이 폴링 중인 행을 지우지 않도록)
+        setSubmissions((prev) => {
+          const localPending = prev.filter(
+            (p) => p._isPending && !items.some((s: any) => String(s.submissionId) === String(p.submissionId))
+          );
+          return [...localPending, ...items];
+        });
       }
     } catch (e) {
       console.error("채점 보드 로드 실패:", e);
     }
   };
 
-  // [API] 채점 상태 폴링 
+  // [API] 채점 상태 폴링
+  // - COMPLETED가 오면 _isPending을 해제하고 보드를 다시 불러온다.
+  // - 403/404(남의 제출·없는 제출)는 즉시, 그 외 실패는 연속 MAX_POLL_FAILURES회 후 폴링을 멈춘다.
+  // - 서버가 계속 PENDING/JUDGING이면 MAX_POLL_ATTEMPTS회 후 멈춘다. (1.5초 × 120 ≈ 3분)
+  const MAX_POLL_FAILURES = 5;
+  const MAX_POLL_ATTEMPTS = 120;
+
   useEffect(() => {
     const pendingItems = submissions.filter((sub) => sub._isPending);
     if (pendingItems.length === 0) return;
 
     const timer = setTimeout(async () => {
       const token = localStorage.getItem("token");
-      let needsBoardRefresh = false;
 
       const results = await Promise.all(
         pendingItems.map(async (item) => {
@@ -243,33 +251,58 @@ function ProblemDetailContent() {
             });
             if (res.ok) {
               const json = await res.json();
-              return json.data;
+              return { id: String(item.submissionId), data: json.data, fatal: false };
             }
-          } catch (e) { }
-          return null;
+            return { id: String(item.submissionId), data: null, fatal: res.status === 403 || res.status === 404 };
+          } catch (e) {
+            return { id: String(item.submissionId), data: null, fatal: false };
+          }
         })
       );
+
+      const completedIds = results
+        .filter((r) => r.data?.submissionStatus === "COMPLETED")
+        .map((r) => r.id);
+
+      // 끝난 제출이 sessionStorage에 남아 있으면 보드 갱신 시 가짜 대기 행이 다시 생기므로 제거
+      const storedPendingId = sessionStorage.getItem(`pending_sub_${probId}`);
+      if (storedPendingId && completedIds.includes(String(storedPendingId))) {
+        sessionStorage.removeItem(`pending_sub_${probId}`);
+      }
 
       setSubmissions((prev) =>
         prev.map((sub) => {
           if (!sub._isPending) return sub;
 
-          const updatedData = results.find((r) => r && String(r.submissionId) === String(sub.submissionId));
+          const result = results.find((r) => r.id === String(sub.submissionId));
+          if (!result) return sub;
 
-          if (updatedData) {
-            // 채점이 끝났다면?
-            if (updatedData.submissionStatus === "COMPLETED" || updatedData.submissionStatus === "FAILED") {
-              needsBoardRefresh = true;
-              return { ...sub, progress: 100, submissionStatus: updatedData.submissionStatus };
+          const attempts = (sub._pollAttempts || 0) + 1;
+
+          if (!result.data) {
+            const failures = (sub._pollFailures || 0) + 1;
+            if (result.fatal || failures >= MAX_POLL_FAILURES) {
+              if (String(sessionStorage.getItem(`pending_sub_${probId}`)) === String(sub.submissionId)) {
+                sessionStorage.removeItem(`pending_sub_${probId}`);
+              }
+              return { ...sub, _isPending: false, submissionStatus: "UNKNOWN" };
             }
-            return { ...sub, progress: updatedData.progress, submissionStatus: updatedData.submissionStatus };
+            return { ...sub, _pollFailures: failures, _pollAttempts: attempts };
           }
-          return sub;
+
+          const { submissionStatus, progress } = result.data;
+          if (submissionStatus === "COMPLETED") {
+            return { ...sub, progress: 100, submissionStatus, _isPending: false };
+          }
+          if (attempts >= MAX_POLL_ATTEMPTS) {
+            return { ...sub, progress, submissionStatus: "UNKNOWN", _isPending: false };
+          }
+          return { ...sub, progress, submissionStatus, _pollFailures: 0, _pollAttempts: attempts };
         })
       );
 
-      // 하나라도 'COMPLETED'가 떨어졌다면 보드 갱신
-      if (needsBoardRefresh) {
+      // 하나라도 COMPLETED가 되었다면 보드 갱신 (정답/오답 결과는 보드에만 있음)
+      if (completedIds.length > 0) {
         fetchSubmissions();
       }
 
@@ -309,7 +342,7 @@ function ProblemDetailContent() {
         const pendingSub = {
           submissionId: newSubmissionId,
           nickname: localStorage.getItem("nickname") || "내 제출",
-          submissionStatus: json.data.submission_status, // "PENDING"
+          submissionStatus: json.data.submissionStatus, // "PENDING"
           progress: 0,
           submittedAt: new Date().toISOString(),
           _isPending: true // 폴링 봇이 추적할 타겟이라는 표시!
@@ -1001,15 +1034,17 @@ function ProblemDetailContent() {
                         const isCoding = problemData?.type === "coding";
 
                         // 렌더링 상태 판별
-                        const isPending = sub._isPending ||
+                        // UNKNOWN: 상태 조회 실패/시간 초과로 폴링을 멈춘 항목 (서버 상태값이 아님)
+                        const isFailed = sub.submissionStatus === "UNKNOWN";
+                        const isPending = !isFailed && (sub._isPending ||
                           sub.isCorrect === null ||
+                          sub.isCorrect === undefined || // 채점 완료 후 보드 갱신 전 (결과는 보드에서 받음)
                           sub.submissionStatus === "PENDING" ||
-                          sub.submissionStatus === "JUDGING";
+                          sub.submissionStatus === "JUDGING");
                         const isSuccess = sub.isCorrect === true;
-                        const isFailed = sub.submissionStatus === "FAILED";
 
                         let resultText = "결과 대기";
-                        if (isFailed) resultText = "시스템 오류";
+                        if (isFailed) resultText = "상태 확인 실패";
                         else if (isPending) resultText = `채점 중 (${sub.progress || 0}%)`;
                         else resultText = isSuccess ? "정답" : "오답";
 

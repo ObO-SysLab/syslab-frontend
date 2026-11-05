@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { toApiCategory } from "@/lib/utils";
 
 function ProblemCreateContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -50,7 +51,7 @@ function ProblemCreateContent() {
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState(""); // 스토리를 summary로 매핑
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("kernel");
+  const [category, setCategory] = useState("Kernel");
   const [difficulty, setDifficulty] = useState("1");
   const [visibility, setVisibility] = useState("public");
 
@@ -355,7 +356,7 @@ function ProblemCreateContent() {
           setTitle(data.title);
           setSummary(data.summary || "");
           setDescription(data.description);
-          setCategory(data.category?.toLowerCase() || "");
+          setCategory(toApiCategory(data.category || ""));
           setDifficulty(String(data.difficulty));
           setProblemType(data.type); // 'coding', 'objective', 'practice' 중 하나
 
@@ -598,11 +599,12 @@ function ProblemCreateContent() {
                   <Select value={category} onValueChange={setCategory}>
                     <SelectTrigger><SelectValue placeholder="카테고리 선택" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="kernel">Kernel</SelectItem>
-                      <SelectItem value="process">Process</SelectItem>
-                      <SelectItem value="thread">Thread</SelectItem>
-                      <SelectItem value="memory">Memory</SelectItem>
-                      <SelectItem value="file system">File System</SelectItem>
+                      {/* value는 명세 값(Process, FileSystem 등) 그대로 */}
+                      <SelectItem value="Kernel">Kernel</SelectItem>
+                      <SelectItem value="Process">Process</SelectItem>
+                      <SelectItem value="Thread">Thread</SelectItem>
+                      <SelectItem value="Memory">Memory</SelectItem>
+                      <SelectItem value="FileSystem">File System</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

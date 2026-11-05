@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toApiLocalDateTime } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
@@ -100,8 +101,8 @@ export default function ContestCreatePage() {
       participationType: participationType.toUpperCase(), 
       visibility: visibility.toUpperCase(),              
       tags: tagsArray,
-      startTime: new Date(startTime).toISOString(),
-      endTime: new Date(endTime).toISOString(),
+      startTime: toApiLocalDateTime(startTime), // 명세: 로컬 시각 "YYYY-MM-DDTHH:mm:ss" (UTC 변환 금지)
+      endTime: toApiLocalDateTime(endTime),
       duration: duration ? Number(duration) : null,
       rules,
       prizeDescription: isRewardEnabled ? prizeDescription : null,
