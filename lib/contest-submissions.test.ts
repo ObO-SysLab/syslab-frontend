@@ -70,6 +70,16 @@ describe("contest results remain in the contest namespace", () => {
   it("a missing terminal verdict is not fabricated", () => {
     expect(contestResultLabel(submission({ isCorrect: null }))).toBe("결과 확인 필요");
   });
+  it.each([
+    ['CORRECT', '정답'], ['WRONG', '오답'], ['ERROR', '코드 오류'],
+    [null, '결과 확인 필요'], ['UNKNOWN', '결과 확인 필요'],
+  ])('preserves explicit result %s through a fresh board load', (resultStatus, label) => {
+    const value = board(submission({resultStatus, isCorrect: false}));
+    const result = readContestBoard(JSON.parse(JSON.stringify(value)), 1, 9);
+    expect(contestResultLabel(result.submissions[0])).toBe(label);
+    expect(contestBoardPending(result)).toBe(false);
+    expect(result.submissions[0].resultStatus).toBe(resultStatus);
+  });
   it("uses only the linked solve ID in code/OBO links", () => {
     expect(contestCodingLinks("coding", submission({ solveSubmissionId: 92, hasObo: true }))).toEqual({
       code: "/challenges/submissions?id=92", obo: "/challenges/obo?id=92",
