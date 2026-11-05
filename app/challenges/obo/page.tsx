@@ -166,7 +166,9 @@ function OboResultContent() {
               {item.label}{item.selected ? ' · 선택한 보기' : ''}
             </Button>)}
           </div>}
-          {simulation ? <SimulationPlayer document={simulation} choices={choices} selectedAnswers={selectedAnswers}/> : blob && blob.nodes.length > 0 ? (
+          {simulation?.question.ioFormat === 'rr-segments-v1' ? (
+            publicCases.length === 0 && <p className="text-sm text-slate-500">공개된 실행 구간이 없습니다.</p>
+          ) : simulation ? <SimulationPlayer document={simulation} choices={choices} selectedAnswers={selectedAnswers}/> : blob && blob.nodes.length > 0 ? (
             <Card className="border-slate-100 shadow-xl bg-white overflow-hidden" style={{ height: 560 }}>
               <OboPlayer key={activeExplanation} blob={blob} />
             </Card>

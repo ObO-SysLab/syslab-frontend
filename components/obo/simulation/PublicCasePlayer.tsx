@@ -6,8 +6,10 @@ import {matchingCursor} from '../runtime/projection.mjs';
 import type {Json,ModelRun,SemanticEvent} from '../runtime/index.mjs';
 import {SimulationScene} from './SimulationScene';
 import {Playback} from './SimulationEditor';
+import {RrSchedulePlayer} from './RrSchedulePlayer';
 
 export interface PublicCase {
+  kind?:string;
   caseIndex:number; scenarioId?:string; input?:Record<string,Json>; reference?:ModelRun;
   reported?:{v:1;result:Record<string,Json>;events?:SemanticEvent[]}|null;
   correct?:boolean; traceValid?:boolean; message?:string; omitted?:string;
@@ -48,6 +50,6 @@ export function PublicCasePlayer({records}:{records:PublicCase[]}) {
   if(!record)return null;
   return <div className="space-y-3"><h2 className="text-lg font-semibold">공개 예제의 제출 결과</h2>
     <div className="flex flex-wrap gap-2">{records.map(item=><Button key={item.caseIndex} variant={record.caseIndex===item.caseIndex?'default':'outline'} onClick={()=>setSelected(item.caseIndex)}>예제 {item.caseIndex}</Button>)}</div>
-    <Comparison key={record.caseIndex} record={record}/>
+    {record.kind==='rr-schedule'?<RrSchedulePlayer key={record.caseIndex} record={record}/>:<Comparison key={record.caseIndex} record={record}/>}
   </div>;
 }

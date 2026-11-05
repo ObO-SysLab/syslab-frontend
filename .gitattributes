@@ -118,3 +118,8 @@
 
 # D35: preserve verified integration bytes, including mixed line endings.
 /.gitattributes -text
+
+# Preserve public-contract bytes and reviewed new-source evidence.
+/components/obo/runtime/diagram-contract.json -text
+/components/obo/guidance/codingContract.ts -text
+/components/obo/guidance/codingContract.test.ts -text

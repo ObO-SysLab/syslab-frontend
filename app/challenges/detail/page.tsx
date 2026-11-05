@@ -892,7 +892,7 @@ function ProblemDetailContent() {
                 )}
 
                 {/* 코딩형 입출력 예시 동적 렌더링 */}
-                <CodingRules contract={problemData?.oboContract}/>
+                {problemData?.type==='coding'&&<CodingRules contract={problemData.oboContract} inputDescription={problemData.inputDescription} outputDescription={problemData.outputDescription} allowedLanguages={problemData.constraints?.allowedLanguages}/>}
                 {problemData?.type === "coding" && problemData?.testcases && problemData.testcases.length > 0 && (
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* 입력 예시 */}
