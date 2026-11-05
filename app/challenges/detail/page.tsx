@@ -3,6 +3,7 @@ import {problemApi,problemToken} from "@/lib/problemApi";
 
 import Link from "next/link";
 import { isSubmissionPending } from "@/lib/submission-status";
+import { submissionTierLabel } from "@/lib/submission-display";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -596,8 +597,8 @@ function ProblemDetailContent() {
   };
 
   // 티어 명칭에 따라 배경/글자/테두리 색상 클래스를 리턴하는 함수
-  const getTierColor = (tier: string | number) => {
-    const tierName = formatTierName(tier);
+  const getTierColor = (tier: number | null | undefined) => {
+    const tierName = submissionTierLabel(tier);
 
     switch (tierName) {
       case "Challenger":
@@ -1027,9 +1028,9 @@ function ProblemDetailContent() {
                             <TableCell>
                               <Badge
                                 variant="outline"
-                                className={`font-mono text-[10px] font-bold border ${getTierColor(sub.rank)}`}
+                                className={`font-mono text-[10px] font-bold border ${getTierColor(sub.userTier)}`}
                               >
-                                {formatTierName(sub.rank)}
+                                {submissionTierLabel(sub.userTier)}
                               </Badge>
                             </TableCell>
 
@@ -1095,9 +1096,9 @@ function ProblemDetailContent() {
                                   <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold text-slate-600" asChild>
                                     <Link href={`/challenges/submissions?id=${sub.submissionId}`}>코드</Link>
                                   </Button>
-                                  <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50" asChild>
+                                  {sub.hasObo === true && <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50" asChild>
                                     <Link href={`/challenges/obo?id=${sub.submissionId}`}>OBO</Link>
-                                  </Button>
+                                  </Button>}
                                 </div>
                               )}
 

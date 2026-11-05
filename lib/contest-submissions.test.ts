@@ -4,7 +4,7 @@ import { contestBoardUrl, contestBoardPending, readContestBoard, contestCodingLi
 
 const submission = (overrides: Partial<ContestSubmission> = {}): ContestSubmission => ({
   submissionId: 17, solveSubmissionId: null, submissionStatus: "COMPLETED", isCorrect: true,
-  nickname: "me", submittedAt: "2026-10-30T00:00:00", language: null, runtime: null, memoryUsage: null, ...overrides,
+  nickname: "me", userTier: 1, hasObo: false, submittedAt: "2026-10-30T00:00:00", language: null, runtime: null, memoryUsage: null, ...overrides,
 });
 
 describe("contest board refresh lifecycle", () => {
@@ -71,9 +71,19 @@ describe("contest results remain in the contest namespace", () => {
     expect(contestResultLabel(submission({ isCorrect: null }))).toBe("결과 확인 필요");
   });
   it("uses only the linked solve ID in code/OBO links", () => {
-    expect(contestCodingLinks("coding", submission({ solveSubmissionId: 92 }))).toEqual({
+    expect(contestCodingLinks("coding", submission({ solveSubmissionId: 92, hasObo: true }))).toEqual({
       code: "/challenges/submissions?id=92", obo: "/challenges/obo?id=92",
     });
+  });
+  it("keeps code access for plain coding submissions without an OBO link", () => {
+    expect(contestCodingLinks("coding", submission({ solveSubmissionId: 92, hasObo: false }))).toEqual({
+      code: "/challenges/submissions?id=92", obo: null,
+    });
+  });
+  it("uses the submission snapshot flag even when the current problem no longer has OBO", () => {
+    const currentProblem = { type: "coding", oboContract: null };
+    expect(contestCodingLinks(currentProblem.type, submission({ solveSubmissionId: 92, hasObo: true }))?.obo)
+      .toBe("/challenges/obo?id=92");
   });
   it("uses the dedicated contest route for completed objective submissions", () => {
     expect(contestCodingLinks('objective', submission())).toEqual({code:null,obo:`/challenges/obo?contestSubmissionId=${submission().submissionId}`});

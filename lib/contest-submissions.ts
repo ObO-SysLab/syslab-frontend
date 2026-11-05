@@ -5,6 +5,8 @@ export type ContestSubmission = {
   isCorrect: boolean | null;
   submittedAt: string;
   nickname: string;
+  userTier: number | null;
+  hasObo: boolean;
   language: string | null;
   runtime: number | null;
   memoryUsage: number | null;
@@ -62,7 +64,8 @@ export function contestCodingLinks(type: string, row: ContestSubmission) {
   if(type==='objective' && row.submissionStatus==='COMPLETED' && validId(row.submissionId))
     return {code:null,obo:`/challenges/obo?contestSubmissionId=${row.submissionId}`};
   if (type !== "coding" || row.submissionStatus !== "COMPLETED" || !validId(row.solveSubmissionId)) return null;
-  return { code: `/challenges/submissions?id=${row.solveSubmissionId}`, obo: `/challenges/obo?id=${row.solveSubmissionId}` };
+  return { code: `/challenges/submissions?id=${row.solveSubmissionId}`,
+    obo: row.hasObo === true ? `/challenges/obo?id=${row.solveSubmissionId}` : null };
 }
 
 /** One request at a time; a disposed page cannot publish late results or schedule new polling. */
