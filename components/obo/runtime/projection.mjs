@@ -70,6 +70,8 @@ export function projection(instance,execution,cursor,view) {
     }
     else if(family==='address-translation')value={페이지테이블:input.table,TLB:data.tlb??input.initialTlb,페이지:data.page??null,오프셋:data.offset??null};
     else if(family==='process-structure'){const spaces=structuredClone(input.spaces),threads=structuredClone(input.threads);for(const e of prefix)if(e.kind==='write'){const target=e.data.scope==='shared'?spaces[threads[e.actor].process]:threads[e.actor].registers;target[e.data.key]=e.data.value;}value={주소공간:spaces,스레드:threads};}
+    // Meaningful record groups instead of raw event keys (index/page/hit/victim/frames); saved raw keys are still mapped by the renderer.
+    else if(family==='page-replacement')value={참조열:input.refs.join(' '),프레임:data.frames??input.initial??[],'Hit/Miss':`Hit ${prefix.filter(e=>e.data.hit).length} · Miss ${prefix.filter(e=>!e.data.hit).length}`};
     else if(family==='kernel-flow')value={모드:data.mode==='kernel'?'커널':'사용자',...Object.fromEntries(Object.entries(data.contexts??input.contexts).map(([actor,registers])=>[actor,Object.entries(registers).map(([key,value])=>`${key} = ${value}`).join(' · ')])),반환값:data.returnValue??null};
     rows=pairs(value);
   }else if(view.role==='region') {
