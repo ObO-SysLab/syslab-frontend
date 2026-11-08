@@ -1,5 +1,6 @@
 ﻿'use client';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { keptChartLabels, type ChartLabel } from './chartLabels';
 interface Point { x: number; y: number; }
 interface Series { name: string; points: Point[]; color: string; }
 interface ChartData { label?: string; xLabel?: string; yLabel?: string; series?: Series[]; width?: number; height?: number; xMin?: number; xMax?: number; yMin?: number; yMax?: number; xTicks?: number[]; yTicks?: number[]; progressIndex?: number; activePointIndex?: number; }
@@ -31,12 +32,15 @@ export function LineChart({ id, data, selected }: NodeProps) {
         {series.map((s, si) => {
           const count = d.progressIndex === undefined ? s.points.length : Math.max(0, Math.min(s.points.length, Math.floor(d.progressIndex) + 1));
           const shown = s.points.slice(0, count);
+          // Value labels: drop only those that would overlap another; the active and last drawn points keep theirs.
+          const labels = shown.map(p => ({ x: x(p.x) + (p.x === minX ? 10 : p.x === maxX ? -10 : 0), y: y(p.y) - 12, text: String(p.y), anchor: (p.x === minX ? 'start' : p.x === maxX ? 'end' : 'middle') as ChartLabel['anchor'] }));
+          const keep = keptChartLabels(labels, [d.activePointIndex ?? -1, shown.length - 1]);
           return <g key={si}>
             <polyline data-chart-path={si} points={shown.map(p => `${x(p.x)},${y(p.y)}`).join(' ')} fill="none" stroke={s.color || '#0f766e'} strokeWidth={3} strokeLinejoin="round" />
             {shown.map((p, i) => <g key={i}>
               {i > 0 && i === d.activePointIndex && <line x1={x(shown[i-1].x)} y1={y(shown[i-1].y)} x2={x(p.x)} y2={y(p.y)} stroke="#d97706" strokeWidth={4} />}
               <circle data-chart-point={i} data-value={p.y} cx={x(p.x)} cy={y(p.y)} r={i === d.activePointIndex ? 7 : 5} fill={i === d.activePointIndex ? '#d97706' : s.color || '#0f766e'} stroke="white" strokeWidth={2} />
-              {W >= 400 && <text x={x(p.x) + (p.x === minX ? 10 : p.x === maxX ? -10 : 0)} y={y(p.y)-12} textAnchor={p.x === minX ? 'start' : p.x === maxX ? 'end' : 'middle'} fontSize={13} fontWeight={700} fill="#334155">{p.y}</text>}
+              {W >= 400 && keep.has(i) && <text x={labels[i].x} y={labels[i].y} textAnchor={labels[i].anchor} fontSize={13} fontWeight={700} fill="#334155" stroke="white" strokeWidth={3} strokeLinejoin="round" paintOrder="stroke">{p.y}</text>}
             </g>)}
           </g>;
         })}
