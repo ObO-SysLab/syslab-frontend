@@ -5,6 +5,10 @@ import { GanttLane }        from './GanttLane';
 import { LineChart }        from './LineChart';
 import { TextLabel }        from './TextLabel';
 import { CounterBadgeNode } from './CounterBadgeNode';
+import { QueueStripNode } from './QueueStripNode';
+import { TableGridNode } from './TableGridNode';
+import { ProcessBoxNode } from './ProcessBoxNode';
+import { MemoryRangeNode } from './MemoryRangeNode';
 
 // 컴포넌트 외부(모듈 레벨)에서 정의해야 React Flow가 노드를 리마운트하지 않음
 export const nodeTypes = {
@@ -15,4 +19,8 @@ export const nodeTypes = {
   'line-chart':      LineChart,
   'text-label':      TextLabel,
   'counter-badge':   CounterBadgeNode,
+  'queue-strip': QueueStripNode,
+  'table-grid': TableGridNode,
+  'process-box': ProcessBoxNode,
+  'memory-range': MemoryRangeNode,
 } as const;

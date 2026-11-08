@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import { useState, Suspense, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -583,7 +584,7 @@ function ContestDetailPage() {
 
   // [HANDLER] 로그아웃
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (!logout()) return;
     setIsLoggedIn(false);
     window.location.href = "/";
   };
@@ -1169,10 +1170,9 @@ function ChallengesTab({ allChallenges, contestId, isContestHost, setShowAddChal
 
                     <div className="space-y-1 mt-4 border-t border-line/50 pt-3">
                       <div className="flex justify-between text-[10px] font-bold text-ink-subtle">
-                        <span>정답률</span>
-                        <span>{Math.round((ch.solvedCount / 128) * 100)}% ({ch.solvedCount}명)</span>
+                        <span>해결자</span>
+                        <span>{ch.solvedCount}명 · 제출 {ch.submittedCount ?? 0}회</span>
                       </div>
-                      <Progress value={(ch.solvedCount / 128) * 100} className="h-1.5 bg-raised" />
                     </div>
 
                     {isContestHost && (

@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -173,9 +174,7 @@ export default function HomePage() {
         showSearch={false}
         onLogout={() => {
           // 로컬에 남은 잔재(토큰, 정보)를 모조리 청소합니다.
-          localStorage.removeItem("token");
-          localStorage.removeItem("nickname");
-          localStorage.removeItem("userImgUrl");
+          if (!logout()) return;
 
           // 상태 스위치들도 확실하게 꺼줍니다.
           setAccessToken(null);

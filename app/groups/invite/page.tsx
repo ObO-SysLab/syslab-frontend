@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -76,7 +77,7 @@ function GroupInviteContent() {
 
           if (response.status === 401) {
             // 토큰 만료 또는 유효하지 않은 경우 -> 토큰 비우고 재로그인 유도
-            localStorage.removeItem("token");
+            if (!logout()) return;
             alert("로그인 세션이 만료되었습니다. 다시 로그인 후 시도해 주세요.");
             const redirectTarget = `/groups/invite?code=${encodeURIComponent(code)}`;
             router.push(`/signin?next=${encodeURIComponent(redirectTarget)}`);
