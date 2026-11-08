@@ -1,0 +1,47 @@
+.visual { container-type: inline-size; display: flex; flex-direction: column; gap: 14px; min-width: 0; color: #20334a; }
+.visual > *, .context > *, .frames > *, .frame > * { min-width: 0; }
+.context { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.policy { border-radius: 6px; padding: 5px 10px; font-size: 15px; font-weight: 800; color: #1c568b; background: #e6f0fa; }
+.result { font-size: 19px; font-weight: 800; color: #254c78; }
+.result[data-page-result=hit] { color: #1d6b4c; }
+.result[data-page-result=replace] { color: #9a4313; }
+.faults { margin-left: auto; font-size: 15px; color: #5b6f84; }
+.faults b { font-size: 24px; color: #9a4313; font-variant-numeric: tabular-nums; }
+
+.refs h4, .framesBox h4 { margin: 0 0 8px; font-size: 16px; font-weight: 800; }
+.refs h4 span, .framesBox h4 span { margin-left: 8px; font-size: 13px; font-weight: 500; color: #6d8297; }
+.refList { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ref { display: flex; flex-direction: column; align-items: center; min-width: 34px; padding: 4px 5px 3px; border: 2px solid #dbe3ec; border-radius: 7px; background: #fff; }
+.refPage { font-size: 18px; font-weight: 800; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.refMark { font-size: 11px; color: #6d8297; }
+.ref[data-page-ref-state=future] { border-style: dashed; color: #8a9aab; background: #f8fafc; }
+.ref[data-page-ref-state=past] { color: #5b6f84; background: #f3f6f9; }
+.ref[data-page-ref-hit=false] .refMark { color: #9a4313; font-weight: 700; }
+.ref[data-page-ref-hit=true] .refMark { color: #1d6b4c; font-weight: 700; }
+.ref[data-page-ref-state=current] { border-color: #245ac4; background: #eaf2ff; box-shadow: 0 0 0 2px #245ac4; }
+.more { align-self: center; padding: 0 4px; color: #8a9aab; font-size: 18px; }
+
+.frames { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 10px; }
+.frame { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 100px; padding: 10px 8px; border: 2px solid #c9d5e2; border-radius: 10px; background: #fff; }
+.frame[data-page-empty=true] { border-style: dashed; background: #f8fafc; }
+.frame[data-page-current=true] { border-color: #245ac4; background: #eaf2ff; box-shadow: 0 0 0 2px #245ac4; }
+.frame[data-page-hit=true] { border-color: #2f7d62; background: #e7f6ee; box-shadow: 0 0 0 2px #2f7d62; }
+.frame[data-page-incoming=true] { border-color: #c2571a; background: #fff3e8; box-shadow: 0 0 0 2px #c2571a; }
+.slotNo { position: absolute; top: 6px; left: 9px; font-size: 12px; color: #8193a6; }
+.framePage { margin-top: 8px; font-size: 32px; line-height: 1.1; font-weight: 800; color: #1d3f6b; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.frame[data-page-empty=true] .framePage { font-size: 16px; font-weight: 600; color: #8a9aab; }
+.basis { font-size: 12px; color: #5b6f84; text-align: center; }
+.left { border-radius: 4px; padding: 2px 6px; font-size: 13px; font-weight: 750; color: #fff; background: #9a4313; }
+
+.empty { margin: 6px 0; color: #718299; font-size: 14px; }
+.invalid { margin: 0; padding: 10px; background: #fff8e5; color: #84520d; font-size: 14px; line-height: 1.6; }
+@container (max-width: 480px) { .faults { margin-left: 0; } .frames { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); } .framePage { font-size: 26px; } }
+
+.explanation { margin-top: 12px; padding: 16px 18px; border-top: 1px solid #dce4ec; color: #33475c; }
+.autoExplanation { margin: 0; font-size: 15px; line-height: 1.7; overflow-wrap: anywhere; }
+.authored { margin: 12px 0 0; font-size: 15px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.noteEditors { display: grid; gap: 12px; margin-top: 14px; }
+.noteEditors label { display: grid; gap: 6px; color: #5c6e81; font-size: 13px; }
+.noteEditors textarea { width: 100%; box-sizing: border-box; resize: vertical; min-height: 74px; border: 1px solid #cad5e0; border-radius: 7px; padding: 9px 11px; font-size: 14px; line-height: 1.65; color: #253b51; background: #fff; }
+.noteEditors textarea:focus { outline: 2px solid #77a9df; outline-offset: 1px; }
+.addNote { margin-top: 12px; padding: 6px 10px; border: 1px solid #cad5e0; border-radius: 6px; background: #fff; color: #315b86; font-size: 13px; cursor: pointer; }
