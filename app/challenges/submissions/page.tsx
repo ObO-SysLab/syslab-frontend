@@ -1,4 +1,10 @@
 "use client";
+import { requestJson, requestIssue, httpIssue, isRequestCancelled, authHeaders, type RequestIssue } from "@/lib/request";
+import { RequestError } from "@/components/feedback/RequestError";
+import { useRemoteData } from "@/components/feedback/useRemoteData";
+import { logout } from "@/lib/authSession";
+import { problemApi, problemToken } from "@/lib/problemApi";
+import { submissionVerdict } from "@/lib/submission-status";
 
 import { useState, useEffect, Suspense } from "react";
 import { BrandMark } from "@/components/BrandMark";
@@ -15,6 +21,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+const sourceExtensions = new Map([
+  ["python", "py"], ["python3", "py"],
+  ["c", "c"], ["cpp", "cpp"], ["java", "java"],
+]);
+
 function SubmissionDetailContent() {
   const searchParams = useSearchParams(); // URL 쿼리 파라미터 가져오기
   const router = useRouter();
@@ -25,19 +36,23 @@ function SubmissionDetailContent() {
   // 로그인 상태
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [submissionData, setSubmissionData] = useState<any>(null);
+  const query = useRemoteData(submissionId, async signal => {
+    const json = await requestJson(problemApi(`/api/submissions/${submissionId}/result`), {signal,headers:authHeaders()});
+    if(!json?.data)throw new Error('Missing result');
+    return json.data;
+  });
+  const isLoading=query.loading, submissionData=query.data;
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     const fetchProfileImage = async () => {
-      const token = localStorage.getItem("token");
+      const token = problemToken();
       if (!token) return;
 
       setIsLoggedIn(true);
 
       try {
-        const response = await fetch("https://diveon.net/api/profile/show", {
+        const response = await fetch(problemApi("/api/profile/show"), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -62,55 +77,6 @@ function SubmissionDetailContent() {
     fetchProfileImage();
   }, []);
 
-  // [API] 제출 상세 데이터 로드
-  useEffect(() => {
-    if (!submissionId) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchSubmissionDetail = async () => {
-      setIsLoading(true);
-      const token = localStorage.getItem("token");
-      if (token) {
-        setIsLoggedIn(true);
-      }
-
-      try {
-        const res = await fetch(`https://diveon.net/api/submissions/${submissionId}/result`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-
-        if (res.ok) {
-          const json = await res.json();
-          setSubmissionData(json.data);
-        } else {
-          const errorText = await res.text(); // json() 대신 text()로 먼저 읽기
-          let errorMessage = "결과를 불러올 수 없습니다.";
-
-          if (errorText) {
-            try {
-              // 본문이 있다면 JSON으로 파싱 시도
-              const errorData = JSON.parse(errorText);
-              errorMessage = errorData.message || errorMessage;
-            } catch (e) {
-              // JSON이 아니면 (예: HTML 에러 페이지) 텍스트 그대로 사용하거나 기본 메시지 유지
-              console.error("서버 응답이 JSON이 아닙니다:", errorText);
-            }
-          }
-          console.error(`에러 발생 (상태 코드: ${res.status}):`, errorMessage);
-          alert(`[${res.status}] ${errorMessage}`);
-        }
-      } catch (error) {
-        console.error("통신 에러:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSubmissionDetail();
-  }, [submissionId]);
-
   // 코드 복사 기능
   const handleCopyCode = () => {
     if (!submissionData?.code) return;
@@ -120,22 +86,17 @@ function SubmissionDetailContent() {
   };
 
   // 상태 배지 렌더링 함수
-  const getVerdictBadge = (isCorrect: boolean | null | undefined) => {
-    if (isCorrect === true) {
-      return <Badge className="bg-primary hover:bg-primary-hover text-primary-ink px-3 py-1 text-sm font-bold shadow-sm"><CheckCircle2 className="w-4 h-4 mr-1.5" /> 맞았습니다!</Badge>;
-    } else if (isCorrect === false) {
-      return <Badge variant="destructive" className="px-3 py-1 text-sm font-bold shadow-sm"><XCircle className="w-4 h-4 mr-1.5" /> 틀렸습니다</Badge>;
-    } else {
-      return <Badge variant="outline" className="px-3 py-1 text-sm font-bold text-ink-muted"><Code2 className="w-4 h-4 mr-1.5" /> 상태 확인 불가</Badge>;
-    }
-  };
+  const verdict = submissionVerdict(submissionData);
+  const isSuccess = verdict.kind === "correct";
 
   // 로딩 화면 (빙글빙글 도는 UI)
   if (isLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-canvas">
+    <div role="status" aria-label="제출 결과 불러오는 중" className="min-h-screen flex items-center justify-center bg-canvas">
       <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
     </div>
   );
+
+  if(query.error)return <main className="mx-auto max-w-3xl p-8"><h1 className="text-xl font-bold">제출 결과 조회</h1><RequestError issue={query.error} retry={query.retry} busy={query.loading}/></main>;
 
   // URL에 id가 파라미터가 아예 없을 때의 방어 화면
   if (!submissionId) return (
@@ -190,7 +151,7 @@ function SubmissionDetailContent() {
               </Link>
               <button
                 onClick={() => {
-                  localStorage.removeItem("token");
+                  if (!logout()) return;
                   setIsLoggedIn(false);
                 }}
                 className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors group"
@@ -247,7 +208,14 @@ function SubmissionDetailContent() {
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-bold text-ink-subtle uppercase tracking-widest mb-1.5">Result</p>
-                {getVerdictBadge(submissionData?.isCorrect)}
+                <Badge
+                  variant={isSuccess ? "default" : verdict.kind === "wrong" || verdict.kind === "failed" ? "destructive" : "outline"}
+                  className={`px-3 py-1 text-sm font-bold shadow-sm ${isSuccess ? "bg-primary hover:bg-primary-hover text-primary-ink" : verdict.kind === "error" ? "border-warning/30 bg-warning-soft text-warning" : verdict.kind === "pending" || verdict.kind === "unknown" ? "text-ink-muted" : ""}`}
+                >
+                  {isSuccess ? <CheckCircle2 className="w-4 h-4 mr-1.5" /> : verdict.kind === "pending" || verdict.kind === "unknown" ? <Clock className="w-4 h-4 mr-1.5" /> : <XCircle className="w-4 h-4 mr-1.5" />}
+                  {verdict.label}
+                </Badge>
+                {verdict.hint && <p className="text-xs text-ink-muted">{verdict.hint}</p>}
               </div>
             </div>
 
@@ -296,7 +264,7 @@ function SubmissionDetailContent() {
                 <div className="w-3 h-3 rounded-full bg-success/20 border border-success/50"></div>
               </div>
               <span className="ml-4 text-xs font-mono font-medium text-ink-subtle">
-                solution.{submissionData?.language === 'python3' ? 'py' : submissionData?.language === 'java' ? 'java' : 'cpp'}
+                solution.{sourceExtensions.get(submissionData?.language) ?? "txt"}
               </span>
             </div>
 

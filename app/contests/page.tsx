@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -127,7 +128,7 @@ export default function ContestListPage() {
 
   // [HANDLER] 로그아웃
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (!logout()) return;
     setIsLoggedIn(false);
     window.location.href = "/";
   };
@@ -147,13 +148,9 @@ export default function ContestListPage() {
         }}
         onLogout={async () => {
           // 1. 쿠키 완전 만료 파기
-          localStorage.removeItem("token");
-          localStorage.removeItem("nickname");
-          localStorage.removeItem("userImgUrl");
+          if (!logout()) return;
 
           // 2. 로컬 / 세션 스토리지 클리어
-          localStorage.clear();
-          sessionStorage.clear();
 
           // 3. 인메모리 로그인 상태 리셋
           setIsLoggedIn(false);

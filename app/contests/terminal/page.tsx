@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { connectTerminal } from "@/lib/terminal-connection";
+import { readVmSession, stopVmSession } from "@/lib/vm-session";
 
 function PracticeContent() {
   // 라우터와 URL 파라미터 가져오기
@@ -28,10 +30,11 @@ function PracticeContent() {
   const xtermRef = useRef<any>(null);
   const [flag, setFlag] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(2700); // 45분 (초 단위)
+  const [timeLeft, setTimeLeft] = useState(0);
 
   // VM 상태
   const [containerId, setContainerId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<number | null>(null);
   const [isVmLoading, setIsVmLoading] = useState(true); // VM 생성 로딩 상태
 
   const hasFetched = useRef(false);
@@ -68,18 +71,14 @@ function PracticeContent() {
 
         if (vmRes.status === 201 || vmRes.status === 200) {
           const vmJson = await vmRes.json();
-          setContainerId(vmJson.data.containerId);
-
-          if (vmJson.data.expiresAt) {
-            const expiresDate = new Date(vmJson.data.expiresAt).getTime();
-            const now = new Date().getTime();
-            const diffSeconds = Math.floor((expiresDate - now) / 1000);
-            setTimeLeft(diffSeconds > 0 ? diffSeconds : 0);
-          }
+          const session = readVmSession(vmJson.data);
+          setSessionId(session.sessionId);
+          setContainerId(session.containerId);
+          setTimeLeft(Math.max(0, Math.floor((session.expiresAtEpochMs - Date.now()) / 1000)));
         } else {
           const errJson = await vmRes.json();
           alert(`VM 환경을 구성할 수 없습니다: ${errJson.detail || errJson.message}`);
-          router.push(`/contests/challenge/?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}`); // 실패 시 강제 퇴장
+          router.push(`/contests/challenge/?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}&tab=grading`); // 실패 시 강제 퇴장
         }
       } catch (error) {
         console.error("통신 에러:", error);
@@ -100,22 +99,11 @@ function PracticeContent() {
 
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`https://diveon.net/api/vm/stop`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ probId: Number(probId) }) // API 명세 키값 매핑
-      });
-
-      if (res.ok || res.status === 404) {
-        alert("실습 환경이 종료되었습니다.");
-        router.push(`/contests/challenge/?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}`);
-      } else {
-        const errorData = await res.json();
-        alert(`종료 실패: ${errorData.detail || errorData.message}`);
-      }
+      await stopVmSession(Number(probId), sessionId, token);
+      setContainerId(null);
+      setSessionId(null);
+      alert("실습 환경이 종료되었습니다.");
+      router.push(`/contests/challenge/?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}`);
     } catch (error) {
       console.error("VM 종료 에러:", error);
       alert("서버와 통신 중 오류가 발생했습니다.");
@@ -148,23 +136,17 @@ function PracticeContent() {
 
       if (response.ok) {
         const json = await response.json();
-        const newId = json.data.submissionId;
-        sessionStorage.setItem(`pending_sub_${probId}`, newId);
+        const resultText = json.data.isCorrect === true ? "정답입니다." : json.data.isCorrect === false ? "오답입니다." : "결과를 확인해주세요.";
 
+        let cleanupConfirmed = false;
         try {
-          await fetch(`https://diveon.net/api/vm/stop`, {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify({ probId: Number(probId) })
-          });
+          await stopVmSession(Number(probId), sessionId, token);
+          cleanupConfirmed = true;
         } catch (e) {
           console.error("VM 자동 종료 요청 중 에러(무시됨):", e);
         }
 
-        alert("채점 요청이 접수되었습니다. (실습 환경 자동 종료)");
+        alert(cleanupConfirmed ? `${resultText} 실습 환경이 종료되었습니다.` : `${resultText} 실습 종료는 확인하지 못했으니 실습 화면에서 다시 종료해주세요.`);
         // 3. 문제 상세 페이지로 이동
         router.push(`/contests/challenge/?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}`);
       } else {
@@ -200,12 +182,14 @@ function PracticeContent() {
     let term: any;
     let resizeObserver: ResizeObserver;
     let ws: WebSocket;
+    const connectionAbort = new AbortController();
 
     const initTerminal = async () => {
       const { Terminal } = await import("xterm");
       const { FitAddon } = await import("xterm-addon-fit");
       const { AttachAddon } = await import("xterm-addon-attach"); // Attach Addon 추가
       await import("xterm/css/xterm.css");
+      if (connectionAbort.signal.aborted) return;
 
       term = new Terminal({
         cursorBlink: true,
@@ -218,38 +202,31 @@ function PracticeContent() {
       term.loadAddon(fitAddon);
       term.open(terminalRef.current!);
 
-      setTimeout(() => fitAddon.fit(), 50);
+      setTimeout(() => { if (!connectionAbort.signal.aborted) fitAddon.fit(); }, 50);
       resizeObserver = new ResizeObserver(() => { try { fitAddon.fit(); } catch { } });
       resizeObserver.observe(terminalRef.current!);
 
       term.writeln("\x1b[1;34mDIVEON Remote Lab Cloud v2.0.4-LTS\x1b[0m");
       term.writeln("Connecting to server...");
 
-      // WebSocket 연결 (명세서의 /ws/terminal 사용)
-      const token = localStorage.getItem("token");
-      // 프로토콜을 wss(https) 또는 ws(http)로 설정
-      const wsUrl = `wss://diveon.net/ws/terminal?container_id=${containerId}&token=${token}`;
-      ws = new WebSocket(wsUrl);
-
-      ws.onopen = () => {
-        term.writeln("\x1b[1;32mConnection established.\x1b[0m\r\n");
-        // AttachAddon을 이용해 웹소켓과 터미널을 양방향 파이프로 연결
-        const attachAddon = new AttachAddon(ws);
-        term.loadAddon(attachAddon);
-      };
-
-      ws.onerror = () => {
-        term.writeln("\x1b[1;31mConnection error. Please try again.\x1b[0m");
-      };
-
-      ws.onclose = () => {
-        term.writeln("\r\n\x1b[1;33mConnection closed.\x1b[0m");
-      };
+      ws = await connectTerminal({
+        probId: Number(probId), containerId, token: localStorage.getItem("token"),
+        signal: connectionAbort.signal,
+        onReady: socket => {
+          term.writeln("\x1b[1;32mConnection established.\x1b[0m\r\n");
+          term.loadAddon(new AttachAddon(socket));
+        },
+        onError: () => term.writeln("\r\nAuthorization failed. Refresh to reconnect."),
+        onClose: () => term.writeln("\r\nConnection closed."),
+      });
     };
 
-    initTerminal();
+    initTerminal().catch(() => {
+      if (!connectionAbort.signal.aborted) term?.writeln("\r\nConnection failed. Check login and lab status.");
+    });
 
     return () => {
+      connectionAbort.abort();
       resizeObserver?.disconnect();
       term?.dispose();
       ws?.close(); // 컴포넌트가 사라지면 소켓 연결도 끊기

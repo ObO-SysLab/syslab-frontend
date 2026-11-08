@@ -1,10 +1,12 @@
 'use client';
 
 import { Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { Node, Edge } from '@xyflow/react';
 import type { EdgeType } from '../templates';
 import type { Frame, OboMode } from '../types';
 import { NodeEditor } from './NodeProps';
+import { collectLabels } from '../lib/label';
 import { EdgeEditor } from './EdgeProps';
 import { Palette } from './Palette';
 import { FramePanel } from './FramePanel';
@@ -13,6 +15,7 @@ import { TracePanel } from './TracePanel';
 type PanelMode = 'palette' | 'property' | 'json';
 
 interface PropertyPanelProps {
+  onUpdateFrameVisibleEdges: (frameId: string, visibleEdges: string[] | undefined) => void;
   // 탭
   activeTab: 'property' | 'frame';
   onTabChange: (tab: 'property' | 'frame') => void;
@@ -36,6 +39,8 @@ interface PropertyPanelProps {
   selectedFrameId: string | null;
   onSelectFrame: (id: string) => void;
   onAddFrame: () => void;
+  onDuplicateFrame: (id: string) => void;
+  onMoveFrame: (id: string, direction: -1 | 1) => void;
   onRemoveFrame: (id: string) => void;
   onUpdateFrameLabel: (id: string, label: string) => void;
   onRemoveHighlightNode: (frameId: string, nodeId: string) => void;
@@ -52,24 +57,30 @@ interface PropertyPanelProps {
 }
 
 export function PropertyPanel({
+  onUpdateFrameVisibleEdges,
   activeTab, onTabChange,
   mode, selectedId, selectedKind, nodes, edges,
   updateNodeData, updateEdgeData,
   activeEdgeType, onEdgeTypeChange,
   currentNodes, currentEdges, onJsonClose, onDelete,
   oboMode, frames, selectedFrameId, onSelectFrame, onAddFrame, onRemoveFrame,
+  onDuplicateFrame, onMoveFrame,
   onUpdateFrameLabel, onRemoveHighlightNode, onRemoveHighlightEdge,
   onAddNodeOverride, onRemoveNodeOverride, onSetOverrideField, onClearOverrideField, onUpdateFrameCursorTime,
   traceText, onTraceTextChange, testcaseOutputs,
 }: PropertyPanelProps) {
   const selectedNode = selectedKind === 'node' ? nodes.find(n => n.id === selectedId) ?? null : null;
   const selectedEdge = selectedKind === 'edge' ? edges.find(e => e.id === selectedId) ?? null : null;
+  const [toolView, setToolView] = useState<'palette' | 'property'>('property');
+  useEffect(() => { setToolView('property'); }, [selectedId, selectedKind]);
+  const hasSelection = !!(selectedNode || selectedEdge);
+  const showProperties = hasSelection && toolView === 'property';
 
   const propertyTitle =
     mode === 'json' ? 'JSON 출력' :
-    mode === 'property' && selectedKind === 'node' ? '노드 속성' :
-    mode === 'property' && selectedKind === 'edge' ? '엣지 속성' :
-    '팔레트';
+    showProperties && selectedKind === 'node' ? '선택한 요소' :
+    showProperties && selectedKind === 'edge' ? '선택한 연결선' :
+    '요소 추가';
 
   const cleanBlob = {
     nodes: currentNodes.map(({ id, type, position, data }) => ({ id, type, position, data })),
@@ -78,7 +89,7 @@ export function PropertyPanel({
   };
 
   return (
-    <div className="w-64 border-l bg-white flex flex-col shrink-0 overflow-hidden">
+    <div className="w-64 border-l bg-white flex flex-col shrink-0 overflow-hidden" data-obo-property-panel>
 
       {/* 탭 스위처 */}
       <div className="h-9 border-b flex items-stretch shrink-0">
@@ -111,16 +122,20 @@ export function PropertyPanel({
           {oboMode === 'coding_diff' ? (
             <TracePanel
               nodes={nodes}
+              edges={edges}
               value={traceText}
               onChange={onTraceTextChange}
               testcaseOutputs={testcaseOutputs}
             />
           ) : (
             <FramePanel
+              onUpdateFrameVisibleEdges={onUpdateFrameVisibleEdges}
               frames={frames}
               selectedFrameId={selectedFrameId}
               onSelectFrame={onSelectFrame}
               onAddFrame={onAddFrame}
+              onDuplicateFrame={onDuplicateFrame}
+              onMoveFrame={onMoveFrame}
               onRemoveFrame={onRemoveFrame}
               onUpdateLabel={onUpdateFrameLabel}
               onRemoveHighlightNode={onRemoveHighlightNode}
@@ -137,15 +152,28 @@ export function PropertyPanel({
         </div>
       ) : (
         <>
+          {mode !== 'json' && (
+            <div className="grid grid-cols-[0.8fr_1.2fr] gap-1 border-b border-slate-100 p-2 shrink-0" role="group" aria-label="그림 편집 도구">
+              <button type="button" onClick={() => setToolView('palette')} aria-pressed={!showProperties}
+                className={`rounded-lg px-1 py-2 text-xs font-semibold transition-colors ${!showProperties ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}>
+                요소 추가
+              </button>
+              <button type="button" onClick={() => setToolView('property')} disabled={!hasSelection} aria-pressed={showProperties}
+                title={hasSelection ? '선택한 요소 설정' : '그림에서 요소나 연결선을 먼저 선택하세요'}
+                className={`rounded-lg px-1 py-2 text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${showProperties ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}>
+                선택한 요소 설정
+              </button>
+            </div>
+          )}
           {/* 속성 탭 헤더 */}
-          <div className="h-10 border-b flex items-center px-4 shrink-0">
+          {(mode === 'json' || showProperties) && <div className="h-10 border-b flex items-center px-4 shrink-0">
             <span className="text-xs font-bold text-slate-600">{propertyTitle}</span>
             {mode === 'json' && (
               <button onClick={onJsonClose} className="ml-auto text-[10px] text-slate-400 hover:text-slate-600 transition-colors">
                 닫기
               </button>
             )}
-            {mode === 'property' && (
+            {mode !== 'json' && showProperties && (
               <button
                 onClick={onDelete}
                 className="ml-auto p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
@@ -154,7 +182,7 @@ export function PropertyPanel({
                 <Trash2 size={14} />
               </button>
             )}
-          </div>
+          </div>}
 
           {/* 속성 탭 콘텐츠 */}
           <div className="flex-1 overflow-y-auto">
@@ -162,11 +190,16 @@ export function PropertyPanel({
               <pre className="p-4 text-xs font-mono text-slate-700 whitespace-pre-wrap break-all leading-relaxed">
                 {JSON.stringify(cleanBlob, null, 2)}
               </pre>
-            ) : mode === 'property' && selectedNode ? (
+            ) : showProperties && selectedNode ? (
               <div className="p-3 space-y-4">
-                <NodeEditor node={selectedNode} onUpdate={patch => updateNodeData(selectedNode.id, patch)} />
+                <NodeEditor
+                  frames={frames}
+                  node={selectedNode}
+                  onUpdate={patch => updateNodeData(selectedNode.id, patch)}
+                  takenLabels={collectLabels(nodes, selectedNode.id)}
+                />
               </div>
-            ) : mode === 'property' && selectedEdge ? (
+            ) : showProperties && selectedEdge ? (
               <div className="p-3 space-y-4">
                 <EdgeEditor edge={selectedEdge} onUpdate={patch => updateEdgeData(selectedEdge.id, patch)} />
               </div>

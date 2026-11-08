@@ -1,7 +1,15 @@
 "use client";
+import { requestJson, requestIssue, httpIssue, isRequestCancelled, authHeaders, type RequestIssue } from "@/lib/request";
+import { RequestError } from "@/components/feedback/RequestError";
+import { useRemoteData } from "@/components/feedback/useRemoteData";
+import { logout, pendingSubmission, forgetSubmission } from "@/lib/authSession";
+import {problemApi,problemToken} from "@/lib/problemApi";
 
 import Link from "next/link";
-import { useState, useEffect, Suspense } from "react";
+import { isSubmissionPending, submissionVerdict } from "@/lib/submission-status";
+import { submissionTierLabel } from "@/lib/submission-display";
+import { readPracticeBuild, practiceBuildPresentation, watchPracticeBuild } from "@/lib/practice-build";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Search, Settings, LogOut, User, Menu, MessageSquare, Bell, Share2,
@@ -18,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { OboPlayer } from "@/components/obo/OboPlayer";
+import { CodingRules } from '@/components/obo/simulation/CodingRules';
 import { resolveOboBlob, type OboBlob, type ProblemOboData } from "@/components/obo/types";
 import { Header } from "@/components/Header";
 import { TierBadge, DepthBadge } from "@/components/dv";
@@ -65,6 +74,11 @@ function ProblemDetailContent() {
   // API 연동용 상태
   const [problemData, setProblemData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [practiceStatusError, setPracticeStatusError] = useState('');
+  const [practiceStatusRetry, setPracticeStatusRetry] = useState(0);
+  const practiceStatusRequested = useRef(0);
+  const practiceBuild = readPracticeBuild(isLoading ? null : problemData?.practiceBuild);
+  const practiceStatus = practiceBuildPresentation(practiceBuild);
   const [comments, setComments] = useState<any[]>([]);
   const [rankings, setRankings] = useState<any[]>([]);
   const [firstBlood, setFirstBlood] = useState<any>({ user: "", prifile_url: "", date: "" });
@@ -86,6 +100,11 @@ function ProblemDetailContent() {
   // 채점 데이터 상태
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [isGradingInProgress, setIsGradingInProgress] = useState(false);
+  const [pollError,setPollError]=useState<RequestIssue|null>(null);
+  const [pollStopped,setPollStopped]=useState(false);
+  const pollStarted=useRef(0);
+  const [answerIssue,setAnswerIssue]=useState<RequestIssue|null>(null);
+  const [answerNotice,setAnswerNotice]=useState('');
 
   // [STATE] 그룹 추가 관련 상태
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -94,13 +113,13 @@ function ProblemDetailContent() {
 
   useEffect(() => {
     const fetchProfileImage = async () => {
-      const token = localStorage.getItem("token");
+      const token = problemToken();
       if (!token) return;
 
       setIsLoggedIn(true);
 
       try {
-        const response = await fetch("https://diveon.net/api/profile/show", {
+        const response = await fetch(problemApi("/api/profile/show"), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -125,205 +144,96 @@ function ProblemDetailContent() {
     fetchProfileImage();
   }, []);
 
-  // [API] 데이터 초기 로드
-  useEffect(() => {
-    const fetchPageData = async () => {
-      setIsLoading(true); // 로딩 시작
-
-      const token = localStorage.getItem("token");
-      const headers: HeadersInit = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      try {
-        const [probRes, rankRes] = await Promise.all([
-          fetch(`https://diveon.net/api/problems/${probId}`, { headers }),
-          fetch(`https://diveon.net/api/problems/${probId}/ranking?page=1`, { headers }) // 20개씩 가져오는 1페이지 노크
-        ]);
-
-        // 1. 문제 상세 정보 매립
-        if (probRes.ok) {
-          const probJson = await probRes.json();
-          setProblemData(probJson.data);
-          setIsOwner(probJson.data.isOwner);
-        }
-
-        // 2. 새 명세 규격에 맞춘 랭킹 데이터 매립 및 First Blood 계산
-        if (rankRes.ok) {
-          const rankJson = await rankRes.json();
-          const rankList = rankJson?.data?.rankings || [];
-          setRankings(rankList);
-
-          if (rankList.length > 0) {
-            const first = rankList[0];
-            setFirstBlood({
-              user: first.nickname,
-              // "2024-01-01T12:00:00" 포맷 파싱 가드
-              date: new Date(first.firstSolvedAt).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })
-            });
-          }
-        }
-
-        // 후속 데이터 패널 로드
-        fetchComments();    // 메인 댓글 목록 조회
-        fetchSubmissions(); // 제출 탭 데이터 조회
-      } catch (error) {
-        console.error("데이터 로드 실패:", error);
-      } finally {
-        setIsLoading(false); // 로딩 종료
-      }
-    };
-
-    if (probId) {
-      fetchPageData();
-    }
-  }, [probId]);
-
-  // [API] 채점 탭 데이터 요청
-  const fetchSubmissions = async () => {
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/board?page=1&size=50`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const json = await res.json();
-        let items = json.data.submissions || [];
-
-        // 1. 서버 응답 중 아직 채점이 안 끝난(isCorrect가 null인) 항목들은 폴링 대상(_isPending)으로 지정
-        items = items.map((item: any) => {
-          if (item.isCorrect === null || item.submissionStatus === "PENDING" || item.submissionStatus === "JUDGING") {
-            return { ...item, _isPending: true };
-          }
-          return item;
-        });
-
-        // 2. 다른 페이지(에디터/터미널)에서 갓 제출하고 넘어온 ID 처리 (DB 반영 지연 방어)
-        const pendingId = sessionStorage.getItem(`pending_sub_${probId}`);
-        if (pendingId) {
-          const exists = items.find((s: any) => String(s.submissionId) === String(pendingId));
-
-          if (!exists) {
-            // DB에 아직 안 나타났다면 가짜 행 추가
-            items.unshift({
-              submissionId: pendingId,
-              nickname: localStorage.getItem("nickname") || "내 제출", // 
-              submissionStatus: "PENDING",
-              progress: 0,
-              submittedAt: new Date().toISOString(),
-              _isPending: true
-            });
-          } else {
-            // 서버 보드에 정상적으로 등장했다면 스토리지 비우기!
-            sessionStorage.removeItem(`pending_sub_${probId}`);
-          }
-        }
-
-        // 3. 방금 제출해서 아직 보드에 없는 로컬 대기 항목은 유지 (보드 갱신이 폴링 중인 행을 지우지 않도록)
-        setSubmissions((prev) => {
-          const localPending = prev.filter(
-            (p) => p._isPending && !items.some((s: any) => String(s.submissionId) === String(p.submissionId))
-          );
-          return [...localPending, ...items];
-        });
-      }
-    } catch (e) {
-      console.error("채점 보드 로드 실패:", e);
-    }
-  };
-
-  // [API] 채점 상태 폴링
-  // - COMPLETED가 오면 _isPending을 해제하고 보드를 다시 불러온다.
-  // - 403/404(남의 제출·없는 제출)는 즉시, 그 외 실패는 연속 MAX_POLL_FAILURES회 후 폴링을 멈춘다.
-  // - 서버가 계속 PENDING/JUDGING이면 MAX_POLL_ATTEMPTS회 후 멈춘다. (1.5초 × 120 ≈ 3분)
-  const MAX_POLL_FAILURES = 5;
-  const MAX_POLL_ATTEMPTS = 120;
+  const detailQuery=useRemoteData(probId, async signal => {
+    const json=await requestJson(problemApi(`/api/problems/${probId}`),{signal,headers:authHeaders()});
+    if(!json?.data)throw new Error('Missing problem');
+    return json.data;
+  });
+  const rankQuery=useRemoteData(probId, async signal => {
+    const json=await requestJson(problemApi(`/api/problems/${probId}/ranking?page=1`),{signal,headers:authHeaders()});
+    return json?.data?.rankings ?? [];
+  });
+  useEffect(()=>{
+    setProblemData(detailQuery.data);setIsOwner(!!detailQuery.data?.isOwner);setIsLoading(detailQuery.loading);
+    if(detailQuery.data)fetchComments();
+  },[detailQuery.data,detailQuery.loading]);
+  useEffect(()=>{
+    setRankings(rankQuery.data??[]);
+    const first=rankQuery.data?.[0];
+    setFirstBlood(first?{user:first.nickname,date:new Date(first.firstSolvedAt).toLocaleDateString('ko-KR',{month:'short',day:'numeric'})}:{user:'',date:''});
+  },[rankQuery.data]);
+  useEffect(()=>{setSubmissions([]);setSelectedChoices([]);setPollError(null);setPollStopped(false);pollStarted.current=0;},[probId]);
 
   useEffect(() => {
-    const pendingItems = submissions.filter((sub) => sub._isPending);
-    if (pendingItems.length === 0) return;
+    if (isLoading || !probId || problemData?.type !== 'practice') return;
+    setPracticeStatusError('');
+    const manualRefresh = practiceStatusRetry !== practiceStatusRequested.current;
+    practiceStatusRequested.current = practiceStatusRetry;
+    if (practiceBuild.status !== 'PENDING' && !manualRefresh) return;
+    return watchPracticeBuild({
+      probId, token: problemToken(),
+      onUpdate: state => {
+        setPracticeStatusError('');
+        setProblemData((previous: any) => ({ ...previous, practiceBuild: state }));
+      },
+      onError: setPracticeStatusError,
+    });
+  }, [probId, isLoading, problemData?.type, practiceBuild.status, practiceStatusRetry]);
 
-    const timer = setTimeout(async () => {
-      const token = localStorage.getItem("token");
-
-      const results = await Promise.all(
-        pendingItems.map(async (item) => {
-          try {
-            const res = await fetch(`https://diveon.net/api/submissions/${item.submissionId}/status`, {
-              headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (res.ok) {
-              const json = await res.json();
-              return { id: String(item.submissionId), data: json.data, fatal: false };
-            }
-            return { id: String(item.submissionId), data: null, fatal: res.status === 403 || res.status === 404 };
-          } catch (e) {
-            return { id: String(item.submissionId), data: null, fatal: false };
-          }
-        })
-      );
-
-      const completedIds = results
-        .filter((r) => r.data?.submissionStatus === "COMPLETED")
-        .map((r) => r.id);
-
-      // 끝난 제출이 sessionStorage에 남아 있으면 보드 갱신 시 가짜 대기 행이 다시 생기므로 제거
-      const storedPendingId = sessionStorage.getItem(`pending_sub_${probId}`);
-      if (storedPendingId && completedIds.includes(String(storedPendingId))) {
-        sessionStorage.removeItem(`pending_sub_${probId}`);
-      }
-
-      setSubmissions((prev) =>
-        prev.map((sub) => {
-          if (!sub._isPending) return sub;
-
-          const result = results.find((r) => r.id === String(sub.submissionId));
-          if (!result) return sub;
-
-          const attempts = (sub._pollAttempts || 0) + 1;
-
-          if (!result.data) {
-            const failures = (sub._pollFailures || 0) + 1;
-            if (result.fatal || failures >= MAX_POLL_FAILURES) {
-              if (String(sessionStorage.getItem(`pending_sub_${probId}`)) === String(sub.submissionId)) {
-                sessionStorage.removeItem(`pending_sub_${probId}`);
-              }
-              return { ...sub, _isPending: false, submissionStatus: "UNKNOWN" };
-            }
-            return { ...sub, _pollFailures: failures, _pollAttempts: attempts };
-          }
-
-          const { submissionStatus, progress } = result.data;
-          if (submissionStatus === "COMPLETED") {
-            return { ...sub, progress: 100, submissionStatus, _isPending: false };
-          }
-          if (attempts >= MAX_POLL_ATTEMPTS) {
-            return { ...sub, progress, submissionStatus: "UNKNOWN", _isPending: false };
-          }
-          return { ...sub, progress, submissionStatus, _pollFailures: 0, _pollAttempts: attempts };
-        })
-      );
-
-      // 하나라도 COMPLETED가 되었다면 보드 갱신 (정답/오답 결과는 보드에만 있음)
-      if (completedIds.length > 0) {
-        fetchSubmissions();
-      }
-
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [submissions]);
+  const boardQuery=useRemoteData(probId, async signal => {
+    const json=await requestJson(problemApi(`/api/problems/${probId}/board?page=1&size=50`),{signal,headers:authHeaders()});
+    if(!Array.isArray(json?.data?.submissions))throw new Error('Invalid board');
+    return json.data.submissions as any[];
+  });
+  useEffect(()=>{
+    if(!boardQuery.data){setSubmissions([]);setPollError(null);setPollStopped(false);pollStarted.current=0;return;}
+    const items=boardQuery.data.map(item=>({...item,_isPending:isSubmissionPending(item)}));
+    const pendingId=pendingSubmission(String(probId));
+    if(pendingId){
+      if(items.some(item=>String(item.submissionId)===pendingId))forgetSubmission(String(probId));
+      else items.unshift({submissionId:pendingId,nickname:'내 제출',submissionStatus:'PENDING',progress:0,submittedAt:new Date().toISOString(),_isPending:true});
+    }
+    setSubmissions(items);
+  },[boardQuery.data,probId]);
+  const fetchSubmissions=()=>{setPollError(null);setPollStopped(false);pollStarted.current=0;boardQuery.retry();};
+  useEffect(()=>{
+    const pending=submissions.filter(sub=>sub._isPending);
+    if(!pending.length||pollStopped||boardQuery.loading||boardQuery.error)return;
+    if(!pollStarted.current)pollStarted.current=Date.now();
+    if(Date.now()-pollStarted.current>=120000){setPollStopped(true);setPollError({kind:'timeout',message:'채점이 아직 끝나지 않아 자동 확인을 멈췄습니다. 잠시 후 다시 불러와 주세요.',retryable:true});return;}
+    let active=true;const controller=new AbortController();
+    const timer=setTimeout(async()=>{
+      try{
+        const results=await Promise.all(pending.map(async item=>{
+          const json=await requestJson(problemApi(`/api/submissions/${item.submissionId}/status`),{signal:controller.signal,headers:authHeaders()});
+          if(!json?.data)throw new Error('Missing status');
+          return json.data;
+        }));
+        if(!active)return;
+        setSubmissions(previous=>previous.map(sub=>{
+          const update=results.find(r=>String(r.submissionId)===String(sub.submissionId));
+          return update?{...sub,...update,_isPending:isSubmissionPending(update)}:sub;
+        }));
+        if(results.some(result=>!isSubmissionPending(result)))boardQuery.retry();
+      }catch(error){if(active&&!isRequestCancelled(error)){setPollError(requestIssue(error));setPollStopped(true);}}
+    },1500);
+    return()=>{active=false;clearTimeout(timer);controller.abort();};
+  },[submissions,pollStopped,boardQuery.loading,boardQuery.error]);
 
   // [API] 객관식 답안 제출
   const handleObjectiveSubmit = async () => {
     if (selectedChoices.length === 0) {
-      alert("답안을 최소 하나 이상 선택해주세요.");
+      setAnswerNotice("답안을 최소 하나 이상 선택해주세요.");
       return;
     }
 
+    if(isSubmittingAnswer)return;
+    setAnswerIssue(null);setAnswerNotice('');
     setIsSubmittingAnswer(true);
-    const token = localStorage.getItem("token");
+    const token = problemToken();
+    if(!token){setAnswerIssue(httpIssue(401));setIsSubmittingAnswer(false);return;}
     try {
-      const res = await fetch(`https://diveon.net/api/submissions/grade`, {
+      const json = await requestJson(problemApi(`/api/submissions/grade`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
@@ -332,13 +242,12 @@ function ProblemDetailContent() {
         })
       });
 
-      if (res.ok) {
-        const json = await res.json();
-
+      if(problemToken()!==token)return;
+      {
         // 제출 API 명세서 기준 submissionId 추출
         const newSubmissionId = json.data.submissionId;
 
-        alert("채점 요청이 접수되었습니다!");
+        setAnswerNotice("채점 요청이 접수되었습니다.");
 
         // 1. 보드 전체를 갱신하지 않고, 화면에 띄울 '임시 대기 항목'을 맨 위에 추가
         const pendingSub = {
@@ -350,16 +259,14 @@ function ProblemDetailContent() {
           _isPending: true // 폴링 봇이 추적할 타겟이라는 표시!
         };
 
+        setPollError(null);setPollStopped(false);pollStarted.current=0;
         setSubmissions(prev => [pendingSub, ...prev]);
 
         setActiveTab("grading");
 
-      } else {
-        const err = await res.json();
-        alert(`제출 실패: ${err.detail || err.message || "오류가 발생했습니다."}`);
       }
-    } catch (e) {
-      alert("서버와 통신 중 오류가 발생했습니다.");
+    } catch (error) {
+      setAnswerIssue(requestIssue(error,true));
     } finally {
       setIsSubmittingAnswer(false);
     }
@@ -367,10 +274,10 @@ function ProblemDetailContent() {
 
   // [API] 댓글 목록 새로고침
   const fetchComments = async () => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     const headers: HeadersInit = { "Authorization": `Bearer ${token}` };
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments`, { headers });
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments`), { headers });
       const text = await res.text();
 
       // 텍스트가 비어있지 않은 경우에만 JSON 파싱을 시도합니다.
@@ -392,12 +299,12 @@ function ProblemDetailContent() {
 
   // [API] 랭킹 불러오기
   const fetchRanking = async (page = 1) => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     const headers: HeadersInit = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/ranking?page=${page}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/ranking?page=${page}`), {
         method: "GET",
         headers
       });
@@ -426,10 +333,10 @@ function ProblemDetailContent() {
   const handleOpenGroupModal = async () => {
     setShowGroupModal(true);
     setIsFetchingGroups(true);
-    const token = localStorage.getItem("token");
+    const token = problemToken();
 
     try {
-      const res = await fetch(`https://diveon.net/api/groups/me?problemId=${probId}`, {
+      const res = await fetch(problemApi(`/api/groups/me?problemId=${probId}`), {
         method: "GET",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -447,9 +354,9 @@ function ProblemDetailContent() {
 
   // [API] 선택한 그룹에 문제 추가하기
   const handleAddToGroup = async (targetGroupId: number) => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/groups/${targetGroupId}/problems`, {
+      const res = await fetch(problemApi(`/api/groups/${targetGroupId}/problems`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -479,6 +386,7 @@ function ProblemDetailContent() {
         // 이미 선택된 보기를 다시 누르면 제거
         return prev.filter((i) => i !== index);
       } else {
+        if (problemData?.selectionMode === 'single') return [index];
         if (problemData?.isOrderedAnswer) {
           return [...prev, index];
         }
@@ -492,9 +400,9 @@ function ProblemDetailContent() {
   const handleDeleteProblem = async () => {
     if (!confirm("정말로 이 문제를 삭제하시겠습니까?\n삭제된 문제는 복구할 수 없습니다.")) return;
 
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}`), {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -517,9 +425,9 @@ function ProblemDetailContent() {
 
   // [API] 특정 댓글(대댓글 포함) 상세 조회
   const handleSelectComment = async (comment: any) => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${comment.commentId}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments/${comment.commentId}`), {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const json = await res.json();
@@ -534,13 +442,13 @@ function ProblemDetailContent() {
     const content = parentId ? replyInput : commentInput;
     if (!content.trim()) return;
 
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
       // API 명세에 맞게 isPrivate 추가 및 parentId 선택적 할당
       const payload: any = { content, isPrivate: false };
       if (parentId) payload.parentId = parentId;
 
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(payload) // 수정된 payload 전송
@@ -562,9 +470,9 @@ function ProblemDetailContent() {
     e.stopPropagation(); // 클릭 이벤트 버블링 방지 (상세 창으로 넘어가지 않게)
     if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
 
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${commentId}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments/${commentId}`), {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -581,9 +489,9 @@ function ProblemDetailContent() {
     e.stopPropagation();
     if (!editContent || !editContent.trim()) return;
 
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     try {
-      const res = await fetch(`https://diveon.net/api/problems/${probId}/comments/${commentId}`, {
+      const res = await fetch(problemApi(`/api/problems/${probId}/comments/${commentId}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ content: editContent, isPrivate: false })
@@ -601,7 +509,7 @@ function ProblemDetailContent() {
 
   // 페이지 로드 시 로그인 상태 확인
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = problemToken();
     if (token) {
       setIsLoggedIn(true);
     }
@@ -609,27 +517,14 @@ function ProblemDetailContent() {
 
   // 로그아웃 핸들러
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (!logout()) return;
     setIsLoggedIn(false);
     window.location.reload(); // 상태 초기화를 위해 새로고침
   };
 
-  // 숫자/문자열 티어 값을 이름으로 정제해주는 함수
-  const formatTierName = (tier: string | number) => {
-    const t = String(tier);
-    if (t === "7") return "Challenger";
-    if (t === "6") return "Master";
-    if (t === "5") return "Diamond";
-    if (t === "4") return "Platinum";
-    if (t === "3") return "Gold";
-    if (t === "2") return "Silver";
-    if (t === "1") return "Bronze";
-    return t || "Bronze"; // 기본값
-  };
-
   // 티어 명칭에 따라 배경/글자/테두리 색상 클래스를 리턴하는 함수
-  const getTierColor = (tier: string | number) => {
-    const tierName = formatTierName(tier);
+  const getTierColor = (tier: number | null | undefined) => {
+    const tierName = submissionTierLabel(tier);
 
     switch (tierName) {
       case "Challenger":
@@ -650,6 +545,10 @@ function ProblemDetailContent() {
     }
   };
 
+  if(!probId)return <main className="p-8"><RequestError issue={httpIssue(404)}/></main>;
+  if(detailQuery.loading&&!problemData)return <main role="status" className="p-8">문제를 불러오는 중…</main>;
+  if(detailQuery.error&&!problemData)return <main className="mx-auto max-w-3xl p-8"><h1 className="text-xl font-bold">문제 조회</h1><RequestError issue={detailQuery.error} retry={detailQuery.retry} busy={detailQuery.loading}/></main>;
+
   return (
     <div className="min-h-screen bg-panel text-ink font-sans">
 
@@ -659,11 +558,7 @@ function ProblemDetailContent() {
         activeMenu="challenge"
         showSearch={false}
         onLogout={async () => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("nickname");
-          localStorage.removeItem("userImgUrl");
-          localStorage.clear();
-          sessionStorage.clear();
+          if (!logout()) return;
           setIsLoggedIn(false);
           window.location.replace("/");
         }}
@@ -788,6 +683,8 @@ function ProblemDetailContent() {
 
             {/* 1. 문제 탭 */}
             <TabsContent value="problem" className="mt-6 space-y-6 animate-in fade-in-50 duration-300">
+              <RequestError issue={answerIssue} checkHref={`/challenges/detail?id=${probId}&tab=grading`}/>
+              {answerNotice&&<p role="status">{answerNotice}</p>}
               <div className="flex gap-6 items-start">
                 <div className="w-24 h-24 bg-deep rounded-2xl grid place-items-center shrink-0 border border-line">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -805,6 +702,14 @@ function ProblemDetailContent() {
                   </p>
                 </div>
               </div>
+
+              {problemData?.type === 'practice' && <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4" aria-label="실습 환경 제작 상태">
+                <p className="font-bold text-sm" role="status" aria-live="polite">{practiceStatus.label}</p>
+                <p className="mt-1 text-sm text-slate-600">{practiceStatus.message}</p>
+                {practiceStatusError && <p className="mt-2 text-sm text-amber-700" role="alert">{practiceStatusError}</p>}
+                {(practiceStatusError || practiceBuild.status === 'FAILED' || practiceBuild.status === 'UNAVAILABLE') &&
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setPracticeStatusRetry(value => value + 1)}>다시 확인</Button>}
+              </div>}
 
               <div className="flex items-center justify-between w-full">
                 {/* 왼쪽 버튼 그룹 (제출, 공유) */}
@@ -825,11 +730,11 @@ function ProblemDetailContent() {
                       {isSubmittingAnswer ? "제출 중..." : "답안 제출하기"}
                     </Button>
                   ) : problemData?.type === "practice" ? (
-                    <Link href={`/challenges/terminal?id=${probId}`}>
+                    practiceBuild.canStart && !practiceStatusError ? <Link href={`/challenges/terminal?id=${probId}`}>
                       <Button className="bg-success hover:bg-success/85 text-primary-ink font-bold shadow-md shadow-black/40">
                         실습 환경 켜기
                       </Button>
-                    </Link>
+                    </Link> : <Button disabled className="bg-success text-primary-ink font-bold">실습 환경 켜기</Button>
                   ) : (
                     <Button className="bg-raised hover:bg-line">답안 제출하기</Button> // Fallback
                   )}
@@ -897,10 +802,10 @@ function ProblemDetailContent() {
                       const isSelected = orderIndex !== -1;
 
                       return (
-                        <div
+                        <button type="button" aria-pressed={isSelected}
                           key={choice.index}
                           onClick={() => handleChoiceToggle(choice.index)}
-                          className={`p-4 border-2 rounded-xl flex items-center gap-4 cursor-pointer transition-all ${isSelected
+                          className={`w-full text-left p-4 border-2 rounded-xl flex items-center gap-4 cursor-pointer transition-all ${isSelected
                             ? "border-primary bg-primary/10 shadow-sm"
                             : "border-line bg-canvas hover:border-line-strong hover:bg-raised"
                             }`}
@@ -916,13 +821,14 @@ function ProblemDetailContent() {
                           <span className={`text-sm ${isSelected ? "text-primary font-bold" : "text-ink"}`}>
                             {choice.content}
                           </span>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
                 )}
 
                 {/* 코딩형 입출력 예시 동적 렌더링 */}
+                {problemData?.type==='coding'&&<CodingRules contract={problemData.oboContract} inputDescription={problemData.inputDescription} outputDescription={problemData.outputDescription} allowedLanguages={problemData.constraints?.allowedLanguages}/>}
                 {problemData?.type === "coding" && problemData?.testcases && problemData.testcases.length > 0 && (
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* 입력 예시 */}
@@ -987,6 +893,8 @@ function ProblemDetailContent() {
 
             {/* 2. 채점 탭 */}
             <TabsContent value="grading" className="mt-6 animate-in fade-in-50 duration-300">
+              <RequestError issue={boardQuery.error??pollError} retry={fetchSubmissions} busy={boardQuery.loading} stale={submissions.length>0}/>
+              {boardQuery.loading&&<p role="status">제출 내역을 불러오는 중…</p>}
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold">제출 현황</h2>
                 <Button
@@ -1035,19 +943,11 @@ function ProblemDetailContent() {
                         const isCoding = problemData?.type === "coding";
 
                         // 렌더링 상태 판별
-                        // UNKNOWN: 상태 조회 실패/시간 초과로 폴링을 멈춘 항목 (서버 상태값이 아님)
-                        const isFailed = sub.submissionStatus === "UNKNOWN";
-                        const isPending = !isFailed && (sub._isPending ||
-                          sub.isCorrect === null ||
-                          sub.isCorrect === undefined || // 채점 완료 후 보드 갱신 전 (결과는 보드에서 받음)
-                          sub.submissionStatus === "PENDING" ||
-                          sub.submissionStatus === "JUDGING");
-                        const isSuccess = sub.isCorrect === true;
-
-                        let resultText = "결과 대기";
-                        if (isFailed) resultText = "상태 확인 실패";
-                        else if (isPending) resultText = `채점 중 (${sub.progress || 0}%)`;
-                        else resultText = isSuccess ? "정답" : "오답";
+                        const verdict = submissionVerdict(sub);
+                        const isPending = verdict.kind === "pending";
+                        const isSuccess = verdict.kind === "correct";
+                        const isFailed = verdict.kind === "failed";
+                        const resultText = isPending ? `${verdict.label} (${sub.progress || 0}%)` : verdict.label;
 
                         return (
                           <TableRow
@@ -1060,7 +960,7 @@ function ProblemDetailContent() {
 
                             {/* 티어 표시 컬럼 */}
                             <TableCell>
-                              <TierBadge tier={sub.rank} size="sm" showRank={false} />
+                              <TierBadge tier={sub.userTier} size="sm" showRank={false} />
                             </TableCell>
 
                             {/* 결과 배지 컬럼 */}
@@ -1081,27 +981,30 @@ function ProblemDetailContent() {
                                   )}
                                 </div>
                               ) : (
-                                /* 판정 코드 라벨 + 문구 (디자인 시스템 Verdict 축약형) */
-                                <span className="inline-flex items-center gap-2">
-                                  <span
-                                    className={`min-w-[40px] text-center px-1.5 py-1 rounded-md font-mono text-[11px] font-bold tracking-[0.08em] ${
-                                      isFailed ? "bg-raised text-ink-muted" : isSuccess ? "bg-success-soft text-success" : "bg-danger-soft text-danger"
-                                    }`}
-                                  >
-                                    {isFailed ? "?" : isSuccess ? "AC" : "WA"}
+                                <div className="space-y-1">
+                                  {/* 판정 코드 라벨 + 문구 (디자인 시스템 Verdict 축약형) */}
+                                  <span className="inline-flex items-center gap-2">
+                                    <span
+                                      className={`min-w-[40px] text-center px-1.5 py-1 rounded-md font-mono text-[11px] font-bold tracking-[0.08em] ${
+                                        isSuccess ? "bg-success-soft text-success" : verdict.kind === "wrong" ? "bg-danger-soft text-danger" : verdict.kind === "error" ? "bg-warning-soft text-warning" : "bg-raised text-ink-muted"
+                                      }`}
+                                    >
+                                      {isSuccess ? "AC" : verdict.kind === "wrong" ? "WA" : verdict.kind === "error" ? "ERR" : "?"}
+                                    </span>
+                                    <span className={`text-xs font-semibold ${isSuccess ? "text-success" : verdict.kind === "wrong" ? "text-danger" : verdict.kind === "error" ? "text-warning" : "text-ink-muted"}`}>
+                                      {isSuccess ? "도달" : verdict.kind === "wrong" ? "산소 부족" : resultText}
+                                    </span>
                                   </span>
-                                  <span className={`text-xs font-semibold ${isFailed ? "text-ink-muted" : isSuccess ? "text-success" : "text-danger"}`}>
-                                    {isFailed ? resultText : isSuccess ? "도달" : "산소 부족"}
-                                  </span>
-                                </span>
+                                  {verdict.hint && <p className="text-xs text-ink-muted">{verdict.hint}</p>}
+                                </div>
                               )}
                             </TableCell>
 
                             {/* 코딩 문제 전용 데이터 */}
                             {isCoding && (
                               <>
-                                <TableCell className="text-xs text-ink-muted">{!isPending && sub.memoryUsage !== undefined ? `${sub.memoryUsage} MB` : "-"}</TableCell>
-                                <TableCell className="text-xs text-ink-muted">{!isPending && sub.runtime !== undefined ? `${sub.runtime} ms` : "-"}</TableCell>
+                                <TableCell className="text-xs text-ink-muted">{!isPending && sub.memoryUsage != null ? `${sub.memoryUsage} MB` : "-"}</TableCell>
+                                <TableCell className="text-xs text-ink-muted">{!isPending && sub.runtime != null ? `${sub.runtime} ms` : "-"}</TableCell>
                                 <TableCell className="text-xs font-bold text-ink-muted">{!isPending ? (sub.language || "-") : "-"}</TableCell>
                               </>
                             )}
@@ -1126,19 +1029,19 @@ function ProblemDetailContent() {
                               )}
 
                               {/* 2. 코딩: 코드 보기 / OBO 보기 2가지 버튼 제공 */}
-                              {problemData?.type === "coding" && !isPending && (
+                              {problemData?.type === "coding" && !isPending && !isFailed && (
                                 <div className="flex justify-center gap-1.5">
                                   <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold text-ink-muted" asChild>
                                     <Link href={`/challenges/submissions?id=${sub.submissionId}`}>코드</Link>
                                   </Button>
-                                  <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold border-primary/30 text-primary hover:bg-primary/10" asChild>
+                                  {sub.hasObo === true && <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold border-primary/30 text-primary hover:bg-primary/10" asChild>
                                     <Link href={`/challenges/obo?id=${sub.submissionId}`}>OBO</Link>
-                                  </Button>
+                                  </Button>}
                                 </div>
                               )}
 
                               {/* 3. 실습: 버튼 없음 (또는 채점 중일 때 대기 상태 표시) */}
-                              {(problemData?.type === "practice" || isPending) && (
+                              {(problemData?.type === "practice" || isPending || isFailed) && (
                                 <span className="text-xs text-ink-subtle">-</span>
                               )}
                             </TableCell>
@@ -1146,7 +1049,7 @@ function ProblemDetailContent() {
                         );
                       })}
 
-                    {submissions.length === 0 && (
+                    {submissions.length === 0 && !boardQuery.loading && !boardQuery.error && (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-8 text-ink-subtle">
                           아직 제출된 답안이 없습니다.
@@ -1160,6 +1063,7 @@ function ProblemDetailContent() {
 
             {/* 3. 순위 탭 */}
             <TabsContent value="rank" className="mt-6 animate-in fade-in-50 duration-300">
+              <RequestError issue={rankQuery.error} retry={rankQuery.retry} busy={rankQuery.loading}/>
               <h2 className="text-lg font-bold mb-4">전체 랭킹 (실시간 제출 완료 순)</h2>
               <div className="border rounded-lg overflow-hidden bg-panel shadow-sm">
                 <Table>
@@ -1196,9 +1100,9 @@ function ProblemDetailContent() {
                         <TableCell className="text-center">
                           <Badge
                             variant="outline"
-                            className={`font-mono text-[10px] font-bold border ${getTierColor(rank.rank)}`}
+                            className={`font-mono text-[10px] font-bold border ${getTierColor(rank.userTier)}`}
                           >
-                            {formatTierName(rank.rank)}
+                            {submissionTierLabel(rank.userTier)}
                           </Badge>
                         </TableCell>
 

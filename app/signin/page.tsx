@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react"; 
 import { useSearchParams } from "next/navigation";
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
+import { safeReturnPath } from "@/lib/request";
+import { problemApi } from "@/lib/problemApi";
 
 function LoginContent() {
   const router = useRouter();
@@ -24,7 +26,7 @@ function LoginContent() {
       setIsLoading(true);
       try {
         // 구글이 준 인가 코드를 백엔드 API로 POST 토스
-        const res = await fetch("https://diveon.net/api/auth/google/login", {
+        const res = await fetch(problemApi("/api/auth/google/login"), {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
@@ -53,21 +55,7 @@ function LoginContent() {
           if (nickname) localStorage.setItem("nickname", nickname);
           if (userImg) localStorage.setItem("userImgUrl", userImg);
           
-          // 전체 URL 수신 시, 안전하게 상대 경로만 추출해 내는 가드 코드입니다.
-          let safeRedirectPath = "/";
-          if (nextTarget) {
-            try {
-              // nextTarget이 풀 주소(https://...)인 경우 상대 경로만 추출
-              if (nextTarget.startsWith("http")) {
-                const urlObj = new URL(nextTarget);
-                safeRedirectPath = urlObj.pathname + urlObj.search;
-              } else {
-                safeRedirectPath = nextTarget;
-              }
-            } catch (e) {
-              safeRedirectPath = nextTarget;
-            }
-          }
+          const safeRedirectPath = safeReturnPath(nextTarget);
 
           // router.replace를 사용하면 Next.js 인프라가 쿼리스트링(?code=...)을 유실하지 않고 
           // 안전하게 목적지(초대 페이지)로 배달
@@ -149,8 +137,7 @@ export default function LoginPage() {
         </div>
       }
     >
-      {/* clientId에 환경변수 대신 전달받은 구글 ID 문자열을 직접 주입했습니다. */}
-      <GoogleOAuthProvider clientId="556818462420-piu9374s4b65qj329f5l5h6m344j2l26.apps.googleusercontent.com">
+      <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "556818462420-piu9374s4b65qj329f5l5h6m344j2l26.apps.googleusercontent.com"}>
         <LoginContent />
       </GoogleOAuthProvider>
     </Suspense>

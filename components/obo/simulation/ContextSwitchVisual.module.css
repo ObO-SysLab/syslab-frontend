@@ -1,0 +1,61 @@
+.visual { display: flex; flex-direction: column; gap: 12px; min-width: 0; color: #20334a; }
+.visual > *, .context > *, .board > *, .cpu > *, .pcbSection > *, .pcb > *, .pcb h5 > *, .cells > *, .compactCells > *, .cell > *, .actor > * { min-width: 0; }
+.context { display: flex; flex-wrap: wrap; gap: 9px 18px; align-items: center; font-size: 14px; }
+.phase { display: inline-flex; padding: 6px 10px; border-radius: 6px; background: #e8f0fc; color: #1e4f94; font-size: 15px; font-weight: 800; }
+.identity { display: flex; align-items: baseline; gap: 8px; color: #52677e; }
+.identity b { font-size: 20px; color: #24466f; font-weight: 800; overflow-wrap: anywhere; }
+.identity b[data-cs-different=true] { border-radius: 4px; padding: 2px 7px; background: #dceaff; color: #174eb9; }
+.boardScroll { min-width: 0; overflow: auto; padding: 4px; }
+.boardScroll:focus-visible, .cpuValues:focus-visible, .pcbList:focus-visible { outline: 2px solid #3675c7; outline-offset: 2px; }
+.board { position: relative; display: grid; grid-template-columns: minmax(250px, 1fr); gap: 20px; align-items: start; min-width: 0; }
+.board[data-cs-both=true] { min-width: 720px; grid-template-columns: minmax(250px, .8fr) minmax(340px, 1.2fr); gap: 96px; }
+.cpu { position: relative; z-index: 1; border: 2px solid #a8bdd5; border-radius: 10px; padding: 12px; background: #eef4fb; margin-top: 35px; }
+.cpu[data-cs-active=true] { border-color: #245ac4; box-shadow: 0 0 0 2px #245ac4; }
+.cpu h4, .pcbSection > h4 { display: flex; align-items: baseline; gap: 9px; margin: 0 0 10px; font-size: 20px; font-weight: 800; }
+.cpu h4 span, .pcbSection > h4 span { font-size: 14px; font-weight: 550; color: #63778e; }
+.cpuValues { min-width: 0; max-height: 286px; overflow: auto; padding: 2px; }
+.cells { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 8px; min-width: 0; }
+.cell { min-width: 0; padding: 7px 9px; border: 1px solid #d4dfeb; border-radius: 6px; background: #fff; }
+.key { display: block; color: #526b86; font-size: 14px; font-weight: 650; overflow-wrap: anywhere; }
+.value { display: block; font-size: 22px; line-height: 1.35; font-weight: 750; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; white-space: pre-wrap; }
+.value[data-cs-value-type=string] { font-size: 18px; }
+.pcbSection { min-width: 0; }
+.pcbList { display: flex; flex-direction: column; gap: 8px; max-height: 348px; overflow: auto; padding: 3px; }
+.pcb { position: relative; z-index: 1; min-width: 0; flex: 0 0 auto; border: 2px solid #c7d4e3; border-radius: 8px; padding: 9px 10px; background: #fff; }
+.pcb[data-cs-active=true] { border-color: #245ac4; box-shadow: 0 0 0 1px #245ac4; background: #eaf2ff; }
+.pcb h5 { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 0 0 4px; }
+.pcb h5 > strong { font-size: 18px; font-weight: 800; overflow-wrap: anywhere; }
+.transferBadge { padding: 2px 6px; background: #245ac4; border-radius: 4px; color: #fff; font-size: 13px; font-weight: 750; }
+.selectedBadge { padding: 1px 6px; border: 1px solid #94acd0; border-radius: 4px; color: #3f6090; font-size: 13px; }
+.compactCells { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 9px; min-width: 0; }
+.compactCells .cell { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 9px; padding: 2px 7px; }
+.compactCells .key { flex: 0 1 auto; }
+.compactCells .value { margin-left: auto; }
+.moreValues { margin-top: 7px; font-size: 13px; color: #4e6a8c; }
+.moreValues > summary { cursor: pointer; }
+.moreValues > .compactCells { margin-top: 7px; }
+.longValue { min-width: 0; max-width: 100%; }
+.longValue summary { color: #24476b; font-size: 17px; line-height: 1.4; cursor: pointer; overflow-wrap: anywhere; }
+.longValue summary span { font-size: 13px; color: #2863a7; }
+.longValue pre { max-height: 200px; overflow: auto; margin: 6px 0 0; padding: 7px; background: #edf3fa; font: 14px/1.6 monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.transfer { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.transfer > path { fill: none; }
+.transfer > .trail { stroke: #c7def7; stroke-width: 11; }
+.transfer > path[data-cs-edge] { stroke: #235ac5; stroke-width: 4.5; stroke-dasharray: 8 6; animation: contextFlow 2.4s linear infinite; }
+@keyframes contextFlow { to { stroke-dashoffset: -28; } }
+@media (prefers-reduced-motion: reduce) { .transfer > path[data-cs-edge] { animation: none; } }
+.actors { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.actor { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 12px; padding: 12px; border: 2px solid #cfdae8; border-radius: 8px; }
+.actor strong { font-size: 18px; color: #20334a; overflow-wrap: anywhere; }
+.actor span { font-size: 14px; color: #5d738c; }
+.actor[data-cs-selected-row=true] { border-color: #245ac4; background: #eaf2ff; }
+.empty { margin: 6px 0; font-size: 14px; color: #718299; }
+.invalid { margin: 0; padding: 10px; background: #fff8e5; color: #84520d; font-size: 14px; line-height: 1.6; }
+.explanation { margin-top: 12px; padding: 16px 18px; border-top: 1px solid #dce4ec; color: #33475c; }
+.autoExplanation { margin: 0; font-size: 15px; line-height: 1.7; overflow-wrap: anywhere; }
+.authored { margin: 12px 0 0; font-size: 15px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.noteEditors { display: grid; gap: 12px; margin-top: 14px; }
+.noteEditors label { display: grid; gap: 6px; color: #5c6e81; font-size: 13px; }
+.noteEditors textarea { width: 100%; box-sizing: border-box; resize: vertical; min-height: 74px; border: 1px solid #cad5e0; border-radius: 7px; padding: 9px 11px; font-size: 14px; line-height: 1.65; color: #253b51; background: #fff; }
+.noteEditors textarea:focus { outline: 2px solid #77a9df; outline-offset: 1px; }
+.addNote { margin-top: 12px; padding: 6px 10px; border: 1px solid #cad5e0; border-radius: 6px; background: #fff; color: #315b86; font-size: 13px; cursor: pointer; }
