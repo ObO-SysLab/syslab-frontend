@@ -1282,7 +1282,7 @@ function ProblemCreateContent() {
 
             {oboEnabled && (
               <CardContent className="pt-0">
-                {problemType==='coding'&&oboData.mode==='simulation'&&oboData.simulation?.question.judgeProfile==='obo-v1'&&<CodingExampleControl document={oboData.simulation} onAdd={(input,output,sample)=>{
+                {problemType==='coding'&&oboData.mode==='simulation'&&oboData.simulation?.question.judgeProfile==='obo-v1'&&<CodingExampleControl document={oboData.simulation} existing={testcases.map(tc=>tc.input)} onAdd={(input,output,sample)=>{
                   setTestcases(previous=>{
                     const kept=previous.filter(tc=>tc.input.trim()||tc.output.trim());
                     return [...kept,{index:kept.length+1,input,output,is_sample:sample}];

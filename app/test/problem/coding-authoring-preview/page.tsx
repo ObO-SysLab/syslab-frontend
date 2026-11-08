@@ -35,7 +35,7 @@ export default function CodingAuthoringPreview() {
     <section className="grid gap-4 lg:grid-cols-2">
       <div className="rounded-2xl border bg-white p-4" aria-label="테스트케이스">
         <h2 className="font-semibold">테스트케이스</h2>
-        {oboData.mode === 'simulation' && oboData.simulation?.question.judgeProfile === 'obo-v1' && <CodingExampleControl document={oboData.simulation}
+        {oboData.mode === 'simulation' && oboData.simulation?.question.judgeProfile === 'obo-v1' && <CodingExampleControl document={oboData.simulation} existing={testcases.map(tc => tc.input)}
           onAdd={(input, output, sample) => setTestcases(prev => { const kept = prev.filter(tc => tc.input.trim() || tc.output.trim()); return [...kept, { index: kept.length + 1, input, output, is_sample: sample }]; })} />}
         {oboData.mode === 'coding_diff' && schema && <DiagramExampleControl schema={schema} testcases={testcases}
           onAdd={(output, sample) => setTestcases(prev => { const kept = prev.filter(tc => tc.input.trim() || tc.output.trim()); return [...kept, { index: kept.length + 1, input: '', output, is_sample: sample }]; })}
