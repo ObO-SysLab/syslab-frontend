@@ -100,12 +100,13 @@ const threads = (step: number) => [
   {id:'t1',label:'T1',pc:step >= 1 ? '다음 명령' : 'x 쓰기',register:step >= 1 ? '1' : '0',stack:step >= 1 ? '지역값 7' : '지역값 0'},
   {id:'t2',label:'T2',pc:step >= 2 ? '읽기 완료' : 'x 읽기',register:step >= 2 ? '1' : '0',stack:'지역값 9'},
 ];
+const processPresentation = { hiddenSectionNames: ['코드', '힙'], threadFields: ['register', 'stack'], threadLayout: 'row', sectionLayout: 'row', showSharedLinks: true };
 export const PROCESS_THREADS: TeachingExample = {
   slug:'process-threads',title:'같이 쓰는 값과, 각자 갖는 값은 무엇일까?',subtitle:'프로세스 경계 안의 공유 공간과 스레드별 실행 문맥을 나란히 봅니다.',
-  legend:'큰 테두리: 프로세스 주소 공간 · 위쪽: 공유 영역 · 아래쪽: 스레드별 PC·레지스터·스택',
+  legend:'연결선: 같은 공유 영역 사용 · 점선: 현재 스레드 · 초록색 칸: 이전 장면에서 바뀐 값',
   note:'순차 실행 예제이며 경쟁 상태를 자동 계산하지 않습니다. 스레드의 스택은 따로 마련되지만 같은 주소 공간 안에 있으므로 서로 접근할 수 없는 보호 영역이라는 뜻은 아닙니다.',
   template:{id:'PT',name:'프로세스 · 스레드 구조',category:'process',description:'공유 데이터와 개별 문맥',
-    defaultNodes:[node('p1','process-box',0,0,{label:'프로세스 P1',sections:sections(0),threads:threads(0),activeThreadId:null}),node('p2','process-box',410,0,{label:'프로세스 P2',sections:sections(0),threads:[{id:'t3',label:'T3',pc:'대기',register:'0',stack:'지역값 4'}],activeThreadId:null})],defaultEdges:[],
+    defaultNodes:[node('p1','process-box',0,0,{label:'프로세스 P1',sections:sections(0),threads:threads(0),activeThreadId:null,...processPresentation}),node('p2','process-box',410,0,{label:'프로세스 P2',sections:sections(0),threads:[{id:'t3',label:'T3',pc:'대기',register:'0',stack:'지역값 4'}],activeThreadId:null,...processPresentation})],defaultEdges:[],
     defaultFrames:[
       frame('pt-0','처음 · P1의 T1과 T2는 같은 주소 공간을 사용합니다. P2는 별도의 주소 공간입니다.'),
       frame('pt-1','T1 실행 · 공유 데이터 x를 1로 바꾸고, 자기 스택의 지역값을 7로 바꿉니다.',{p1:{sections:sections(1),threads:threads(1),activeThreadId:'t1'}},['p1']),
