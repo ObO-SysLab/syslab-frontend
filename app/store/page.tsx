@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -146,7 +147,7 @@ export default function StorePage() {
                   </AvatarFallback>
                 </Avatar>
               </Link>
-              <button onClick={() => setIsLoggedIn(false)} className="p-2 hover:bg-red-50 rounded-full text-red-500"><LogOut className="h-5 w-5" /></button>
+              <button onClick={() => { if (logout()) setIsLoggedIn(false); }} className="p-2 hover:bg-red-50 rounded-full text-red-500"><LogOut className="h-5 w-5" /></button>
             </>
           ) : (
             <div className="flex items-center gap-2">

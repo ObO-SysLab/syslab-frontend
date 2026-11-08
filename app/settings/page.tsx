@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -156,7 +157,7 @@ function SettingsContent() {
               </Link>
 
               <button
-                onClick={() => setIsLoggedIn(false)}
+                onClick={() => { if (logout()) setIsLoggedIn(false); }}
                 className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
               >
                 <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />

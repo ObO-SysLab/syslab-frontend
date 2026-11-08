@@ -36,6 +36,7 @@ export function GanttLane({ id, data, selected }: NodeProps) {
             const width = Math.max(1, (block.end - block.start) * scale - 2);
             return <button key={index} type="button" className="nodrag nopan pointer-events-auto absolute top-1 bottom-1 overflow-hidden rounded-md text-xs font-semibold transition-[background-color,box-shadow] duration-200"
               data-gantt-block={index} data-active={active} aria-label={`${name} 구간 ${index + 1}: ${block.start}–${block.end}, ${Number((block.end - block.start).toPrecision(12))} 시간 단위`}
+              title={width >= 65 ? undefined : `${block.start}–${block.end}`}
               onClick={event => { if (traceMode) return; event.stopPropagation(); setEditing(index); }}
               style={{ left: block.start * scale, width, background: active ? color : `${color}24`, border: `2px solid ${color}`, color: active && block.colorKey !== 'amber' ? 'white' : '#334155', boxShadow: active ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none' }}>
               {width >= 65 ? `${block.start}–${block.end}` : ''}

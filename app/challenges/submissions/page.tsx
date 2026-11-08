@@ -1,4 +1,8 @@
 "use client";
+import { requestJson, requestIssue, httpIssue, isRequestCancelled, authHeaders, type RequestIssue } from "@/lib/request";
+import { RequestError } from "@/components/feedback/RequestError";
+import { useRemoteData } from "@/components/feedback/useRemoteData";
+import { logout } from "@/lib/authSession";
 import { problemApi, problemToken } from "@/lib/problemApi";
 import { submissionVerdict } from "@/lib/submission-status";
 
@@ -31,8 +35,12 @@ function SubmissionDetailContent() {
   // 로그인 상태
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [submissionData, setSubmissionData] = useState<any>(null);
+  const query = useRemoteData(submissionId, async signal => {
+    const json = await requestJson(problemApi(`/api/submissions/${submissionId}/result`), {signal,headers:authHeaders()});
+    if(!json?.data)throw new Error('Missing result');
+    return json.data;
+  });
+  const isLoading=query.loading, submissionData=query.data;
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
@@ -68,55 +76,6 @@ function SubmissionDetailContent() {
     fetchProfileImage();
   }, []);
 
-  // [API] 제출 상세 데이터 로드
-  useEffect(() => {
-    if (!submissionId) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchSubmissionDetail = async () => {
-      setIsLoading(true);
-      const token = problemToken();
-      if (token) {
-        setIsLoggedIn(true);
-      }
-
-      try {
-        const res = await fetch(problemApi(`/api/submissions/${submissionId}/result`), {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-
-        if (res.ok) {
-          const json = await res.json();
-          setSubmissionData(json.data);
-        } else {
-          const errorText = await res.text(); // json() 대신 text()로 먼저 읽기
-          let errorMessage = "결과를 불러올 수 없습니다.";
-
-          if (errorText) {
-            try {
-              // 본문이 있다면 JSON으로 파싱 시도
-              const errorData = JSON.parse(errorText);
-              errorMessage = errorData.message || errorMessage;
-            } catch (e) {
-              // JSON이 아니면 (예: HTML 에러 페이지) 텍스트 그대로 사용하거나 기본 메시지 유지
-              console.error("서버 응답이 JSON이 아닙니다:", errorText);
-            }
-          }
-          console.error(`에러 발생 (상태 코드: ${res.status}):`, errorMessage);
-          alert(`[${res.status}] ${errorMessage}`);
-        }
-      } catch (error) {
-        console.error("통신 에러:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSubmissionDetail();
-  }, [submissionId]);
-
   // 코드 복사 기능
   const handleCopyCode = () => {
     if (!submissionData?.code) return;
@@ -131,10 +90,12 @@ function SubmissionDetailContent() {
 
   // 로딩 화면 (빙글빙글 도는 UI)
   if (isLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div role="status" aria-label="제출 결과 불러오는 중" className="min-h-screen flex items-center justify-center bg-slate-50">
       <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
     </div>
   );
+
+  if(query.error)return <main className="mx-auto max-w-3xl p-8"><h1 className="text-xl font-bold">제출 결과 조회</h1><RequestError issue={query.error} retry={query.retry} busy={query.loading}/></main>;
 
   // URL에 id가 파라미터가 아예 없을 때의 방어 화면
   if (!submissionId) return (
@@ -191,7 +152,7 @@ function SubmissionDetailContent() {
               </Link>
               <button
                 onClick={() => {
-                  localStorage.removeItem("token");
+                  if (!logout()) return;
                   setIsLoggedIn(false);
                 }}
                 className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"

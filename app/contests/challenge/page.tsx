@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 import { CodingRules } from '@/components/obo/simulation/CodingRules';
 
 import Link from "next/link";
@@ -220,7 +221,7 @@ function ProblemDetailContent() {
 
 	// 로그아웃 핸들러
 	const handleLogout = () => {
-		localStorage.removeItem("token");
+		if (!logout()) return;
 		setIsLoggedIn(false);
 		window.location.reload(); // 상태 초기화를 위해 새로고침
 	};
@@ -275,7 +276,7 @@ function ProblemDetailContent() {
 							</Link>
 
 							<button
-								onClick={() => setIsLoggedIn(false)}
+								onClick={() => { if (logout()) setIsLoggedIn(false); }}
 								className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
 							>
 								<LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />

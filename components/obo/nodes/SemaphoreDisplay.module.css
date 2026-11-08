@@ -1,0 +1,14 @@
+.semaphore { box-sizing: border-box; width: 174px; padding: 14px 16px; border: 1px solid #a8bdb5; border-radius: 10px; background: #f3f9f6; color: #1e5144; }
+.semaphore[data-available=false] { border-color: #e4c28b; background: #fff9ed; color: #8a570a; }
+.heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; }
+.heading strong { font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+.heading code { font-size: 11px; color: #64748b; overflow-wrap: anywhere; }
+.quantity { display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px; margin-top: 7px; }
+.quantity > strong { min-width: 0; max-width: 100%; overflow-wrap: anywhere; font-size: 29px; font-weight: 750; line-height: 1.2; }
+.quantity > span { min-width: 0; overflow-wrap: anywhere; font-size: 12px; }
+.quantity > small { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.tokens { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; min-height: 15px; margin-top: 10px; }
+.token { display: block; width: 12px; height: 12px; border: 1.5px solid currentColor; border-radius: 3px; background: #64ad91; }
+.tokens > small { font-size: 10px; }
+.hiddenNote { margin-top: 6px; font-size: 10px; color: #64748b; }
+.error { margin-top: 6px; font-size: 11px; color: #b45309; }

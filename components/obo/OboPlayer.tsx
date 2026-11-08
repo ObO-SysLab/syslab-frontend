@@ -22,6 +22,7 @@ import { frameEdges } from './lib/frameEdges';
 import type { OboBlob, Frame } from './types';
 import { GanttContext } from './gantt/GanttContext';
 import { ganttLayouts, alignGanttRows } from './gantt/model';
+import styles from './OboPlayer.module.css';
 
 const edgeTypes = { 'obo-edge': OboEdge } as const;
 
@@ -75,9 +76,15 @@ function PlayerInner({ blob, maxFrameIndex, checkpointStatusByFrame, autoPlay }:
   }, [playing, currentIndex, effectiveLastIndex, playbackSpeed]);
 
   const layouts = ganttLayouts(blob.nodes as Node[], frames.slice(0, effectiveLastIndex + 1));
+  const previousNodeData = hasFrames && currentIndex > 0 && blob.nodes.some(n => n.type === 'process-box')
+    ? Object.fromEntries(applyFrame(blob.nodes as Node[], frames, currentIndex - 1).map(n => [n.id, n.data])) : undefined;
   const nodes = alignGanttRows(applyFrame(blob.nodes as Node[], frames, hasFrames ? currentIndex : -1), layouts)
-    .map(n => ({ ...n, selectable: false, draggable: false }));
-  const edges = frameEdges(blob.edges, currentFrame).map(e => ({ ...e, type: 'obo-edge' as const, selectable: false }));
+    .map(n => ({ ...n, selectable: false, draggable: false,
+      hidden: n.hidden || n.type === 'counter-badge' && n.data.showInPlayback === false
+        || n.type === 'text-label' && n.data.variant === 'item' && !String(n.data.text ?? n.data.label ?? '').trim() }));
+  const hiddenIds = new Set(nodes.filter(n => n.hidden).map(n => n.id));
+  const edges = frameEdges(blob.edges, currentFrame).filter(e => !hiddenIds.has(e.source) && !hiddenIds.has(e.target))
+    .map(e => ({ ...e, type: 'obo-edge' as const, selectable: false }));
 
   const prev = () => { setCurrentIndex(i => Math.max(0, i - 1)); setPlaying(false); };
   const next = () => { setCurrentIndex(i => Math.min(effectiveLastIndex, i + 1)); setPlaying(false); };
@@ -85,10 +92,10 @@ function PlayerInner({ blob, maxFrameIndex, checkpointStatusByFrame, autoPlay }:
   const checkpointStatus = currentFrame ? checkpointStatusByFrame?.[currentFrame.id] : undefined;
 
   return (
-    <div ref={containerRef} className="flex flex-col h-full rounded-2xl overflow-hidden border border-slate-100 bg-white">
+    <div ref={containerRef} data-obo-player className={`${styles.player} flex flex-col h-full rounded-2xl overflow-hidden border border-slate-100 bg-white`}>
       <div className="min-h-0 flex-1 relative">
         <GanttContext.Provider value={{ layouts }}>
-        <FrameContext.Provider value={{ previewFrame: currentFrame, checkpointStatus }}>
+        <FrameContext.Provider value={{ previewFrame: currentFrame, checkpointStatus, previousNodeData }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}

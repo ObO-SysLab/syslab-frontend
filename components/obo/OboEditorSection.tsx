@@ -512,6 +512,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
           onSelect={handleTemplateSelect}
         />
 
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <OBOEditorCanvas
           nodes={nodes}
           edges={edges}
@@ -534,6 +535,19 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
           onDeleteNode={deleteNodeById}
           onDeleteEdge={deleteEdgeById}
         />
+        {/* Every manually authored scene (not the coding output comparison) can write its lower caption here (2026-11-08). */}
+        {mode!=='coding_diff'&&<section aria-label="장면 설명 작성" className="shrink-0 border-t bg-white px-4 py-3">
+          <div className="mb-2 flex items-center gap-3">
+            <label className="text-sm font-semibold text-slate-700">장면
+              <select aria-label="설명할 장면" className="ml-2 max-w-48 rounded border px-2 py-1 text-sm" value={selectedFrameId??''} onChange={e=>{setSelectedFrameId(e.target.value||null);setActiveTab('frame');}}>
+                <option value="">선택하세요</option>{frames.map((f,i)=><option key={f.id} value={f.id}>{i+1}번 장면</option>)}
+              </select>
+            </label>
+            <button type="button" className="text-sm text-teal-700" onClick={()=>{addFrame();setActiveTab('frame');}}>+ 장면 추가</button>
+          </div>
+          {selectedFrameId&&frames.some(f=>f.id===selectedFrameId)?<textarea aria-label="장면 하단 설명" rows={2} value={frames.find(f=>f.id===selectedFrameId)?.label??''} onChange={e=>updateFrameLabel(selectedFrameId,e.target.value)} className="w-full resize-y rounded-lg border border-slate-200 p-2 text-sm leading-relaxed" placeholder="이 장면에서 전달할 내용을 적으세요."/>:<p className="text-sm text-slate-400">장면을 선택하면 그림 아래에 설명을 작성할 수 있습니다.</p>}
+        </section>}
+        </div>
 
         <PropertyPanel
           activeTab={activeTab}

@@ -66,16 +66,16 @@ export function InputForm({schema,value,onChange,label='입력',path='input'}:{s
     const remove=(key:string)=>{const next={...record};delete next[key];onChange(next);};
     return <fieldset className="min-w-0 space-y-3 rounded-lg border border-slate-200 p-3"><legend className="px-1 text-xs font-bold text-slate-700">{label}</legend>
       {entries.slice(page*20,page*20+20).map(key=>{
-        const child=known[key] ?? extra ?? {};
+        const child=Object.hasOwn(known,key)?known[key]:extra??{};
         const optional=!!schema.properties&&!schema.required?.includes(key);
         return <div key={key} className="space-y-1">
-          {optional&&<label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={key in record} onChange={e=>e.target.checked?set(key,seed(child)):remove(key)}/>{labels[key]??key} 사용</label>}
-          {(!optional||key in record)&&<InputForm schema={child} value={record[key]} onChange={v=>set(key,v)} label={labels[key]??key} path={`${path}.${key}`}/>} 
+          {optional&&<label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={Object.hasOwn(record,key)} onChange={e=>e.target.checked?set(key,seed(child)):remove(key)}/>{Object.hasOwn(labels,key)?labels[key]:key} 사용</label>}
+          {(!optional||Object.hasOwn(record,key))&&<InputForm schema={child} value={record[key]} onChange={v=>set(key,v)} label={Object.hasOwn(labels,key)?labels[key]:key} path={`${path}.${key}`}/>}
           {!schema.properties&&<button type="button" className="text-xs text-rose-600" onClick={()=>remove(key)}>{key} 삭제</button>}
         </div>;
       })}
       {entries.length>20&&<div className="flex items-center gap-2 text-xs"><button type="button" disabled={page===0} onClick={()=>setPage(p=>p-1)}>이전</button><span>{page+1} / {Math.ceil(entries.length/20)}</span><button type="button" disabled={(page+1)*20>=entries.length} onClick={()=>setPage(p=>p+1)}>다음</button></div>}
-      {extra&&<div className="flex gap-1"><input className={box} value={newKey} placeholder="새 필드 이름" aria-label={`${label} 새 이름`} onChange={e=>setNewKey(e.target.value)}/><button type="button" className="shrink-0 rounded border px-2 text-xs" disabled={!/^[A-Za-z0-9_-]{1,64}$/.test(newKey)||newKey in record||['__proto__','constructor','prototype'].includes(newKey)} onClick={()=>{set(newKey,seed(extra));setNewKey('');}}>추가</button></div>}
+      {extra&&<div className="flex gap-1"><input className={box} value={newKey} placeholder="새 필드 이름" aria-label={`${label} 새 이름`} onChange={e=>setNewKey(e.target.value)}/><button type="button" className="shrink-0 rounded border px-2 text-xs" disabled={!/^[A-Za-z0-9_-]{1,64}$/.test(newKey)||Object.hasOwn(record,newKey)||['__proto__','constructor','prototype'].includes(newKey)} onClick={()=>{set(newKey,seed(extra));setNewKey('');}}>추가</button></div>}
     </fieldset>;
   }
   if (schema.type==='array') {

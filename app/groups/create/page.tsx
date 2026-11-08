@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -224,7 +225,7 @@ export default function GroupCreatePage() {
 
   // [HANDLER] 로그아웃
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (!logout()) return;
     setIsLoggedIn(false);
     window.location.href = "/";
   };

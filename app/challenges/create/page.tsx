@@ -1,6 +1,10 @@
 "use client";
+import { requestJson, requestIssue, httpIssue, RequestFailure, authHeaders, type RequestIssue } from "@/lib/request";
+import { RequestError } from "@/components/feedback/RequestError";
+import { useRemoteData } from "@/components/feedback/useRemoteData";
+import { logout } from "@/lib/authSession";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import {
   Menu, LogOut, CheckCircle2, Target, Zap, Code2, PlusCircle, Eye,
@@ -30,6 +34,8 @@ import {isProblemDraft,type ProblemDraft} from '@/components/obo/authoring/probl
 
 function ProblemCreateContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // The token lives in localStorage, so it is unknown during static prerender; render the same placeholder until checked.
+  const [sessionChecked, setSessionChecked] = useState(false);
   const searchParams = useSearchParams();
   const editId = searchParams.get("id"); // URL의 ?id=... 값을 가져옴
   const isEditMode = !!editId; // id가 있으면 수정 모드(true)
@@ -40,13 +46,13 @@ function ProblemCreateContent() {
     if (token) {
       setIsLoggedIn(true);
     } else {
-      alert("로그인이 필요한 서비스입니다.");
-      window.location.href = "/signin"; // 로그인 페이지로 리다이렉트
+      setIsLoggedIn(false);
     }
+    setSessionChecked(true);
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (!logout()) return;
     setIsLoggedIn(false);
     window.location.href = "/";
   };
@@ -89,6 +95,14 @@ function ProblemCreateContent() {
   const [editLoaded,setEditLoaded]=useState(!editId);
   const [editError,setEditError]=useState('');
   const [saveNotice,setSaveNotice]=useState('');
+  const [saveIssue,setSaveIssue]=useState<RequestIssue|null>(null);
+  const [fieldErrors,setFieldErrors]=useState<Record<string,string>>({});
+  const saving=useRef(false);
+  const focusField=(field:string)=>{
+    if(field==='description')setDescriptionTab('desc');
+    setTimeout(()=>{const target=document.getElementById(field)??document.getElementById(`${field}-error`);target?.scrollIntoView({behavior:'smooth',block:'center'});target?.focus();},0);
+  };
+  const fieldError=(field:string)=>fieldErrors[field]?<p id={`${field}-error`} tabIndex={-1} role="alert" className="mt-2 rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">{fieldErrors[field]}</p>:null;
   const [editVersion,setEditVersion]=useState<string|null>(null);
   const [oboAlternates,setOboAlternates]=useState<ProblemDraft['oboAlternates']>({});
 
@@ -196,30 +210,23 @@ function ProblemCreateContent() {
 
   // [API] 제출 핸들러
   const handleSubmit = async () => {
-    setSaveNotice('');
-    if(isEditMode&&problemType!=='practice'&&!editVersion){setSaveNotice('서버 버전을 확인하지 못했습니다. 초안을 보관하고 다시 열어주세요.');return;}
-    draft.save();
+    if(saving.current)return;
+    setSaveNotice('');setSaveIssue(null);setFieldErrors({});
     if(!editLoaded)return;
-    if (!title || !category || !description) {
-      alert("제목, 카테고리, 문제 설명은 필수입니다.");
-      return;
-    }
-
-    if (!isEditMode && visibility === "group" && !selectedGroupId) {
-      alert("공개할 그룹을 선택해주세요.");
-      return;
-    }
-
-    if (oboEnabled) {
-      const oboErrors = validateProblemObo(oboData, { choiceCount: choices.length });
-      if (oboErrors.length) {
-        alert("OBO 설정을 확인하세요:\n- " + oboErrors.join("\n- "));
-        return;
-      }
-    }
-
-    setIsSubmitting(true);
-    const token = problemToken();
+    draft.save();
+    const errors:Record<string,string>={};
+    if(!title.trim())errors.title='문제 제목을 입력해 주세요.';
+    if(!category)errors.category='카테고리를 선택해 주세요.';
+    if(!description.trim())errors.description='문제 설명을 입력해 주세요.';
+    if(!isEditMode&&visibility==='group'&&!selectedGroupId)errors.audience='공개할 그룹을 선택해 주세요.';
+    if(!isEditMode&&visibility==='contest'&&!selectedContestId)errors.audience='공개할 대회를 선택해 주세요.';
+    if(problemType==='objective'&&(choices.length<2||choices.some(c=>!c.content.trim())))errors.choices='보기를 2개 이상 입력하고 빈 보기의 내용을 채우거나 삭제해 주세요.';
+    if(!isEditMode&&problemType==='practice'&&!dockerfile)errors.dockerfile='Dockerfile zip 파일을 선택해 주세요.';
+    if(oboEnabled){const errorsObo=validateProblemObo(oboData,{choiceCount:choices.length});if(errorsObo.length)errors.obo=errorsObo.join(' · ');}
+    if(Object.keys(errors).length){setFieldErrors(errors);focusField(Object.keys(errors)[0]);return;}
+    if(isEditMode&&problemType!=='practice'&&!editVersion){setSaveNotice('서버 버전을 확인하지 못했습니다. 초안을 파일로 보관하고 다시 열어 주세요.');return;}
+    const token=problemToken();if(!token){setSaveIssue(httpIssue(401));return;}
+    saving.current=true;setIsSubmitting(true);
 
     // 상태 변수 정의
     const method = isEditMode ? "PATCH" : "POST";
@@ -264,7 +271,7 @@ function ProblemCreateContent() {
           endpoint = problemApi(`/api/problems/practice`);
 
           if (!dockerfile) {
-            alert("Dockerfile zip 파일을 업로드해주세요.");
+            setFieldErrors({dockerfile:"Dockerfile zip 파일을 선택해 주세요."});focusField("dockerfile");
             setIsSubmitting(false);
             return;
           }
@@ -340,12 +347,12 @@ function ProblemCreateContent() {
             endpoint = problemApi(`/api/problems/objective`);
             if (choices.some(c => !c.content.trim())) {
               setIsSubmitting(false);
-              return alert('빈 보기의 내용을 입력하거나 해당 보기를 삭제하세요.');
+              setFieldErrors({choices:'빈 보기를 채우거나 삭제해 주세요.'});focusField('choices');return;
             }
             const validChoices = choices.map((c, i) => ({ id: c.id, index: i + 1, content: c.content, imageUrl: null }));
             if (validChoices.length < 2) {
               setIsSubmitting(false);
-              return alert("보기를 2개 이상 입력하세요.");
+              setFieldErrors({choices:'보기를 2개 이상 입력해 주세요.'});focusField('choices');return;
             }
 
             payload = {
@@ -360,62 +367,36 @@ function ProblemCreateContent() {
         }
       }
 
-      // API 전송 요청 실행
-      const response = await fetch(endpoint, {
-        method: method,
-        headers: fetchHeaders,
-        body: bodyData
-      });
-
-      if (response.ok) {
-        const savedResponse=await response.json().catch(()=>null);
-        const savedId=isEditMode?editId:savedResponse?.data?.probId;
-        draft.markSaved();
-        alert(isEditMode ? "수정되었습니다!" : problemType === 'practice'
-          ? "문제가 등록되었습니다. 상세 화면에서 실습 환경 제작 상태를 확인할 수 있습니다."
-          : "등록되었습니다!");
-        window.location.href = savedId ? `/challenges/detail?id=${savedId}` : "/challenges";
-      } else {
-        if(response.status===409){setSaveNotice('다른 창에서 수정되었습니다. 내 초안은 유지됩니다. 파일로 보관하거나 최신 서버 자료를 다시 연 뒤 비교하세요.');return;}
-        const errorText = await response.text();
-        let errorMessage = "입력값이 잘못되었거나 권한이 없습니다.";
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.detail || errorData.message || errorMessage;
-        } catch (e) { errorMessage = errorText; }
-        setSaveNotice(`서버 저장 실패: ${errorMessage} 작성 내용과 브라우저 초안을 유지합니다.`);
-        alert(`실패: ${errorMessage}`);
-      }
-    } catch (error) {
-      console.error(error);
-      setSaveNotice('서버에 연결하지 못했습니다. 작성 내용과 브라우저 초안을 유지합니다. 다시 저장할 수 있습니다.');
-      alert("서버 통신 중 오류가 발생했습니다.");
-    } finally {
-      setIsSubmitting(false);
-    }
+      const savedResponse=await requestJson(endpoint,{method,headers:fetchHeaders,body:bodyData},{allowEmpty:true});
+      if(problemToken()!==token)return;
+      const savedId=isEditMode?editId:savedResponse?.data?.probId;
+      if(!savedId)throw new RequestFailure({kind:'format',message:'서버의 저장 확인 정보를 읽지 못했습니다.',retryable:true,uncertain:true});
+      draft.markSaved();
+      setSaveNotice('서버에 저장되었습니다. 문제 화면으로 이동합니다.');
+      window.location.href=`/challenges/detail?id=${savedId}`;
+    }catch(error){
+      if(problemToken()!==token)return;
+      const issue=requestIssue(error,true);
+      // A stale edit version is an authoring conflict, not a generic failure: keep the specific recovery guidance.
+      setSaveIssue(issue.status===409?{...issue,message:'다른 창에서 수정되었습니다. 내 초안은 유지됩니다. 파일로 보관하거나 최신 서버 자료를 다시 연 뒤 비교하세요.'}:issue);
+    }finally{saving.current=false;setIsSubmitting(false);}
   };
 
-  // [API] 수정 모드용 데이터 로드
-  useEffect(() => {
-    if (isEditMode) {
-      const token = problemToken();
-
-      fetch(problemApi(`/api/problems/${editId}`), {
-        headers: { "Authorization": `Bearer ${token}` }
-      })
-        .then(res => {if(!res.ok)throw new Error('문제를 불러오지 못했습니다.');return res.json();})
-        .then(async json => {
-          const data = json.data;
-          if(!data?.isOwner)throw new Error('작성자만 문제를 수정할 수 있습니다.');
-          if(!['public','private','group','contest'].includes(data.visibility))throw new Error('공개 범위를 확인할 수 없습니다. 문제를 다시 열어주세요.');
-          if (data.isOwner && (data.type === 'objective' || data.type === 'coding')) {
-            const authorObo = await fetch(problemApi(`/api/challenges/obo/author/settings?id=${editId}`), {
-              headers: { Authorization: `Bearer ${token}` }, cache: 'no-store',
-            });
-            if (!authorObo.ok) throw new Error('작성자 OBO를 불러오지 못했습니다.');
-            const text = await authorObo.text();
-            Object.assign(data, text ? JSON.parse(text) : {});
-          }
+  const editQuery=useRemoteData(isEditMode?editId:null,async signal=>{
+    const json=await requestJson(problemApi(`/api/problems/${editId}`),{signal,headers:authHeaders()});
+    const data=json?.data;
+    if(!data?.isOwner)throw new RequestFailure(httpIssue(403));
+    if(!['public','private','group','contest'].includes(data.visibility))throw new RequestFailure({kind:'format',message:'공개 범위를 확인하지 못했습니다. 다시 불러와 주세요.',retryable:true});
+    if(data.type==='objective'||data.type==='coding'){
+      const settings=await requestJson(problemApi(`/api/challenges/obo/author/settings?id=${editId}`),{signal,headers:authHeaders(),cache:'no-store'},{allowEmpty:true});
+      Object.assign(data,settings??{});
+    }
+    return data;
+  });
+  useEffect(()=>{
+    setEditLoaded(!isEditMode);setEditError('');
+    if(!editQuery.data)return;
+    const data=editQuery.data;
           // 공통 필드 채우기
           setEditVersion(data.editVersion??null);
           setTitle(data.title);
@@ -461,14 +442,8 @@ function ProblemCreateContent() {
             }
             setOboEnabled(true);
           }
-          setEditLoaded(true);setEditError('');
-        })
-        .catch(err => {
-          setEditError(err instanceof Error?err.message:'문제를 불러오지 못했습니다.');
-          console.error(err);
-        });
-    }
-  }, [editId]);
+    setEditLoaded(true);
+  },[editQuery.data,isEditMode]);
 
   useEffect(() => {
     const fetchProfileImage = async () => {
@@ -560,6 +535,11 @@ function ProblemCreateContent() {
   };
   const draft=useBrowserDraft({documentId:editId??'new',value:draftValue,restore:restoreDraft,enabled:editLoaded&&isLoggedIn&&problemType!=='practice',valid:isProblemDraft});
 
+  if(!sessionChecked)return <main className="mx-auto max-w-3xl p-8"><p role="status">불러오는 중…</p></main>;
+  if(!isLoggedIn&&!problemToken())return <main className="mx-auto max-w-3xl p-8"><RequestError issue={httpIssue(401)}/></main>;
+  if(isEditMode&&!editLoaded)return <main className="mx-auto max-w-3xl p-8"><h1 className="text-xl font-bold">수정할 문제 불러오기</h1>{editQuery.loading&&<p role="status">불러오는 중…</p>}<RequestError issue={editQuery.error} retry={editQuery.retry} busy={editQuery.loading}/></main>;
+  if(draft.locked)return <main className="p-8"><p role="alert">계정이 바뀌었습니다. 이전 계정의 작성 화면을 닫았습니다.</p><a className="underline" href="/signin">다시 로그인</a> · <a className="underline" href="/challenges/create">작성 화면 다시 열기</a></main>;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       {/* 1. 고정 헤더 */}
@@ -633,6 +613,9 @@ function ProblemCreateContent() {
 
         {/* [B] 중앙 출제 양식 */}
         <section inert={isSubmitting} className="col-span-12 md:col-span-9 space-y-8 animate-in fade-in-50 duration-500">
+          <RequestError issue={saveIssue} checkHref={editId?`/challenges/detail?id=${editId}`:'/challenges'} checkLabel="저장된 문제 확인"/>
+          {saveNotice&&<p role="status">{saveNotice}</p>}
+          {isSubmitting&&<p role="status">서버에 저장 요청을 보내는 중…</p>}
           {/* 타이틀 및 저장 버튼 */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-1">
@@ -658,8 +641,10 @@ function ProblemCreateContent() {
             <p role="status">{draft.status}</p>
             <p className="text-xs text-slate-500">이 기기·브라우저에 보관됩니다. 서버 저장은 문제 등록/수정 완료 버튼으로 진행합니다.</p>
             <Button variant="outline" size="sm" onClick={draft.exportFile}>초안 파일로 보관</Button>
+            <p className="text-xs text-slate-500">초안은 암호화 없이 이 브라우저에 남습니다. 공용 기기에서는 사용 후 보관본을 삭제하세요.</p>
+            <Button variant="outline" size="sm" onClick={()=>{if(confirm('이 계정의 현재 문서 보관본을 모든 탭에 걸쳐 삭제할까요? 화면의 작성 내용은 유지됩니다.'))draft.deleteSaved();}}>이 문서의 보관본 삭제</Button>
             {draft.candidates.map(record=><div key={record.id} className="flex flex-wrap items-center gap-2"><span>{new Date(record.savedAt).toLocaleString('ko-KR')} · {record.value.title||'제목 없는 초안'}</span><Button variant="outline" size="sm" onClick={()=>{if(window.confirm('현재 작성 내용을 먼저 보관하고 선택한 초안을 불러올까요?')){if(draft.save())draft.recover(record);}}}>초안 복구</Button></div>)}
-            {saveNotice&&<p role="alert" className="text-rose-700">{saveNotice}</p>}
+
           </div>}
           <Separator />
 
@@ -672,7 +657,8 @@ function ProblemCreateContent() {
             <CardContent className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="title">문제 제목 <span className="text-red-500">*</span></Label>
-                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="문제 제목을 입력하세요." className="focus-visible:ring-indigo-400" />
+                {fieldError('title')}
+                <Input aria-invalid={!!fieldErrors.title} aria-describedby="title-error" id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="문제 제목을 입력하세요." className="focus-visible:ring-indigo-400" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="summary">스토리 (요약)</Label>
@@ -682,6 +668,7 @@ function ProblemCreateContent() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
                 <div className="space-y-2">
                   <Label>카테고리 <span className="text-red-500">*</span></Label>
+                  {fieldError('category')}
                   <Select value={category} onValueChange={setCategory}>
                     <SelectTrigger><SelectValue placeholder="카테고리 선택" /></SelectTrigger>
                     <SelectContent>
@@ -752,7 +739,7 @@ function ProblemCreateContent() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>공개범위</Label>
+                  <Label>공개범위</Label>{fieldError('audience')}
                   <Select value={visibility} onValueChange={setVisibility} disabled={isEditMode}>
                     <SelectTrigger><SelectValue placeholder="공개범위 선택" /></SelectTrigger>
                     <SelectContent>
@@ -898,7 +885,8 @@ function ProblemCreateContent() {
               </CardHeader>
               <CardContent className="p-6">
                 <TabsContent value="desc" className="space-y-2 mt-0">
-                  <Textarea
+                  {fieldError('description')}
+                  <Textarea id="description" aria-invalid={!!fieldErrors.description} aria-describedby="description-error"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="문제를 해결하기 위한 설명, 목표를 Markdown 형식으로 상세히 기술하세요."
@@ -914,6 +902,7 @@ function ProblemCreateContent() {
             </Tabs>
           </Card>
 
+          {fieldError('choices')}
           {/* 3. 데이터셋 및 정답 설정 카드 */}
           <Card className="border-slate-100 shadow-sm rounded-2xl">
             <CardHeader>
@@ -1139,6 +1128,7 @@ function ProblemCreateContent() {
                   </div> */}
 
                   <div className="space-y-2.5 pt-2">
+                    {fieldError('dockerfile')}
                     <Label>Dockerfile 업로드 (.zip) <span className="text-red-500">*</span></Label>
                     <p className="text-xs text-slate-500">등록 후 실습 환경을 제작합니다. 상세 화면에서 제작 중·완료·실패 상태를 확인할 수 있으며, 제작 완료 후 실습을 시작할 수 있습니다.</p>
                     <div className="relative p-5 border-2 border-dashed border-slate-200 rounded-2xl text-center bg-slate-50 hover:bg-slate-100/50 cursor-pointer transition-colors">
@@ -1259,6 +1249,7 @@ function ProblemCreateContent() {
             </CardContent>
           </Card>
 
+          {fieldError('obo')}
           {/* 4. OBO 시각화 섹션 - 코딩/객관식만 표시 */}
           {(problemType === "coding" || problemType === "objective") && <Card className="border-slate-100 shadow-sm rounded-2xl">
             <CardHeader>
