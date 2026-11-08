@@ -55,6 +55,11 @@ export function projection(instance,execution,cursor,view) {
     let value=data;
     if(family==='cpu-scheduling')value={남은실행량:data.remaining??Object.fromEntries(input.jobs.map(p=>[p.id,p.bursts[0]])),상태:data.states??{}};
     else if(family==='bounded-buffer')value={버퍼:data.buffer??input.initial,'실행 주체':data.actors??Object.fromEntries(input.actors.map(actor=>[actor.id,{role:actor.role,pc:0,blocked:false}])),세마포어:data.semaphores??{empty:input.capacity-input.initial.length,full:input.initial.length,mutex:null},'진행 상태':data.stopReason??'initial'};
+    else if(family==='ipc'){
+      const blocked=new Set(),reads=[];
+      for(const e of prefix){if(e.data.blocked)blocked.add(e.actor);else{blocked.delete(e.actor);const op=input.operations[e.data.index]?.op;if(op==='read'||op==='receive')reads.push(e.data.value);}}
+      value={'실행 주체':Object.fromEntries(input.actors.map(actor=>[actor,blocked.has(actor)?'대기':event?.actor===actor?'현재 동작':'준비'])),채널:data.channel??input.initial,공유값:data.shared??input.shared,'읽은 값':reads};
+    }
     else if(family==='context-switch')value={현재:data.current??input.initialId,레지스터:data.registers??input.pcbs[input.initialId],PCB:data.pcbs??input.pcbs};
     else if(family==='banker'){
       const need=data.need??input.max.map((row,p)=>row.map((v,i)=>v-input.allocated[p][i]));
