@@ -38,7 +38,7 @@ describe('simulation documents and projections',()=>{
   });
   it('initial projection does not expose future state and an event updates it',()=>{
     const instance=createDocument('ST2').instances[0],execution=run('ST2',instance.input);
-    const view=instance.views.find(v=>v.role==='actor');
+    const view=createView('actor');
     expect(projection(instance,execution,-1,view).rows).toContainEqual(['P','생성']);
     expect(projection(instance,execution,0,view).rows).toContainEqual(['P','준비']);
   });
@@ -60,7 +60,7 @@ describe('simulation documents and projections',()=>{
   });
   it('input replacement removes deleted view bindings and stale annotation actor conditions',()=>{
     const instance=createDocument('ST2').instances[0];
-    instance.views[0].target='P';instance.views.at(-1).when.actor='P';
+    instance.views.unshift(createView('actor','P'));instance.views.at(-1).when.actor='P';
     const next=replaceInput(instance,{processes:{Q:'New'},actions:[]});
     expect(next.views.some(v=>v.target==='P')).toBe(false);
     expect(next.views.at(-1).when.actor).toBeNull();
