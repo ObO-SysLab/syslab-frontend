@@ -75,6 +75,8 @@ function PlayerInner({ blob, maxFrameIndex, checkpointStatusByFrame, autoPlay }:
   }, [playing, currentIndex, effectiveLastIndex, playbackSpeed]);
 
   const layouts = ganttLayouts(blob.nodes as Node[], frames.slice(0, effectiveLastIndex + 1));
+  const previousNodeData = hasFrames && currentIndex > 0 && blob.nodes.some(n => n.type === 'process-box')
+    ? Object.fromEntries(applyFrame(blob.nodes as Node[], frames, currentIndex - 1).map(n => [n.id, n.data])) : undefined;
   const nodes = alignGanttRows(applyFrame(blob.nodes as Node[], frames, hasFrames ? currentIndex : -1), layouts)
     .map(n => ({ ...n, selectable: false, draggable: false }));
   const edges = frameEdges(blob.edges, currentFrame).map(e => ({ ...e, type: 'obo-edge' as const, selectable: false }));
@@ -88,7 +90,7 @@ function PlayerInner({ blob, maxFrameIndex, checkpointStatusByFrame, autoPlay }:
     <div ref={containerRef} className="flex flex-col h-full rounded-2xl overflow-hidden border border-slate-100 bg-white">
       <div className="min-h-0 flex-1 relative">
         <GanttContext.Provider value={{ layouts }}>
-        <FrameContext.Provider value={{ previewFrame: currentFrame, checkpointStatus }}>
+        <FrameContext.Provider value={{ previewFrame: currentFrame, checkpointStatus, previousNodeData }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}

@@ -535,7 +535,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
           onDeleteNode={deleteNodeById}
           onDeleteEdge={deleteEdgeById}
         />
-        {mode!=='coding_diff'&&nodes.some(n=>n.type==='state-node')&&<section aria-label="장면 설명 작성" className="shrink-0 border-t bg-white px-4 py-3">
+        {mode!=='coding_diff'&&nodes.some(n=>n.type==='state-node'||n.type==='process-box')&&<section aria-label="장면 설명 작성" className="shrink-0 border-t bg-white px-4 py-3">
           <div className="mb-2 flex items-center gap-3">
             <label className="text-sm font-semibold text-slate-700">장면
               <select aria-label="설명할 장면" className="ml-2 max-w-48 rounded border px-2 py-1 text-sm" value={selectedFrameId??''} onChange={e=>{setSelectedFrameId(e.target.value||null);setActiveTab('frame');}}>

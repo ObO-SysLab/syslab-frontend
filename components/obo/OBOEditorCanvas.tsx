@@ -94,6 +94,9 @@ function CanvasInner({
   const [panLocked, setPanLocked] = useState(false);
 
   const previewIndex = previewFrame ? frames.findIndex(f => f.id === previewFrame.id) : -1;
+  const previousNodeData = useMemo(() => previewIndex > 0 && nodes.some(n => n.type === 'process-box')
+    ? Object.fromEntries(applyFrame(nodes, frames, previewIndex - 1).map(n => [n.id, n.data])) : undefined,
+  [nodes, frames, previewIndex]);
   const layouts = useMemo(() => ganttLayouts(nodes, frames), [nodes, frames]);
   const displayNodes = useMemo(
     () => alignGanttRows(previewIndex >= 0 ? applyFrame(nodes, frames, previewIndex) : nodes, layouts),
@@ -208,7 +211,7 @@ function CanvasInner({
     <GanttContext.Provider value={{ layouts, traceMode,
       editLabel: activeTab === 'frame' ? `장면 ${previewIndex + 1} 수정 · 이후 장면에도 이어집니다` : '기본 그림 수정',
       onEditBlock: !traceMode && (activeTab === 'property' || (!!previewFrame && !!setFrames)) ? editBlock : undefined }}>
-    <FrameContext.Provider value={{ previewFrame }}>
+    <FrameContext.Provider value={{ previewFrame, previousNodeData }}>
       <div className="flex-1 overflow-hidden relative" onDrop={onDrop} onDragOver={onDragOver}>
         {nodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">

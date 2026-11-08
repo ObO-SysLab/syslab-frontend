@@ -1,12 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { AUTHORING_FIELDS, changedFields, copyData, nextLocalId, validateElement } from './model';
+import { ProcessDisplayFields } from './ProcessDisplayFields';
 
 type Data = Record<string, unknown>;
 type Row = Record<string, unknown>;
 const inputClass = 'w-full min-w-0 rounded border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800';
 const buttonClass = 'rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40';
 const names: Record<string,string> = { label:'장면 이름', instances:'자원 개수', allocated:'사용 중 개수', capacity:'버퍼 용량', items:'항목', direction:'순서 방향', headers:'열 제목', rows:'셀 값', activeRow:'강조 행', width:'너비', height:'높이', start:'시작 주소', size:'전체 크기', segments:'메모리 구간', activeIds:'강조 구간', sections:'공유 영역', threads:'스레드 문맥', activeThreadId:'현재 스레드', xLabel:'가로축 이름',yLabel:'세로축 이름',xMin:'가로축 최소',xMax:'가로축 최대',yMin:'세로축 최소',yMax:'세로축 최대',xTicks:'가로축 눈금',yTicks:'세로축 눈금',series:'선과 좌표',progressIndex:'마지막 표시 점',activePointIndex:'현재 점' };
+Object.assign(names, { hiddenSectionNames: '숨긴 영역', hiddenThreadIds: '숨긴 스레드', threadFields: '스레드 표시 항목', threadLayout: '스레드 배치', sectionLayout: '영역 배치', showSharedLinks: '공유 관계선' });
 function Field({ label, value, onChange, number = false }: { label:string; value:unknown; onChange:(v:string)=>void; number?:boolean }) {
   return <label className="block space-y-1 text-xs text-slate-600"><span>{label}</span><input aria-label={label} className={inputClass} inputMode={number ? 'decimal' : undefined} value={String(value ?? '')} onChange={e=>onChange(e.target.value)} /></label>;
 }
@@ -74,8 +76,11 @@ export function ElementFields({ type, data, onApply, scope='base', validatePatch
       </div>)}<button type="button" className={buttonClass} onClick={()=>set('segments',[...rows('segments'),{id:nextLocalId(rows('segments'),'region-'),label:'새 구간',size:1,start:0,free:true}])}>구간 추가</button></Group>
     </>}
     {type==='process-box'&&<>
+      <ProcessDisplayFields data={draft} set={set} />
+      <details className="space-y-3 rounded-lg border border-slate-200 p-2"><summary className="cursor-pointer text-xs font-semibold text-slate-700">영역·스레드 값 편집</summary>
       <Group title="프로세스 안의 영역">{rows('sections').map((r,i,sections)=><div key={i} className="space-y-2 border-b pb-2"><Field label={`영역 ${i+1} 이름`} value={r.name} onChange={v=>updateRow('sections',i,{name:v})}/><Field label={`영역 ${i+1} 값`} value={r.value} onChange={v=>updateRow('sections',i,{value:v})}/><label className="flex gap-2 text-xs"><input type="checkbox" aria-label={`영역 ${i+1} 공유`} checked={!!r.shared} onChange={e=>updateRow('sections',i,{shared:e.target.checked})}/>같은 프로세스 안에서 공유</label><Move index={i} length={sections.length} name={`영역 ${i+1}`} onMove={delta=>set('sections',reordered(sections,i,delta))} onRemove={()=>set('sections',sections.filter((_,j)=>i!==j))}/></div>)}<button type="button" className={buttonClass} onClick={()=>set('sections',[...rows('sections'),{name:'새 영역',value:'',shared:true}])}>영역 추가</button></Group>
       <Group title="스레드별 실행 문맥">{rows('threads').map((r,i,threads)=><div key={String(r.id)} className="space-y-2 border-b pb-2">{[['label','이름'],['pc','PC'],['register','레지스터'],['stack','스택']].map(([field,label])=><Field key={field} label={`스레드 ${i+1} ${label}`} value={r[field]} onChange={v=>updateRow('threads',i,{[field]:v})}/>)}<Move index={i} length={threads.length} name={`스레드 ${i+1}`} onMove={delta=>set('threads',reordered(threads,i,delta))} onRemove={()=>setDraft(d=>({...d,threads:threads.filter((_,j)=>i!==j),activeThreadId:d.activeThreadId===r.id?null:d.activeThreadId}))}/></div>)}<button type="button" className={buttonClass} onClick={()=>set('threads',[...rows('threads'),{id:nextLocalId(rows('threads'),'thread-'),label:'새 스레드',pc:'대기',register:'0',stack:'지역값 0'}])}>스레드 추가</button></Group>
+      </details>
       {select('activeThreadId','현재 스레드',[{value:'',label:'강조 없음'},...rows('threads').map(t=>({value:String(t.id),label:String(t.label)}))],'')}
     </>}
     {type==='line-chart'&&<>
