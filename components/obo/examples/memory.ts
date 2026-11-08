@@ -1,4 +1,17 @@
 export interface MemorySegment { id: string; start: number; size: number; label: string; free?: boolean; }
+export interface MemoryTick { value: number; left: number; align: 'start' | 'center' | 'end' }
+/**
+ * Address boundary labels that do not collide at the drawn width (2026-11-08). The first and last boundaries always show
+ * (aligned inward so they stay inside the card); an inner boundary shows only if it is `minGap` px from both neighbours kept.
+ */
+export function memoryTicks(values: number[], start: number, size: number, width: number, minGap = 26): MemoryTick[] {
+  const px = (v: number) => (v - start) / size * width, end = start + size, kept: MemoryTick[] = [{ value: start, left: 0, align: 'start' }];
+  for (const v of values) if (v > start && v < end && px(v) - px(kept.at(-1)!.value) >= minGap && px(end) - px(v) >= minGap) kept.push({ value: v, left: px(v) / width * 100, align: 'center' });
+  kept.push({ value: end, left: 100, align: 'end' });
+  return kept;
+}
+/** How much text a segment of this drawn width can hold without breaking into unreadable fragments. */
+export const segmentText = (widthPx: number): 'full' | 'size' | 'none' => widthPx >= 44 ? 'full' : widthPx >= 22 ? 'size' : 'none';
 /** Geometry validation only; this does not allocate or move memory. */
 export function memoryLayout(start: number, size: number, segments: MemorySegment[]) {
   if (!Number.isFinite(start) || !Number.isFinite(size) || size <= 0 || !Number.isFinite(start + size)) return null;
