@@ -13,6 +13,17 @@ Object.assign(names, { displayStyle: '표시 방식', showCount: '점유 개수 
 function Field({ label, value, onChange, number = false }: { label:string; value:unknown; onChange:(v:string)=>void; number?:boolean }) {
   return <label className="block space-y-1 text-xs text-slate-600"><span>{label}</span><input aria-label={label} className={inputClass} inputMode={number ? 'decimal' : undefined} value={String(value ?? '')} onChange={e=>onChange(e.target.value)} /></label>;
 }
+/** Space/comma separated numbers; empty means automatic (null). Keeps the raw text while typing. */
+export function parseNumberList(text: string): number[] | null {
+  const tokens = text.split(/[\s,]+/).filter(Boolean);
+  return tokens.length ? tokens.map(Number) : null;
+}
+function NumberListField({ label, value, onChange }: { label:string; value:unknown; onChange:(v:number[]|null)=>void }) {
+  const shown = Array.isArray(value) ? value.join(' ') : '';
+  const [raw, setRaw] = useState(shown);
+  useEffect(() => { if (JSON.stringify(parseNumberList(raw)) !== JSON.stringify(Array.isArray(value) ? value : null)) setRaw(shown); }, [shown]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <label className="block space-y-1 text-xs text-slate-600"><span>{label}</span><input aria-label={label} className={inputClass} inputMode="decimal" placeholder="비우면 자동" value={raw} onChange={e=>{setRaw(e.target.value);onChange(parseNumberList(e.target.value));}} /></label>;
+}
 function Group({ title, children }: { title:string; children:React.ReactNode }) {
   return <fieldset className="min-w-0 space-y-2 rounded-lg border border-slate-200 p-2"><legend className="px-1 text-xs font-semibold text-slate-600">{title}</legend>{children}</fieldset>;
 }
@@ -92,7 +103,7 @@ export function ElementFields({ type, data, onApply, scope='base', validatePatch
     {type==='line-chart'&&<>
       <Field label="가로축 이름" value={draft.xLabel} onChange={v=>set('xLabel',v)}/><Field label="세로축 이름" value={draft.yLabel} onChange={v=>set('yLabel',v)}/>
       {numeric('width','그래프 너비',300)}{numeric('height','그래프 높이',190)}
-      <Group title="축 범위">{['xMin','xMax','yMin','yMax'].map(key=><Field key={key} label={`${names[key]} (빈칸은 자동)`} number value={draft[key]} onChange={v=>set(key,v.trim()===''?null:v)}/>)}<button type="button" className={buttonClass} onClick={()=>setDraft(d=>({...d,xTicks:null,yTicks:null}))}>눈금 자동으로 맞추기</button></Group>
+      <Group title="축 범위">{['xMin','xMax','yMin','yMax'].map(key=><Field key={key} label={`${names[key]} (빈칸은 자동)`} number value={draft[key]} onChange={v=>set(key,v.trim()===''?null:v)}/>)}<NumberListField label="가로축 눈금 (공백·쉼표 구분)" value={draft.xTicks} onChange={v=>set('xTicks',v)} /><NumberListField label="세로축 눈금 (공백·쉼표 구분)" value={draft.yTicks} onChange={v=>set('yTicks',v)} /><button type="button" className={buttonClass} onClick={()=>setDraft(d=>({...d,xTicks:null,yTicks:null}))}>눈금 자동으로 맞추기</button></Group>
       <Group title="선과 좌표">{series.map((s,si)=>{
         const points=Array.isArray(s.points)?s.points as Row[]:[];
         const change=(patch:Row)=>setSeries(series.map((v,i)=>i===si?{...v,...patch}:v));

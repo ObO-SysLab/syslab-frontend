@@ -71,13 +71,13 @@ export function FramePanel({
         onClick={onAddFrame}
         className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded border border-dashed border-slate-300 text-xs text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors"
       >
-        <Plus size={12} /> 프레임 추가
+        <Plus size={12} /> 장면 추가
       </button>
 
-      {/* 프레임 목록 */}
+      {/* 장면 목록 */}
       {frames.length === 0 ? (
         <p className="text-[11px] text-slate-400 text-center py-3 leading-relaxed">
-          프레임이 없습니다.<br />추가 후 캔버스 클릭으로<br />노드·엣지를 지정하세요.
+          장면이 없습니다.<br />추가한 뒤 그림에서<br />요소·연결선을 누르세요.
         </p>
       ) : (
         <div className="space-y-0.5">
@@ -156,9 +156,9 @@ export function FramePanel({
 
           {/* 강조 노드 */}
           <div className="space-y-1">
-            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">강조 노드</label>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">강조할 요소</label>
             {selectedFrame.highlightNodes.length === 0 ? (
-              <p className="text-[10px] text-slate-400 italic">캔버스에서 노드 클릭 시 추가</p>
+              <p className="text-[10px] text-slate-400 italic">그림에서 요소를 누르면 추가</p>
             ) : (
               <div className="space-y-0.5">
                 {selectedFrame.highlightNodes.map(nid => (
@@ -178,9 +178,9 @@ export function FramePanel({
 
           {/* 강조 엣지 */}
           <div className="space-y-1">
-            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">강조 엣지</label>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">강조할 연결선</label>
             {selectedFrame.highlightEdges.length === 0 ? (
-              <p className="text-[10px] text-slate-400 italic">캔버스에서 엣지 클릭 시 추가</p>
+              <p className="text-[10px] text-slate-400 italic">그림에서 연결선을 누르면 추가</p>
             ) : (
               <div className="space-y-0.5">
                 {selectedFrame.highlightEdges.map(eid => (
@@ -199,7 +199,7 @@ export function FramePanel({
           </div>
 
           <p className="text-[10px] text-slate-400 bg-slate-50 rounded px-2 py-1.5 leading-relaxed">
-            캔버스에서 노드/엣지를 클릭하면 이 프레임에 추가됩니다
+            그림에서 요소나 연결선을 누르면 이 장면의 강조에 추가됩니다
           </p>
 
           <section className="space-y-2 rounded-lg border border-slate-200 p-2" aria-label="장면 연결선 표시">
