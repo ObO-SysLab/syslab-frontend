@@ -98,7 +98,7 @@ export const ALL_OBO_TEMPLATES: OBOTemplate[] = [
     id: 'ST2',
     name: '프로세스 상태 전이',
     category: 'cpu',
-    description: '노드-엣지',
+    description: '상태와 전이',
     defaultNodes: [
       {
         id: 'new',

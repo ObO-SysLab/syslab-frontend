@@ -77,7 +77,7 @@ export function PropertyPanel({
   const showProperties = hasSelection && toolView === 'property';
 
   const propertyTitle =
-    mode === 'json' ? 'JSON 출력' :
+    mode === 'json' ? '저장 자료 (JSON)' :
     showProperties && selectedKind === 'node' ? '선택한 요소' :
     showProperties && selectedKind === 'edge' ? '선택한 연결선' :
     '요소 추가';
@@ -112,8 +112,8 @@ export function PropertyPanel({
           }`}
         >
           {oboMode === 'coding_diff'
-            ? `트레이스${traceText.trim() ? ` (${traceText.split('\n').filter(l => l.trim()).length})` : ''}`
-            : `프레임${frames.length > 0 ? ` (${frames.length})` : ''}`}
+            ? `출력 기록${traceText.trim() ? ` (${traceText.split('\n').filter(l => l.trim()).length})` : ''}`
+            : `장면${frames.length > 0 ? ` (${frames.length})` : ''}`}
         </button>
       </div>
 

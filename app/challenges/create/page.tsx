@@ -1281,10 +1281,10 @@ function ProblemCreateContent() {
 
             {oboEnabled && (
               <CardContent className="pt-0">
-                {problemType==='coding'&&oboData.mode==='simulation'&&oboData.simulation?.question.judgeProfile==='obo-v1'&&<CodingExampleControl document={oboData.simulation} onAdd={(input,output)=>{
+                {problemType==='coding'&&oboData.mode==='simulation'&&oboData.simulation?.question.judgeProfile==='obo-v1'&&<CodingExampleControl document={oboData.simulation} onAdd={(input,output,sample)=>{
                   setTestcases(previous=>{
                     const kept=previous.filter(tc=>tc.input.trim()||tc.output.trim());
-                    return [...kept,{index:kept.length+1,input,output,is_sample:true}];
+                    return [...kept,{index:kept.length+1,input,output,is_sample:sample}];
                   });
                 }}/>}
                 <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl">
@@ -1296,15 +1296,15 @@ function ProblemCreateContent() {
                     ) : oboData.mode === 'coding_diff' ? (
                       <>
                         출력 기록 재생 &nbsp;·&nbsp;
-                        노드 <span className="font-bold text-slate-800">{oboData.codingDiff?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
-                        엣지 <span className="font-bold text-slate-800">{oboData.codingDiff?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
-                        트레이스 <span className="font-bold text-slate-800">{oboData.codingDiff?.referenceTrace.length ?? 0}</span>스텝
+                        요소 <span className="font-bold text-slate-800">{oboData.codingDiff?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        연결선 <span className="font-bold text-slate-800">{oboData.codingDiff?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        출력 기록 <span className="font-bold text-slate-800">{oboData.codingDiff?.referenceTrace.length ?? 0}</span>장면
                       </>
                     ) : (
                       <>
-                        노드 <span className="font-bold text-slate-800">{oboData.single?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
-                        엣지 <span className="font-bold text-slate-800">{oboData.single?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
-                        프레임 <span className="font-bold text-slate-800">{oboData.single?.frames.length ?? 0}</span>개
+                        요소 <span className="font-bold text-slate-800">{oboData.single?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        연결선 <span className="font-bold text-slate-800">{oboData.single?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        장면 <span className="font-bold text-slate-800">{oboData.single?.frames.length ?? 0}</span>개
                       </>
                     )}
                   </p>

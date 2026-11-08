@@ -133,7 +133,8 @@ function CanvasInner({
         label: '',
         direction: isBidi  ? 'both'       : 'forward',
         style:     isAlloc ? 'dashed'     : 'solid',
-        role:      isAlloc ? 'allocation' : 'transition',
+        // Dashed = request, matching the S3 starting example (request dashed, allocation solid). `role` is not used for drawing or grading.
+        role:      isAlloc ? 'request' : 'transition',
         emphasize: false,
       },
     } as Edge, eds));
