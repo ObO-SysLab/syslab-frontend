@@ -85,7 +85,8 @@ describe('valid identifiers keep their names through real traces and renderers',
 
   it('keeps actor and memory field selections usable across the shared projection', () => {
     for (const scenario of ['ST2', 'G2', 'RR', 'PS', 'CS', 'TH', 'S3', 'PC', 'BK', 'DP', 'IPC', 'K-SYSCALL', 'K-INTERRUPT', 'PT']) {
-      const doc = createDocument(scenario), i = doc.instances[0], before = scenario === 'PT' ? 'T' : 'P';
+      // CPU scheduling defaults use P1..P4 since 2026-11-08; rename the first job.
+      const doc = createDocument(scenario), i = doc.instances[0], before = scenario === 'PT' ? 'T' : ['G2', 'RR', 'PS'].includes(scenario) ? 'P1' : 'P';
       i.input = rename(i.input, before, 'toString') as SimulationInstance['input'];
       i.views = i.views.map(view => ({ ...view, target: view.target === before ? 'toString' : view.target }));
       expect(validateDocument(doc)).toBe(true);
@@ -101,7 +102,7 @@ describe('valid identifiers keep their names through real traces and renderers',
 
   it('uses safe names in final scheduling metrics and resource relationships', () => {
     const cpu = createDocument('G2').instances[0];
-    cpu.input = rename(cpu.input, 'P', 'toString') as SimulationInstance['input'];
+    cpu.input = rename(cpu.input, 'P1', 'toString') as SimulationInstance['input'];
     const execution = run('G2', cpu.input);
     expect(projection(cpu, execution, execution.events.length - 1, createView('metric')).rows[0][0]).toBe('toString');
     const resource = createDocument('S3').instances[0];
