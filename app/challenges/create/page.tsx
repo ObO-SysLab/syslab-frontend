@@ -34,6 +34,8 @@ import {isProblemDraft,type ProblemDraft} from '@/components/obo/authoring/probl
 
 function ProblemCreateContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // The token lives in localStorage, so it is unknown during static prerender; render the same placeholder until checked.
+  const [sessionChecked, setSessionChecked] = useState(false);
   const searchParams = useSearchParams();
   const editId = searchParams.get("id"); // URL의 ?id=... 값을 가져옴
   const isEditMode = !!editId; // id가 있으면 수정 모드(true)
@@ -46,6 +48,7 @@ function ProblemCreateContent() {
     } else {
       setIsLoggedIn(false);
     }
+    setSessionChecked(true);
   }, []);
 
   const handleLogout = () => {
@@ -372,7 +375,10 @@ function ProblemCreateContent() {
       setSaveNotice('서버에 저장되었습니다. 문제 화면으로 이동합니다.');
       window.location.href=`/challenges/detail?id=${savedId}`;
     }catch(error){
-      if(problemToken()===token)setSaveIssue(requestIssue(error,true));
+      if(problemToken()!==token)return;
+      const issue=requestIssue(error,true);
+      // A stale edit version is an authoring conflict, not a generic failure: keep the specific recovery guidance.
+      setSaveIssue(issue.status===409?{...issue,message:'다른 창에서 수정되었습니다. 내 초안은 유지됩니다. 파일로 보관하거나 최신 서버 자료를 다시 연 뒤 비교하세요.'}:issue);
     }finally{saving.current=false;setIsSubmitting(false);}
   };
 
@@ -529,6 +535,7 @@ function ProblemCreateContent() {
   };
   const draft=useBrowserDraft({documentId:editId??'new',value:draftValue,restore:restoreDraft,enabled:editLoaded&&isLoggedIn&&problemType!=='practice',valid:isProblemDraft});
 
+  if(!sessionChecked)return <main className="mx-auto max-w-3xl p-8"><p role="status">불러오는 중…</p></main>;
   if(!isLoggedIn&&!problemToken())return <main className="mx-auto max-w-3xl p-8"><RequestError issue={httpIssue(401)}/></main>;
   if(isEditMode&&!editLoaded)return <main className="mx-auto max-w-3xl p-8"><h1 className="text-xl font-bold">수정할 문제 불러오기</h1>{editQuery.loading&&<p role="status">불러오는 중…</p>}<RequestError issue={editQuery.error} retry={editQuery.retry} busy={editQuery.loading}/></main>;
   if(draft.locked)return <main className="p-8"><p role="alert">계정이 바뀌었습니다. 이전 계정의 작성 화면을 닫았습니다.</p><a className="underline" href="/signin">다시 로그인</a> · <a className="underline" href="/challenges/create">작성 화면 다시 열기</a></main>;
