@@ -83,7 +83,7 @@ export function processSnapshot(instance: SimulationInstance, execution: ModelRu
   }
   const spaces = structuredClone(input.spaces), states = structuredClone(input.threads);
   const events = execution?.events.slice(0, Math.max(0, cursor + 1)) ?? [];
-  const label = (id: string) => instance.labels[id] ?? id;
+  const label = (id: string) => Object.hasOwn(instance.labels, id) ? instance.labels[id] : id;
   const reads: ProcessStructureScalar[] = [];
   let current: ProcessStructureCurrent | null = null;
   for (const [position, event] of events.entries()) {

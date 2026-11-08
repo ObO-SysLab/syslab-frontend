@@ -74,7 +74,7 @@ export function bankerSnapshot(instance: SimulationInstance, execution: ModelRun
     requireValue(n >= initialAllocation[p][r], '최대 요구보다 현재 할당이 큽니다.');
     return n - initialAllocation[p][r];
   }));
-  const label = (id: string) => instance.labels[id] ?? id;
+  const label = (id: string) => Object.hasOwn(instance.labels, id) ? instance.labels[id] : id;
   let request: BankerSnapshot['request'] = null;
   if (input.request !== null) {
     const raw = record(input.request, '추가 요청');
