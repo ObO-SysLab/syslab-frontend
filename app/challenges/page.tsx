@@ -1,4 +1,8 @@
 "use client";
+import { requestJson, requestIssue, httpIssue, isRequestCancelled, authHeaders, type RequestIssue } from "@/lib/request";
+import { RequestError } from "@/components/feedback/RequestError";
+import { useRemoteData } from "@/components/feedback/useRemoteData";
+import { problemApi, problemToken } from "@/lib/problemApi";
 import { logout } from "@/lib/authSession";
 
 import { useState, useEffect } from "react";
@@ -22,9 +26,9 @@ export default function ProblemListPage() {
 
   // [STATE] 페이지 상태
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+
 
   // [STATE] 필터 상태
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -35,15 +39,15 @@ export default function ProblemListPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // [STATE] 데이터 상태
-  const [problems, setProblems] = useState<any[]>([]);
-  const [totalProblems, setTotalProblems] = useState(0);
+
+
   const [myRank, setMyRank] = useState<any>(null);
   const [ads, setAds] = useState<any[]>([]);
   const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
 
   // 오늘의 랜덤 추천 문제용 상태 및 로딩 상태
-  const [randomProblem, setRandomProblem] = useState<any>(null);
-  const [isRandomLoading, setIsRandomLoading] = useState(false);
+
+
 
   const categoryIcons: Record<string, React.ReactNode> = {
     "All": <Layers size={16} />,
@@ -64,124 +68,39 @@ export default function ProblemListPage() {
     "7": { depth: "10,000m+", zone: "지구핵" },
   };
 
-  // [API] 초기 랭킹 및 광고 데이터 로드 (마운트 시 1회)
   useEffect(() => {
-    const fetchInitialData = async () => {
-      const token = localStorage.getItem("token");
-      if (token) setIsLoggedIn(true);
-
-      const headers: HeadersInit = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      try {
-        const response = await fetch("https://diveon.net/api/profile/show", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          const userInfo = result?.data?.userInfo;
-
-          // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
-          if (userInfo?.profileImgUrl) {
-            setUserImgUrl(userInfo.profileImgUrl);
-          }
-
-          // if (userInfo?.nickname) {
-          //   setUserName(userInfo.nickname);
-          // }
-        }
-        // 내 랭킹 가져오기
-        // const rankRes = await fetch("https://diveon.net/api/problems/rank", { headers });
-        // if (rankRes.ok) {
-        //   const rankData = await rankRes.json();
-        //   setMyRank(rankData.data.my_rank);
-        // }
-        setMyRank({ rank: "-", total: "-" });
-
-        // 광고 가져오기 (배너 규격에 맞게 placement 설정)
-        // const adRes = await fetch("https://diveon.net/api/ad/?placement=prob_detail");
-        // if (adRes.ok) {
-        //   const adData = await adRes.json();
-        //   setAds(adData.data.ads);
-        // }
-      } catch (error) {
-        console.error("초기 데이터 로드 실패:", error);
-      }
-    };
-
-    fetchInitialData();
-    fetchRandomProblem();
+    setIsLoggedIn(!!problemToken()); setMyRank({rank:'-', total:'-'});
   }, []);
-
-  // [API] 문제 목록 재조회
-  useEffect(() => {
-    const fetchProblems = async () => {
-      setIsLoading(true);
-
-      const token = localStorage.getItem("token");
-      const headers: HeadersInit = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      // Query Parameter 구성
-      const params = new URLSearchParams();
-      params.append("page", (currentPage).toString());
-      params.append("size", "10");
-      if (searchTerm.trim()) params.append("title", searchTerm.trim());
-      if (selectedType !== "All") params.append("type", selectedType);
-      if (selectedCategory !== "All") params.append("category", selectedCategory.toLowerCase());
-      if (selectedLevel) params.append("difficulty", selectedLevel);
-      if (showUnsolved) params.append("onlyUnsolved", "true");
-      if (showMyProblems) params.append("onlyMine", "true");
-
-      try {
-        const response = await fetch(`https://diveon.net/api/problems?${params.toString()}`, {
-          method: "GET",
-          headers,
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          setProblems(result.data.problems);
-          setTotalProblems(result.data.total);
-          setTotalPages(result.data.totalPages);
-        }
-      } catch (error) {
-        console.error("문제 목록 로드 실패:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProblems();
-  }, [selectedCategory, selectedType, selectedLevel, showUnsolved, showMyProblems, searchTerm, currentPage]);
-
-  // [API] 랜덤 문제 단일 조회 비동기 api
-  const fetchRandomProblem = async () => {
-    setIsRandomLoading(true);
-    const token = localStorage.getItem("token");
-    const headers: HeadersInit = { "Content-Type": "application/json" };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    try {
-      const response = await fetch("https://diveon.net/api/problems/random", {
-        method: "GET",
-        headers
-      });
-      if (response.ok) {
-        const json = await response.json();
-        setRandomProblem(json.data);
-      }
-    } catch (error) {
-      console.error("랜덤 문제 로드 실패:", error);
-    } finally {
-      setIsRandomLoading(false);
-    }
-  };
+  const profileQuery=useRemoteData('profile',async signal=>{
+    if(!problemToken())return null;
+    const json=await requestJson(problemApi('/api/profile/show'),{signal,headers:authHeaders()});
+    return json?.data?.userInfo??null;
+  });
+  useEffect(()=>{setUserImgUrl(profileQuery.data?.profileImgUrl??'/avatar.png');setIsLoggedIn(!!problemToken());},[profileQuery.data]);
+  const params = new URLSearchParams({page:String(currentPage),size:'10'});
+  if(searchTerm.trim())params.set('title',searchTerm.trim());
+  if(selectedType!=='All')params.set('type',selectedType);
+  if(selectedCategory!=='All')params.set('category',selectedCategory.toLowerCase());
+  if(selectedLevel)params.set('difficulty',selectedLevel);
+  if(showUnsolved)params.set('onlyUnsolved','true');
+  if(showMyProblems)params.set('onlyMine','true');
+  const query = params.toString();
+  const list = useRemoteData(query, async signal => {
+    const json = await requestJson(problemApi(`/api/problems?${query}`), {signal,headers:authHeaders()});
+    if(!Array.isArray(json?.data?.problems))throw new Error('Invalid list');
+    return json.data as {problems:any[];total:number;totalPages:number};
+  }, {delay:300,keepPrevious:true});
+  const problems = list.data?.problems ?? [];
+  const totalProblems = list.data?.total ?? 0;
+  const totalPages = list.data?.totalPages ?? 1;
+  const isLoading = list.loading;
+  const recommendation = useRemoteData('recommendation', async signal => {
+    const json = await requestJson(problemApi('/api/problems/random'), {signal,headers:authHeaders()});
+    return json?.data ?? null;
+  }, {keepPrevious:true});
+  const randomProblem = recommendation.data;
+  const isRandomLoading = recommendation.loading;
+  const fetchRandomProblem = recommendation.retry;
 
   // [HANDLER] 필터 변경 시 페이지를 1로 리셋
   const handleCategoryChange = (cat: string) => {
@@ -323,7 +242,7 @@ export default function ProblemListPage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6">
             <div className="space-y-1">
               <h1 className="text-3xl font-black tracking-tighter text-slate-950 uppercase">Challenges</h1>
-              <p className="text-slate-500 font-medium">검색된 문제: {totalProblems}개</p>
+              <p className="text-slate-500 font-medium">{list.data ? `검색된 문제: ${totalProblems}개` : "문제 목록"}</p>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -352,6 +271,9 @@ export default function ProblemListPage() {
             </div>
           </div>
 
+          <RequestError issue={list.error} retry={list.retry} busy={list.loading} stale={!!list.data} />
+          {isLoading && <p role="status" className="text-sm text-slate-500">문제를 불러오는 중…{list.data && ' 이전 조회 결과를 표시합니다.'}</p>}
+          <RequestError issue={recommendation.error} retry={recommendation.retry} busy={recommendation.loading} stale={!!randomProblem} />
           {/* 오늘의 다이브 추천 랜덤 배너 카드 */}
           {randomProblem && (
             <div className="p-5 bg-gradient-to-r from-slate-900 to-indigo-950 border border-slate-800 rounded-2xl shadow-xl text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300 relative overflow-hidden group">
@@ -390,7 +312,7 @@ export default function ProblemListPage() {
 
           {/* 문제 목록 리스트 */}
           <div className="flex flex-col gap-3 min-h-[400px] relative">
-            {isLoading ? (
+            {isLoading && !list.data ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
               </div>
@@ -472,12 +394,12 @@ export default function ProblemListPage() {
                   </Card>
                 </Link>
               ))
-            ) : (
+            ) : !list.error ? (
               <div className="text-center py-24 text-slate-400 border-2 border-dashed border-slate-50 rounded-3xl h-full flex flex-col items-center justify-center">
                 <SearchCode className="mx-auto h-12 w-12 text-slate-200 mb-2" />
                 <p className="font-bold">조건에 맞는 문제가 없습니다.</p>
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* API 연동된 페이지네이션 */}
