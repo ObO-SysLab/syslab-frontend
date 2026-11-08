@@ -20,14 +20,20 @@ function Comparison({record}:{record:PublicCase}) {
   const instance=useMemo(()=>{
     if(!record.scenarioId||!record.input)return null;
     const base=createInstance(record.scenarioId);
-    return {...base,input:record.input,views:[...new Set(base.views.map(v=>v.role))].map((role,index)=>createView(role,null,index))} as SimulationInstance;
+    // Targeted defaults refer to example IDs, which may differ in the public input.
+    const views=base.views.some(view=>view.target!==null)
+      ? [...new Set(base.views.map(view=>view.role))].map((role,index)=>createView(role,null,index))
+      : base.views;
+    return {...base,input:record.input,views} as SimulationInstance;
   },[record]);
   if(record.omitted)return <p className="rounded border p-4 text-sm text-slate-500">{record.omitted}</p>;
   if(!instance||!record.reference)return <p>표시할 실행 기록이 없습니다.</p>;
+  // The result page's 896px content area leaves at most 440px per comparison column.
+  const needsFullWidth=instance.views.some(view=>!view.hidden&&view.width>440);
   const reported:ModelRun|null=record.reported?.events?{id:instance.scenarioId,modelVersion:1,result:record.reported.result,events:record.reported.events,stats:{events:record.reported.events.length,bytes:0}}:null;
   return <div className="space-y-3">
     <p className={`rounded-lg p-3 text-sm ${record.correct?'bg-indigo-50 text-indigo-800':'bg-amber-50 text-amber-800'}`}>{record.message}</p>
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className={`grid gap-4 ${needsFullWidth?'':'xl:grid-cols-2'}`}>
       <section className="min-w-0 space-y-2"><h3 className="font-semibold">기준 실행</h3>
         <SimulationScene instance={instance} execution={record.reference} cursor={referenceCursor}/>
         <Playback execution={record.reference} cursor={referenceCursor} setCursor={setReferenceCursor}/>
