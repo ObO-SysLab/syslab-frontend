@@ -147,7 +147,11 @@ describe('view placement changes geometry only at explicit authoring actions', (
   });
 
   it('retains the existing DP circle, actor/resource dimensions and sidebar spacing', () => {
+    // Since 2026-11-08 the DP default is one table card; per-philosopher/fork cards still use the ring layout.
     const instance = createDocument('DP').instances[0];
+    instance.input = clone(registry.DP.inputExample);
+    const entities = semanticEntities(instance);
+    instance.views = registry.DP.metadata.elements.flatMap(role => ['actor', 'resource'].includes(role) ? entities[role].map(target => createView(role, target)) : [createView(role)]);
     instance.views[0].width = 900; instance.views[0].height = 500; instance.views[0].x = -1000;
     instance.views.push({ ...createView('record'), width: 900, height: 500 });
     const before = clone(instance), next = arrangeViews(instance, { excludedIds: instance.views.map(view => view.id) });
