@@ -54,6 +54,7 @@ export function projection(instance,execution,cursor,view) {
   }else if(view.role==='record') {
     let value=data;
     if(family==='cpu-scheduling')value={남은실행량:data.remaining??Object.fromEntries(input.jobs.map(p=>[p.id,p.bursts[0]])),상태:data.states??{}};
+    else if(family==='bounded-buffer')value={버퍼:data.buffer??input.initial,'실행 주체':data.actors??Object.fromEntries(input.actors.map(actor=>[actor.id,{role:actor.role,pc:0,blocked:false}])),세마포어:data.semaphores??{empty:input.capacity-input.initial.length,full:input.initial.length,mutex:null},'진행 상태':data.stopReason??'initial'};
     else if(family==='context-switch')value={현재:data.current??input.initialId,레지스터:data.registers??input.pcbs[input.initialId],PCB:data.pcbs??input.pcbs};
     else if(family==='banker'){
       const need=data.need??input.max.map((row,p)=>row.map((v,i)=>v-input.allocated[p][i]));
