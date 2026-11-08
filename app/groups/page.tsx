@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
@@ -181,7 +182,7 @@ function GroupListContent() {
 
   // [HANDLER] 로그아웃
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (!logout()) return;
     setIsLoggedIn(false);
     window.location.href = "/";
   };
@@ -272,13 +273,9 @@ function GroupListContent() {
         onSearchChange={(value) => handleSearch(value)}
         onLogout={async () => {
           // 1. 모든 쿠키 삭제 (만료 처리)
-          localStorage.removeItem("token");
-          localStorage.removeItem("nickname");
-          localStorage.removeItem("userImgUrl");
+          if (!logout()) return;
 
           // 2. 로컬 & 세션 스토리지 클리어
-          localStorage.clear();
-          sessionStorage.clear();
 
           // 3. 인메모리 로그인 상태 초기화
           setIsLoggedIn(false);

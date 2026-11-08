@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
@@ -46,7 +47,7 @@ function ProblemCreateContent() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (!logout()) return;
     setIsLoggedIn(false);
     window.location.href = "/";
   };
@@ -560,6 +561,8 @@ function ProblemCreateContent() {
   };
   const draft=useBrowserDraft({documentId:editId??'new',value:draftValue,restore:restoreDraft,enabled:editLoaded&&isLoggedIn&&problemType!=='practice',valid:isProblemDraft});
 
+  if(draft.locked)return <main className="p-8"><p role="alert">계정이 바뀌었습니다. 이전 계정의 작성 화면을 닫았습니다.</p><a className="underline" href="/signin">다시 로그인</a> · <a className="underline" href="/challenges/create">작성 화면 다시 열기</a></main>;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       {/* 1. 고정 헤더 */}
@@ -658,6 +661,8 @@ function ProblemCreateContent() {
             <p role="status">{draft.status}</p>
             <p className="text-xs text-slate-500">이 기기·브라우저에 보관됩니다. 서버 저장은 문제 등록/수정 완료 버튼으로 진행합니다.</p>
             <Button variant="outline" size="sm" onClick={draft.exportFile}>초안 파일로 보관</Button>
+            <p className="text-xs text-slate-500">초안은 암호화 없이 이 브라우저에 남습니다. 공용 기기에서는 사용 후 보관본을 삭제하세요.</p>
+            <Button variant="outline" size="sm" onClick={()=>{if(confirm('이 계정의 현재 문서 보관본을 모든 탭에 걸쳐 삭제할까요? 화면의 작성 내용은 유지됩니다.'))draft.deleteSaved();}}>이 문서의 보관본 삭제</Button>
             {draft.candidates.map(record=><div key={record.id} className="flex flex-wrap items-center gap-2"><span>{new Date(record.savedAt).toLocaleString('ko-KR')} · {record.value.title||'제목 없는 초안'}</span><Button variant="outline" size="sm" onClick={()=>{if(window.confirm('현재 작성 내용을 먼저 보관하고 선택한 초안을 불러올까요?')){if(draft.save())draft.recover(record);}}}>초안 복구</Button></div>)}
             {saveNotice&&<p role="alert" className="text-rose-700">{saveNotice}</p>}
           </div>}

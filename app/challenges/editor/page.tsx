@@ -1,6 +1,9 @@
 "use client";
+import { logout, rememberSubmission } from "@/lib/authSession";
 import { problemApi, problemToken } from "@/lib/problemApi";
 
+import { useCodeDraft } from "@/components/coding/useCodeDraft";
+import { CodeDraftPanel } from "@/components/coding/CodeDraftPanel";
 import { useState, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
 import {
@@ -20,29 +23,35 @@ import {
 } from "@/components/ui/select";
 
 function MonacoSubmitContent() {
-  const CODE_SNIPPETS: Record<string, string> = {
-    c: `#include <stdio.h>\n\nint main() {\n    return 0;\n}`,
-    cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    return 0;\n}`,
-    python: `def solution():\n    pass\n\nif __name__ == "__main__":\n    solution()`, // python -> python
-  };
   const searchParams = useSearchParams();
   const router = useRouter();
   const probId = searchParams.get('id')
   const USE_API_REQUEST = true;
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [problemTitle, setProblemTitle] = useState("문제 정보 불러오는 중...");
-  const [language, setLanguage] = useState("c");
-  const [code, setCode] = useState(CODE_SNIPPETS.c);
+  const [problemVersion, setProblemVersion] = useState<string | null>(null);
+  const codeDraft = useCodeDraft({ kind: 'challenge', problem: probId ?? '' }, problemVersion);
+  const { code, language, edit: setCode, select: handleLanguageChange } = codeDraft;
+  const [submitNotice, setSubmitNotice] = useState('');
+  const submission = useRef<AbortController | null>(null);
+  useEffect(() => {
+    setIsLoggedIn(!!codeDraft.account);
+    setUserImgUrl('/avatar.png');
+    setSubmitNotice(''); setIsSubmitting(false);
+    submission.current?.abort(); submission.current = null;
+    return () => { submission.current?.abort(); submission.current = null; };
+  }, [codeDraft.generation, codeDraft.account]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const editorRef = useRef(null);
   const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
 
   useEffect(() => {
+    let active = true;
     const fetchProfileImage = async () => {
       const token = problemToken();
       if (!token) return;
 
-      setIsLoggedIn(true);
+
 
       try {
         const response = await fetch(problemApi("/api/profile/show"), {
@@ -58,7 +67,7 @@ function MonacoSubmitContent() {
           const userInfo = result?.data?.userInfo;
 
           // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
-          if (userInfo?.profileImgUrl) {
+          if (active && userInfo?.profileImgUrl) {
             setUserImgUrl(userInfo.profileImgUrl);
           }
         }
@@ -68,9 +77,12 @@ function MonacoSubmitContent() {
     };
 
     fetchProfileImage();
-  }, []);
+    return () => { active = false; };
+  }, [codeDraft.account]);
 
   useEffect(() => {
+    let active = true;
+    setProblemVersion(null);
     const fetchProblemTitle = async () => {
       if (!USE_API_REQUEST) {
         setProblemTitle(`MOCK 데이터 문제 #${probId}`);
@@ -87,21 +99,25 @@ function MonacoSubmitContent() {
           }
         });
 
+        if (!active) return;
         if (res.ok) {
           const json = await res.json();
           // API 응답 구조(json.data.title)에 맞게 제목 세팅
+          if (!active) return;
           setProblemTitle(json.data.title);
+          setProblemVersion(json.data.revisionId ?? json.data.editVersion ?? null);
         } else {
           setProblemTitle("알 수 없는 문제");
         }
       } catch (error) {
         console.error("문제 정보 로드 실패:", error);
-        setProblemTitle("문제 정보를 불러오지 못했습니다.");
+        if (active) setProblemTitle("문제 정보를 불러오지 못했습니다.");
       }
     };
 
     fetchProblemTitle();
-  }, [probId, USE_API_REQUEST]);
+    return () => { active = false; };
+  }, [probId, USE_API_REQUEST, codeDraft.account]);
 
   // 에디터 마운트 시 설정
   function handleEditorDidMount(editor: any) {
@@ -112,59 +128,42 @@ function MonacoSubmitContent() {
     }, 50);
   }
 
-  // 언어 변경 핸들러
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang);
-    setCode(CODE_SNIPPETS[lang]);
-  };
-
-
   // [API] 코드 제출
   const handleSubmit = async () => {
-    if (!code.trim()) {
-      alert("코드를 입력해주세요.");
-      return;
-    }
-
-    setIsSubmitting(true);
+    if (submission.current) return;
+    if (!code.trim()) { setSubmitNotice('코드를 입력해 주세요.'); return; }
     const token = problemToken();
-
+    if (!token) { setSubmitNotice('로그인 후 제출해 주세요. 작성 내용은 파일로 저장할 수 있습니다.'); return; }
+    codeDraft.flush();
+    const controller = new AbortController(); submission.current = controller;
+    setIsSubmitting(true); setSubmitNotice('');
     try {
       const response = await fetch(problemApi('/api/submissions/grade'), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          probId: Number(probId), // 명세서의 probId (integer)
-          language: language,     // 선택된 언어 (c, cpp, python 등)
-          answer: code            // 작성한 소스 코드
-        })
+        method: 'POST', signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ probId: Number(probId), language, answer: code })
       });
-
+      if (submission.current !== controller || problemToken() !== token) return;
       if (response.ok) {
-        alert("채점 요청이 접수되었습니다.");
+        setSubmitNotice('서버에서 채점 요청을 접수했습니다.');
         const json = await response.json();
-        const newId = json.data.submissionId;
-        
-        sessionStorage.setItem(`pending_sub_${probId}`, newId);
-
+        if (submission.current !== controller || problemToken() !== token) return;
+        if (json.data?.submissionId == null) throw new Error('Missing submission receipt');
+        rememberSubmission(probId ?? '', json.data.submissionId, token);
         router.push(`/challenges/detail?id=${probId}&tab=grading`);
       } else {
-        const errorData = await response.json();
-        alert(`제출 실패: ${errorData.message || "오류 발생"}`);
+        setSubmitNotice(response.status === 401 ? '로그인이 만료되었습니다. 코드는 유지됩니다. 로그인 후 직접 다시 제출해 주세요.' : `제출 요청을 처리하지 못했습니다 (${response.status}). 코드는 유지됩니다.`);
       }
-    } catch (error) {
-      console.error("제출 에러:", error);
-      alert("서버 통신 오류가 발생했습니다.");
+    } catch {
+      if (submission.current === controller) setSubmitNotice('접수 여부를 확인하지 못했습니다. 코드는 유지됩니다. 제출 내역을 확인한 뒤 다시 시도해 주세요.');
     } finally {
-      setIsSubmitting(false);
+      if (submission.current === controller) { submission.current = null; setIsSubmitting(false); }
     }
   };
 
+
   return (
-    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden w-full">
+    <div className="h-dvh min-h-[640px] bg-slate-50 flex flex-col w-full">
       {/* 1. 고정 헤더 (h-16 = 4rem = 64px) */}
       <header className="shrink-0 h-16 border-b bg-white px-6 flex items-center justify-between z-50">
         <div className="flex items-center gap-8">
@@ -205,7 +204,8 @@ function MonacoSubmitContent() {
               </Link>
 
               <button
-                onClick={() => setIsLoggedIn(false)}
+                aria-label="로그아웃"
+                onClick={() => { if (logout()) setIsLoggedIn(false); }}
                 className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
               >
                 <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
@@ -231,17 +231,17 @@ function MonacoSubmitContent() {
       <main className="flex-1 flex flex-col gap-4 p-6 w-full max-w-[1400px] mx-auto min-h-0">
 
         {/* [A] 상단 툴바 */}
-        <div className="h-16 shrink-0 bg-white border border-slate-200 rounded-2xl px-6 flex items-center justify-between shadow-sm">
+        <div className="shrink-0 bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap gap-3 items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
               {problemTitle} <span className="text-slate-400 text-sm font-medium ml-2">코드 제출</span>
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-indigo-500" />
-              <span className="text-sm font-bold text-slate-700 mr-1">언어:</span>
+              <span className="whitespace-nowrap text-sm font-bold text-slate-700 mr-1">언어:</span>
               <Select value={language} onValueChange={handleLanguageChange}>
                 <SelectTrigger className="w-[120px] h-10 bg-slate-50 border-slate-200 font-mono text-sm focus:ring-indigo-500">
                   <SelectValue />
@@ -256,8 +256,8 @@ function MonacoSubmitContent() {
 
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-8 h-10 shadow-md shadow-indigo-200 transition-all"
+              disabled={isSubmitting || !codeDraft.draft}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-4 sm:px-8 h-10 shadow-md shadow-indigo-200 transition-all"
             >
               {isSubmitting ? "제출 중..." : (
                 <>
@@ -269,12 +269,15 @@ function MonacoSubmitContent() {
           </div>
         </div>
 
+        <CodeDraftPanel state={codeDraft} />
+        {submitNotice && <p role="alert" className="shrink-0 text-sm text-indigo-800">{submitNotice} <Link className="underline" href="/signin">로그인</Link> · <Link className="underline" href={`/challenges/detail?id=${probId}&tab=grading`}>제출 내역</Link></p>}
         {/* [B] Monaco 에디터 영역 */}
         <div className="flex-1 min-h-0">
           <div className="h-full w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-[#1e1e1e]">
             <Editor
+              key={codeDraft.generation}
               loading={<textarea aria-label="코드 입력 (편집기 로딩 중)" className="h-full w-full resize-none bg-[#1e1e1e] p-6 font-mono text-sm text-white outline-none" spellCheck={false} value={code} onChange={event=>setCode(event.target.value)} />}
-              height="calc(100vh - 240px)"
+              height="100%"
               width="100%"
               language={language}
               theme="vs-dark"
