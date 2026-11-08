@@ -14,6 +14,7 @@ import type { ProblemOboData } from "@/components/obo/types";
 import { OboEditorSection } from "@/components/obo/OboEditorSection";
 import { freshId } from '@/components/obo/runtime/document.mjs';
 import { CodingExampleControl } from '@/components/obo/simulation/CodingExampleControl';
+import { DiagramExampleControl } from '@/components/obo/DiagramExampleControl';
 import { CodingRules } from '@/components/obo/simulation/CodingRules';
 import { describeCodingContract } from '@/components/obo/guidance/codingContract';
 import { validateProblemObo } from "@/components/obo/lib/validateObo";
@@ -1287,6 +1288,9 @@ function ProblemCreateContent() {
                     return [...kept,{index:kept.length+1,input,output,is_sample:sample}];
                   });
                 }}/>}
+                {problemType==='coding'&&oboData.mode==='coding_diff'&&oboData.codingDiff?.outputFormat&&<DiagramExampleControl schema={oboData.codingDiff} testcases={testcases}
+                  onAdd={(output,sample)=>setTestcases(previous=>{const kept=previous.filter(tc=>tc.input.trim()||tc.output.trim());return [...kept,{index:kept.length+1,input:'',output,is_sample:sample}];})}
+                  onFill={(index,output)=>setTestcases(previous=>previous.map(tc=>tc.index===index?{...tc,output}:tc))}/>}
                 <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl">
                   <p className="text-sm text-slate-500">
                     {oboData.mode === 'simulation' ? (

@@ -4,13 +4,14 @@ import { Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Node, Edge } from '@xyflow/react';
 import type { EdgeType } from '../templates';
-import type { Frame, OboMode } from '../types';
+import type { Frame, OboMode, SimpleOutputFormat } from '../types';
 import { NodeEditor } from './NodeProps';
 import { collectLabels } from '../lib/label';
 import { EdgeEditor } from './EdgeProps';
 import { Palette } from './Palette';
 import { FramePanel } from './FramePanel';
 import { TracePanel } from './TracePanel';
+import { OutputFormatPanel } from './OutputFormatPanel';
 
 type PanelMode = 'palette' | 'property' | 'json';
 
@@ -54,6 +55,13 @@ interface PropertyPanelProps {
   traceText: string;
   onTraceTextChange: (text: string) => void;
   testcaseOutputs?: { index: number; output: string }[];
+  // coding_diff (2026-11-08): reference built from scenes (default) or written as records; learner output format
+  codingSource?: 'scenes' | 'text';
+  onCodingSourceChange?: (source: 'scenes' | 'text') => void;
+  outputFormat?: SimpleOutputFormat | null;
+  onOutputFormatChange?: (format: SimpleOutputFormat | null) => void;
+  formatFrames?: Frame[];
+  onUpdateFrameExclude?: (frameId: string, exclude: boolean) => void;
 }
 
 export function PropertyPanel({
@@ -68,7 +76,10 @@ export function PropertyPanel({
   onUpdateFrameLabel, onRemoveHighlightNode, onRemoveHighlightEdge,
   onAddNodeOverride, onRemoveNodeOverride, onSetOverrideField, onClearOverrideField, onUpdateFrameCursorTime,
   traceText, onTraceTextChange, testcaseOutputs,
+  codingSource = 'text', onCodingSourceChange, outputFormat = null, onOutputFormatChange, formatFrames = [], onUpdateFrameExclude,
 }: PropertyPanelProps) {
+  const coding = oboMode === 'coding_diff';
+  const codingScenes = coding && codingSource === 'scenes';
   const selectedNode = selectedKind === 'node' ? nodes.find(n => n.id === selectedId) ?? null : null;
   const selectedEdge = selectedKind === 'edge' ? edges.find(e => e.id === selectedId) ?? null : null;
   const [toolView, setToolView] = useState<'palette' | 'property'>('property');
@@ -111,7 +122,7 @@ export function PropertyPanel({
               : 'text-slate-400 hover:text-slate-600'
           }`}
         >
-          {oboMode === 'coding_diff'
+          {coding && !codingScenes
             ? `출력 기록${traceText.trim() ? ` (${traceText.split('\n').filter(l => l.trim()).length})` : ''}`
             : `장면${frames.length > 0 ? ` (${frames.length})` : ''}`}
         </button>
@@ -119,7 +130,19 @@ export function PropertyPanel({
 
       {activeTab === 'frame' ? (
         <div className="flex-1 overflow-y-auto">
-          {oboMode === 'coding_diff' ? (
+          {coding && (
+            <div className="space-y-2 border-b border-slate-100 p-3" data-coding-source={codingSource}>
+              <div role="group" aria-label="정답 장면 만드는 방법" className="grid grid-cols-2 gap-1">
+                {([['scenes', '장면으로 만들기'], ['text', '출력 기록 직접 쓰기']] as const).map(([value, label]) => (
+                  <button key={value} type="button" aria-pressed={codingSource === value} onClick={() => onCodingSourceChange?.(value)}
+                    className={`rounded-lg px-1 py-1.5 text-xs font-semibold ${codingSource === value ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{label}</button>
+                ))}
+              </div>
+              <p className="text-[11px] leading-relaxed text-slate-500">{codingScenes ? '일반 그림처럼 장면을 만들면 정답 재생 기록이 자동으로 만들어집니다.' : '고급: 재생 기록을 줄마다 직접 씁니다.'}</p>
+              {onOutputFormatChange && <OutputFormatPanel nodes={nodes} frames={formatFrames} format={outputFormat} onChange={onOutputFormatChange} />}
+            </div>
+          )}
+          {coding && !codingScenes ? (
             <TracePanel
               nodes={nodes}
               edges={edges}
@@ -147,6 +170,8 @@ export function PropertyPanel({
               onUpdateFrameCursorTime={onUpdateFrameCursorTime}
               nodes={nodes}
               edges={edges}
+              codingOutput={codingScenes}
+              onUpdateFrameExclude={onUpdateFrameExclude}
             />
           )}
         </div>

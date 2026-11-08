@@ -1,13 +1,14 @@
 'use client';
 import {useMemo,useState} from 'react';
 import type {OboCodingSchema} from './types';
-import {parseDiagramTrace} from './runtime/freeDiagram.mjs';
+import {parseDiagramTrace,parseSimpleOutput} from './runtime/freeDiagram.mjs';
 import {generateFramesFromTrace} from './lib/trace';
 import {OboPlayer} from './OboPlayer';
 export interface DiagramOutputRecord {kind:'diagram';caseIndex:number;stdout?:string;omitted?:string}
 export function DiagramOutputPlayer({schema,records}:{schema:OboCodingSchema;records:DiagramOutputRecord[]}){
  const [index,setIndex]=useState(0);const record=records[index]??records[0];
- const parsed=useMemo(()=>parseDiagramTrace(record?.stdout??'',schema.nodes,schema.edges),[record,schema]);
+ // Plain (Baekjoon-style) output is read with the author's line rule; JSON records keep the existing parser (2026-11-08).
+ const parsed=useMemo(()=>schema.outputFormat?parseSimpleOutput(record?.stdout??'',schema.nodes,schema.edges,schema.outputFormat):parseDiagramTrace(record?.stdout??'',schema.nodes,schema.edges),[record,schema]);
  return <section className="space-y-3" aria-label="실행 출력 재생">
   <h2 className="font-bold">내 코드의 공개 테스트 출력</h2>
   <p className="text-sm text-slate-600">실제 실행에서 나온 기록을 재생합니다. 그림의 차이로 정답을 판정하지 않으며 채점 결과는 서버 판정을 따릅니다.</p>
