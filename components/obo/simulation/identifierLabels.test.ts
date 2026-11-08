@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDocument, createView, validateDocument } from '../runtime/document.mjs';
 import type { SimulationInstance, SimulationView } from '../runtime/document.mjs';
-import { run } from '../runtime/index.mjs';
+import { registry, run } from '../runtime/index.mjs';
 import type { Json, ModelRun } from '../runtime/index.mjs';
 import { projection } from '../runtime/projection.mjs';
 import { BankerExplanation, BankerVisual } from './BankerVisual';
@@ -85,8 +85,8 @@ describe('valid identifiers keep their names through real traces and renderers',
 
   it('keeps actor and memory field selections usable across the shared projection', () => {
     for (const scenario of ['ST2', 'G2', 'RR', 'PS', 'CS', 'TH', 'S3', 'PC', 'BK', 'DP', 'IPC', 'K-SYSCALL', 'K-INTERRUPT', 'PT']) {
-      // CPU scheduling defaults use P1..P4 since 2026-11-08; rename the first job.
-      const doc = createDocument(scenario), i = doc.instances[0], before = scenario === 'PT' ? 'T' : ['G2', 'RR', 'PS'].includes(scenario) ? 'P1' : 'P';
+      // Since 2026-11-08 the CPU scheduling and S3 defaults start at P1 and the DP default at A; rename the first actor.
+      const doc = createDocument(scenario), i = doc.instances[0], before = scenario === 'PT' ? 'T' : ['G2', 'RR', 'PS', 'S3'].includes(scenario) ? 'P1' : scenario === 'DP' ? 'A' : 'P';
       i.input = rename(i.input, before, 'toString') as SimulationInstance['input'];
       i.views = i.views.map(view => ({ ...view, target: view.target === before ? 'toString' : view.target }));
       expect(validateDocument(doc)).toBe(true);
@@ -105,8 +105,9 @@ describe('valid identifiers keep their names through real traces and renderers',
     cpu.input = rename(cpu.input, 'P1', 'toString') as SimulationInstance['input'];
     const execution = run('G2', cpu.input);
     expect(projection(cpu, execution, execution.events.length - 1, createView('metric')).rows[0][0]).toBe('toString');
+    // The contract's minimal example has one pending request P → R at the initial state.
     const resource = createDocument('S3').instances[0];
-    resource.input = rename(resource.input, 'P', 'toString') as SimulationInstance['input'];
+    resource.input = rename(structuredClone(registry.S3.inputExample), 'P', 'toString') as SimulationInstance['input'];
     const relationship = projection(resource, run('S3', resource.input), -1, createView('relation'));
     expect(relationship.rows[0][0]).toBe('toString → R');
   });
