@@ -30,7 +30,7 @@ const cases: Case[] = [
   { name: 'PT thread', scenario: 'PT', original: 'T', component: ProcessStructureVisual },
   { name: 'PT process', scenario: 'PT', original: 'P', component: ProcessStructureVisual },
   { name: 'CS actor', scenario: 'CS', original: 'P', component: ContextSwitchVisual },
-  { name: 'ST2 actor', scenario: 'ST2', original: 'P', component: LifecycleVisual },
+  { name: 'ST2 actor', scenario: 'ST2', original: 'P1', component: LifecycleVisual },
 ];
 function rename(value: Json, before: string, after: string): Json {
   if (Array.isArray(value)) return value.map(v => rename(v, before, after));
@@ -85,8 +85,8 @@ describe('valid identifiers keep their names through real traces and renderers',
 
   it('keeps actor and memory field selections usable across the shared projection', () => {
     for (const scenario of ['ST2', 'G2', 'RR', 'PS', 'CS', 'TH', 'S3', 'PC', 'BK', 'DP', 'IPC', 'K-SYSCALL', 'K-INTERRUPT', 'PT']) {
-      // Since 2026-11-08 the CPU scheduling and S3 defaults start at P1 and the DP default at A; rename the first actor.
-      const doc = createDocument(scenario), i = doc.instances[0], before = scenario === 'PT' ? 'T' : ['G2', 'RR', 'PS', 'S3'].includes(scenario) ? 'P1' : scenario === 'DP' ? 'A' : 'P';
+      // Since 2026-11-08 the CPU scheduling, S3 and ST2 defaults start at P1 and the DP default at A; rename the first actor.
+      const doc = createDocument(scenario), i = doc.instances[0], before = scenario === 'PT' ? 'T' : ['G2', 'RR', 'PS', 'S3', 'ST2'].includes(scenario) ? 'P1' : scenario === 'DP' ? 'A' : 'P';
       i.input = rename(i.input, before, 'toString') as SimulationInstance['input'];
       i.views = i.views.map(view => ({ ...view, target: view.target === before ? 'toString' : view.target }));
       expect(validateDocument(doc)).toBe(true);

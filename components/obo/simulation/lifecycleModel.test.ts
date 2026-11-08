@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {createInstance,createDocument,createView,validateDocument} from '../runtime/document.mjs';
-import {run} from '../runtime/index.mjs';
+import {registry,run} from '../runtime/index.mjs';
 import {lifecycleSnapshot,visibleLifecycleExplanation} from './lifecycleModel';
 
 const instance=()=>({...createInstance('ST2'),input:{processes:{P:'New',Q:'Ready'},actions:[
@@ -12,6 +12,15 @@ describe('ST2 visual projection without changing execution',()=>{
  it('starts with a state diagram and a separately stored explanation',()=>{
   const doc=createDocument('ST2');expect(doc.instances[0].views.map(v=>v.role)).toEqual(['relation','annotation']);
   doc.instances[0].views[1].text='그림 아래 설명';expect(validateDocument(JSON.parse(JSON.stringify(doc)))).toBe(true);
+ });
+ it('starts new documents with two processes passing every transition, keeping the contract example minimal',()=>{
+  const i=createDocument('ST2').instances[0],execution=run('ST2',i.input);
+  expect(i.views[0]).toMatchObject({role:'relation',width:800,height:460});
+  expect(execution.events).toHaveLength(11);
+  expect(new Set(execution.events.map(e=>e.kind))).toEqual(new Set(['create','dispatch','io','completeIO','preempt','finish']));
+  expect(execution.result).toEqual({states:{P1:'Terminated',P2:'Terminated'}});
+  for(let c=0;c<execution.events.length;c++)expect(Object.values(lifecycleSnapshot(i,execution,c).states).filter(s=>s==='Running').length).toBeLessThanOrEqual(1);
+  expect(registry.ST2.inputExample).toEqual({processes:{P:'New'},actions:[{id:'P',event:'create'}]});
  });
  it('uses only events up to the selected cursor, including I/O, preemption and completion',()=>{
   const i=instance(),execution=run('ST2',i.input),original=JSON.stringify(i);

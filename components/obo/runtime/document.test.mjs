@@ -39,8 +39,10 @@ describe('simulation documents and projections',()=>{
   it('initial projection does not expose future state and an event updates it',()=>{
     const instance=createDocument('ST2').instances[0],execution=run('ST2',instance.input);
     const view=createView('actor');
-    expect(projection(instance,execution,-1,view).rows).toContainEqual(['P','생성']);
-    expect(projection(instance,execution,0,view).rows).toContainEqual(['P','준비']);
+    // The ST2 authoring default starts with P1 and P2 in New since 2026-11-08; the first event creates P1.
+    expect(projection(instance,execution,-1,view).rows).toContainEqual(['P1','생성']);
+    expect(projection(instance,execution,0,view).rows).toContainEqual(['P1','준비']);
+    expect(projection(instance,execution,0,view).rows).toContainEqual(['P2','생성']);
   });
   it('different model families never align by raw event number',()=>{
     const a=createDocument('ST2').instances[0],b=createDocument('P2').instances[0];
