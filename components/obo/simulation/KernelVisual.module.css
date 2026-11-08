@@ -66,7 +66,14 @@
 .contextList:focus-visible { outline: 2px solid #3675c7; outline-offset: 2px; }
 .invalid { margin: 0; padding: 10px; background: #fff8e5; color: #84520d; font-size: 14px; line-height: 1.6; }
 
-@container (max-width: 560px) { .regions { grid-template-columns: minmax(0, 1fr); } .modeLink { flex-direction: row; transform: rotate(90deg); } .lower { grid-template-columns: minmax(0, 1fr); } }
+/* Narrow records stack the regions (user above kernel). Only the arrow turns vertical; its label stays horizontal. */
+@container (max-width: 560px) {
+  .regions { grid-template-columns: minmax(0, 1fr); }
+  .modeLink { flex-direction: row; gap: 8px; min-height: 56px; }
+  .modeLink[data-kernel-mode-link=none] { min-height: 10px; }
+  .modeLink svg { width: 44px; height: 24px; transform: rotate(90deg); }
+  .lower { grid-template-columns: minmax(0, 1fr); }
+}
 
 .explanation { margin-top: 12px; padding: 16px 18px; border-top: 1px solid #dce4ec; color: #33475c; }
 .autoExplanation { margin: 0; font-size: 15px; line-height: 1.7; overflow-wrap: anywhere; }
