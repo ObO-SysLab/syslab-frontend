@@ -3,7 +3,7 @@
 import type { ModelRun } from '../runtime/index.mjs';
 import type { SimulationInstance, SimulationView } from '../runtime/document.mjs';
 import { eventLabel } from '../runtime/projection.mjs';
-import { pageComparison, pageSnapshot, type PageComparisonRow, type PageFrame, type PageSnapshot } from './pageReplacementModel';
+import { beladySnapshot, pageComparison, pageSnapshot, type BeladySnapshot, type PageComparisonRow, type PageFrame, type PageSnapshot } from './pageReplacementModel';
 import styles from './PageReplacementVisual.module.css';
 
 type Props = { instance: SimulationInstance; execution: ModelRun | null; cursor: number; view: SimulationView };
@@ -84,8 +84,27 @@ function CompareVisual({ rows, view }: { rows: PageComparisonRow[]; view: Simula
   </div>;
 }
 
+function BeladyVisual({ b }: { b: BeladySnapshot }) {
+  const strip = b.running?.snapshot;
+  return <div className={styles.visual} data-page-visual data-page-belady data-page-finished={b.finished}>
+    <div className={styles.context}><strong className={styles.policy}>{b.policy}</strong><b className={styles.result}>프레임 수별 Miss 비교</b></div>
+    {strip && <RefStrip s={strip} showMarks />}
+    <div className={styles.compare}>{b.rows.map(row => <section key={row.capacity} className={styles.compareRow} data-page-capacity={row.capacity} data-page-status={row.status} data-page-primary={row.status === 'running'}>
+      <div className={styles.compareHead}><strong className={styles.capacity}>{row.capacity}칸</strong>{row.status === 'running' && <span className={styles.ownTag}>{b.finished ? '마지막 참조' : '진행 중'}</span>}</div>
+      {row.status === 'running' && row.snapshot ? <div className={styles.miniFrames}>{row.snapshot.frames.map(f => <span key={f.slot} className={styles.miniFrame} data-page-slot={f.slot} data-page-incoming={f.incoming} data-page-hit={f.current && row.snapshot!.phase === 'hit'} data-page-empty={f.page === null}>{f.page === null ? '·' : f.page}</span>)}</div>
+        : <span className={styles.rowState}>{row.status === 'waiting' ? '대기 · 아직 실행 전' : '완료'}</span>}
+      <span className={styles.compareResult} data-page-result={row.snapshot?.phase}>{row.status === 'running' && row.snapshot ? resultText(row.snapshot) : ''}</span>
+      <span className={styles.compareFaults} data-page-faults={row.faults ?? undefined}>{row.faults === null ? '—' : <>Miss <b>{row.faults}</b></>}</span>
+    </section>)}</div>
+    {b.finished && <p className={styles.beladyResult} data-page-belady-result={b.increases.length ? 'increase' : 'none'}>
+      {b.increases.length ? b.increases.map(x => `${x.from}칸 → ${x.to}칸: Miss ${x.before} → ${x.after}`).join(' · ') + ' — 프레임을 늘렸는데 Miss가 늘었습니다.' : '이 입력과 정책에서는 프레임을 늘려도 Miss가 늘지 않았습니다.'}
+    </p>}
+  </div>;
+}
+
 export function PageReplacementVisual({ instance, execution, cursor, view }: Props) {
   try {
+    if (instance.scenarioId === 'P3') return <BeladyVisual b={beladySnapshot(instance, execution, cursor)} />;
     if (instance.scenarioId === 'OPT') return <CompareVisual rows={pageComparison(instance, execution, cursor)} view={view} />;
     return <RecordVisual s={pageSnapshot(instance, execution, cursor)} view={view} />;
   } catch { return <p className={styles.invalid} data-page-invalid role="status">설정을 확인하세요. 참조열과 프레임 수를 완성하면 교체 과정이 표시됩니다.</p>; }
@@ -96,7 +115,7 @@ export function PageReplacementExplanation({ instance, execution, cursor, onChan
   onChange?: (id: string, text: string) => void; onAdd?: () => void;
 }) {
   let summary: string;
-  try { summary = pageSnapshot(instance, execution, cursor).summary; }
+  try { summary = instance.scenarioId === 'P3' ? beladySnapshot(instance, execution, cursor).summary : pageSnapshot(instance, execution, cursor).summary; }
   catch { summary = '입력 설정을 확인하면 페이지 교체 과정을 볼 수 있습니다.'; }
   const event = execution?.events[cursor], notes = instance.views.filter(view => view.role === 'annotation');
   const visible = notes.filter(view => !view.hidden && (!view.when.kind || view.when.kind === event?.kind) && (!view.when.actor || view.when.actor === event?.actor) && (!view.fields.length || view.fields.includes(eventLabel(event))) && view.text.trim());
