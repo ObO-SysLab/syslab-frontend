@@ -1,4 +1,4 @@
-import { checkShape, registry } from '../runtime/index.mjs';
+import { checkShape, registry, run } from '../runtime/index.mjs';
 import type { ModelRun, SemanticEvent } from '../runtime/index.mjs';
 import type { SimulationInstance } from '../runtime/document.mjs';
 
@@ -112,4 +112,20 @@ export function pageSnapshot(instance: SimulationInstance, execution: ModelRun |
     current: current ? { index: current.index, page: current.page, hit: current.hit, victim: current.victim, slot } : null,
     event: events.length ? structuredClone(events[events.length - 1]) : null, summary,
   };
+}
+
+export interface PageComparisonRow { policy: PagePolicy; primary: boolean; snapshot: PageSnapshot }
+/**
+ * OPT compares the three policies at the same reference position. The problem's own policy row is validated against
+ * its recorded trace; the other rows are independent runs of the same input with only the policy changed (display only,
+ * never graded or recorded).
+ */
+export function pageComparison(instance: SimulationInstance, execution: ModelRun | null, cursor: number): PageComparisonRow[] {
+  requireValue(instance.scenarioId === 'OPT', '정책 비교는 OPT 모델에서만 사용합니다.');
+  const primary = pageSnapshot(instance, execution, cursor), input = instance.input as unknown as Input;
+  return (['FIFO', 'LRU', 'OPT'] as PagePolicy[]).map(policy => {
+    if (policy === input.policy) return { policy, primary: true, snapshot: primary };
+    const other = { ...instance, input: { ...instance.input, policy } } as SimulationInstance;
+    return { policy, primary: false, snapshot: pageSnapshot(other, execution === null ? null : run('OPT', other.input), cursor) };
+  });
 }
