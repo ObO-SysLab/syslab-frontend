@@ -115,7 +115,7 @@ function OboResultContent() {
         </div>
 
         <div className="w-full max-w-4xl mx-auto">
-          {publicCases.length>0&&<div className="mb-8"><PublicCasePlayer records={publicCases}/></div>}
+          {publicCases.length>0&&<div className="mb-8"><PublicCasePlayer records={publicCases} document={simulation}/></div>}
           {codingSchema&&diagramRecords.length>0&&<div className="mb-8"><DiagramOutputPlayer schema={codingSchema} records={diagramRecords}/></div>}
           {codingSchema&&blob&&<h2 className="mb-3 font-bold">출제자의 참고 출력 기록</h2>}
           {legacyRevision && <p className="mb-3 text-sm text-slate-500">이전 제출은 당시 문제 설정이 보관되지 않아 현재 등록된 해설을 보여줍니다.</p>}
