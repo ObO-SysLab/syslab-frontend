@@ -9,6 +9,7 @@ const inputClass = 'w-full min-w-0 rounded border border-slate-300 bg-white px-2
 const buttonClass = 'rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40';
 const names: Record<string,string> = { label:'장면 이름', instances:'자원 개수', allocated:'사용 중 개수', capacity:'버퍼 용량', items:'항목', direction:'순서 방향', headers:'열 제목', rows:'셀 값', activeRow:'강조 행', width:'너비', height:'높이', start:'시작 주소', size:'전체 크기', segments:'메모리 구간', activeIds:'강조 구간', sections:'공유 영역', threads:'스레드 문맥', activeThreadId:'현재 스레드', xLabel:'가로축 이름',yLabel:'세로축 이름',xMin:'가로축 최소',xMax:'가로축 최대',yMin:'세로축 최소',yMax:'세로축 최대',xTicks:'가로축 눈금',yTicks:'세로축 눈금',series:'선과 좌표',progressIndex:'마지막 표시 점',activePointIndex:'현재 점' };
 Object.assign(names, { hiddenSectionNames: '숨긴 영역', hiddenThreadIds: '숨긴 스레드', threadFields: '스레드 표시 항목', threadLayout: '스레드 배치', sectionLayout: '영역 배치', showSharedLinks: '공유 관계선' });
+Object.assign(names, { displayStyle: '표시 방식', showCount: '점유 개수 표시', showDirection: '입출구 방향 표시' });
 function Field({ label, value, onChange, number = false }: { label:string; value:unknown; onChange:(v:string)=>void; number?:boolean }) {
   return <label className="block space-y-1 text-xs text-slate-600"><span>{label}</span><input aria-label={label} className={inputClass} inputMode={number ? 'decimal' : undefined} value={String(value ?? '')} onChange={e=>onChange(e.target.value)} /></label>;
 }
@@ -50,6 +51,10 @@ export function ElementFields({ type, data, onApply, scope='base', validatePatch
     {type==='state-node'&&<Field label="이 장면의 이름" value={draft.label} onChange={v=>set('label',v)} />}
     {type==='resource-square'&&<>{numeric('instances','자원 개수',1)}{numeric('allocated','사용 중 개수',0)}</>}
     {type==='queue-strip'&&<>
+      <Group title="버퍼 표시">
+        <label className="block space-y-1 text-xs text-slate-600"><span>버퍼 표시 방식</span><select aria-label="버퍼 표시 방식" className={inputClass} value={String(draft.displayStyle ?? 'strip')} onChange={e=>set('displayStyle',e.target.value)}><option value="strip">기본 큐</option><option value="buffer">버퍼 칸과 입출구</option></select></label>
+        {(['showCount','showDirection'] as const).map(key=><label key={key} className="flex items-center gap-2 text-xs"><input type="checkbox" aria-label={key==='showCount'?'점유 개수 표시':'입출구 방향 표시'} checked={draft[key]!==false} onChange={e=>set(key,e.target.checked)}/>{key==='showCount'?'점유 개수 표시':'입출구 방향 표시'}</label>)}
+      </Group>
       {numeric('capacity','버퍼 용량 (0~64)',0)}
       <label className="block text-xs">먼저 꺼낼 쪽<select aria-label="먼저 꺼낼 쪽" className={inputClass} value={String(draft.direction??'ltr')} onChange={e=>set('direction',e.target.value)}><option value="ltr">왼쪽</option><option value="rtl">오른쪽</option></select></label>
       <Group title="먼저 꺼낼 순서"><div className="space-y-2">{(Array.isArray(draft.items)?draft.items as string[]:[]).map((value,i,items)=><div key={i} className="space-y-1"><Field label={`항목 ${i+1}`} value={value} onChange={v=>set('items',items.map((s,j)=>j===i?v:s))}/><Move index={i} length={items.length} name={`항목 ${i+1}`} onMove={delta=>set('items',reordered(items,i,delta))} onRemove={()=>set('items',items.filter((_,j)=>j!==i))}/></div>)}</div>

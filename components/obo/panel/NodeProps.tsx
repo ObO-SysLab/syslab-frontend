@@ -142,6 +142,12 @@ export function NodeEditor({ node, onUpdate, takenLabels, frames = [] }: NodeEdi
     return (
       <Section>
         <UniqueLabelField label="라벨" value={(d.label as string) ?? ''} taken={takenLabels} onCommit={v => onUpdate({ label: v })} />
+        <label className="block space-y-1 text-xs text-slate-600"><span>숫자 표시 방식</span><select aria-label="숫자 표시 방식" value={String(d.displayStyle ?? 'badge')} onChange={e => onUpdate({ displayStyle: e.target.value })} className="w-full rounded border p-1.5"><option value="badge">숫자 배지</option><option value="semaphore">세마포어 허용 횟수</option></select></label>
+        {d.displayStyle === 'semaphore' && <>
+          <label className="block space-y-1 text-xs text-slate-600"><span>세마포어 의미</span><input aria-label="세마포어 의미" maxLength={80} value={String(d.caption ?? '')} onChange={e => onUpdate({ caption: e.target.value })} className="w-full rounded border p-1.5" placeholder="예: 넣기 허용" /></label>
+          <label className="flex items-center gap-2 text-xs"><input type="checkbox" aria-label="허용 토큰 표시" checked={d.showTokens !== false} onChange={e => onUpdate({ showTokens: e.target.checked })} />허용 토큰 표시</label>
+        </>}
+        <label className="flex items-center gap-2 text-xs"><input type="checkbox" aria-label="재생에 숫자 표시" checked={d.showInPlayback !== false} onChange={e => onUpdate({ showInPlayback: e.target.checked })} />재생에 숫자 표시</label>
         <NumField label="최솟값" value={min} min={-999} max={max}
           onChange={v => onUpdate({ min: v })} />
         <NumField label="최댓값" value={max} min={min} max={999}
@@ -179,8 +185,11 @@ export function NodeEditor({ node, onUpdate, takenLabels, frames = [] }: NodeEdi
             { value: 'plain', label: '텍스트' },
             { value: 'dashed-box', label: '점선' },
             { value: 'pill', label: '뱃지' },
+            { value: 'item', label: '항목' },
+            { value: 'status', label: '상태' },
           ]}
           onChange={v => onUpdate({ variant: v })} />
+        {d.variant === 'item' && <label className="block space-y-1 text-xs text-slate-600"><span>항목 설명</span><input aria-label="항목 설명" maxLength={80} value={String(d.caption ?? '')} onChange={e => onUpdate({ caption: e.target.value })} className="w-full rounded border p-1.5" /></label>}
         <ColorField label="색상" value={(d.color as string) ?? '#334155'} onChange={v => onUpdate({ color: v })} />
       </Section>
     );

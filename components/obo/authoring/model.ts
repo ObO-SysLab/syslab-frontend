@@ -8,7 +8,7 @@ import { memoryLayout, type MemorySegment } from '../examples/memory';
 export const AUTHORING_FIELDS: Record<string, string[]> = {
   'state-node': ['label'],
   'resource-square': ['instances', 'allocated'],
-  'queue-strip': ['capacity', 'items', 'direction'],
+  'queue-strip': ['capacity', 'items', 'direction', 'displayStyle', 'showCount', 'showDirection'],
   'table-grid': ['headers', 'rows', 'activeRow', 'width'],
   'memory-range': ['start', 'size', 'segments', 'activeIds'],
   'process-box': ['sections', 'threads', 'activeThreadId', 'hiddenSectionNames', 'hiddenThreadIds', 'threadFields', 'threadLayout', 'sectionLayout', 'showSharedLinks', 'width'],
@@ -45,6 +45,9 @@ export function validateElement(type: string, input: Record<string, unknown>) {
     numeric('allocated', 0, '사용 중 개수', 0, count, true);
   }
   if (type === 'queue-strip') {
+    if (data.direction !== undefined && (typeof data.direction !== 'string' || !['ltr', 'rtl'].includes(data.direction))) errors.push('버퍼 방향을 확인하세요.');
+    if (data.displayStyle !== undefined && (typeof data.displayStyle !== 'string' || !['strip', 'buffer'].includes(data.displayStyle))) errors.push('버퍼 표시 방식을 확인하세요.');
+    for (const key of ['showCount', 'showDirection']) if (data[key] !== undefined && typeof data[key] !== 'boolean') errors.push('버퍼 표시 여부를 확인하세요.');
     const capacity = numeric('capacity', list('items').length, '버퍼 용량', 0, 64, true);
     const items = list('items');
     if (items.length > capacity) errors.push('항목 수가 용량보다 많습니다. 항목을 줄이거나 용량을 늘리세요.');

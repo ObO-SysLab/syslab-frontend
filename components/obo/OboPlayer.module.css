@@ -1,0 +1,5 @@
+.player :global(.react-flow__handle) {
+  /* Keep handle geometry for edges, while removing editor controls from playback. */
+  visibility: hidden !important;
+  pointer-events: none;
+}

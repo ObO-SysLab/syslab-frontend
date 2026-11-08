@@ -1,0 +1,23 @@
+.buffer { box-sizing: border-box; border: 2px solid #91b5ab; border-radius: 14px; background: #fff; color: #263f3b; padding: 16px; }
+.header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.title { min-width: 0; margin: 0; font-size: 17px; font-weight: 750; overflow-wrap: anywhere; }
+.count { flex-shrink: 0; font-size: 12px; color: #57766d; font-variant-numeric: tabular-nums; }
+.direction { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; color: #628076; font-size: 11px; font-weight: 600; }
+.directionLine { flex: 1; display: flex; align-items: center; }
+.directionLine::before { content: ''; flex: 1; height: 1px; background: #a8c6bc; }
+.directionLine[data-flow=left] { flex-direction: row-reverse; }
+.directionArrow { font-size: 17px; line-height: 1; }
+.rows { display: grid; gap: 12px; }
+.row { display: grid; gap: 8px; }
+.slot { position: relative; box-sizing: border-box; min-width: 0; min-height: 86px; display: flex; align-items: center; justify-content: center; padding: 22px 9px 12px; border: 1.5px solid #b7d7cc; border-radius: 9px; background: #eaf6f0; color: #165d4e; font-size: 23px; font-weight: 700; overflow-wrap: anywhere; white-space: pre-wrap; text-align: center; }
+.slot[data-empty=true] { border-style: dashed; background: #f8fbfa; border-color: #b9cec6; }
+.slot[data-queue-head=true] { border: 2px solid #177e66; background: #ddf4e9; }
+.head { position: absolute; top: 4px; right: 6px; font-size: 10px; line-height: 1.4; font-weight: 650; color: #1a6f5b; }
+.empty { margin: 0; padding: 12px 0; color: #607b73; font-size: 13px; }
+.error { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: #b91c1c; }
+.legacy { box-sizing: border-box; padding: 14px; border-radius: 12px; }
+.legacyTitle { font-size: 14px; font-weight: 800; overflow-wrap: anywhere; }
+.legacyRows { display: grid; gap: 6px; margin-top: 12px; }
+.legacyRow { display: grid; gap: 6px; }
+.legacySlot { box-sizing: border-box; min-width: 0; min-height: 48px; padding: 8px 4px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 16px; font-weight: 700; overflow-wrap: anywhere; white-space: pre-wrap; text-align: center; }
+.legacyDirection { margin: 10px 0 0; font-size: 12px; color: #475569; }
