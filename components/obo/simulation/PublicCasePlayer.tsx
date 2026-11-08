@@ -1,7 +1,8 @@
 'use client';
 import {useMemo,useState} from 'react';
 import {Button} from '@/components/ui/button';
-import {createInstance,createView,type SimulationInstance} from '../runtime/document.mjs';
+import type {SimulationDocument} from '../runtime/document.mjs';
+import {instanceForCase} from './publicCaseViews';
 import {matchingCursor} from '../runtime/projection.mjs';
 import type {Json,ModelRun,SemanticEvent} from '../runtime/index.mjs';
 import {SimulationScene} from './SimulationScene';
@@ -15,17 +16,10 @@ export interface PublicCase {
   correct?:boolean; traceValid?:boolean; message?:string; omitted?:string;
 }
 
-function Comparison({record}:{record:PublicCase}) {
+function Comparison({record,document}:{record:PublicCase;document?:SimulationDocument|null}) {
   const [referenceCursor,setReferenceCursor]=useState(-1),[reportedCursor,setReportedCursor]=useState(-1);
-  const instance=useMemo(()=>{
-    if(!record.scenarioId||!record.input)return null;
-    const base=createInstance(record.scenarioId);
-    // Targeted defaults refer to example IDs, which may differ in the public input.
-    const views=base.views.some(view=>view.target!==null)
-      ? [...new Set(base.views.map(view=>view.role))].map((role,index)=>createView(role,null,index))
-      : base.views;
-    return {...base,input:record.input,views} as SimulationInstance;
-  },[record]);
+  // The author's graded simulation keeps its cards and layout (2026-11-08); see instanceForCase.
+  const instance=useMemo(()=>record.scenarioId&&record.input?instanceForCase(document,record.scenarioId,record.input):null,[record,document]);
   if(record.omitted)return <p className="rounded border p-4 text-sm text-slate-500">{record.omitted}</p>;
   if(!instance||!record.reference)return <p>표시할 실행 기록이 없습니다.</p>;
   // The result page's 896px content area leaves at most 440px per comparison column.
@@ -50,12 +44,12 @@ function Comparison({record}:{record:PublicCase}) {
   </div>;
 }
 
-export function PublicCasePlayer({records}:{records:PublicCase[]}) {
+export function PublicCasePlayer({records,document}:{records:PublicCase[];document?:SimulationDocument|null}) {
   const [selected,setSelected]=useState(records[0]?.caseIndex);
   const record=records.find(item=>item.caseIndex===selected)??records[0];
   if(!record)return null;
   return <div className="space-y-3"><h2 className="text-lg font-semibold">공개 예제의 제출 결과</h2>
     <div className="flex flex-wrap gap-2">{records.map(item=><Button key={item.caseIndex} variant={record.caseIndex===item.caseIndex?'default':'outline'} onClick={()=>setSelected(item.caseIndex)}>예제 {item.caseIndex}</Button>)}</div>
-    {record.kind==='rr-schedule'?<RrSchedulePlayer key={record.caseIndex} record={record}/>:<Comparison key={record.caseIndex} record={record}/>}
+    {record.kind==='rr-schedule'?<RrSchedulePlayer key={record.caseIndex} record={record}/>:<Comparison key={record.caseIndex} record={record} document={document}/>}
   </div>;
 }
