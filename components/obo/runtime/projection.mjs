@@ -55,7 +55,11 @@ export function projection(instance,execution,cursor,view) {
     let value=data;
     if(family==='cpu-scheduling')value={남은실행량:data.remaining??Object.fromEntries(input.jobs.map(p=>[p.id,p.bursts[0]])),상태:data.states??{}};
     else if(family==='context-switch')value={현재:data.current??input.initialId,레지스터:data.registers??input.pcbs[input.initialId],PCB:data.pcbs??input.pcbs};
-    else if(family==='banker')value={Available:data.available??input.available,Allocation:input.allocated,Max:input.max,Need:data.need??input.max.map((row,p)=>row.map((v,i)=>v-input.allocated[p][i])),Work:data.work??input.available,Finish:data.finish??{}};
+    else if(family==='banker'){
+      const need=data.need??input.max.map((row,p)=>row.map((v,i)=>v-input.allocated[p][i]));
+      // A request may be tentatively allocated in the current safety check.
+      value={Available:data.available??input.available,Allocation:input.max.map((row,p)=>row.map((v,i)=>v-need[p][i])),Max:input.max,Need:need,Work:data.work??input.available,Finish:data.finish??{}};
+    }
     else if(family==='address-translation')value={페이지테이블:input.table,TLB:data.tlb??input.initialTlb,페이지:data.page??null,오프셋:data.offset??null};
     else if(family==='process-structure'){const spaces=structuredClone(input.spaces),threads=structuredClone(input.threads);for(const e of prefix)if(e.kind==='write'){const target=e.data.scope==='shared'?spaces[threads[e.actor].process]:threads[e.actor].registers;target[e.data.key]=e.data.value;}value={주소공간:spaces,스레드:threads};}
     else if(family==='kernel-flow')value={모드:data.mode==='kernel'?'커널':'사용자',...Object.fromEntries(Object.entries(data.contexts??input.contexts).map(([actor,registers])=>[actor,Object.entries(registers).map(([key,value])=>`${key} = ${value}`).join(' · ')])),반환값:data.returnValue??null};
