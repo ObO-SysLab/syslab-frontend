@@ -6,7 +6,7 @@ import type { Node, Edge } from '@xyflow/react';
 import { CheckCircle2, X, Undo2, Redo2 } from 'lucide-react';
 import { useGraphHistory } from './lib/useGraphHistory';
 import { type OBOTemplate, type EdgeType } from './templates';
-import type { Frame, OboBlob, OboMode, ProblemOboData } from './types';
+import type { Frame, OboBlob, OboMode, ProblemOboData, SimpleOutputFormat } from './types';
 import { TemplateSidebar } from './TemplateSidebar';
 import { OBOEditorCanvas } from './OBOEditorCanvas';
 import { PropertyPanel } from './panel/PropertyPanel';
@@ -19,7 +19,7 @@ import { parseTraceText, stringifyTrace } from './lib/traceParser';
 import { traceTokenFor, makeUniqueLabel, collectLabels } from './lib/label';
 import { exampleStateValue } from './lib/overrideFields';
 import { SimulationEditor } from './simulation/SimulationEditor';
-import {parseDiagramTrace} from './runtime/freeDiagram.mjs';
+import {parseDiagramTrace, framesToTrace, validateOutputFormat} from './runtime/freeDiagram.mjs';
 import { createDocument } from './runtime/document.mjs';
 import { resizeSlotFrames } from './slots/model';
 import { pruneFrameReferences } from './authoring/model';
@@ -126,7 +126,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
     if (m === 'single') return value?.single ?? EMPTY_BLOB;
     if (m === 'coding_diff') {
       const schema = value?.codingDiff;
-      return schema ? { nodes: schema.nodes, edges: schema.edges, frames: [] } : EMPTY_BLOB;
+      return schema ? { nodes: schema.nodes, edges: schema.edges, frames: schema.frames ?? [] } : EMPTY_BLOB;
     }
     return id ? (value?.perChoice?.[id] ?? EMPTY_BLOB) : EMPTY_BLOB;
   };
@@ -140,13 +140,23 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
   const [traceText, setTraceText] = useState<string>(() =>
     value?.codingDiff ? value.codingDiff.sourceTraceText??stringifyTrace(value.codingDiff.referenceTrace, value.codingDiff.nodes as Node[]) : ''
   );
+  // 2026-11-08: coding problems are built from scenes by default (records derived), or written as records (advanced).
+  // Documents saved before keep their records and open in the record mode.
+  const [codingSource, setCodingSource] = useState<'scenes' | 'text'>(() => {
+    const schema = value?.codingDiff;
+    return schema && !schema.frames && (schema.sourceTraceText?.trim() || schema.referenceTrace.length) ? 'text' : 'scenes';
+  });
+  const [outputFormat, setOutputFormat] = useState<SimpleOutputFormat | null>(value?.codingDiff?.outputFormat ?? null);
 
   // ── React Flow 상태 ───────────────────────────────────
   const init = getBlob(initMode, initChoiceId);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(init.nodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(init.edges as Edge[]);
   const [frames, setFrames] = useState<Frame[]>(init.frames);
-  const referenceTrace = useMemo(() => parseDiagramTrace(traceText, nodes,edges).trace, [traceText, nodes,edges]);
+  const sceneMode = mode === 'coding_diff' && codingSource === 'scenes';
+  const referenceTrace = useMemo(() => sceneMode ? framesToTrace(nodes, frames) : parseDiagramTrace(traceText, nodes,edges).trace, [sceneMode, frames, traceText, nodes,edges]);
+  // A format whose element was deleted is not saved; the panel asks the author to choose again.
+  const savedFormat = useMemo(() => { if (!outputFormat) return null; try { validateOutputFormat(outputFormat, nodes); return outputFormat; } catch { return null; } }, [outputFormat, nodes]);
 
   // ── 되돌리기 / 다시하기 ────────────────────────────────
   const { undo, redo, canUndo, canRedo } = useGraphHistory({
@@ -190,17 +200,19 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
     if (mode === 'single') {
       onChangeRef.current({ mode: 'single', single: serialize(nodes, edges, frames) });
     } else if (mode === 'coding_diff') {
-      const blob = serialize(nodes, edges, []);
+      const blob = serialize(nodes, edges, sceneMode ? frames : []);
       onChangeRef.current({
         mode: 'coding_diff',
-        codingDiff: { nodes: blob.nodes, edges: blob.edges, referenceTrace,sourceTraceText:traceText },
+        codingDiff: { nodes: blob.nodes, edges: blob.edges, referenceTrace,
+          ...(sceneMode ? { frames: blob.frames } : { sourceTraceText: traceText }),
+          ...(savedFormat ? { outputFormat: savedFormat } : {}) },
       });
     } else if (activeChoiceId) {
       const blob = serialize(nodes, edges, frames);
       perChoiceMapRef.current = { ...perChoiceMapRef.current, [activeChoiceId]: blob };
       onChangeRef.current({ mode: 'per_choice', perChoice: { ...perChoiceMapRef.current } });
     }
-  }, [nodes, edges, frames, mode, activeChoiceId, referenceTrace]);
+  }, [nodes, edges, frames, mode, activeChoiceId, referenceTrace, sceneMode, traceText, savedFormat]);
 
   // ── 보기 탭 전환 ──────────────────────────────────────
   const handleChoiceSelect = useCallback((choiceId: string) => {
@@ -432,6 +444,18 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
     );
   }, [nodes]);
 
+  // Switching keeps the work: records become scenes (empty captions) and scenes become JSON record lines.
+  const switchCodingSource = useCallback((next: 'scenes' | 'text') => {
+    if (next === codingSource) return;
+    if (next === 'scenes') {
+      if (!frames.length && referenceTrace.length) setFrames(generateFramesFromTrace(referenceTrace, edges).map(f => ({ ...f, label: '' })));
+    } else setTraceText(framesToTrace(nodes, frames).map(step => JSON.stringify({ v: 1, ...step })).join('\n'));
+    setCodingSource(next);
+  }, [codingSource, frames, referenceTrace, edges, nodes]);
+  const updateFrameExclude = useCallback((id: string, exclude: boolean) => {
+    setFrames(fs => fs.map(f => { if (f.id !== id) return f; const { excludeFromOutput: _old, ...rest } = f; return exclude ? { ...rest, excludeFromOutput: true } : rest; }));
+  }, []);
+
   const previewFrame = activeTab === 'frame' && selectedFrameId
     ? (frames.find(f => f.id === selectedFrameId) ?? null)
     : null;
@@ -440,7 +464,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
 
   const previewBlob: OboBlob = mode === 'per_choice'
     ? (activeChoiceId ? (perChoiceMapRef.current[activeChoiceId] ?? EMPTY_BLOB) : EMPTY_BLOB)
-    : mode === 'coding_diff'
+    : mode === 'coding_diff' && !sceneMode
       ? (() => { const b = serialize(nodes, edges, []); return { ...b, frames: generateFramesFromTrace(referenceTrace, b.edges) }; })()
       : serialize(nodes, edges, frames);
 
@@ -556,14 +580,14 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
           setFrames={setFrames}
           onFrameNodeClick={handleFrameNodeClick}
           onFrameEdgeClick={handleFrameEdgeClick}
-          traceMode={mode === 'coding_diff'}
+          traceMode={mode === 'coding_diff' && !sceneMode}
           onTraceNodeClick={handleTraceNodeClick}
           onDuplicateNode={duplicateNode}
           onDeleteNode={deleteNodeById}
           onDeleteEdge={deleteEdgeById}
         />
         {/* Every manually authored scene (not the coding output comparison) can write its lower caption here (2026-11-08). */}
-        {mode!=='coding_diff'&&<section aria-label="장면 설명 작성" className="shrink-0 border-t bg-white px-4 py-3">
+        {(mode!=='coding_diff'||sceneMode)&&<section aria-label="장면 설명 작성" className="shrink-0 border-t bg-white px-4 py-3">
           <div className="mb-2 flex items-center gap-3">
             <label className="text-sm font-semibold text-slate-700">장면
               <select aria-label="설명할 장면" className="ml-2 max-w-48 rounded border px-2 py-1 text-sm" value={selectedFrameId??''} onChange={e=>{setSelectedFrameId(e.target.value||null);setActiveTab('frame');}}>
@@ -612,6 +636,12 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
           traceText={traceText}
           onTraceTextChange={setTraceText}
           testcaseOutputs={testcaseOutputs}
+          codingSource={codingSource}
+          onCodingSourceChange={switchCodingSource}
+          outputFormat={outputFormat}
+          onOutputFormatChange={setOutputFormat}
+          formatFrames={sceneMode ? frames : generateFramesFromTrace(referenceTrace, edges)}
+          onUpdateFrameExclude={updateFrameExclude}
         />
       </div>
 

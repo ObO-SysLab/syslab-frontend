@@ -26,6 +26,9 @@ interface FramePanelProps {
   onUpdateFrameCursorTime: (frameId: string, cursorTime: number | undefined) => void;
   nodes: Node[];
   edges: Edge[];
+  /** Coding problems built from scenes: each scene can be left out of the learner's output (start/finish explanations). */
+  codingOutput?: boolean;
+  onUpdateFrameExclude?: (frameId: string, exclude: boolean) => void;
 }
 
 function nodeLabel(nodes: Node[], id: string): string {
@@ -46,7 +49,7 @@ export function FramePanel({
   onDuplicateFrame, onMoveFrame,
   onRemoveHighlightNode, onRemoveHighlightEdge,
   onAddNodeOverride, onRemoveNodeOverride, onSetOverrideField, onClearOverrideField, onUpdateFrameCursorTime,
-  nodes, edges,
+  nodes, edges, codingOutput = false, onUpdateFrameExclude,
 }: FramePanelProps) {
   const selectedFrame = frames.find(f => f.id === selectedFrameId) ?? null;
   const selectedFrameIndex = selectedFrame ? frames.findIndex(f => f.id === selectedFrame.id) : -1;
@@ -100,6 +103,7 @@ export function FramePanel({
               >
                 <span className="text-slate-400 font-mono w-4 shrink-0">{i + 1}</span>
                 <span className="flex-1 truncate">{frame.label || '(제목 없음)'}</span>
+                {codingOutput && frame.excludeFromOutput && <span className="shrink-0 rounded bg-slate-100 px-1 text-[10px] text-slate-500" title="학생 출력에 포함하지 않는 설명용 장면">설명용</span>}
               </button>
               <button
                 type="button"
@@ -141,6 +145,13 @@ export function FramePanel({
               <p className="text-[11px] leading-relaxed text-slate-500">순서를 바꾸면 앞 장면에서 이어받는 값도 달라질 수 있습니다.</p>
             )}
           </div>
+
+          {codingOutput && onUpdateFrameExclude && (
+            <label className="flex items-start gap-2 rounded-lg border border-indigo-100 bg-indigo-50/50 p-2 text-xs text-slate-700">
+              <input type="checkbox" aria-label="학생 출력에 포함" checked={!selectedFrame.excludeFromOutput} onChange={e => onUpdateFrameExclude(selectedFrame.id, !e.target.checked)} />
+              <span>학생 출력에 포함<br /><span className="text-[11px] text-slate-500">끄면 시작·마무리 같은 설명용 장면이 되어 정답 출력 줄이 생기지 않습니다.</span></span>
+            </label>
+          )}
 
           {/* 설명 */}
           <div className="space-y-1">
