@@ -2,7 +2,7 @@ import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 const source=new URL('../components/obo/runtime/',import.meta.url);
 const targets=[new URL('../../syslab-backend/obo-runtime/',import.meta.url),new URL('../../syslab-infra/grader/obo_runtime/',import.meta.url)];
-const files=['index.mjs','contracts.mjs','diagram-contract.json','validation.mjs','cpu.mjs','rrText.mjs','memory.mjs','flows.mjs','synchronization.mjs','document.mjs','freeDiagram.mjs','checker.mjs'];
+const files=['index.mjs','contracts.mjs','diagram-contract.json','validation.mjs','cpu.mjs','rrText.mjs','memory.mjs','flows.mjs','synchronization.mjs','document.mjs','freeDiagram.mjs','checker.mjs','textFormats.mjs'];
 const manifest={modelVersion:1,files:{}};
 const check=process.argv.includes('--check');
 for(const file of files){

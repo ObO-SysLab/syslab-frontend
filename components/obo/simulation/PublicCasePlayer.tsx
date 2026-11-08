@@ -8,11 +8,14 @@ import type {Json,ModelRun,SemanticEvent} from '../runtime/index.mjs';
 import {SimulationScene} from './SimulationScene';
 import {Playback} from './SimulationEditor';
 import {RrSchedulePlayer} from './RrSchedulePlayer';
+import {TextCasePlayer} from './TextCasePlayer';
 
 export interface PublicCase {
   kind?:string;
   caseIndex:number; scenarioId?:string; input?:Record<string,Json>; reference?:ModelRun;
-  reported?:{v:1;result:Record<string,Json>;events?:SemanticEvent[]}|null;
+  reported?:{v:1;result:Record<string,Json>;events?:SemanticEvent[];text?:undefined}|{v:1;text:string[];result?:undefined;events?:undefined}|null;
+  /** text-v1 (2026-11-08): the example's stdin text and expected output lines. */
+  inputText?:string; expected?:string;
   correct?:boolean; traceValid?:boolean; message?:string; omitted?:string;
 }
 
@@ -50,6 +53,6 @@ export function PublicCasePlayer({records,document}:{records:PublicCase[];docume
   if(!record)return null;
   return <div className="space-y-3"><h2 className="text-lg font-semibold">공개 예제의 제출 결과</h2>
     <div className="flex flex-wrap gap-2">{records.map(item=><Button key={item.caseIndex} variant={record.caseIndex===item.caseIndex?'default':'outline'} onClick={()=>setSelected(item.caseIndex)}>예제 {item.caseIndex}</Button>)}</div>
-    {record.kind==='rr-schedule'?<RrSchedulePlayer key={record.caseIndex} record={record}/>:<Comparison key={record.caseIndex} record={record} document={document}/>}
+    {record.kind==='rr-schedule'?<RrSchedulePlayer key={record.caseIndex} record={record}/>:record.kind==='text-lines'?<TextCasePlayer key={record.caseIndex} record={record} document={document}/>:<Comparison key={record.caseIndex} record={record} document={document}/>}
   </div>;
 }
