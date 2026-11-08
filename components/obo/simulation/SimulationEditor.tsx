@@ -16,11 +16,12 @@ const fieldClass='w-full rounded-md border border-slate-200 bg-white px-2 py-1.5
 export function Playback({execution,cursor,setCursor}:{execution:ModelRun|null;cursor:number;setCursor:(cursor:number)=>void}) {
   const [playing,setPlaying]=useState(false),[speed,setSpeed]=useState(1);
   const last=(execution?.events.length??0)-1;
+  const stepDurationMs=execution?.id==='ST2'?2000:700;
   useEffect(()=>{
     if(!playing||cursor>=last)return;
-    const timer=window.setTimeout(()=>setCursor(cursor+1),700/speed);
+    const timer=window.setTimeout(()=>setCursor(cursor+1),stepDurationMs/speed);
     return ()=>window.clearTimeout(timer);
-  },[playing,cursor,last,speed,setCursor]);
+  },[playing,cursor,last,speed,setCursor,stepDurationMs]);
   return <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
     <div className="flex flex-wrap items-center gap-2">
       <Button type="button" size="icon" variant="outline" aria-label="이전 사건" disabled={cursor<0} onClick={()=>{setPlaying(false);setCursor(cursor-1);}}><ChevronLeft className="h-4 w-4"/></Button>
