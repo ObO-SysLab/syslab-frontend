@@ -48,7 +48,8 @@ export function ElementFields({ type, data, onApply, scope='base', validatePatch
   };
   return <div data-element-fields={type} data-edit-scope={scope} className="space-y-3">
     <p className="rounded bg-indigo-50 p-2 text-xs leading-relaxed text-indigo-700">{scope==='base'?'기본 그림의 값입니다. 장면에 따로 정한 값은 유지됩니다.':'선택한 장면의 값입니다. 바뀐 값은 다음에 다른 값을 정할 때까지 이어집니다.'}</p>
-    {type==='state-node'&&<Field label="이 장면의 이름" value={draft.label} onChange={v=>set('label',v)} />}
+    {type==='state-node'&&<><Field label="이 장면의 이름" value={draft.label} onChange={v=>set('label',v)} />
+      <label className="flex items-center gap-2 text-xs"><input type="checkbox" aria-label="삭제됨으로 표시" checked={draft.removed===true} onChange={e=>set('removed',e.target.checked)}/>삭제됨으로 표시 (점선·취소선)</label></>}
     {type==='resource-square'&&<>{numeric('instances','자원 개수',1)}{numeric('allocated','사용 중 개수',0)}</>}
     {type==='queue-strip'&&<>
       <Group title="버퍼 표시">

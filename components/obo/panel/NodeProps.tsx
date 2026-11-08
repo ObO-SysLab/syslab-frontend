@@ -89,6 +89,7 @@ export function NodeEditor({ node, onUpdate, takenLabels, frames = [] }: NodeEdi
           onChange={v => onUpdate({ shape: v })} />
         <ColorField label="색상" value={(d.fill as string) ?? '#6366f1'} onChange={v => onUpdate({ fill: v })} />
         <ToggleField label="강조" value={(d.highlight as boolean) ?? false} onChange={v => onUpdate({ highlight: v })} />
+        <ToggleField label="삭제됨으로 표시" value={(d.removed as boolean) ?? false} onChange={v => onUpdate({ removed: v })} />
       </Section>
     );
   }
