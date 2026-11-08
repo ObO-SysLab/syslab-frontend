@@ -3,7 +3,7 @@
 import type { ModelRun } from '../runtime/index.mjs';
 import type { SimulationInstance, SimulationView } from '../runtime/document.mjs';
 import { eventLabel } from '../runtime/projection.mjs';
-import { pageSnapshot, type PageFrame, type PageSnapshot } from './pageReplacementModel';
+import { pageComparison, pageSnapshot, type PageComparisonRow, type PageFrame, type PageSnapshot } from './pageReplacementModel';
 import styles from './PageReplacementVisual.module.css';
 
 type Props = { instance: SimulationInstance; execution: ModelRun | null; cursor: number; view: SimulationView };
@@ -68,11 +68,27 @@ function RecordVisual({ s, view }: { s: PageSnapshot; view: SimulationView }) {
   </div>;
 }
 
+const resultText = (s: PageSnapshot) => s.phase === 'initial' ? '시작 전' : s.phase === 'hit' ? 'Hit' : s.phase === 'load' ? 'Miss · 빈 칸에 적재' : `Miss · ${s.current!.victim} 나감`;
+
+function CompareVisual({ rows, view }: { rows: PageComparisonRow[]; view: SimulationView }) {
+  const g = groups(view), primary = rows.find(r => r.primary)!.snapshot;
+  return <div className={styles.visual} data-page-visual data-page-compare data-page-phase={primary.phase}>
+    {g.refs && <RefStrip s={primary} showMarks={false} />}
+    {(g.frames || g.faults) && <div className={styles.compare}>{rows.map(({ policy, primary: own, snapshot: s }) => <section key={policy} className={styles.compareRow} data-page-policy-row={policy} data-page-primary={own}>
+      <div className={styles.compareHead}><strong className={styles.policy}>{policy}{policy === 'OPT' && <sup title="미래 참조를 아는 교육용 기준">★</sup>}</strong>{own && <span className={styles.ownTag}>문제 정책</span>}</div>
+      {g.frames && <div className={styles.miniFrames}>{s.frames.map(f => <span key={f.slot} className={styles.miniFrame} data-page-slot={f.slot} data-page-incoming={f.incoming} data-page-hit={f.current && s.phase === 'hit'} data-page-empty={f.page === null}>{f.page === null ? '·' : f.page}</span>)}</div>}
+      {g.frames && <span className={styles.compareResult} data-page-result={s.phase}>{resultText(s)}</span>}
+      {g.faults && <span className={styles.compareFaults} data-page-faults={s.faults}>Miss <b>{s.faults}</b></span>}
+    </section>)}</div>}
+    <p className={styles.compareNote}>★ OPT는 앞으로의 참조를 아는 교육용 기준입니다. 문제 정책이 아닌 행은 같은 입력으로 따로 실행한 비교용 결과입니다.</p>
+  </div>;
+}
+
 export function PageReplacementVisual({ instance, execution, cursor, view }: Props) {
-  let snapshot: PageSnapshot;
-  try { snapshot = pageSnapshot(instance, execution, cursor); }
-  catch { return <p className={styles.invalid} data-page-invalid role="status">설정을 확인하세요. 참조열과 프레임 수를 완성하면 교체 과정이 표시됩니다.</p>; }
-  return <RecordVisual s={snapshot} view={view} />;
+  try {
+    if (instance.scenarioId === 'OPT') return <CompareVisual rows={pageComparison(instance, execution, cursor)} view={view} />;
+    return <RecordVisual s={pageSnapshot(instance, execution, cursor)} view={view} />;
+  } catch { return <p className={styles.invalid} data-page-invalid role="status">설정을 확인하세요. 참조열과 프레임 수를 완성하면 교체 과정이 표시됩니다.</p>; }
 }
 
 export function PageReplacementExplanation({ instance, execution, cursor, onChange, onAdd }: {
