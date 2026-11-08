@@ -6,6 +6,7 @@ import type { ModelRun } from '../runtime/index.mjs';
 import type { SimulationInstance, SimulationView } from '../runtime/document.mjs';
 import { projection, semanticLinks, type Projection } from '../runtime/projection.mjs';
 import { LifecycleVisual, LifecycleExplanation } from './LifecycleVisual';
+import { BankerVisual, BankerExplanation } from './BankerVisual';
 
 type DisplayData = Record<string, unknown> & { view: SimulationView; projection: Projection; editable: boolean; beginEdit?: () => void; instance:SimulationInstance; execution:ModelRun|null; cursor:number };
 type DisplayNode = Node<DisplayData, 'simulation'>;
@@ -14,12 +15,13 @@ const colorFor=(id:string)=>palette[[...id].reduce((n,c)=>n+c.charCodeAt(0),0)%p
 function SimulationNode({data,selected}:NodeProps<DisplayNode>) {
   const {view,projection:p}=data;
   const lifecycle=data.instance.scenarioId==='ST2'&&['actor','processor','queue','relation'].includes(view.role)&&!view.fields.length;
+  const banker=data.instance.scenarioId==='BK'&&['record','actor','resource'].includes(view.role);
   return <div className={`h-full w-full overflow-hidden rounded-xl border-2 bg-white shadow-sm ${selected?'shadow-indigo-100':''}`} style={{borderColor:selected?view.color:'#e2e8f0'}}>
     <NodeResizer isVisible={selected&&data.editable} minWidth={100} minHeight={60} maxWidth={2000} maxHeight={2000} onResizeStart={()=>data.beginEdit?.()}/>
-    <Handle type="target" position={Position.Left} className="!h-2 !w-2 !bg-slate-400"/><Handle type="source" position={Position.Right} className="!h-2 !w-2 !bg-indigo-500"/>
+    <Handle type="target" position={Position.Left} style={{visibility:data.editable?'visible':'hidden'}} className="!h-2 !w-2 !bg-slate-400"/><Handle type="source" position={Position.Right} style={{visibility:data.editable?'visible':'hidden'}} className="!h-2 !w-2 !bg-indigo-500"/>
     <div className="truncate border-b border-slate-100 px-3 py-2 text-xs font-bold" style={{color:view.color}}>{view.label}{view.target&&<span className="ml-2 font-normal text-slate-500">{view.target}</span>}</div>
     <div className="nowheel h-[calc(100%-34px)] overflow-auto p-3 text-xs">
-      {lifecycle?<LifecycleVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:<>
+      {banker?<BankerVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:lifecycle?<LifecycleVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:<>
       {p.metric!==null&&<p className="mb-2 text-3xl font-bold" style={{color:view.color}}>{p.metric}</p>}
       {p.tokens.length>0&&<div className="flex flex-wrap gap-1">{p.tokens.map((token,i)=><span key={i} className="min-w-8 rounded border border-indigo-100 bg-indigo-50 px-2 py-2 text-center font-semibold text-indigo-900">{token}</span>)}</div>}
       {p.bars.length>0&&<div className="flex min-h-14 overflow-hidden rounded border border-slate-200">{p.bars.map((b,i)=><div key={i} className="min-w-6 overflow-hidden border-r border-white p-1 text-center" style={{flexGrow:b.size,flexBasis:0,background:b.empty?'#f1f5f9':colorFor(b.label),color:b.empty?'#475569':'white'}} title={`${b.start}부터 ${b.size}`}><div className="truncate">{b.label}</div><small>{b.size}</small></div>)}</div>}
@@ -40,17 +42,18 @@ export function SimulationScene({instance,execution,cursor,editable=false,select
   const nodes=useMemo<DisplayNode[]>(()=>instance.views.map(view=>{
     let p:Projection;
     try{p=projection(instance,execution,cursor,view);}catch{p={title:view.label,rows:[['설정 확인','입력을 완성하면 표시됩니다.']],tokens:[],bars:[],links:[],metric:null,segments:[],disk:null,visible:!view.hidden,caption:''};}
-    return {id:view.id,type:'simulation',position:{x:view.x,y:view.y},style:{width:view.width,height:view.height},width:view.width,height:view.height,measured:{width:view.width,height:view.height},selected:view.id===selectedId,hidden:!p.visible||(instance.scenarioId==='ST2'&&view.role==='annotation'),data:{view,projection:p,editable,beginEdit:onBeginEdit,instance,execution,cursor}};
+    return {id:view.id,type:'simulation',position:{x:view.x,y:view.y},style:{width:view.width,height:view.height},width:view.width,height:view.height,measured:{width:view.width,height:view.height},selected:view.id===selectedId,hidden:!p.visible||(['ST2','BK'].includes(instance.scenarioId)&&view.role==='annotation'),data:{view,projection:p,editable,beginEdit:onBeginEdit,instance,execution,cursor}};
   }),[instance,execution,cursor,editable,selectedId,onBeginEdit]);
   const edges=useMemo(()=>{
     let semantic:ReturnType<typeof semanticLinks>=[];try{semantic=semanticLinks(instance,execution,cursor);}catch{/* Keep malformed drafts editable. */}
     const result=instance.decorations.map(e=>({...e,type:'default',style:{stroke:'#94a3b8',strokeDasharray:'5 4'},data:{decoration:true}}));
     for(const relation of semantic){const source=instance.views.find(v=>v.target===relation.from&&!v.hidden),target=instance.views.find(v=>v.target===relation.to&&!v.hidden);if(source&&target)result.push({id:relation.id,source:source.id,target:target.id,type:'default',style:{stroke:relation.kind==='request'?'#d97706':'#4f46e5',strokeDasharray:relation.kind==='request'?'4 3':''},data:{decoration:false}});}
-    return result.map(e=>({...e,markerEnd:{type:MarkerType.ArrowClosed},label:e.data.decoration?'설명':e.id.startsWith('request')?'요청':'소유'}));
-  },[instance,execution,cursor]);
+    const visible=new Set(nodes.filter(n=>!n.hidden).map(n=>n.id));
+    return result.filter(e=>visible.has(e.source)&&visible.has(e.target)).map(e=>({...e,markerEnd:{type:MarkerType.ArrowClosed},label:e.data.decoration?'설명':e.id.startsWith('request')?'요청':'소유'}));
+  },[instance,execution,cursor,nodes]);
   return <div className="min-w-0"><div className="h-[540px] min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50" data-testid="simulation-canvas">
     <ReactFlow<DisplayNode> nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView minZoom={0.1} maxZoom={2.5} nodesDraggable={editable} nodesConnectable={editable} elementsSelectable onNodesChange={onChanges} onConnect={onConnect} onNodeClick={(_,node)=>onSelect?.(node.id)} onPaneClick={()=>onSelect?.(null)} onNodeDragStart={()=>onBeginEdit?.()} onNodesDelete={nodes=>onDeleteViews?.(nodes.map(n=>n.id))} onEdgesDelete={edges=>edges.forEach(e=>onDeleteRelation?.(e.id))} deleteKeyCode={editable?['Backspace','Delete']:null} proOptions={{hideAttribution:true}}>
       <Background gap={20} color="#dbe3ee"/><Controls showInteractive={false}/>
     </ReactFlow>
-  </div>{instance.scenarioId==='ST2'&&<LifecycleExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>}</div>;
+  </div>{instance.scenarioId==='ST2'&&<LifecycleExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='BK'&&<BankerExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>}</div>;
 }
