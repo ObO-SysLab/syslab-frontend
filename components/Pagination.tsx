@@ -45,7 +45,7 @@ export default function PaginationUI({
       <Button
         variant="outline"
         size="icon"
-        className="h-9 w-9 rounded-xl border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-40 transition-all shrink-0"
+        className="h-9 w-9 rounded-xl border-line text-ink-muted hover:bg-raised/60 hover:text-ink disabled:opacity-40 transition-all shrink-0"
         disabled={currentPage === 1}
         onClick={() => onPageChange(1)}
         title="첫 페이지로"
@@ -57,7 +57,7 @@ export default function PaginationUI({
       <Button
         variant="outline"
         size="icon"
-        className="h-9 w-9 rounded-xl border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-40 transition-all shrink-0"
+        className="h-9 w-9 rounded-xl border-line text-ink-muted hover:bg-raised/60 hover:text-ink disabled:opacity-40 transition-all shrink-0"
         disabled={currentPage === 1}
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
         title="이전 페이지"
@@ -75,8 +75,8 @@ export default function PaginationUI({
             size="icon"
             className={`h-9 w-9 rounded-xl text-sm font-bold transition-all ${
               isActive
-                ? "bg-slate-950 text-white border-slate-950 shadow-md shadow-slate-950/10 hover:bg-slate-900"
-                : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                ? "bg-deep text-white border-line shadow-md shadow-black/40 hover:bg-raised"
+                : "border-line text-ink-muted hover:bg-raised/60 hover:text-ink"
             }`}
             onClick={() => onPageChange(page)}
           >
@@ -89,7 +89,7 @@ export default function PaginationUI({
       <Button
         variant="outline"
         size="icon"
-        className="h-9 w-9 rounded-xl border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-40 transition-all shrink-0"
+        className="h-9 w-9 rounded-xl border-line text-ink-muted hover:bg-raised/60 hover:text-ink disabled:opacity-40 transition-all shrink-0"
         disabled={currentPage === totalPages}
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         title="다음 페이지"
@@ -101,7 +101,7 @@ export default function PaginationUI({
       <Button
         variant="outline"
         size="icon"
-        className="h-9 w-9 rounded-xl border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-40 transition-all shrink-0"
+        className="h-9 w-9 rounded-xl border-line text-ink-muted hover:bg-raised/60 hover:text-ink disabled:opacity-40 transition-all shrink-0"
         disabled={currentPage === totalPages}
         onClick={() => onPageChange(totalPages)}
         title="마지막 페이지로"
