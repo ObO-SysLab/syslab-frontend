@@ -134,7 +134,7 @@ export const INODE_ACCESS: TeachingExample = {
       frame('in-2','내용 읽기 · inode 42의 직접 포인터를 따라 데이터 블록 7의 Hello를 읽습니다.',{},['inode','block'],['inode-block']),
       frame('in-3','다른 이름 · b.txt를 찾아도 같은 inode 42로 갑니다.',{},['name-b','inode'],['b-inode']),
       frame('in-4','같은 내용 · 같은 데이터 블록 7을 읽습니다. 파일 내용을 복사한 것이 아닙니다.',{},['block'],['b-inode','inode-block']),
-      frame('in-5','이름 하나 삭제 · a.txt 항목을 제거하면 하드 링크 수가 2에서 1로 줄어듭니다.',{'name-a':{label:'a.txt · 삭제됨'},links:{value:1}},['name-a'],[],['b-inode','inode-block']),
+      frame('in-5','이름 하나 삭제 · a.txt 항목을 제거하면 하드 링크 수가 2에서 1로 줄어듭니다.',{'name-a':{removed:true},links:{value:1}},['name-a'],[],['b-inode','inode-block']),
       frame('in-6','남은 이름 · b.txt가 inode를 계속 가리키므로 내용은 남아 있고 다시 읽을 수 있습니다.',{},['name-b','block'],['b-inode','inode-block'],['b-inode','inode-block']),
     ],
   },

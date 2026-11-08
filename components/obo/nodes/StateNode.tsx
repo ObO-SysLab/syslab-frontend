@@ -9,6 +9,8 @@ interface StateNodeData {
   shape: 'circle' | 'box';
   highlight?: boolean;
   fill?: string;
+  /** Authored mark for something removed in this scene (e.g. a deleted file name): dashed, struck through, never filled. */
+  removed?: boolean;
 }
 
 // Choose a readable foreground even for a light author-selected fill.
@@ -29,24 +31,28 @@ export function StateNode({ id, data, selected }: NodeProps) {
   const { previewFrame, checkpointStatus } = useFrameCtx();
   const active = !!d.highlight || !!previewFrame?.highlightNodes.includes(id);
   const isBox = d.shape === 'box';
+  const removed = d.removed === true;
+  // A removed element may still be the scene's subject: emphasise its outline only, so it does not read as the active item.
+  const filled = active && !removed;
   const hs = { width: 7, height: 7, background: color, border: '1px solid white' };
 
   return (
     <CheckpointStatusRing status={checkpointStatus?.[id]}>
       <div
-        data-obo-state={active ? 'highlighted' : 'idle'}
+        data-obo-state={active ? 'highlighted' : 'idle'} data-removed={removed || undefined}
         style={{
           position: 'relative', boxSizing: 'border-box',
           width: isBox ? undefined : 112, height: isBox ? undefined : 112,
           minWidth: 112, minHeight: isBox ? 72 : 112, maxWidth: isBox ? 240 : 112,
           padding: isBox ? '16px 20px' : '10px', borderRadius: isBox ? 12 : '50%',
-          border: `${active ? 3.5 : 2}px solid ${active ? color : '#94a3b8'}`,
-          backgroundColor: active ? color : '#ffffff',
-          color: active ? foreground(color) : '#334155',
+          border: `${active ? 3.5 : 2}px ${removed ? 'dashed' : 'solid'} ${active ? color : '#94a3b8'}`,
+          backgroundColor: filled ? color : removed ? '#f8fafc' : '#ffffff',
+          color: filled ? foreground(color) : removed ? '#64748b' : '#334155',
+          flexDirection: 'column', gap: 2,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           // Editing selection is an outer outline; scene emphasis is the fill and border.
           outline: selected ? '3px dashed #6366f1' : 'none', outlineOffset: 5,
-          boxShadow: active ? '0 3px 10px rgba(15,23,42,.12)' : '0 1px 4px rgba(15,23,42,.06)',
+          boxShadow: filled ? '0 3px 10px rgba(15,23,42,.12)' : '0 1px 4px rgba(15,23,42,.06)',
           userSelect: 'none', cursor: 'inherit',
           transition: 'background-color 250ms ease, color 250ms ease, border-color 250ms ease, border-width 250ms ease',
         }}
@@ -55,9 +61,10 @@ export function StateNode({ id, data, selected }: NodeProps) {
         <Handle id="r" type="source" position={Position.Right} style={hs} />
         <Handle id="b" type="source" position={Position.Bottom} style={hs} />
         <Handle id="l" type="source" position={Position.Left} style={hs} />
-        <span style={{ fontSize: 14, fontWeight: 800, textAlign: 'center', lineHeight: 1.45, overflowWrap: 'anywhere', minWidth: 0 }}>
+        <span style={{ fontSize: 14, fontWeight: 800, textAlign: 'center', lineHeight: 1.45, overflowWrap: 'anywhere', minWidth: 0, textDecoration: removed ? 'line-through' : undefined }}>
           {d.label}
         </span>
+        {removed && <span data-removed-tag style={{ fontSize: 11, fontWeight: 700, color: active ? color : '#64748b' }}>삭제됨</span>}
       </div>
     </CheckpointStatusRing>
   );
