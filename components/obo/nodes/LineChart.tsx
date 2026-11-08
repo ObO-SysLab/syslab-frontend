@@ -1,11 +1,13 @@
 ﻿'use client';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { keptChartLabels, type ChartLabel } from './chartLabels';
+import { useNodeEdit } from '../lib/NodeEditContext';
 interface Point { x: number; y: number; }
 interface Series { name: string; points: Point[]; color: string; }
 interface ChartData { label?: string; xLabel?: string; yLabel?: string; series?: Series[]; width?: number; height?: number; xMin?: number; xMax?: number; yMin?: number; yMax?: number; xTicks?: number[]; yTicks?: number[]; progressIndex?: number; activePointIndex?: number; }
 export function LineChart({ id, data, selected }: NodeProps) {
   const d = data as unknown as ChartData;
+  const { edit } = useNodeEdit();
   const series = Array.isArray(d.series) ? d.series : [];
   const points = series.flatMap(s => Array.isArray(s?.points) ? s.points : []);
   const valid = series.every(s => s && Array.isArray(s.points)) && points.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y));
@@ -39,7 +41,9 @@ export function LineChart({ id, data, selected }: NodeProps) {
             <polyline data-chart-path={si} points={shown.map(p => `${x(p.x)},${y(p.y)}`).join(' ')} fill="none" stroke={s.color || '#0f766e'} strokeWidth={3} strokeLinejoin="round" />
             {shown.map((p, i) => <g key={i}>
               {i > 0 && i === d.activePointIndex && <line x1={x(shown[i-1].x)} y1={y(shown[i-1].y)} x2={x(p.x)} y2={y(p.y)} stroke="#d97706" strokeWidth={4} />}
-              <circle data-chart-point={i} data-value={p.y} cx={x(p.x)} cy={y(p.y)} r={i === d.activePointIndex ? 7 : 5} fill={i === d.activePointIndex ? '#d97706' : s.color || '#0f766e'} stroke="white" strokeWidth={2} />
+              <circle data-chart-point={i} data-value={p.y} cx={x(p.x)} cy={y(p.y)} r={i === d.activePointIndex ? 7 : 5}
+                className={edit ? 'nodrag nopan' : undefined} style={edit ? { cursor: 'pointer' } : undefined}
+                onClick={edit ? e => { e.stopPropagation(); edit(id, { activePointIndex: i === d.activePointIndex ? -1 : i }); } : undefined} fill={i === d.activePointIndex ? '#d97706' : s.color || '#0f766e'} stroke="white" strokeWidth={2} />
               {W >= 400 && keep.has(i) && <text x={labels[i].x} y={labels[i].y} textAnchor={labels[i].anchor} fontSize={13} fontWeight={700} fill="#334155" stroke="white" strokeWidth={3} strokeLinejoin="round" paintOrder="stroke">{p.y}</text>}
             </g>)}
           </g>;

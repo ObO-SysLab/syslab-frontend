@@ -37,6 +37,9 @@ import { GanttContext } from './gantt/GanttContext';
 import { ganttLayouts, alignGanttRows, expandGanttMoves, blocksOf, groupOf, type GanttBlock } from './gantt/model';
 import { SlotGridContext } from './slots/SlotGridContext';
 import { slotCountOf, slotValues, validSlotIndex, type SlotValue } from './slots/model';
+import { NodeEditContext } from './lib/NodeEditContext';
+import { applyNodeEdit, checkNodeEdit, effectiveData, type EditTarget } from './lib/nodeEdit';
+import { NodeValueDialog, dialogSupported } from './authoring/NodeValueDialog';
 
 const edgeTypes = { 'obo-edge': OboEdge } as const;
 
@@ -205,7 +208,30 @@ function CanvasInner({
 
   const closeMenu = useCallback(() => setMenu(null), []);
 
+  // Click-to-edit for every element (2026-11-08): base drawing in the property tab, the selected scene in the scene tab.
+  const editScene = activeTab === 'frame' && previewFrame && setFrames ? previewIndex : null;
+  const canEdit = !traceMode && (activeTab === 'property' || editScene !== null);
+  const [dialog, setDialog] = useState<{ id: string; target: EditTarget } | null>(null);
+  const [editNotice, setEditNotice] = useState('');
+  useEffect(() => { if (!editNotice) return; const t = window.setTimeout(() => setEditNotice(''), 5000); return () => window.clearTimeout(t); }, [editNotice]);
+  const editNodeData = useCallback((id: string, patch: Record<string, unknown>): string | null => {
+    if (!canEdit) return '장면을 먼저 고르세요.';
+    const result = checkNodeEdit(nodes, frames, id, patch, editScene);
+    if (!result.ok) { setEditNotice(result.error); return result.error; }
+    if (editScene === null) setNodes(ns => applyNodeEdit(ns, frames, id, result.patch, null).nodes);
+    else setFrames!(fs => applyNodeEdit(nodes, fs, id, result.patch, editScene).frames);
+    setEditNotice('');
+    return null;
+  }, [canEdit, nodes, frames, editScene, setNodes, setFrames]);
+  const openEditor = useCallback((id: string, target: EditTarget) => {
+    const node = nodes.find(n => n.id === id);
+    if (canEdit && node && dialogSupported(node, target)) setDialog({ id, target });
+  }, [canEdit, nodes]);
+  const editLabel = editScene !== null ? `장면 ${editScene + 1} 값 수정 · 이후 장면에도 이어집니다` : '기본 그림의 값 수정';
+  const dialogNode = dialog ? nodes.find(n => n.id === dialog.id) : undefined;
+
   return (
+    <NodeEditContext.Provider value={canEdit ? { edit: editNodeData, open: openEditor } : {}}>
     <SlotGridContext.Provider value={{ traceMode,
       editLabel: activeTab === 'frame' ? `장면 ${previewIndex + 1} 값 수정 · 이후 장면에도 이어집니다` : '기본 그림의 값 수정',
       onEditSlot: !traceMode && (activeTab === 'property' || (!!previewFrame && !!setFrames)) ? editSlot : undefined }}>
@@ -238,6 +264,8 @@ function CanvasInner({
           onNodeClick={handleNodeClick}
           onEdgeClick={handleEdgeClick}
           onNodeContextMenu={onNodeContextMenu}
+          onNodeDoubleClick={(_, node) => openEditor(node.id, { kind: 'whole' })}
+          zoomOnDoubleClick={false}
           onEdgeContextMenu={onEdgeContextMenu}
           onPaneClick={closeMenu}
           onMoveStart={closeMenu}
@@ -265,6 +293,13 @@ function CanvasInner({
           </Controls>
         </ReactFlow>
 
+        {editNotice && <p role="alert" className="absolute left-3 top-3 z-20 max-w-sm rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700 shadow">{editNotice}</p>}
+        {canEdit && nodes.length > 0 && <p className="pointer-events-none absolute right-3 top-2 z-10 rounded bg-white/90 px-2 py-1 text-[11px] text-slate-500">
+          {editScene !== null ? `장면 ${editScene + 1}` : '기본 그림'} · 칸·셀·항목은 눌러서, 이름·숫자는 두 번 눌러서 고칩니다
+        </p>}
+        {dialog && dialogNode && <NodeValueDialog key={`${dialog.id}-${JSON.stringify(dialog.target)}-${editScene}`} node={dialogNode}
+          data={effectiveData(nodes, frames, dialog.id, editScene)} target={dialog.target} editLabel={editLabel}
+          onApply={patch => editNodeData(dialog.id, patch)} onClose={() => setDialog(null)} />}
         {menu && (
           <>
             {/* 바깥 클릭 시 닫힘 */}
@@ -294,6 +329,7 @@ function CanvasInner({
     </FrameContext.Provider>
     </GanttContext.Provider>
     </SlotGridContext.Provider>
+    </NodeEditContext.Provider>
   );
 }
 

@@ -1,6 +1,7 @@
 'use client';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { useFrameCtx } from '../FrameContext';
+import { editableClass, useNodeEdit } from '../lib/NodeEditContext';
 import { queueLayout, type QueueSlot } from '../queue/model';
 import styles from './QueueStripNode.module.css';
 
@@ -14,6 +15,10 @@ export function QueueStripNode({ id, data, selected }: NodeProps) {
   const items = Array.isArray(d.items) ? d.items : [];
   const layout = queueLayout(items, d.capacity ?? items.length, d.direction ?? 'ltr');
   const { previewFrame } = useFrameCtx();
+  const { open } = useNodeEdit();
+  // Clicking an item edits it; clicking an empty slot appends a new item (FIFO order).
+  const slotEdit = (slot: QueueSlot) => open ? { className: editableClass, title: slot.item === null ? '눌러서 맨 뒤에 항목 넣기' : '눌러서 항목 수정',
+    onClick: (e: React.MouseEvent) => { e.stopPropagation(); open(id, { kind: 'queue-item', index: slot.item === null ? items.length : slot.index }); } } : {};
   const active = previewFrame?.highlightNodes.includes(id);
   const color = d.color ?? '#4f46e5';
   const modern = d.displayStyle === 'buffer';
@@ -37,7 +42,7 @@ export function QueueStripNode({ id, data, selected }: NodeProps) {
         </div>}
         <div className={styles.rows}>{layout.rows.map((row, rowIndex) => <div key={rowIndex} className={styles.row} style={{ gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))` }}>
           {row.map((slot, index) => <div key={slot.index} data-queue-item={slot.item ?? ''} data-queue-head={slot.head} data-queue-index={slot.index} data-empty={slot.item === null}
-            className={styles.slot} style={slotPlacement(row, index)} aria-label={slot.item === null ? '빈칸' : `${slot.head ? '다음 항목: ' : '항목: '}${slot.item}`}>
+            {...slotEdit(slot)} className={`${styles.slot} ${slotEdit(slot).className ?? ''}`} style={slotPlacement(row, index)} aria-label={slot.item === null ? '빈칸' : `${slot.head ? '다음 항목: ' : '항목: '}${slot.item}`}>
             {slot.head && <span className={styles.head}>다음</span>}{slot.item}
           </div>)}
         </div>)}</div>
@@ -51,7 +56,7 @@ export function QueueStripNode({ id, data, selected }: NodeProps) {
     <div className={styles.legacyTitle} style={{ color }}>{d.label || '버퍼'}{d.showCount !== false && <> · {items.length} / {layout?.capacity ?? '?'}개</>}</div>
     {!layout ? <p role="alert" className={styles.error}>항목 수와 버퍼 용량을 확인하세요.</p> : <>
       <div className={styles.legacyRows}>{layout.rows.map((row, rowIndex) => <div key={rowIndex} className={styles.legacyRow} style={{ gridTemplateColumns: `repeat(${layout.columns}, 60px)` }}>
-        {row.map((slot, index) => <div key={slot.index} data-queue-item={slot.item ?? ''} data-queue-head={slot.head} data-queue-index={slot.index} className={styles.legacySlot} style={{
+        {row.map((slot, index) => <div key={slot.index} data-queue-item={slot.item ?? ''} data-queue-head={slot.head} data-queue-index={slot.index} {...slotEdit(slot)} className={`${styles.legacySlot} ${slotEdit(slot).className ?? ''}`} style={{
           ...slotPlacement(row, index), border: `1.5px ${slot.item === null ? 'dashed' : 'solid'} ${slot.item === null ? '#94a3b8' : color}`,
           background: slot.item === null ? '#f8fafc' : '#e0e7ff', color: slot.item === null ? '#64748b' : '#312e81',
         }}>{slot.item ?? '빈칸'}</div>)}
