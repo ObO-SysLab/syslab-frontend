@@ -37,7 +37,7 @@ describe('six independently authored operating system examples', () => {
     expect(ss[1].tlb.rows).not.toContainEqual([2,5]);
     expect(ss[6].tlb.rows).toContainEqual([2,5]);
     expect(ss[7].pages.activeRow).toBe(2);
-    expect(ss[7].physical.label).toContain('페이지 부재');
+    expect(ss[7].physical.label).toContain('페이지 Miss');
     const b = exampleBlob(ADDRESS_TRANSLATION);
     expect(frameEdges(b.edges,b.frames[6]).map(e=>e.id)).toEqual(['lookup','hit']);
     expect(frameEdges(b.edges,b.frames[7]).some(e=>e.id==='translate'||e.id==='hit')).toBe(false);

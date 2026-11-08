@@ -109,12 +109,12 @@ export function tlbSnapshot(instance: SimulationInstance, execution: ModelRun | 
         current.pageTableVisited = true;
       } else if (kind === 'fault') {
         requireValue(phase === 'pageTable' && !current.hit && table[current.page] === null
-          && sameCache(data.tlb, lookupTlb), '페이지 부재 사건이 입력 또는 조회 기록과 다릅니다.');
+          && sameCache(data.tlb, lookupTlb), '페이지 Miss 사건이 입력 또는 조회 기록과 다릅니다.');
         result = { hit: false, fault: true, physical: null, frame: null };
       } else {
         requireValue(current.hit ? phase === 'lookup' : phase === 'pageTable', '주소 변환의 조회 순서가 다릅니다.');
         const frame = table[current.page];
-        requireValue(frame !== null, '부재 페이지는 물리 주소로 변환할 수 없습니다.');
+        requireValue(frame !== null, '메모리에 없는 페이지는 물리 주소로 변환할 수 없습니다.');
         if (current.hit) {
           requireValue(sameCache(data.tlb, lookupTlb), 'TLB hit에서 FIFO 순서가 바뀌었습니다.');
         } else {
