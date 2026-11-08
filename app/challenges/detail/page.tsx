@@ -1,4 +1,5 @@
 "use client";
+import { logout, pendingSubmission, forgetSubmission } from "@/lib/authSession";
 import {problemApi,problemToken} from "@/lib/problemApi";
 
 import Link from "next/link";
@@ -225,7 +226,7 @@ function ProblemDetailContent() {
         });
 
         // 2. 다른 페이지(에디터/터미널)에서 갓 제출하고 넘어온 ID 처리 (DB 반영 지연 방어)
-        const pendingId = sessionStorage.getItem(`pending_sub_${probId}`);
+        const pendingId = pendingSubmission(String(probId));
         if (pendingId) {
           const exists = items.find((s: any) => String(s.submissionId) === String(pendingId));
 
@@ -241,7 +242,7 @@ function ProblemDetailContent() {
             });
           } else {
             // 서버 보드에 정상적으로 등장했다면 스토리지 비우기!
-            sessionStorage.removeItem(`pending_sub_${probId}`);
+            forgetSubmission(String(probId));
           }
         }
 
@@ -601,7 +602,7 @@ function ProblemDetailContent() {
 
   // 로그아웃 핸들러
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (!logout()) return;
     setIsLoggedIn(false);
     window.location.reload(); // 상태 초기화를 위해 새로고침
   };
@@ -638,11 +639,7 @@ function ProblemDetailContent() {
         activeMenu="challenge"
         showSearch={false}
         onLogout={async () => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("nickname");
-          localStorage.removeItem("userImgUrl");
-          localStorage.clear();
-          sessionStorage.clear();
+          if (!logout()) return;
           setIsLoggedIn(false);
           window.location.replace("/");
         }}

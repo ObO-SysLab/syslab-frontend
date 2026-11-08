@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 import { problemApi, problemToken } from "@/lib/problemApi";
 import { submissionVerdict } from "@/lib/submission-status";
 
@@ -191,7 +192,7 @@ function SubmissionDetailContent() {
               </Link>
               <button
                 onClick={() => {
-                  localStorage.removeItem("token");
+                  if (!logout()) return;
                   setIsLoggedIn(false);
                 }}
                 className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"

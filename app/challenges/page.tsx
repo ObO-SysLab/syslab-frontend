@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -222,11 +223,7 @@ export default function ProblemListPage() {
           setCurrentPage(1);
         }}
         onLogout={async () => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("nickname");
-          localStorage.removeItem("userImgUrl");
-          localStorage.clear();
-          sessionStorage.clear();
+          if (!logout()) return;
           setIsLoggedIn(false);
           window.location.replace("/");
         }}

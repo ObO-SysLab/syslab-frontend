@@ -1,4 +1,5 @@
 "use client";
+import { rememberSubmission } from "@/lib/authSession";
 
 import { useEffect, useRef, useState, Suspense } from "react";
 import Link from "next/link";
@@ -162,7 +163,7 @@ function PracticeContent() {
           const json = await response.json();
           const newId = json?.data?.submissionId;
           if (newId) {
-            sessionStorage.setItem(`pending_sub_${probId}`, newId);
+            rememberSubmission(String(probId), newId, token);
           }
         }
 
