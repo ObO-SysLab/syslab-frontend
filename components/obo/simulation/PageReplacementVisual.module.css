@@ -49,6 +49,11 @@
 .compareResult[data-page-result=replace] { color: #9a4313; }
 .compareFaults { justify-self: end; font-size: 14px; color: #5b6f84; }
 .compareFaults b { font-size: 22px; color: #9a4313; font-variant-numeric: tabular-nums; }
+.capacity { font-size: 18px; font-weight: 800; color: #1d3f6b; }
+.rowState { font-size: 14px; color: #6d8297; }
+.compareRow[data-page-status=waiting] { border-style: dashed; background: #f8fafc; }
+.beladyResult { margin: 0; padding: 9px 12px; border-radius: 8px; font-size: 15px; font-weight: 750; color: #254c78; background: #eef3f8; }
+.beladyResult[data-page-belady-result=increase] { color: #8a2f0c; background: #fdebd8; }
 .compareNote { margin: 0; font-size: 12px; color: #6d8297; }
 @container (max-width: 640px) { .compareRow { grid-template-columns: minmax(0, 1fr) auto; } .miniFrames, .compareResult { grid-column: 1 / -1; } .compareFaults { grid-row: 1; grid-column: 2; } .miniFrame { width: 40px; height: 40px; font-size: 19px; } }
 .empty { margin: 6px 0; color: #718299; font-size: 14px; }
