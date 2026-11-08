@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Search, Bell, LogOut, Menu, CheckCircle2, Code2, SearchCode,
   LayoutGrid, Users, BarChart3, ShoppingBag, Trophy, Flag,
-  Cpu, Activity, GitBranch, Database, FileCode2, Layers, Plus
+  Cpu, Activity, GitBranch, Database, FileCode2, Layers, Plus, RefreshCw
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Header } from "@/components/Header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toApiCategory } from "@/lib/utils";
+import { DepthBadge, StatusIcon, TypeChip, DivoBubble } from "@/components/dv";
 
 export default function ProblemListPage() {
   // [STATE] 페이지 상태
@@ -208,15 +209,15 @@ export default function ProblemListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
+    <div className="min-h-screen bg-canvas text-ink font-sans">
 
       <Header
         isLoggedIn={isLoggedIn}
         userImgUrl={userImgUrl}
         activeMenu="challenge"
-        searchTerm={searchTerm} 
+        searchTerm={searchTerm}
         showSearch={true}
-        onSearchChange={(value) => { 
+        onSearchChange={(value) => {
           setSearchTerm(value);
           setCurrentPage(1);
         }}
@@ -232,14 +233,13 @@ export default function ProblemListPage() {
       />
 
       {/* 2. 메인 컨텐츠 영역 */}
-      <main className="container mx-auto max-w-[1500px] pt-8 grid grid-cols-1 md:grid-cols-12 gap-8 px-4 pb-12">
+      <main className="mx-auto w-full max-w-[1500px] pt-8 grid grid-cols-1 md:grid-cols-12 gap-8 px-4 md:px-6 pb-16">
 
-        {/* [A] 좌측 사이드바 (2칸) */}
-        <aside className="hidden md:block col-span-2 space-y-6">
-          { /* 카테고리 */}
+        {/* [A] 좌측 필터: 수심·유형·카테고리 */}
+        <aside className="hidden md:block col-span-2 space-y-7">
           <div>
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Categories</h3>
-            <nav className="space-y-1">
+            <h3 className="dv-hud text-ink-subtle mb-3 px-1">Category</h3>
+            <nav className="space-y-0.5">
               {["All", "Kernel", "Process", "Thread", "Memory", "File System"].map((cat) => (
                 <CategoryItem
                   key={cat}
@@ -252,287 +252,249 @@ export default function ProblemListPage() {
             </nav>
           </div>
 
-          { /* 챌린지 유형 */}
-          <div className="pt-4 border-t">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Type</h3>
-            <div className="flex flex-col gap-1.5">
+          <div className="pt-6 border-t border-line">
+            <h3 className="dv-hud text-ink-subtle mb-3 px-1">Type</h3>
+            <div className="flex flex-col gap-0.5">
               {[
                 { key: "objective", label: "객관식" },
                 { key: "coding", label: "코딩" },
                 { key: "practice", label: "실습(CTF)" },
               ].map((type) => (
-                <div
+                <button
+                  type="button"
                   key={type.key}
                   onClick={() => handleTypeChange(type.key)}
-                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${selectedType === type.key
-                    ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-950"
+                  aria-pressed={selectedType === type.key}
+                  className={`flex items-center justify-between px-3 py-2 rounded-[10px] text-sm font-medium transition-colors text-left ${selectedType === type.key
+                    ? "bg-primary-soft text-primary"
+                    : "text-ink-muted hover:bg-raised hover:text-ink"
                     }`}
                 >
                   <span>{type.label}</span>
-                  {selectedType === type.key && (
-                    <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>
-                  )}
-                </div>
+                  {selectedType === type.key && <span className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                </button>
               ))}
             </div>
           </div>
 
-          { /* 레벨 */}
-          <div className="pt-4 border-t border-slate-100">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">
-              Exploration Depth
-            </h3>
-            {/* 가로로 자연스럽게 흐르며 정렬되는 레이아웃 (flex-wrap) */}
-            <div className="flex flex-wrap gap-2 px-1">
+          <div className="pt-6 border-t border-line">
+            <h3 className="dv-hud text-ink-subtle mb-3 px-1">Depth</h3>
+            <div className="flex flex-col gap-1">
               {["1", "2", "3", "4", "5", "6", "7"].map((lvl) => {
                 const isSelected = selectedLevel === lvl;
-                const { depth } = levelMap[lvl];
-
                 return (
-                  <Badge
+                  <button
+                    type="button"
                     key={lvl}
-                    variant={isSelected ? "default" : "outline"}
-                    className={`cursor-pointer px-3.5 py-1.5 transition-all rounded-full border text-xs font-mono font-bold tracking-tight inline-flex items-center justify-center ${isSelected
-                      ? "bg-[#0055FF] text-white border-[#0055FF] shadow-sm shadow-blue-100"
-                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
-                      }`}
                     onClick={() => handleLevelChange(lvl)}
+                    aria-pressed={isSelected}
+                    className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-[10px] transition-colors ${isSelected
+                      ? "bg-raised ring-1 ring-primary"
+                      : "hover:bg-raised"
+                      }`}
                   >
-                    {depth}
-                  </Badge>
+                    <DepthBadge level={lvl} size="sm" />
+                    <span className={`text-xs ${isSelected ? "text-ink" : "text-ink-subtle"}`}>{levelMap[lvl]?.zone}</span>
+                  </button>
                 );
               })}
             </div>
           </div>
 
-          <Separator />
-
           {/* API 연동된 내 랭킹 영역 */}
           {myRank && (
-            <div className="p-5 bg-slate-900 rounded-2xl text-white space-y-3 shadow-lg">
-              <p className="text-xs font-bold text-indigo-400 uppercase tracking-tighter">My Ranking</p>
-              <p className="text-2xl font-black italic">#{myRank.rank} <span className="text-sm font-normal text-slate-400">/ {myRank.total}</span></p>
-              <Button variant="secondary" size="sm" className="w-full text-xs font-bold bg-white text-slate-900 hover:bg-slate-200">
-                내 전적 보기
-              </Button>
+            <div className="p-5 bg-panel border border-line rounded-2xl space-y-3">
+              <p className="dv-hud text-ink-subtle">My Rank</p>
+              <p className="dv-readout text-ink">
+                #{myRank.rank} <span className="text-sm font-normal text-ink-muted">/ {myRank.total}</span>
+              </p>
+              <Link
+                href="/settings"
+                className="flex h-8 items-center justify-center rounded-[10px] border border-line-strong bg-panel text-xs font-semibold text-ink hover:bg-raised transition-colors"
+              >
+                내 로그북 보기
+              </Link>
             </div>
           )}
         </aside>
 
-        {/* [B] 중앙 문제 리스트 (8칸) */}
+        {/* [B] 중앙 문제 리스트 */}
         <section className="col-span-12 md:col-span-8 space-y-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-3xl font-black tracking-tighter text-slate-950 uppercase">Challenges</h1>
-              <p className="text-slate-500 font-medium">검색된 문제: {totalProblems}개</p>
+              <h1 className="text-[32px] leading-10 font-bold tracking-[-0.01em]">다이브 포인트</h1>
+              <p className="text-sm text-ink-muted">
+                찾은 문제 <span className="font-mono text-ink">{totalProblems}</span>개
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={showUnsolved ? "default" : "outline"}
-                size="sm"
-                className="rounded-xl font-bold transition-all"
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
                 onClick={handleUnsolvedToggle}
+                aria-pressed={showUnsolved}
+                className={`h-8 px-3 rounded-[10px] text-[13px] font-semibold border transition-colors ${showUnsolved ? "bg-primary-soft text-primary border-primary/40" : "bg-panel text-ink border-line-strong hover:bg-raised"}`}
               >
-                {showUnsolved ? "모든 문제 보기" : "미해결 문제만 보기"}
-              </Button>
-              <Button
-                size="sm"
-                variant={showMyProblems ? "default" : "outline"}
-                className="rounded-xl font-bold"
+                미해결만
+              </button>
+              <button
+                type="button"
                 onClick={handleMyProblemsToggle}
+                aria-pressed={showMyProblems}
+                className={`h-8 px-3 rounded-[10px] text-[13px] font-semibold border transition-colors ${showMyProblems ? "bg-primary-soft text-primary border-primary/40" : "bg-panel text-ink border-line-strong hover:bg-raised"}`}
               >
-                {showMyProblems ? "모든 문제 보기" : "내 문제 보기"}
-              </Button>
-
-              {/* 문제 생성 버튼 */}
-              <Link href="/challenges/create">
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md shadow-indigo-200 transition-all">
-                  <Plus className="w-4 h-4 mr-1.5" /> 문제 생성하기
-                </Button>
+                내가 만든 문제
+              </button>
+              <Link
+                href="/challenges/create"
+                className="inline-flex h-8 items-center gap-1.5 px-3 rounded-[10px] bg-primary text-primary-ink text-[13px] font-semibold hover:bg-primary-hover transition-colors"
+              >
+                <Plus className="w-4 h-4" /> 문제 만들기
               </Link>
             </div>
           </div>
 
-          {/* 오늘의 다이브 추천 랜덤 배너 카드 */}
+          {/* 오늘의 다이브 추천 — 디보 안내 */}
           {randomProblem && (
-            <div className="p-5 bg-gradient-to-r from-slate-900 to-indigo-950 border border-slate-800 rounded-2xl shadow-xl text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300 relative overflow-hidden group">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.12),transparent)] pointer-events-none"></div>
-
-              <div className="space-y-2 relative z-10">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-amber-500 hover:bg-amber-500 text-slate-950 font-black text-[10px] tracking-tight px-2 rounded-md">TODAY'S DIVE</Badge>
-                  <span className="text-xs text-indigo-200 font-bold uppercase tracking-wider">{randomProblem.category} · {randomProblem.type === "coding" ? "코딩" : randomProblem.type === "objective" ? "객관식" : "실습"}</span>
+            <div className="relative overflow-hidden rounded-2xl border border-line bg-panel p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 dv-descend">
+              <div className="flex items-center gap-4 min-w-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/images/divo.webp" alt="" className="w-14 h-auto shrink-0" />
+                <div className="space-y-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="dv-hud text-primary">Today&apos;s Dive</span>
+                    <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-raised text-ink-muted text-xs">
+                      {categoryIcons[randomProblem.category]} {randomProblem.category}
+                    </span>
+                    <TypeChip type={randomProblem.type} />
+                    {randomProblem.difficulty && <DepthBadge level={randomProblem.difficulty} size="sm" />}
+                  </div>
+                  <h2 className="text-lg font-bold truncate">{randomProblem.title}</h2>
+                  <p className="text-sm text-ink-muted">오늘은 여기로 내려가 볼까요?</p>
                 </div>
-                <h2 className="text-xl font-black tracking-tight group-hover:text-indigo-300 transition-colors">{randomProblem.title}</h2>
-                <p className="text-xs text-slate-400 font-medium">수심 미지의 바다! 지금 바로 고민 없이 다이브해 검증 영역을 확장해 보세요.</p>
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 relative z-10">
-                {/* 맘에 안 들면 다시 돌리는 셔플 가챠 버튼 */}
-                <Button
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
                   onClick={fetchRandomProblem}
                   disabled={isRandomLoading}
-                  variant="outline"
-                  className="bg-white/5 border-white/10 hover:bg-white/10 text-slate-300 font-bold rounded-xl h-10 px-4 text-xs"
+                  className="inline-flex h-10 items-center gap-1.5 px-4 rounded-[10px] text-sm font-semibold text-ink-muted hover:bg-raised hover:text-ink disabled:opacity-45 transition-colors"
                 >
-                  <span className={`inline-block mr-1.5 ${isRandomLoading ? "animate-spin" : ""}`}>🔄</span>
-                  {isRandomLoading ? "셔플 중" : "다시 뽑기"}
-                </Button>
-
-                {/* 해당 상세방 가이딩 버튼 */}
-                <Link href={`/challenges/detail?id=${randomProblem.probId}`} className="flex-1 sm:flex-none">
-                  <Button className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-black rounded-xl h-10 px-5 text-xs shadow-md shadow-indigo-500/10">
-                    지금 바로 다이브
-                  </Button>
+                  <RefreshCw size={16} className={isRandomLoading ? "animate-spin" : ""} />
+                  {isRandomLoading ? "고르는 중…" : "다시 뽑기"}
+                </button>
+                <Link href={`/challenges/detail?id=${randomProblem.probId}`} className="dv-btn-dive !h-10 !text-sm">
+                  다이브 시작
                 </Link>
               </div>
             </div>
           )}
 
-          {/* 문제 목록 리스트 */}
-          <div className="flex flex-col gap-3 min-h-[400px] relative">
+          {/* 문제 목록 — ProblemRow */}
+          <div className="relative min-h-[400px]">
             {isLoading ? (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
               </div>
             ) : problems.length > 0 ? (
-              problems.map((prob) => (
-                <Link
-                  key={prob.probId}
-                  href={`/challenges/detail?id=${prob.probId}`}
-                  className="block group"
+              <div className="rounded-2xl border border-line bg-panel overflow-hidden" role="table">
+                <div
+                  role="row"
+                  className="hidden sm:grid grid-cols-[20px_minmax(0,1fr)_96px_72px_132px_72px] items-center gap-3 h-9 px-4 bg-deep dv-hud text-ink-muted"
                 >
-                  <Card className="p-4 hover:shadow-md transition-all cursor-pointer border-slate-100 rounded-xl overflow-hidden group-hover:border-indigo-200 group-hover:bg-indigo-50/5">
-                    <div className="flex w-full flex-row items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors capitalize">
-                          {categoryIcons[prob.category] || <Code2 size={20} />}
-                        </div>
-                        <div className="flex flex-col justify-center">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {/* 문제 제목 */}
-                            <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                              {prob.title}
-                            </h3>
-
-                            {/* 해결 여부 체크 아이콘 복구 */}
-                            {prob.isSolved && (
-                              <CheckCircle2 className="h-4 w-4 text-emerald-500 fill-emerald-50 shrink-0" />
-                            )}
-                          </div>
-
-                          {/* 출제자, 카테고리, 타입 정보 */}
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className="text-[13px] text-slate-400">
-                              출제자: {prob.author}
-                            </p>
-                            <span className="text-slate-300 text-[10px]">|</span>
-
-                            {/* [수정] 카테고리 뱃지 */}
-                            <Badge variant="outline" className="px-2 py-0 h-5 text-[10px] font-bold tracking-tight text-slate-500 bg-white border-slate-200 shrink-0 capitalize">
-                              {prob.category}
-                            </Badge>
-
-                            {/* 문제 유형 뱃지 */}
-                            <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-black tracking-tight text-indigo-600 bg-indigo-50 border border-indigo-100 shrink-0">
-                              {prob.type === "objective" ? "객관식" :
-                                prob.type === "coding" ? "코딩" :
-                                  prob.type === "practice" ? "실습(CTF)" : "기타"}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-8">
-                        <div className="text-right min-w-[100px]">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            SOLVED
-                          </p>
-                          <p className="text-base font-bold text-slate-700">
-                            {(prob.solvedCount || 0).toLocaleString()}명
-                          </p>
-                        </div>
-                        <div className="w-24 flex justify-end shrink-0">
-                          <Badge
-                            className={`
-                              rounded-full px-2.5 py-0.5 text-[10px] font-black border font-mono tracking-tight transition-all
-                              ${prob.difficulty === "1" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : ""}
-                              ${prob.difficulty === "2" ? "bg-teal-50 text-teal-600 border-teal-200" : ""}
-                              ${prob.difficulty === "3" ? "bg-sky-50 text-sky-600 border-sky-200" : ""}
-                              ${prob.difficulty === "4" ? "bg-blue-50 text-[#0066FF] border-blue-200" : ""}
-                              ${prob.difficulty === "5" ? "bg-indigo-50 text-indigo-600 border-indigo-200" : ""}
-                              ${prob.difficulty === "6" ? "bg-purple-50 text-purple-600 border-purple-200" : ""}
-                              ${prob.difficulty === "7" ? "bg-slate-900 text-white border-slate-950 shadow-sm" : ""}
-                            `}
-                          >
-                            {levelMap[prob.difficulty]?.depth}
-                          </Badge>
-                        </div>
-                      </div>
+                  <span />
+                  <span>Dive Point</span>
+                  <span>Category</span>
+                  <span>Type</span>
+                  <span>Depth</span>
+                  <span className="text-right">Solved</span>
+                </div>
+                {problems.map((prob) => (
+                  <Link
+                    key={prob.probId}
+                    href={`/challenges/detail?id=${prob.probId}`}
+                    role="row"
+                    className="group grid grid-cols-[20px_minmax(0,1fr)_auto] sm:grid-cols-[20px_minmax(0,1fr)_96px_72px_132px_72px] items-center gap-3 min-h-[56px] py-2 px-4 border-t border-line hover:bg-raised transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2"
+                  >
+                    <StatusIcon status={prob.isSolved ? "solved" : "none"} />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-[15px] truncate group-hover:text-primary transition-colors">{prob.title}</p>
+                      <p className="text-xs text-ink-subtle truncate">
+                        <span className="font-mono">#{prob.probId}</span> · {prob.author}
+                      </p>
                     </div>
-                  </Card>
-                </Link>
-              ))
+                    <span className="hidden sm:inline-flex items-center gap-1 text-xs text-ink-muted truncate">
+                      {categoryIcons[prob.category] || <Code2 size={14} />} {prob.category}
+                    </span>
+                    <span className="hidden sm:block">
+                      <TypeChip type={prob.type} />
+                    </span>
+                    <span>
+                      <DepthBadge level={prob.difficulty} size="sm" />
+                    </span>
+                    <span className="hidden sm:block text-right font-mono text-[13px] text-ink-muted">
+                      {(prob.solvedCount || 0).toLocaleString()}
+                    </span>
+                  </Link>
+                ))}
+              </div>
             ) : (
-              <div className="text-center py-24 text-slate-400 border-2 border-dashed border-slate-50 rounded-3xl h-full flex flex-col items-center justify-center">
-                <SearchCode className="mx-auto h-12 w-12 text-slate-200 mb-2" />
-                <p className="font-bold">조건에 맞는 문제가 없습니다.</p>
+              <div className="flex flex-col items-center justify-center gap-4 py-20 rounded-2xl border border-dashed border-line-strong text-center">
+                <DivoBubble mood="fail">조건에 맞는 다이브 포인트가 없어요. 필터를 조금 풀어 볼까요?</DivoBubble>
               </div>
             )}
           </div>
 
           {/* API 연동된 페이지네이션 */}
           {totalProblems > 0 && (
-            <div className="flex justify-center gap-2 pt-6">
-              <Button
-                variant="outline"
-                size="sm"
+            <nav className="flex justify-center gap-1.5 pt-4" aria-label="페이지">
+              <button
+                type="button"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                className="rounded-lg"
+                className="h-8 px-3 rounded-[10px] text-[13px] font-semibold text-ink-muted hover:bg-raised hover:text-ink disabled:opacity-45 disabled:pointer-events-none"
               >
                 이전
-              </Button>
+              </button>
 
               {Array.from({ length: totalPages }).map((_, i) => (
-                <Button
+                <button
+                  type="button"
                   key={i}
-                  variant="outline"
-                  size="sm"
                   onClick={() => setCurrentPage(i + 1)}
-                  className={`rounded-lg ${currentPage === i + 1 ? 'bg-slate-950 text-white border-slate-950' : ''}`}
+                  aria-current={currentPage === i + 1 ? "page" : undefined}
+                  className={`h-8 min-w-8 px-2 rounded-[10px] font-mono text-[13px] font-semibold transition-colors ${currentPage === i + 1 ? "bg-primary text-primary-ink" : "text-ink-muted hover:bg-raised hover:text-ink"}`}
                 >
                   {i + 1}
-                </Button>
+                </button>
               ))}
 
-              <Button
-                variant="outline"
-                size="sm"
+              <button
+                type="button"
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                className="rounded-lg"
+                className="h-8 px-3 rounded-[10px] text-[13px] font-semibold text-ink-muted hover:bg-raised hover:text-ink disabled:opacity-45 disabled:pointer-events-none"
               >
                 다음
-              </Button>
-            </div>
+              </button>
+            </nav>
           )}
         </section>
 
-        {/* [C] 우측 광고 패널 (2칸) */}
+        {/* [C] 우측 광고 패널 */}
         <aside className="hidden md:block col-span-2">
           <div className="sticky top-24 space-y-4">
             {ads.length > 0 ? (
               ads.map((ad) => (
-                <a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-xl border border-slate-200 shadow-sm transition-transform hover:scale-105">
+                <a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-2xl border border-line transition-colors hover:border-line-strong">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={ad.image_url} alt={ad.alt_text} className="w-full object-cover" />
                 </a>
               ))
             ) : (
-              <div className="border border-slate-200 rounded-xl bg-slate-50 h-[600px] flex flex-col items-center justify-center text-slate-400 text-xs font-bold p-6 text-center leading-relaxed">
-                <ShoppingBag className="mb-2 h-6 w-6 opacity-20" />
-                광고 영역입니다.
+              <div className="border border-dashed border-line rounded-2xl h-[600px] flex flex-col items-center justify-center text-ink-subtle text-xs p-6 text-center">
+                <ShoppingBag className="mb-2 h-6 w-6 opacity-40" />
+                광고 영역
               </div>
             )}
           </div>
@@ -545,15 +507,17 @@ export default function ProblemListPage() {
 
 function CategoryItem({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick: () => void }) {
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${active
-        ? "bg-slate-950 text-white shadow-lg shadow-slate-200"
-        : "text-slate-500 hover:bg-slate-50 hover:text-slate-950"
+      aria-pressed={active}
+      className={`w-full flex items-center gap-3 px-3 py-2 rounded-[10px] text-sm font-medium transition-colors text-left ${active
+        ? "bg-primary-soft text-primary"
+        : "text-ink-muted hover:bg-raised hover:text-ink"
         }`}
     >
-      <span className={active ? "text-white" : "text-slate-400 group-hover:text-slate-950"}>{icon}</span>
+      <span className={active ? "text-primary" : "text-ink-subtle"}>{icon}</span>
       <span>{label}</span>
-    </div>
+    </button>
   );
 }

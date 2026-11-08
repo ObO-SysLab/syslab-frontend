@@ -2,13 +2,27 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * Diveon Design System — Abyss 테마 (theme/diveon-design-system 기준)
+ * 원칙: 깊이 = 명도. 바다(면·선)는 어둡고 차분하게, 네온은 '신호'에만.
+ * 값은 HEX 대신 아래 토큰 유틸리티를 쓴다:
+ *   면   bg-deep(000) / bg-canvas(100) / bg-panel(200) / bg-raised(300)
+ *   선   border-line(100) / border-line-strong(200)
+ *   글자 text-ink / text-ink-muted / text-ink-subtle
+ *   신호 primary(디보 블루) · signal(네온 그린) · success · warning · danger · coral
+ *   수심 depth-1~7 · 티어 tier-*
+ *
+ * OBO(components/obo, /test, /challenges/obo)는 다른 팀원 담당이라 라이트 그대로 둔다.
+ * → html[data-theme="abyss"]가 없거나 .obo-scope 안이면 shadcn 변수가 라이트 값으로 돌아간다.
+ */
+
+@custom-variant dark (&:where([data-theme="abyss"], [data-theme="abyss"] *):not(:where(.obo-scope, .obo-scope *)));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Pretendard Variable", Pretendard, "Noto Sans KR", system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", D2Coding, ui-monospace, monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -46,9 +60,55 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ---- Diveon 토큰 → Tailwind 유틸리티 ---- */
+  --color-deep: var(--dv-bg-000);
+  --color-canvas: var(--dv-bg-100);
+  --color-panel: var(--dv-bg-200);
+  --color-raised: var(--dv-bg-300);
+  --color-line: var(--dv-line-100);
+  --color-line-strong: var(--dv-line-200);
+  --color-ink: var(--dv-ink);
+  --color-ink-muted: var(--dv-ink-muted);
+  --color-ink-subtle: var(--dv-ink-subtle);
+  --color-primary-hover: var(--dv-primary-hover);
+  --color-primary-ink: var(--dv-primary-ink);
+  --color-primary-soft: var(--dv-primary-soft);
+  --color-signal: var(--dv-accent);
+  --color-signal-ink: var(--dv-accent-ink);
+  --color-signal-soft: var(--dv-accent-soft);
+  --color-success: var(--dv-success);
+  --color-success-soft: var(--dv-success-soft);
+  --color-warning: var(--dv-warning);
+  --color-warning-soft: var(--dv-warning-soft);
+  --color-danger: var(--dv-danger);
+  --color-danger-soft: var(--dv-danger-soft);
+  --color-coral: var(--dv-coral);
+  --color-coral-soft: var(--dv-coral-soft);
+  --color-depth-1: #7FE7FF;
+  --color-depth-2: #36C2F2;
+  --color-depth-3: #1E95DB;
+  --color-depth-4: #1D68BF;
+  --color-depth-5: #2A4AA0;
+  --color-depth-6: #2C2F7A;
+  --color-depth-7: #0E1219;
+  --color-kernel: #00FFA3;
+  --color-tier-bronze: var(--dv-tier-bronze);
+  --color-tier-silver: var(--dv-tier-silver);
+  --color-tier-gold: var(--dv-tier-gold);
+  --color-tier-platinum: var(--dv-tier-platinum);
+  --color-tier-diamond: var(--dv-tier-diamond);
+  --color-tier-master: var(--dv-tier-master);
+  --color-tier-challenger: var(--dv-tier-challenger);
+  --color-term: #05080C;
+  --shadow-dv: var(--dv-shadow-1);
+  --shadow-glow: var(--dv-glow-primary);
+  --shadow-glow-signal: var(--dv-glow-accent);
 }
 
-:root {
+/* ---------- 라이트 기본값 (OBO 영역용, 원래 shadcn 값) ---------- */
+:root,
+.obo-scope {
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -83,38 +143,84 @@
   --foreground: oklch(0.145 0 0);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+/* ---------- Diveon 원시 토큰 (Abyss) ---------- */
+:root {
+  --dv-bg-000: #070A0F;
+  --dv-bg-100: #0B0F14;
+  --dv-bg-200: #111823;
+  --dv-bg-300: #182233;
+  --dv-line-100: #1E2A3C;
+  --dv-line-200: #4F6684;
+  --dv-ink: #E6F4FF;
+  --dv-ink-muted: #93A9C2;
+  --dv-ink-subtle: #6B819C;
+  --dv-primary: #00D1FF;
+  --dv-primary-hover: #5CE1FF;
+  --dv-primary-ink: #04121A;
+  --dv-primary-soft: rgba(0, 209, 255, 0.12);
+  --dv-accent: #00FFA3;
+  --dv-accent-ink: #04121A;
+  --dv-accent-soft: rgba(0, 255, 163, 0.12);
+  --dv-success: #2EE59D;
+  --dv-success-soft: rgba(46, 229, 157, 0.14);
+  --dv-warning: #FFB547;
+  --dv-warning-soft: rgba(255, 181, 71, 0.14);
+  --dv-danger: #FF6B86;
+  --dv-danger-soft: rgba(255, 107, 134, 0.14);
+  --dv-coral: #B79CFF;
+  --dv-coral-soft: rgba(183, 156, 255, 0.14);
+  --dv-tier-bronze: #D9986A;
+  --dv-tier-silver: #C3D0DC;
+  --dv-tier-gold: #F2C94C;
+  --dv-tier-platinum: #5EEAD4;
+  --dv-tier-diamond: #7CC4FF;
+  --dv-tier-master: #C792FF;
+  --dv-tier-challenger: #FF7A95;
+  --dv-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.32);
+  --dv-glow-primary: 0 0 0 1px rgba(0, 209, 255, 0.45), 0 0 24px rgba(0, 209, 255, 0.28);
+  --dv-glow-accent: 0 0 0 1px rgba(0, 255, 163, 0.5), 0 0 16px rgba(0, 255, 163, 0.35);
+}
+
+/* ---------- shadcn 변수 → Abyss 매핑 ---------- */
+[data-theme="abyss"] {
+  color-scheme: dark;
+  --background: var(--dv-bg-100);
+  --foreground: var(--dv-ink);
+  --card: var(--dv-bg-200);
+  --card-foreground: var(--dv-ink);
+  --popover: var(--dv-bg-200);
+  --popover-foreground: var(--dv-ink);
+  --primary: var(--dv-primary);
+  --primary-foreground: var(--dv-primary-ink);
+  --secondary: var(--dv-bg-300);
+  --secondary-foreground: var(--dv-ink);
+  --muted: var(--dv-bg-300);
+  --muted-foreground: var(--dv-ink-muted);
+  --accent: var(--dv-bg-300);
+  --accent-foreground: var(--dv-ink);
+  --destructive: var(--dv-danger);
+  --border: var(--dv-line-100);
+  --input: var(--dv-line-200);
+  --ring: var(--dv-primary);
+  --chart-1: #00D1FF;
+  --chart-2: #00FFA3;
+  --chart-3: #1E95DB;
+  --chart-4: #B79CFF;
+  --chart-5: #FFB547;
+  --sidebar: var(--dv-bg-200);
+  --sidebar-foreground: var(--dv-ink);
+  --sidebar-primary: var(--dv-primary);
+  --sidebar-primary-foreground: var(--dv-primary-ink);
+  --sidebar-accent: var(--dv-bg-300);
+  --sidebar-accent-foreground: var(--dv-ink);
+  --sidebar-border: var(--dv-line-100);
+  --sidebar-ring: var(--dv-primary);
+}
+
+/* OBO 임베드 영역: 라이트 글자색·배경 복원 */
+[data-theme="abyss"] .obo-scope {
+  color-scheme: light;
+  color: oklch(0.145 0 0);
 }
 
 @layer base {
@@ -127,4 +233,211 @@
   html {
     @apply font-sans;
   }
+  [data-theme="abyss"] ::selection {
+    background: rgba(0, 209, 255, 0.28);
+    color: var(--dv-ink);
+  }
+  [data-theme="abyss"] ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  [data-theme="abyss"] ::-webkit-scrollbar-track {
+    background: var(--dv-bg-000);
+  }
+  [data-theme="abyss"] ::-webkit-scrollbar-thumb {
+    background: var(--dv-bg-300);
+    border-radius: 999px;
+    border: 2px solid var(--dv-bg-000);
+  }
+  [data-theme="abyss"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--dv-line-200);
+  }
+  [data-theme="abyss"] input[type="date"]::-webkit-calendar-picker-indicator,
+  [data-theme="abyss"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+  }
+}
+
+/* ======================================================================
+ * Diveon 컴포넌트 (클래스 접두사 dv-) — design-system/css/components.css 이식
+ * React 래퍼는 components/dv/ 참고
+ * ==================================================================== */
+@layer components {
+  /* HUD 라벨: 11px mono 대문자. 한글에는 쓰지 않는다 */
+  .dv-hud {
+    font: 600 11px/16px var(--font-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .dv-readout {
+    font: 600 28px/32px var(--font-mono);
+    letter-spacing: -0.01em;
+  }
+
+  /* Dive CTA — 화면당 1개 */
+  .dv-btn-dive {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 48px;
+    padding: 0 24px;
+    border-radius: 999px;
+    background: var(--dv-primary);
+    color: var(--dv-primary-ink);
+    font: 700 16px/1 var(--font-sans);
+    box-shadow: var(--dv-glow-primary);
+    transition: background-color 0.15s ease, transform 0.15s ease;
+  }
+  .dv-btn-dive:hover {
+    background: var(--dv-primary-hover);
+    transform: translateY(1px);
+  }
+
+  /* DepthBadge */
+  .dv-depth {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 10px 0 8px;
+    border-radius: 999px;
+    font: 600 12px/1 var(--font-mono);
+    white-space: nowrap;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  }
+  .dv-depth--sm { height: 20px; padding: 0 8px 0 6px; font-size: 11px; }
+  .dv-depth__ticks { display: inline-flex; align-items: flex-end; gap: 1px; height: 10px; }
+  .dv-depth__ticks i { display: block; width: 2px; background: currentColor; opacity: 0.28; border-radius: 1px; }
+  .dv-depth__ticks i:nth-child(1) { height: 4px; }
+  .dv-depth__ticks i:nth-child(2) { height: 5px; }
+  .dv-depth__ticks i:nth-child(3) { height: 6px; }
+  .dv-depth__ticks i:nth-child(4) { height: 7px; }
+  .dv-depth__ticks i:nth-child(5) { height: 8px; }
+  .dv-depth__ticks i:nth-child(6) { height: 9px; }
+  .dv-depth__ticks i:nth-child(7) { height: 10px; }
+  .dv-depth__ticks i.on { opacity: 1; }
+  .dv-depth__zone { font-family: var(--font-sans); font-weight: 500; opacity: 0.85; }
+  .dv-depth[data-lv="0"] { background: var(--dv-bg-300); color: var(--dv-ink-muted); }
+  .dv-depth[data-lv="1"] { background: #7FE7FF; color: #04121A; }
+  .dv-depth[data-lv="2"] { background: #36C2F2; color: #04121A; }
+  .dv-depth[data-lv="3"] { background: #1E95DB; color: #04121A; }
+  .dv-depth[data-lv="4"] { background: #1D68BF; color: #FFFFFF; }
+  .dv-depth[data-lv="5"] { background: #2A4AA0; color: #FFFFFF; }
+  .dv-depth[data-lv="6"] { background: #2C2F7A; color: #FFFFFF; }
+  .dv-depth[data-lv="7"] { background: #0E1219; color: #00FFA3; box-shadow: var(--dv-glow-accent); }
+
+  /* TierBadge */
+  .dv-tier {
+    --t: var(--dv-ink-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px 4px 4px;
+    border-radius: 999px;
+    background: var(--dv-bg-200);
+    border: 1px solid var(--dv-line-100);
+  }
+  .dv-tier--sm { padding: 2px 10px 2px 2px; gap: 6px; }
+  .dv-tier__emblem { position: relative; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--t); flex: none; }
+  .dv-tier--sm .dv-tier__emblem { width: 18px; height: 18px; }
+  .dv-tier__emblem::before { content: ""; position: absolute; inset: 3px; border-radius: 50%; border: 1px solid var(--t); opacity: 0.55; }
+  .dv-tier__emblem::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--t); }
+  .dv-tier--sm .dv-tier__emblem::before { inset: 2px; }
+  .dv-tier--sm .dv-tier__emblem::after { inset: 5px; }
+  .dv-tier__name { display: block; font: 700 13px/16px var(--font-sans); color: var(--t); }
+  .dv-tier--sm .dv-tier__name { font-size: 12px; }
+  .dv-tier__rank { display: block; font: 500 10px/14px var(--font-mono); letter-spacing: 0.06em; color: var(--dv-ink-muted); text-transform: uppercase; }
+  .dv-tier[data-tier="bronze"] { --t: var(--dv-tier-bronze); }
+  .dv-tier[data-tier="silver"] { --t: var(--dv-tier-silver); }
+  .dv-tier[data-tier="gold"] { --t: var(--dv-tier-gold); }
+  .dv-tier[data-tier="platinum"] { --t: var(--dv-tier-platinum); }
+  .dv-tier[data-tier="diamond"] { --t: var(--dv-tier-diamond); }
+  .dv-tier[data-tier="master"] { --t: var(--dv-tier-master); }
+  .dv-tier[data-tier="challenger"] { --t: var(--dv-tier-challenger); }
+
+  /* 문제 목록 상태 아이콘 */
+  .dv-status { width: 18px; height: 18px; color: var(--dv-ink-subtle); flex: none; }
+  .dv-status--solved { color: var(--dv-success); }
+  .dv-status--tried { color: var(--dv-warning); }
+
+  /* Verdict */
+  .dv-verdict {
+    --v: var(--dv-success);
+    --vs: var(--dv-success-soft);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    border-radius: 16px;
+    background: var(--dv-bg-200);
+    border: 1px solid var(--dv-line-100);
+  }
+  .dv-verdict__code { flex: none; min-width: 48px; text-align: center; padding: 6px 8px; border-radius: 6px; background: var(--vs); color: var(--v); font: 700 13px/1 var(--font-mono); letter-spacing: 0.08em; }
+  .dv-verdict__body { flex: 1; min-width: 0; }
+  .dv-verdict__title { margin: 0; font: 700 16px/24px var(--font-sans); color: var(--dv-ink); }
+  .dv-verdict__line { margin: 0; font: 400 14px/20px var(--font-sans); color: var(--dv-ink-muted); }
+  .dv-verdict--wa { --v: var(--dv-danger); --vs: var(--dv-danger-soft); }
+  .dv-verdict--tle { --v: var(--dv-warning); --vs: var(--dv-warning-soft); }
+  .dv-verdict--re { --v: var(--dv-coral); --vs: var(--dv-coral-soft); }
+  .dv-verdict--ce { --v: var(--dv-ink-muted); --vs: var(--dv-bg-300); }
+  .dv-verdict--judging { --v: var(--dv-primary); --vs: var(--dv-primary-soft); }
+
+  /* OxygenGauge */
+  .dv-o2 { --o2: 100%; --f: var(--dv-accent); display: grid; gap: 6px; min-width: 180px; }
+  .dv-o2__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font: 600 11px/16px var(--font-mono); letter-spacing: 0.12em; color: var(--dv-ink-muted); }
+  .dv-o2__val { font: 600 14px/1 var(--font-mono); letter-spacing: 0; color: var(--f); }
+  .dv-o2__track { position: relative; height: 8px; border-radius: 999px; background: var(--dv-bg-300); overflow: hidden; }
+  .dv-o2__fill { position: absolute; inset: 0 auto 0 0; width: var(--o2); background: var(--f); border-radius: inherit; transition: width 0.4s ease; }
+  .dv-o2__track::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), var(--dv-bg-200) calc(10% - 2px) 10%); }
+  .dv-o2[data-level="low"] { --f: var(--dv-warning); }
+  .dv-o2[data-level="critical"] { --f: var(--dv-danger); }
+
+  /* DivoBubble */
+  .dv-divo { display: flex; align-items: flex-end; gap: 12px; }
+  .dv-divo__avatar { width: 56px; height: auto; flex: none; }
+  .dv-divo__bubble { position: relative; max-width: 360px; padding: 12px 16px; border-radius: 16px 16px 16px 6px; background: var(--dv-bg-200); border: 1px solid var(--dv-line-100); box-shadow: var(--dv-shadow-1); }
+  .dv-divo__name { display: block; margin-bottom: 2px; font: 600 11px/16px var(--font-mono); letter-spacing: 0.12em; color: var(--dv-primary); }
+  .dv-divo__text { margin: 0; font: 400 14px/22px var(--font-sans); color: var(--dv-ink); }
+  .dv-divo[data-mood="success"] .dv-divo__name { color: var(--dv-success); }
+  .dv-divo[data-mood="fail"] .dv-divo__name { color: var(--dv-warning); }
+
+  /* Terminal 틀 */
+  .dv-term__guard { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 6px; border-radius: 6px; background: var(--dv-bg-300); font: 600 10px/1 var(--font-mono); letter-spacing: 0.06em; color: var(--dv-ink-muted); }
+  .dv-term__guard svg { width: 10px; height: 10px; color: var(--dv-accent); }
+
+  /* 랜딩 히어로 */
+  .dv-hero {
+    background:
+      linear-gradient(180deg, rgba(11, 15, 20, 0.25) 0%, rgba(11, 15, 20, 0.55) 55%, var(--dv-bg-100) 100%),
+      url("/images/hero-abyss.webp") center / cover no-repeat;
+  }
+
+  /* 기포 — 유일한 장식 모티프 */
+  .dv-bubble {
+    position: absolute;
+    bottom: -20px;
+    border-radius: 999px;
+    background: rgba(0, 209, 255, 0.3);
+    animation: dv-rise linear infinite;
+    pointer-events: none;
+  }
+}
+
+@keyframes dv-rise {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-110vh); opacity: 0; }
+}
+
+@keyframes dv-descend {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dv-descend { animation: dv-descend 0.24s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dv-bubble, .dv-descend { animation: none; }
+  .dv-btn-dive, .dv-o2__fill { transition: none; }
 }
