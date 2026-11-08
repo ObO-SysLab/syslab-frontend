@@ -1,4 +1,7 @@
 "use client";
+import { requestJson, requestIssue, httpIssue, isRequestCancelled, authHeaders, type RequestIssue } from "@/lib/request";
+import { RequestError } from "@/components/feedback/RequestError";
+import { useRemoteData } from "@/components/feedback/useRemoteData";
 import {DiagramOutputPlayer,type DiagramOutputRecord} from '@/components/obo/DiagramOutputPlayer';
 import type {OboCodingSchema} from '@/components/obo/types';
 import {problemApi,problemToken} from '@/lib/problemApi';
@@ -25,83 +28,36 @@ function OboResultContent() {
   const submissionId = searchParams.get("id");
   const contestSubmissionId = searchParams.get('contestSubmissionId');
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<PageError>(null);
-  const [probId, setProbId] = useState<number | null>(null);
-  const [result, setResult] = useState<SubmissionResult | null>(null);
-  const [explanations, setExplanations] = useState<ReturnType<typeof listOboExplanations>>([]);
-  const [activeExplanation, setActiveExplanation] = useState('');
-  const [legacyRevision, setLegacyRevision] = useState(false);
-  const [simulation,setSimulation] = useState<SimulationDocument|null>(null);
-  const [publicCases,setPublicCases] = useState<PublicCase[]>([]);
-  const [diagramRecords,setDiagramRecords]=useState<DiagramOutputRecord[]>([]);
-  const [codingSchema,setCodingSchema]=useState<OboCodingSchema|null>(null);
-  const [availableAt,setAvailableAt] = useState<string|null>(null);
-  const [choices,setChoices]=useState<ExplanationChoice[]>([]);
-  const [selectedAnswers,setSelectedAnswers]=useState<number[]>([]);
-  const blob = explanations.find(item => item.id === activeExplanation)?.blob ?? explanations[0]?.blob ?? null;
-  const verdict = submissionVerdict(result);
-  const isSuccess = verdict.kind === 'correct';
+  const [activeExplanation,setActiveExplanation]=useState('');
+  const query=useRemoteData(submissionId||contestSubmissionId?`${submissionId}:${contestSubmissionId}`:null,async signal=>{
+    const subJson=await requestJson(contestSubmissionId
+      ?problemApi(`/api/challenges/obo/contest-submission?id=${contestSubmissionId}`)
+      :problemApi(`/api/submissions/${submissionId}/result`),{signal,headers:authHeaders(),cache:'no-store'});
+    const subData=contestSubmissionId?subJson:subJson.data;
+    if(!subData)throw new Error('Missing result');
+    const released=contestSubmissionId?subData.explanation:await requestJson(problemApi(`/api/challenges/obo/submission?id=${submissionId}`),{signal,headers:authHeaders(),cache:'no-store'},{allowEmpty:true});
+    return {subData,released};
+  });
+  const isLoading=query.loading;
+  const error:PageError=!submissionId&&!contestSubmissionId?'no_id':query.error?.status===409?'pending':query.data?.released?.lockedReason?'locked':null;
+  const released=query.data?.released;
+  const probId=query.data?.subData?.probId??null;
+  const result:SubmissionResult|null=query.data?.subData??null;
+  const availableAt=released?.availableAt??null;
+  const legacyRevision=released?.legacyRevision??false;
+  const publicCases:PublicCase[]=(released?.publicCases??[]).filter((r:{kind?:string})=>r.kind!=='diagram');
+  const diagramRecords:DiagramOutputRecord[]=(released?.publicCases??[]).filter((r:{kind?:string})=>r.kind==='diagram');
+  const codingSchema:OboCodingSchema|null=released?.obo?.mode==='coding_diff'?released.obo.codingDiff:null;
+  const oboJson:ProblemOboData|OboBlob|null=released?.obo??null;
+  const simulation=oboJson&&'mode' in oboJson&&oboJson.mode==='simulation'?oboJson.simulation??null:null;
+  const selectedAnswers:number[]=Array.isArray(query.data?.subData?.selectedAnswers)?query.data!.subData.selectedAnswers:[];
+  const choices:ExplanationChoice[]=released?.choices??[];
+  const explanations=listOboExplanations(oboJson,selectedAnswers);
+  const blob=explanations.find(item=>item.id===activeExplanation)?.blob??explanations[0]?.blob??null;
+  useEffect(()=>setActiveExplanation(''),[query.data]);
+  const verdict=submissionVerdict(result),isSuccess=verdict.kind==='correct';
 
-  useEffect(() => {
-    if (!submissionId && !contestSubmissionId) {
-      setError("no_id");
-      setIsLoading(false);
-      return;
-    }
-
-    const load = async () => {
-      setIsLoading(true);
-      setError(null);setAvailableAt(null);
-      const token = problemToken();
-      const headers: HeadersInit = { "Authorization": `Bearer ${token}` };
-
-      try {
-        const subRes = await fetch(contestSubmissionId
-          ? problemApi(`/api/challenges/obo/contest-submission?id=${contestSubmissionId}`)
-          : problemApi(`/api/submissions/${submissionId}/result`), { headers,cache:'no-store' });
-        if (!subRes.ok) {
-          setError(subRes.status===409?'pending':'not_found');
-          return;
-        }
-        const subJson = await subRes.json();
-        const subData = contestSubmissionId ? subJson : subJson.data;
-        setProbId(subData.probId);
-        setResult({submissionStatus: subData.submissionStatus, isCorrect: subData.isCorrect,
-          ...(Object.prototype.hasOwnProperty.call(subData, 'resultStatus') ? {resultStatus: subData.resultStatus} : {})});
-
-        // 2. 문제에 연결된 OBO JSON 조회 (없으면 200 + null body)
-        let released = subData.explanation;
-        if(!contestSubmissionId){
-        const oboRes = await fetch(problemApi(`/api/challenges/obo/submission?id=${submissionId}`), { headers, cache: 'no-store' });
-        if (!oboRes.ok) {
-          setError("not_found");
-          return;
-        }
-        const oboText = await oboRes.text();
-        released = oboText ? JSON.parse(oboText) : null;
-        }
-        if(released?.lockedReason){setError('locked');setAvailableAt(released.availableAt??null);return;}
-        setLegacyRevision(released?.legacyRevision ?? false);
-        setPublicCases((released?.publicCases ?? []).filter((r:{kind?:string})=>r.kind!=='diagram'));
-        setDiagramRecords((released?.publicCases ?? []).filter((r:{kind?:string})=>r.kind==='diagram'));
-        setCodingSchema(released?.obo?.mode==='coding_diff'?released.obo.codingDiff:null);
-        setChoices(released?.choices??[]);setSelectedAnswers(Array.isArray(subData.selectedAnswers)?subData.selectedAnswers:[]);
-        const oboJson: ProblemOboData | OboBlob | null = released?.obo ?? null;
-        setSimulation(oboJson && 'mode' in oboJson && oboJson.mode === 'simulation' ? oboJson.simulation ?? null : null);
-        const items = listOboExplanations(oboJson, Array.isArray(subData.selectedAnswers) ? subData.selectedAnswers : []);
-        setExplanations(items);
-        setActiveExplanation(items[0]?.id ?? '');
-      } catch (e) {
-        console.error("OBO 결과 로드 실패:", e);
-        setError("not_found");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    load();
-  }, [submissionId,contestSubmissionId]);
+  if(query.error&&error!=='pending')return <main className="mx-auto max-w-3xl p-8"><h1 className="text-xl font-bold">OBO 결과 조회</h1><RequestError issue={query.error} retry={query.retry} busy={query.loading}/></main>;
 
   if (isLoading) {
     return (
@@ -119,16 +75,10 @@ function OboResultContent() {
     );
   }
 
-  if (error === "not_found") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-bold">
-        문제를 찾을 수 없습니다.
-      </div>
-    );
-  }
   if(error==='locked'||error==='pending')return <div className="min-h-screen bg-slate-50 p-8"><Card className="mx-auto max-w-xl space-y-3 p-8">
     <h1 className="text-xl font-bold">해설이 아직 공개되지 않았습니다.</h1>
     <p className="text-sm text-slate-600">{error==='pending'?'본인 제출의 채점이 완료되면 해설을 확인할 수 있습니다.':'참가 중인 대회가 끝나면 이 문제의 일반 학습 해설도 열립니다.'}</p>
+    <Button variant="outline" onClick={query.retry}>다시 불러오기</Button>
     {availableAt&&<p className="text-sm">공개 예정: {availableAt.replace('T',' ')}</p>}
     <Link href={probId?`/challenges/detail?id=${probId}`:'/challenges'} className="text-sm text-indigo-600">문제로 돌아가기</Link>
   </Card></div>;

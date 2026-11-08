@@ -1,4 +1,7 @@
 "use client";
+import { requestJson, requestIssue, httpIssue, isRequestCancelled, authHeaders, type RequestIssue } from "@/lib/request";
+import { RequestError } from "@/components/feedback/RequestError";
+import { useRemoteData } from "@/components/feedback/useRemoteData";
 import { logout, rememberSubmission } from "@/lib/authSession";
 import { problemApi, problemToken } from "@/lib/problemApi";
 
@@ -33,11 +36,12 @@ function MonacoSubmitContent() {
   const codeDraft = useCodeDraft({ kind: 'challenge', problem: probId ?? '' }, problemVersion);
   const { code, language, edit: setCode, select: handleLanguageChange } = codeDraft;
   const [submitNotice, setSubmitNotice] = useState('');
+  const [submitIssue, setSubmitIssue] = useState<RequestIssue | null>(null);
   const submission = useRef<AbortController | null>(null);
   useEffect(() => {
     setIsLoggedIn(!!codeDraft.account);
     setUserImgUrl('/avatar.png');
-    setSubmitNotice(''); setIsSubmitting(false);
+    setSubmitNotice(''); setSubmitIssue(null); setIsSubmitting(false);
     submission.current?.abort(); submission.current = null;
     return () => { submission.current?.abort(); submission.current = null; };
   }, [codeDraft.generation, codeDraft.account]);
@@ -80,44 +84,14 @@ function MonacoSubmitContent() {
     return () => { active = false; };
   }, [codeDraft.account]);
 
+  const titleQuery = useRemoteData(probId, async signal => {
+    const json = await requestJson(problemApi(`/api/problems/${probId}`), {signal, headers:authHeaders()});
+    return json.data;
+  });
   useEffect(() => {
-    let active = true;
-    setProblemVersion(null);
-    const fetchProblemTitle = async () => {
-      if (!USE_API_REQUEST) {
-        setProblemTitle(`MOCK 데이터 문제 #${probId}`);
-        return;
-      }
-
-      const token = problemToken();
-      try {
-        const res = await fetch(problemApi(`/api/problems/${probId}`), {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
-          }
-        });
-
-        if (!active) return;
-        if (res.ok) {
-          const json = await res.json();
-          // API 응답 구조(json.data.title)에 맞게 제목 세팅
-          if (!active) return;
-          setProblemTitle(json.data.title);
-          setProblemVersion(json.data.revisionId ?? json.data.editVersion ?? null);
-        } else {
-          setProblemTitle("알 수 없는 문제");
-        }
-      } catch (error) {
-        console.error("문제 정보 로드 실패:", error);
-        if (active) setProblemTitle("문제 정보를 불러오지 못했습니다.");
-      }
-    };
-
-    fetchProblemTitle();
-    return () => { active = false; };
-  }, [probId, USE_API_REQUEST, codeDraft.account]);
+    setProblemTitle(titleQuery.data?.title ?? (titleQuery.loading ? '문제 정보 불러오는 중…' : '문제 정보 조회 실패'));
+    setProblemVersion(titleQuery.data?.revisionId ?? titleQuery.data?.editVersion ?? null);
+  }, [titleQuery.data, titleQuery.loading]);
 
   // 에디터 마운트 시 설정
   function handleEditorDidMount(editor: any) {
@@ -130,35 +104,23 @@ function MonacoSubmitContent() {
 
   // [API] 코드 제출
   const handleSubmit = async () => {
-    if (submission.current) return;
-    if (!code.trim()) { setSubmitNotice('코드를 입력해 주세요.'); return; }
-    const token = problemToken();
-    if (!token) { setSubmitNotice('로그인 후 제출해 주세요. 작성 내용은 파일로 저장할 수 있습니다.'); return; }
+    if(submission.current)return;
+    setSubmitIssue(null); setSubmitNotice('');
+    if(!code.trim()){setSubmitNotice('코드를 입력해 주세요.');return;}
+    const token=problemToken();
+    if(!token){setSubmitIssue(httpIssue(401));return;}
     codeDraft.flush();
-    const controller = new AbortController(); submission.current = controller;
-    setIsSubmitting(true); setSubmitNotice('');
-    try {
-      const response = await fetch(problemApi('/api/submissions/grade'), {
-        method: 'POST', signal: controller.signal,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ probId: Number(probId), language, answer: code })
-      });
-      if (submission.current !== controller || problemToken() !== token) return;
-      if (response.ok) {
-        setSubmitNotice('서버에서 채점 요청을 접수했습니다.');
-        const json = await response.json();
-        if (submission.current !== controller || problemToken() !== token) return;
-        if (json.data?.submissionId == null) throw new Error('Missing submission receipt');
-        rememberSubmission(probId ?? '', json.data.submissionId, token);
-        router.push(`/challenges/detail?id=${probId}&tab=grading`);
-      } else {
-        setSubmitNotice(response.status === 401 ? '로그인이 만료되었습니다. 코드는 유지됩니다. 로그인 후 직접 다시 제출해 주세요.' : `제출 요청을 처리하지 못했습니다 (${response.status}). 코드는 유지됩니다.`);
-      }
-    } catch {
-      if (submission.current === controller) setSubmitNotice('접수 여부를 확인하지 못했습니다. 코드는 유지됩니다. 제출 내역을 확인한 뒤 다시 시도해 주세요.');
-    } finally {
-      if (submission.current === controller) { submission.current = null; setIsSubmitting(false); }
-    }
+    const controller=new AbortController();submission.current=controller;setIsSubmitting(true);
+    try{
+      const json=await requestJson(problemApi('/api/submissions/grade'),{method:'POST',signal:controller.signal,
+        headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({ probId: Number(probId), language, answer: code })},{allowEmpty:true});
+      if(submission.current!==controller||problemToken()!==token)return;
+      if(json?.data?.submissionId==null)throw new Error('Missing receipt');
+      rememberSubmission(probId ?? '', json.data.submissionId, token);
+      router.push(`/challenges/detail?id=${probId}&tab=grading`);
+    }catch(error){
+      if(submission.current===controller&&!isRequestCancelled(error))setSubmitIssue(requestIssue(error,true));
+    }finally{if(submission.current===controller){submission.current=null;setIsSubmitting(false);}}
   };
 
 
@@ -269,7 +231,10 @@ function MonacoSubmitContent() {
           </div>
         </div>
 
+        <RequestError issue={titleQuery.error} retry={titleQuery.retry} busy={titleQuery.loading} />
         <CodeDraftPanel state={codeDraft} />
+        <RequestError issue={submitIssue} checkHref={`/challenges/detail?id=${probId}&tab=grading`} />
+        {isSubmitting && <p role="status">제출 요청을 보내는 중…</p>}
         {submitNotice && <p role="alert" className="shrink-0 text-sm text-indigo-800">{submitNotice} <Link className="underline" href="/signin">로그인</Link> · <Link className="underline" href={`/challenges/detail?id=${probId}&tab=grading`}>제출 내역</Link></p>}
         {/* [B] Monaco 에디터 영역 */}
         <div className="flex-1 min-h-0">

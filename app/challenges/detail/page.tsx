@@ -1,4 +1,7 @@
 "use client";
+import { requestJson, requestIssue, httpIssue, isRequestCancelled, authHeaders, type RequestIssue } from "@/lib/request";
+import { RequestError } from "@/components/feedback/RequestError";
+import { useRemoteData } from "@/components/feedback/useRemoteData";
 import { logout, pendingSubmission, forgetSubmission } from "@/lib/authSession";
 import {problemApi,problemToken} from "@/lib/problemApi";
 
@@ -98,6 +101,11 @@ function ProblemDetailContent() {
   // 채점 데이터 상태
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [isGradingInProgress, setIsGradingInProgress] = useState(false);
+  const [pollError,setPollError]=useState<RequestIssue|null>(null);
+  const [pollStopped,setPollStopped]=useState(false);
+  const pollStarted=useRef(0);
+  const [answerIssue,setAnswerIssue]=useState<RequestIssue|null>(null);
+  const [answerNotice,setAnswerNotice]=useState('');
 
   // [STATE] 그룹 추가 관련 상태
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -137,58 +145,25 @@ function ProblemDetailContent() {
     fetchProfileImage();
   }, []);
 
-  // [API] 데이터 초기 로드
-  useEffect(() => {
-    const fetchPageData = async () => {
-      setIsLoading(true); // 로딩 시작
-
-      const token = problemToken();
-      const headers: HeadersInit = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      try {
-        const [probRes, rankRes] = await Promise.all([
-          fetch(problemApi(`/api/problems/${probId}`), { headers }),
-          fetch(problemApi(`/api/problems/${probId}/ranking?page=1`), { headers }) // 20개씩 가져오는 1페이지 노크
-        ]);
-
-        // 1. 문제 상세 정보 매립
-        if (probRes.ok) {
-          const probJson = await probRes.json();
-          setProblemData(probJson.data);
-          setIsOwner(probJson.data.isOwner);
-        }
-
-        // 2. 새 명세 규격에 맞춘 랭킹 데이터 매립 및 First Blood 계산
-        if (rankRes.ok) {
-          const rankJson = await rankRes.json();
-          const rankList = rankJson?.data?.rankings || [];
-          setRankings(rankList);
-
-          if (rankList.length > 0) {
-            const first = rankList[0];
-            setFirstBlood({
-              user: first.nickname,
-              // "2024-01-01T12:00:00" 포맷 파싱 가드
-              date: new Date(first.firstSolvedAt).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })
-            });
-          }
-        }
-
-        // 후속 데이터 패널 로드
-        fetchComments();    // 메인 댓글 목록 조회
-        fetchSubmissions(); // 제출 탭 데이터 조회
-      } catch (error) {
-        console.error("데이터 로드 실패:", error);
-      } finally {
-        setIsLoading(false); // 로딩 종료
-      }
-    };
-
-    if (probId) {
-      fetchPageData();
-    }
-  }, [probId]);
+  const detailQuery=useRemoteData(probId, async signal => {
+    const json=await requestJson(problemApi(`/api/problems/${probId}`),{signal,headers:authHeaders()});
+    if(!json?.data)throw new Error('Missing problem');
+    return json.data;
+  });
+  const rankQuery=useRemoteData(probId, async signal => {
+    const json=await requestJson(problemApi(`/api/problems/${probId}/ranking?page=1`),{signal,headers:authHeaders()});
+    return json?.data?.rankings ?? [];
+  });
+  useEffect(()=>{
+    setProblemData(detailQuery.data);setIsOwner(!!detailQuery.data?.isOwner);setIsLoading(detailQuery.loading);
+    if(detailQuery.data)fetchComments();
+  },[detailQuery.data,detailQuery.loading]);
+  useEffect(()=>{
+    setRankings(rankQuery.data??[]);
+    const first=rankQuery.data?.[0];
+    setFirstBlood(first?{user:first.nickname,date:new Date(first.firstSolvedAt).toLocaleDateString('ko-KR',{month:'short',day:'numeric'})}:{user:'',date:''});
+  },[rankQuery.data]);
+  useEffect(()=>{setSubmissions([]);setSelectedChoices([]);setPollError(null);setPollStopped(false);pollStarted.current=0;},[probId]);
 
   useEffect(() => {
     if (isLoading || !probId || problemData?.type !== 'practice') return;
@@ -206,116 +181,60 @@ function ProblemDetailContent() {
     });
   }, [probId, isLoading, problemData?.type, practiceBuild.status, practiceStatusRetry]);
 
-  // [API] 채점 탭 데이터 요청
-  const fetchSubmissions = async () => {
-    const token = problemToken();
-    try {
-      const res = await fetch(problemApi(`/api/problems/${probId}/board?page=1&size=50`), {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const json = await res.json();
-        let items = json.data.submissions || [];
-
-        // 1. 서버 응답 중 아직 채점이 안 끝난(isCorrect가 null인) 항목들은 폴링 대상(_isPending)으로 지정
-        items = items.map((item: any) => {
-          if (isSubmissionPending(item)) {
-            return { ...item, _isPending: true };
-          }
-          return item;
-        });
-
-        // 2. 다른 페이지(에디터/터미널)에서 갓 제출하고 넘어온 ID 처리 (DB 반영 지연 방어)
-        const pendingId = pendingSubmission(String(probId));
-        if (pendingId) {
-          const exists = items.find((s: any) => String(s.submissionId) === String(pendingId));
-
-          if (!exists) {
-            // DB에 아직 안 나타났다면 가짜 행 추가
-            items.unshift({
-              submissionId: pendingId,
-              nickname: localStorage.getItem("nickname") || "내 제출", // 
-              submissionStatus: "PENDING",
-              progress: 0,
-              submittedAt: new Date().toISOString(),
-              _isPending: true
-            });
-          } else {
-            // 서버 보드에 정상적으로 등장했다면 스토리지 비우기!
-            forgetSubmission(String(probId));
-          }
-        }
-
-        setSubmissions(items);
-      }
-    } catch (e) {
-      console.error("채점 보드 로드 실패:", e);
+  const boardQuery=useRemoteData(probId, async signal => {
+    const json=await requestJson(problemApi(`/api/problems/${probId}/board?page=1&size=50`),{signal,headers:authHeaders()});
+    if(!Array.isArray(json?.data?.submissions))throw new Error('Invalid board');
+    return json.data.submissions as any[];
+  });
+  useEffect(()=>{
+    if(!boardQuery.data){setSubmissions([]);setPollError(null);setPollStopped(false);pollStarted.current=0;return;}
+    const items=boardQuery.data.map(item=>({...item,_isPending:isSubmissionPending(item)}));
+    const pendingId=pendingSubmission(String(probId));
+    if(pendingId){
+      if(items.some(item=>String(item.submissionId)===pendingId))forgetSubmission(String(probId));
+      else items.unshift({submissionId:pendingId,nickname:'내 제출',submissionStatus:'PENDING',progress:0,submittedAt:new Date().toISOString(),_isPending:true});
     }
-  };
-
-  // [API] 채점 상태 폴링 
-  useEffect(() => {
-    const pendingItems = submissions.filter((sub) => sub._isPending);
-    if (pendingItems.length === 0) return;
-
-    const timer = setTimeout(async () => {
-      const token = problemToken();
-
-      const results = await Promise.all(
-        pendingItems.map(async (item) => {
-          try {
-            const res = await fetch(problemApi(`/api/submissions/${item.submissionId}/status`), {
-              headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (res.ok) {
-              const json = await res.json();
-              return json.data;
-            }
-          } catch (e) { }
-          return null;
-        })
-      );
-
-      setSubmissions((prev) =>
-        prev.map((sub) => {
-          if (!sub._isPending) return sub;
-
-          const updatedData = results.find((r) => r && String(r.submissionId) === String(sub.submissionId));
-
-          if (updatedData) {
-            // 채점이 끝났다면?
-            if (updatedData.submissionStatus === "COMPLETED" || updatedData.submissionStatus === "FAILED") {
-
-              return { ...sub, _isPending: false, progress: 100, submissionStatus: updatedData.submissionStatus,
-                ...(Object.prototype.hasOwnProperty.call(updatedData, 'resultStatus') ? {resultStatus: updatedData.resultStatus} : {}) };
-            }
-            return { ...sub, progress: updatedData.progress, submissionStatus: updatedData.submissionStatus };
-          }
-          return sub;
-        })
-      );
-
-      // 하나라도 'COMPLETED'가 떨어졌다면 보드 갱신
-      if (results.some(r => r && (r.submissionStatus === "COMPLETED" || r.submissionStatus === "FAILED"))) {
-        fetchSubmissions();
-      }
-
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [submissions]);
+    setSubmissions(items);
+  },[boardQuery.data,probId]);
+  const fetchSubmissions=()=>{setPollError(null);setPollStopped(false);pollStarted.current=0;boardQuery.retry();};
+  useEffect(()=>{
+    const pending=submissions.filter(sub=>sub._isPending);
+    if(!pending.length||pollStopped||boardQuery.loading||boardQuery.error)return;
+    if(!pollStarted.current)pollStarted.current=Date.now();
+    if(Date.now()-pollStarted.current>=120000){setPollStopped(true);setPollError({kind:'timeout',message:'채점이 아직 끝나지 않아 자동 확인을 멈췄습니다. 잠시 후 다시 불러와 주세요.',retryable:true});return;}
+    let active=true;const controller=new AbortController();
+    const timer=setTimeout(async()=>{
+      try{
+        const results=await Promise.all(pending.map(async item=>{
+          const json=await requestJson(problemApi(`/api/submissions/${item.submissionId}/status`),{signal:controller.signal,headers:authHeaders()});
+          if(!json?.data)throw new Error('Missing status');
+          return json.data;
+        }));
+        if(!active)return;
+        setSubmissions(previous=>previous.map(sub=>{
+          const update=results.find(r=>String(r.submissionId)===String(sub.submissionId));
+          return update?{...sub,...update,_isPending:isSubmissionPending(update)}:sub;
+        }));
+        if(results.some(result=>!isSubmissionPending(result)))boardQuery.retry();
+      }catch(error){if(active&&!isRequestCancelled(error)){setPollError(requestIssue(error));setPollStopped(true);}}
+    },1500);
+    return()=>{active=false;clearTimeout(timer);controller.abort();};
+  },[submissions,pollStopped,boardQuery.loading,boardQuery.error]);
 
   // [API] 객관식 답안 제출
   const handleObjectiveSubmit = async () => {
     if (selectedChoices.length === 0) {
-      alert("답안을 최소 하나 이상 선택해주세요.");
+      setAnswerNotice("답안을 최소 하나 이상 선택해주세요.");
       return;
     }
 
+    if(isSubmittingAnswer)return;
+    setAnswerIssue(null);setAnswerNotice('');
     setIsSubmittingAnswer(true);
     const token = problemToken();
+    if(!token){setAnswerIssue(httpIssue(401));setIsSubmittingAnswer(false);return;}
     try {
-      const res = await fetch(problemApi(`/api/submissions/grade`), {
+      const json = await requestJson(problemApi(`/api/submissions/grade`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
@@ -324,13 +243,12 @@ function ProblemDetailContent() {
         })
       });
 
-      if (res.ok) {
-        const json = await res.json();
-
+      if(problemToken()!==token)return;
+      {
         // 제출 API 명세서 기준 submissionId 추출
         const newSubmissionId = json.data.submissionId;
 
-        alert("채점 요청이 접수되었습니다!");
+        setAnswerNotice("채점 요청이 접수되었습니다.");
 
         // 1. 보드 전체를 갱신하지 않고, 화면에 띄울 '임시 대기 항목'을 맨 위에 추가
         const pendingSub = {
@@ -342,16 +260,14 @@ function ProblemDetailContent() {
           _isPending: true // 폴링 봇이 추적할 타겟이라는 표시!
         };
 
+        setPollError(null);setPollStopped(false);pollStarted.current=0;
         setSubmissions(prev => [pendingSub, ...prev]);
 
         setActiveTab("grading");
 
-      } else {
-        const err = await res.json();
-        alert(`제출 실패: ${err.detail || err.message || "오류가 발생했습니다."}`);
       }
-    } catch (e) {
-      alert("서버와 통신 중 오류가 발생했습니다.");
+    } catch (error) {
+      setAnswerIssue(requestIssue(error,true));
     } finally {
       setIsSubmittingAnswer(false);
     }
@@ -630,6 +546,10 @@ function ProblemDetailContent() {
     }
   };
 
+  if(!probId)return <main className="p-8"><RequestError issue={httpIssue(404)}/></main>;
+  if(detailQuery.loading&&!problemData)return <main role="status" className="p-8">문제를 불러오는 중…</main>;
+  if(detailQuery.error&&!problemData)return <main className="mx-auto max-w-3xl p-8"><h1 className="text-xl font-bold">문제 조회</h1><RequestError issue={detailQuery.error} retry={detailQuery.retry} busy={detailQuery.loading}/></main>;
+
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
 
@@ -764,6 +684,8 @@ function ProblemDetailContent() {
 
             {/* 1. 문제 탭 */}
             <TabsContent value="problem" className="mt-6 space-y-6 animate-in fade-in-50 duration-300">
+              <RequestError issue={answerIssue} checkHref={`/challenges/detail?id=${probId}&tab=grading`}/>
+              {answerNotice&&<p role="status">{answerNotice}</p>}
               <div className="flex gap-6 items-start">
                 <div className="w-24 h-24 bg-slate-100 rounded-2xl flex items-center justify-center shrink-0 border border-slate-200">
                   <div className="grid grid-cols-2 gap-1 opacity-50">
@@ -973,6 +895,8 @@ function ProblemDetailContent() {
 
             {/* 2. 채점 탭 */}
             <TabsContent value="grading" className="mt-6 animate-in fade-in-50 duration-300">
+              <RequestError issue={boardQuery.error??pollError} retry={fetchSubmissions} busy={boardQuery.loading} stale={submissions.length>0}/>
+              {boardQuery.loading&&<p role="status">제출 내역을 불러오는 중…</p>}
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold">제출 현황</h2>
                 <Button
@@ -1126,7 +1050,7 @@ function ProblemDetailContent() {
                         );
                       })}
 
-                    {submissions.length === 0 && (
+                    {submissions.length === 0 && !boardQuery.loading && !boardQuery.error && (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-8 text-slate-400">
                           아직 제출된 답안이 없습니다.
@@ -1140,6 +1064,7 @@ function ProblemDetailContent() {
 
             {/* 3. 순위 탭 */}
             <TabsContent value="rank" className="mt-6 animate-in fade-in-50 duration-300">
+              <RequestError issue={rankQuery.error} retry={rankQuery.retry} busy={rankQuery.loading}/>
               <h2 className="text-lg font-bold mb-4">전체 랭킹 (실시간 제출 완료 순)</h2>
               <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
                 <Table>
