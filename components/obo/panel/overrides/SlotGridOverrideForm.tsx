@@ -23,8 +23,8 @@ export function SlotGridOverrideForm({ node, base, override, onFieldChange, onFi
     <p className="text-xs leading-relaxed text-slate-500">값은 다음 장면에도 이어집니다. 아래 표식은 이 장면에만 표시됩니다.</p>
     <SlotGridFields values={values} onChange={slots => onFieldChange('slots', slots)} />
     {'slots' in override && <button type="button" className="text-xs text-indigo-600 underline" onClick={() => onFieldClear('slots')}>값 변경 취소 · 앞 장면 값 사용</button>}
-    {select('적재·교체 칸 (FAULT)', 'faultSlotIndex')}
-    {select('이미 있는 칸 (HIT)', 'hitSlotIndex')}
+    {select('적재·교체 칸 (Miss)', 'faultSlotIndex')}
+    {select('이미 있는 칸 (Hit)', 'hitSlotIndex')}
     {select('이번 참조 위치', 'activeSlotIndex')}
     {select('다음 위치 표시', 'pointerSlotIndex')}
   </div>;

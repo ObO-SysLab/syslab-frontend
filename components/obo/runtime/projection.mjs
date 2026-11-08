@@ -1,6 +1,6 @@
 import {registry} from './index.mjs';
 import {semanticEntities} from './document.mjs';
-const names={arrive:'도착',dispatch:'실행 선택',run:'실행',block:'대기',unblock:'대기 해제',finish:'완료',idle:'유휴',expire:'할당량 만료',preempt:'선점',reference:'페이지 참조',lookup:'조회',pageTable:'페이지 테이블 조회',translate:'주소 변환',fault:'페이지 부재',allocate:'할당',free:'해제',reject:'거절',request:'요청',grant:'자원 할당',release:'반납',detect:'교착 검사',wait:'대기',acquire:'획득',put:'삽입',take:'제거',wake:'재개',check:'안전성 검사',deny:'거절',think:'생각',eat:'식사',inode:'inode 조회',indirect:'간접 참조',data:'데이터 접근',eof:'파일 끝',move:'헤드 이동',service:'처리',wrap:'반대편 경계로 복귀',read:'읽기',write:'쓰기',send:'송신',receive:'수신',resume:'재개',enter:'커널 진입',save:'문맥 저장',restore:'문맥 복원',select:'실행 대상 선택',return:'반환',interrupt:'인터럽트',handle:'핸들러 실행',create:'생성',io:'I/O 요청',completeIO:'I/O 완료'};
+const names={arrive:'도착',dispatch:'실행 선택',run:'실행',block:'대기',unblock:'대기 해제',finish:'완료',idle:'유휴',expire:'할당량 만료',preempt:'선점',reference:'페이지 참조',lookup:'조회',pageTable:'페이지 테이블 조회',translate:'주소 변환',fault:'페이지 Miss',allocate:'할당',free:'해제',reject:'거절',request:'요청',grant:'자원 할당',release:'반납',detect:'교착 검사',wait:'대기',acquire:'획득',put:'삽입',take:'제거',wake:'재개',check:'안전성 검사',deny:'거절',think:'생각',eat:'식사',inode:'inode 조회',indirect:'간접 참조',data:'데이터 접근',eof:'파일 끝',move:'헤드 이동',service:'처리',wrap:'반대편 경계로 복귀',read:'읽기',write:'쓰기',send:'송신',receive:'수신',resume:'재개',enter:'커널 진입',save:'문맥 저장',restore:'문맥 복원',select:'실행 대상 선택',return:'반환',interrupt:'인터럽트',handle:'핸들러 실행',create:'생성',io:'I/O 요청',completeIO:'I/O 완료'};
 const show=value=>value===null||value===undefined?'—':typeof value==='object'?JSON.stringify(value):String(value);
 const stateNames={new:'생성 전',New:'생성',ready:'준비',Ready:'준비',running:'실행',Running:'실행',blocked:'대기',Waiting:'대기',done:'완료',Terminated:'종료',thinking:'생각 중',hungry:'포크 대기',waiting:'포크 대기',eating:'식사 중'};
 const pairs=value=>value&&typeof value==='object'?Object.entries(value).map(([k,v])=>[k,show(v)]):[['값',show(value)]];
@@ -49,7 +49,7 @@ export function projection(instance,execution,cursor,view) {
     if(family==='contiguous-allocation')bars=(data.blocks??input.initial).map(b=>({label:b.owner??'여유',size:b.size,start:b.start,empty:b.owner===null}));
     else if(family==='memory-pressure'){
       rows=Object.keys(input.quotas).map(p=>{const last=prefix.filter(e=>e.actor===p).at(-1);return [label(p),show(last?.data.frames??Array(input.quotas[p]).fill(null))];});
-    }else if(family==='address-translation')rows=input.table.map((p,i)=>[`페이지 ${i}`,p===null?'부재':`프레임 ${p}`]);
+    }else if(family==='address-translation')rows=input.table.map((p,i)=>[`페이지 ${i}`,p===null?'없음':`프레임 ${p}`]);
     else if(family==='process-structure')rows=pairs(effectiveSpaces);
     else if(family==='ipc')rows=pairs(data.shared??input.shared);
     else tokens=(data.frames??Array(input.frameCount??input.capacities?.[0]??1).fill(null)).map(show);
@@ -84,8 +84,8 @@ export function projection(instance,execution,cursor,view) {
     if(family==='cpu-scheduling')for(const e of prefix.filter(e=>['run','idle'].includes(e.kind))){const actor=e.actor??'유휴',end=e.data.time,last=segments.at(-1);if(last&&last.actor===actor&&last.end===end-1)last.end=end;else segments.push({actor,start:end-1,end});}
     else rows=prefix.slice(-12).map(e=>[String(e.step+1),eventLabel(e)]);
   }else if(view.role==='metric') {
-    if(family==='page-replacement'){const faults=prefix.filter(e=>!e.data.hit).length;metric=String(faults);rows=[['지표','현재까지의 부재 수']];if(id==='P3'){metric=null;rows=input.capacities.map(n=>[`${n}프레임`,`${prefix.filter(e=>e.data.capacity===n&&!e.data.hit).length}회`]);}}
-    else if(family==='memory-pressure')rows=Object.keys(input.quotas).map(p=>{const last=prefix.filter(e=>e.actor===p).at(-1);return [p,`부재 ${last?.data.faults??0} · 작업집합 ${last?.data.workingSet??0}`];});
+    if(family==='page-replacement'){const faults=prefix.filter(e=>!e.data.hit).length;metric=String(faults);rows=[['지표','현재까지의 Miss 수']];if(id==='P3'){metric=null;rows=input.capacities.map(n=>[`${n}프레임`,`${prefix.filter(e=>e.data.capacity===n&&!e.data.hit).length}회`]);}}
+    else if(family==='memory-pressure')rows=Object.keys(input.quotas).map(p=>{const last=prefix.filter(e=>e.actor===p).at(-1);return [p,`Miss ${last?.data.faults??0} · 작업집합 ${last?.data.workingSet??0}`];});
     else if(family==='cpu-scheduling')rows=final?Object.entries(final.metrics).map(([actor,m])=>[label(actor),`대기 ${m.waiting} · 응답 ${m.response} · 반환 ${m.turnaround}`]):[['시각',show(data.time??0)],['대기 중',String(data.ready?.length??0)]];
     else if(family==='disk-scheduling')metric=String(data.distance??0);
     else if(family==='bounded-buffer')rows=pairs(data.semaphores??{});

@@ -19,12 +19,12 @@ describe('free S1 page replacement example text', () => {
     const texts = frames.map((_, i) => applyFrame(PAGE_REPLACEMENT_TEMPLATE.defaultNodes, frames, i).find(n => n.id === 'status')!.data.text as string);
     expect(texts[0]).toBe('시작');
     expect(texts.at(-1)).toBe('완료');
-    PAGE_SCENES.forEach((scene, i) => expect(texts[i + 1]).toMatch(scene.hit ? /^HIT$/ : /^FAULT · /));
+    PAGE_SCENES.forEach((scene, i) => expect(texts[i + 1]).toMatch(scene.hit ? /^Hit$/ : /^Miss · /));
     expect(Math.max(...texts.map(t => t.length))).toBeLessThanOrEqual(16); // was up to 31 characters before 2026-11-08
-    expect(frames[1].label).toMatch(/메모리에 없는 페이지를 참조하면 FAULT/);
+    expect(frames[1].label).toMatch(/메모리에 없는 페이지를 참조하면 Miss/);
     expect(frames[1].label).toMatch(/빈칸부터/);
-    expect(frames[PAGE_SCENES.findIndex(s => s.hit) + 1].label).toMatch(/HIT에서는 FIFO 교체 순서가 바뀌지 않습니다/);
-    expect(frames.at(-1)!.label).toMatch(/FAULT 7회, HIT 1회/);
+    expect(frames[PAGE_SCENES.findIndex(s => s.hit) + 1].label).toMatch(/Hit에서는 FIFO 교체 순서가 바뀌지 않습니다/);
+    expect(frames.at(-1)!.label).toMatch(/Miss 7회, Hit 1회/);
     expect(frames.at(-1)!.label).toMatch(/4, 3, 0/);
   });
 });

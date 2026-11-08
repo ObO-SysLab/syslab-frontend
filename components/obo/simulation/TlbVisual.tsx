@@ -9,7 +9,7 @@ import styles from './TlbVisual.module.css';
 
 type VisualProps = { instance: SimulationInstance; execution: ModelRun | null; cursor: number; view: SimulationView };
 type Edge = { key: string; from: string; to: string; active: boolean; visited: boolean; direction?: 'down' | 'offset' };
-const phases = { initial: '주소 변환', lookup: 'TLB 조회', pageTable: '페이지 테이블 조회', translate: '변환 완료', fault: '페이지 부재' };
+const phases = { initial: '주소 변환', lookup: 'TLB 조회', pageTable: '페이지 테이블 조회', translate: '변환 완료', fault: '페이지 Miss' };
 const fields = ['페이지테이블', 'TLB', '페이지', '오프셋'] as const;
 
 function TableRows({ snapshot: s, selected }: { snapshot: TlbSnapshot; selected?: string[] }) {
@@ -28,7 +28,7 @@ function TableRows({ snapshot: s, selected }: { snapshot: TlbSnapshot; selected?
   return rows.length ? <div ref={container} className={`${styles.tableScroll} nodrag nowheel`} tabIndex={0} aria-label="페이지 테이블 전체 행">
     <table className={styles.table}><thead><tr><th>페이지</th><th>프레임</th></tr></thead><tbody>
       {rows.map(row => <tr key={row.page} data-tlb-table-row={row.page} data-tlb-active={row.active} data-tlb-fault={row.active && s.phase === 'fault'}>
-        <td>{row.page}</td><td>{row.frame === null ? <span className={styles.absent}>부재</span> : row.frame}</td>
+        <td>{row.page}</td><td>{row.frame === null ? <span className={styles.absent}>없음</span> : row.frame}</td>
       </tr>)}
     </tbody></table>
   </div> : <p className={styles.empty}>선택한 페이지가 없습니다.</p>;
@@ -36,7 +36,7 @@ function TableRows({ snapshot: s, selected }: { snapshot: TlbSnapshot; selected?
 
 function Cache({ snapshot: s }: { snapshot: TlbSnapshot }) {
   return <section className={styles.card} data-tlb-node="tlb" data-tlb-current={s.phase === 'lookup'} data-tlb-visited={!!s.current && s.phase !== 'lookup'}>
-    <h4><span>TLB</span>{s.current ? <span className={styles.lookup} data-tlb-hit={s.current.hit}><b>{s.current.hit ? 'HIT' : 'MISS'}</b></span> : <small>FIFO · {s.tlb.length}/{s.capacity}</small>}</h4>
+    <h4><span>TLB</span>{s.current ? <span className={styles.lookup} data-tlb-hit={s.current.hit}><b>{s.current.hit ? 'Hit' : 'Miss'}</b></span> : <small>FIFO · {s.tlb.length}/{s.capacity}</small>}</h4>
     {s.tlb.length ? <div className={`${styles.tableScroll} nodrag nowheel`} tabIndex={0} aria-label="현재 TLB의 FIFO 순서">
       <table className={styles.table}><thead><tr><th>페이지</th><th>프레임</th></tr></thead><tbody>
         {s.tlb.map((entry, index) => <tr key={entry.page} data-tlb-cache-row={entry.page} data-tlb-active={s.current?.hit === true && s.current.page === entry.page} data-tlb-inserted={s.inserted?.page === entry.page}>
@@ -133,7 +133,7 @@ function RecordVisual({ snapshot: s, view }: { snapshot: TlbSnapshot; view: Simu
         </div>}
         {all && <section className={styles.card} data-tlb-node="result" data-tlb-current={s.phase === 'translate'} data-tlb-fault={s.phase === 'fault'}>
           <h4>{s.phase === 'fault' ? '변환 중단' : '물리 주소'}</h4>
-          {s.result ? s.result.fault ? <><strong className={styles.fault} data-tlb-fault-result>페이지 부재</strong><p className={styles.pending}>물리 주소 없음</p></>
+          {s.result ? s.result.fault ? <><strong className={styles.fault} data-tlb-fault-result>페이지 Miss</strong><p className={styles.pending}>물리 주소 없음</p></>
             : <><strong className={styles.physical} data-tlb-physical>{s.result.physical}</strong><p className={styles.formula} data-tlb-formula>프레임 {s.result.frame} × {s.pageSize} + {s.current?.offset}</p></>
             : <p className={styles.pending}>{s.phase === 'initial' ? '실행 전' : '변환 대기'}</p>}
         </section>}

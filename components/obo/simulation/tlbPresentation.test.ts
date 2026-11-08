@@ -34,7 +34,7 @@ describe('TLB visual preserves address translation phases and authored view choi
     const { render, cursor } = fixture();
     let html = render(cursor(0, 'lookup'));
     expect(html).toContain('data-tlb-hit="false"');
-    expect(html).toContain('>MISS</b>');
+    expect(html).toContain('>Miss</b>');
     expect(html).toContain('data-tlb-from="page" data-tlb-to="tlb"');
     expect(html).not.toContain('data-tlb-edge="tlb-table"');
     expect(rowTag(html, 1)).toContain('data-tlb-active="false"');
