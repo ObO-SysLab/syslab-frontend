@@ -1,6 +1,6 @@
 'use client';
-import { useMemo } from 'react';
-import { ReactFlow, Background, Controls, Handle, Position, NodeResizer, MarkerType, type Node, type NodeProps, type NodeChange, type Connection } from '@xyflow/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ReactFlow, Background, Controls, Handle, Position, NodeResizer, MarkerType, type Node, type NodeProps, type NodeChange, type Connection, type ReactFlowInstance } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { ModelRun } from '../runtime/index.mjs';
 import type { SimulationInstance, SimulationView } from '../runtime/document.mjs';
@@ -12,6 +12,7 @@ import { ProcessStructureVisual, ProcessStructureExplanation } from './ProcessSt
 import { TlbVisual, TlbExplanation } from './TlbVisual';
 import { ContextSwitchVisual, ContextSwitchExplanation } from './ContextSwitchVisual';
 import { BoundedBufferVisual, BoundedBufferExplanation } from './BoundedBufferVisual';
+import { hasLowerExplanation } from './lowerExplanations';
 
 type DisplayData = Record<string, unknown> & { view: SimulationView; projection: Projection; editable: boolean; beginEdit?: () => void; instance:SimulationInstance; execution:ModelRun|null; cursor:number };
 type DisplayNode = Node<DisplayData, 'simulation'>;
@@ -44,16 +45,28 @@ function SimulationNode({data,selected}:NodeProps<DisplayNode>) {
   </div>;
 }
 const nodeTypes={simulation:SimulationNode};
-export function SimulationScene({instance,execution,cursor,editable=false,selectedId,onSelect,onChanges,onConnect,onDeleteViews,onDeleteRelation,onBeginEdit,onExplanationChange,onAddExplanation}:{
+export function SimulationScene({instance,execution,cursor,editable=false,selectedId,revealViewId,onSelect,onChanges,onConnect,onDeleteViews,onDeleteRelation,onBeginEdit,onExplanationChange,onAddExplanation}:{
   instance:SimulationInstance;execution:ModelRun|null;cursor:number;editable?:boolean;selectedId?:string|null;onSelect?:(id:string|null)=>void;
   onChanges?:(changes:NodeChange<DisplayNode>[])=>void;onConnect?:(connection:Connection)=>void;onDeleteViews?:(ids:string[])=>void;onDeleteRelation?:(id:string)=>void;onBeginEdit?:()=>void;
-  onExplanationChange?:(id:string,text:string)=>void;onAddExplanation?:()=>void;
+  onExplanationChange?:(id:string,text:string)=>void;onAddExplanation?:()=>void;revealViewId?:string|null;
 }) {
+  const canvasRef=useRef<HTMLDivElement>(null),lastRevealed=useRef<string|null>(null);
+  const [flow,setFlow]=useState<ReactFlowInstance<DisplayNode>|null>(null);
   const nodes=useMemo<DisplayNode[]>(()=>instance.views.map(view=>{
     let p:Projection;
     try{p=projection(instance,execution,cursor,view);}catch{p={title:view.label,rows:[['설정 확인','입력을 완성하면 표시됩니다.']],tokens:[],bars:[],links:[],metric:null,segments:[],disk:null,visible:!view.hidden,caption:''};}
-    return {id:view.id,type:'simulation',position:{x:view.x,y:view.y},style:{width:view.width,height:view.height},width:view.width,height:view.height,measured:{width:view.width,height:view.height},selected:view.id===selectedId,hidden:!p.visible||(['ST2','BK','IN','PT','TLB','CS','PC'].includes(instance.scenarioId)&&view.role==='annotation'),data:{view,projection:p,editable,beginEdit:onBeginEdit,instance,execution,cursor}};
+    return {id:view.id,type:'simulation',position:{x:view.x,y:view.y},style:{width:view.width,height:view.height},width:view.width,height:view.height,measured:{width:view.width,height:view.height},selected:view.id===selectedId,hidden:!p.visible||(hasLowerExplanation(instance.scenarioId)&&view.role==='annotation'),data:{view,projection:p,editable,beginEdit:onBeginEdit,instance,execution,cursor}};
   }),[instance,execution,cursor,editable,selectedId,onBeginEdit]);
+  useEffect(()=>{
+    if(!editable||!flow||!revealViewId||lastRevealed.current===revealViewId)return;
+    const node=nodes.find(node=>node.id===revealViewId);
+    if(!node)return;
+    lastRevealed.current=revealViewId;
+    if(node.hidden)return;
+    const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    void flow.setCenter(node.position.x+node.data.view.width/2,node.position.y+node.data.view.height/2,{zoom:flow.getZoom(),duration:reduced?0:250});
+    canvasRef.current?.scrollIntoView({block:'nearest',behavior:reduced?'instant':'smooth'});
+  },[editable,flow,revealViewId,nodes]);
   const edges=useMemo(()=>{
     let semantic:ReturnType<typeof semanticLinks>=[];try{semantic=semanticLinks(instance,execution,cursor);}catch{/* Keep malformed drafts editable. */}
     const result=instance.decorations.map(e=>({...e,type:'default',style:{stroke:'#94a3b8',strokeDasharray:'5 4'},data:{decoration:true}}));
@@ -61,8 +74,8 @@ export function SimulationScene({instance,execution,cursor,editable=false,select
     const visible=new Set(nodes.filter(n=>!n.hidden).map(n=>n.id));
     return result.filter(e=>visible.has(e.source)&&visible.has(e.target)).map(e=>({...e,markerEnd:{type:MarkerType.ArrowClosed},label:e.data.decoration?'설명':e.id.startsWith('request')?'요청':'소유'}));
   },[instance,execution,cursor,nodes]);
-  return <div className="min-w-0"><div className="h-[540px] min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50" data-testid="simulation-canvas">
-    <ReactFlow<DisplayNode> nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView minZoom={0.1} maxZoom={2.5} nodesDraggable={editable} nodesConnectable={editable} elementsSelectable onNodesChange={onChanges} onConnect={onConnect} onNodeClick={(_,node)=>onSelect?.(node.id)} onPaneClick={()=>onSelect?.(null)} onNodeDragStart={()=>onBeginEdit?.()} onNodesDelete={nodes=>onDeleteViews?.(nodes.map(n=>n.id))} onEdgesDelete={edges=>edges.forEach(e=>onDeleteRelation?.(e.id))} deleteKeyCode={editable?['Backspace','Delete']:null} proOptions={{hideAttribution:true}}>
+  return <div className="min-w-0"><div ref={canvasRef} className="h-[540px] min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50" data-testid="simulation-canvas">
+    <ReactFlow<DisplayNode> onInit={setFlow} nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView minZoom={0.1} maxZoom={2.5} nodesDraggable={editable} nodesConnectable={editable} elementsSelectable onNodesChange={onChanges} onConnect={onConnect} onNodeClick={(_,node)=>onSelect?.(node.id)} onPaneClick={()=>onSelect?.(null)} onNodeDragStart={()=>onBeginEdit?.()} onNodesDelete={nodes=>onDeleteViews?.(nodes.map(n=>n.id))} onEdgesDelete={edges=>edges.forEach(e=>onDeleteRelation?.(e.id))} deleteKeyCode={editable?['Backspace','Delete']:null} proOptions={{hideAttribution:true}}>
       <Background gap={20} color="#dbe3ee"/><Controls showInteractive={false}/>
     </ReactFlow>
   </div>{instance.scenarioId==='ST2'&&<LifecycleExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='BK'&&<BankerExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='IN'&&<InodeExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='PT'&&<ProcessStructureExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='TLB'&&<TlbExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='CS'&&<ContextSwitchExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='PC'&&<BoundedBufferExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>}</div>;
