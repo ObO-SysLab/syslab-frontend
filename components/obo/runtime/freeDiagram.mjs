@@ -8,6 +8,9 @@ export const diagramFields = {
   'memory-range':['start','size','segments','activeIds'], 'process-box':['sections','threads','activeThreadId'],
   'line-chart':['xLabel','yLabel','width','height','xMin','xMax','yMin','yMax','xTicks','yTicks','series','progressIndex','activePointIndex'],
 };
+// Presentation is authored in the editor; learner output keeps its existing fields.
+const manualDiagramFields = { ...diagramFields, 'queue-strip': [...diagramFields['queue-strip'], 'displayStyle','showCount','showDirection'], 'process-box': [...diagramFields['process-box'],
+ 'hiddenSectionNames','hiddenThreadIds','threadFields','threadLayout','sectionLayout','showSharedLinks','width'] };
 const events={'gantt-lane':['activeBlockIndex'],'slot-grid':['faultSlotIndex','hitSlotIndex','activeSlotIndex','pointerSlotIndex'],'counter-badge':['delta']};
 const fail=(p,m)=>{throw Error(`${p}: ${m}`);};
 const object=(v,p)=>{if(!v||typeof v!=='object'||Array.isArray(v))fail(p,'객체가 필요합니다.');return v;};
@@ -31,10 +34,25 @@ export function validateDiagramElement(type,d,p='data'){
  if(d.label!==undefined)str(d.label,`${p}.label`);
  switch(type){
  case 'state-node': break;
- case 'text-label': if(d.text!==undefined)str(d.text,`${p}.text`);break;
+ case 'text-label':
+  if(d.text!==undefined)str(d.text,`${p}.text`);
+  if(d.caption!==undefined&&str(d.caption,`${p}.caption`).length>80)fail(`${p}.caption`,'설명은 80자 이하여야 합니다.');
+  break;
  case 'resource-square':{const n=num(d.instances??1,`${p}.instances`,0,10000,true);num(d.allocated??0,`${p}.allocated`,0,n,true);break;}
- case 'counter-badge':for(const k of ['value','min','max','delta'])if(d[k]!=null)num(d[k],`${p}.${k}`);break;
- case 'queue-strip':{const a=list(d.items??[],`${p}.items`,64);const n=num(d.capacity??a.length,`${p}.capacity`,0,64,true);if(a.length>n)fail(p,'항목 수가 버퍼 용량보다 많습니다.');a.forEach((x,i)=>str(x,`${p}.items[${i}]`));if(d.direction!==undefined&&!['ltr','rtl'].includes(d.direction))fail(p,'버퍼 방향을 확인하세요.');break;}
+ case 'counter-badge':
+  for(const k of ['value','min','max','delta'])if(d[k]!=null)num(d[k],`${p}.${k}`);
+  if(d.displayStyle!==undefined&&!['badge','semaphore'].includes(d.displayStyle))fail(`${p}.displayStyle`,'카운터 표시 방식을 확인하세요.');
+  if(d.caption!==undefined&&str(d.caption,`${p}.caption`).length>80)fail(`${p}.caption`,'설명은 80자 이하여야 합니다.');
+  for(const k of ['showTokens','showInPlayback'])if(d[k]!==undefined&&typeof d[k]!=='boolean')fail(`${p}.${k}`,'표시 여부를 확인하세요.');
+  break;
+ case 'queue-strip':{
+  const a=list(d.items??[],`${p}.items`,64);const n=num(d.capacity??a.length,`${p}.capacity`,0,64,true);
+  if(a.length>n)fail(p,'항목 수가 버퍼 용량보다 많습니다.');a.forEach((x,i)=>str(x,`${p}.items[${i}]`));
+  if(d.direction!==undefined&&!['ltr','rtl'].includes(d.direction))fail(p,'버퍼 방향을 확인하세요.');
+  if(d.displayStyle!==undefined&&!['strip','buffer'].includes(d.displayStyle))fail(`${p}.displayStyle`,'버퍼 표시 방식을 확인하세요.');
+  for(const k of ['showCount','showDirection'])if(d[k]!==undefined&&typeof d[k]!=='boolean')fail(`${p}.${k}`,'표시 여부를 확인하세요.');
+  break;
+ }
  case 'table-grid':{
   const h=list(d.headers??[],`${p}.headers`),r=list(d.rows??[],`${p}.rows`);h.forEach((x,i)=>str(x,`${p}.headers[${i}]`));
   const n=h.length||(Array.isArray(r[0])?r[0].length:0);
@@ -54,6 +72,11 @@ export function validateDiagramElement(type,d,p='data'){
   if(segments.length&&cursor!==start+size)fail(p,'전체 크기와 구간 길이 합계를 맞추세요.');refs(d.activeIds??[],ids,`${p}.activeIds`);break;
  }
  case 'process-box':{
+  if(d.width!==undefined)num(d.width,`${p}.width`,280,800,true);
+  for(const k of ['hiddenSectionNames','hiddenThreadIds','threadFields'])if(d[k]!==undefined){const a=list(d[k],`${p}.${k}`);a.forEach(v=>str(v,`${p}.${k}`));if(new Set(a).size!==a.length)fail(p,'표시 항목이 중복되었습니다.');}
+  if(d.threadFields?.some(v=>!['pc','register','stack'].includes(v)))fail(p,'스레드 표시 항목을 확인하세요.');
+  for(const k of ['threadLayout','sectionLayout'])if(d[k]!==undefined&&!['row','column'].includes(d[k]))fail(p,'가로 또는 세로 배치를 선택하세요.');
+  if(d.showSharedLinks!==undefined&&typeof d.showSharedLinks!=='boolean')fail(p,'공유 관계선 표시를 확인하세요.');
   const threads=list(d.threads??[],`${p}.threads`),ids=new Set();for(const t of threads){object(t,p);id(t.id,p);if(ids.has(t.id))fail(p,'스레드 ID가 중복되었습니다.');ids.add(t.id);str(t.label,p);for(const k of ['pc','register','stack'])if(t[k]!==undefined)str(t[k],p);}
   for(const s of list(d.sections??[],`${p}.sections`)){object(s,p);str(s.name,p);str(s.value,p);}
   if(d.activeThreadId!=null&&!ids.has(d.activeThreadId))fail(p,'현재 스레드가 목록에 없습니다.');break;
@@ -85,7 +108,7 @@ export function validateDiagramBlob(blob,p='diagram',trace=false){
   const overrides=object((trace?f.overrides:f.nodeDataOverrides)??{},fp);
   for(const [key,patch] of Object.entries(overrides)){
    if(!nodeMap.has(key))fail(fp,'장면의 요소 참조가 없습니다.');object(patch,fp);
-   for(const field of Object.keys(patch))if(!(diagramFields[nodeMap.get(key).type]??[]).includes(field))fail(fp,`지원하지 않는 장면 필드 ${field}`);
+   for(const field of Object.keys(patch))if(!((trace?diagramFields:manualDiagramFields)[nodeMap.get(key).type]??[]).includes(field))fail(fp,`지원하지 않는 장면 필드 ${field}`);
   }
   for(const n of nodes){const d={...values.get(n.id)};for(const k of events[n.type]??[])d[k]=null;Object.assign(d,overrides[n.id]??{});validateDiagramElement(n.type,d,`${fp}.${n.id}`);values.set(n.id,d);}
  });

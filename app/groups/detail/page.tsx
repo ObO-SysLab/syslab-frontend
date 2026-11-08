@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import Link from "next/link";
 import { useEffect, useState, Suspense, useRef } from "react";
@@ -877,7 +878,7 @@ function GroupDetailPage() {
 
   // [HANDLER] 로그아웃
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (!logout()) return;
     setIsLoggedIn(false);
     window.location.href = "/";
   };
@@ -940,11 +941,7 @@ function GroupDetailPage() {
         activeMenu="group"
         showSearch={false}
         onLogout={async () => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("nickname");
-          localStorage.removeItem("userImgUrl");
-          localStorage.clear();
-          sessionStorage.clear();
+          if (!logout()) return;
           setIsLoggedIn(false);
           window.location.replace("/");
         }}

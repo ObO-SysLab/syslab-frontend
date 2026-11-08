@@ -1,22 +1,56 @@
 'use client';
-import { useMemo } from 'react';
-import { ReactFlow, Background, Controls, Handle, Position, NodeResizer, MarkerType, type Node, type NodeProps, type NodeChange, type Connection } from '@xyflow/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ReactFlow, Background, Controls, Handle, Position, NodeResizer, MarkerType, type Node, type NodeProps, type NodeChange, type Connection, type ReactFlowInstance } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { ModelRun } from '../runtime/index.mjs';
 import type { SimulationInstance, SimulationView } from '../runtime/document.mjs';
 import { projection, semanticLinks, type Projection } from '../runtime/projection.mjs';
+import { LifecycleVisual, LifecycleExplanation } from './LifecycleVisual';
+import { BankerVisual, BankerExplanation } from './BankerVisual';
+import { InodeVisual, InodeExplanation } from './InodeVisual';
+import { ProcessStructureVisual, ProcessStructureExplanation } from './ProcessStructureVisual';
+import { TlbVisual, TlbExplanation } from './TlbVisual';
+import { ContextSwitchVisual, ContextSwitchExplanation } from './ContextSwitchVisual';
+import { BoundedBufferVisual, BoundedBufferExplanation } from './BoundedBufferVisual';
+import { IpcVisual, IpcExplanation } from './IpcVisual';
+import { KernelVisual, KernelExplanation } from './KernelVisual';
+import { PageReplacementVisual, PageReplacementExplanation } from './PageReplacementVisual';
+import { MemoryPressureVisual, MemoryPressureExplanation } from './MemoryPressureVisual';
+import { CpuScheduleVisual, CpuScheduleExplanation } from './CpuScheduleVisual';
+import { MemoryFitVisual, MemoryFitExplanation } from './MemoryFitVisual';
+import { ResourceGraphVisual, ResourceGraphExplanation } from './ResourceGraphVisual';
+import { PhilosophersVisual, PhilosophersExplanation } from './PhilosophersVisual';
+import { DiskScheduleVisual, DiskScheduleExplanation } from './DiskScheduleVisual';
+import { hasLowerExplanation } from './lowerExplanations';
 
-type DisplayData = Record<string, unknown> & { view: SimulationView; projection: Projection; editable: boolean; beginEdit?: () => void };
+type DisplayData = Record<string, unknown> & { view: SimulationView; projection: Projection; editable: boolean; beginEdit?: () => void; instance:SimulationInstance; execution:ModelRun|null; cursor:number };
 type DisplayNode = Node<DisplayData, 'simulation'>;
 const palette=['#4f46e5','#0f766e','#c2410c','#a21caf','#0369a1'];
 const colorFor=(id:string)=>palette[[...id].reduce((n,c)=>n+c.charCodeAt(0),0)%palette.length];
 function SimulationNode({data,selected}:NodeProps<DisplayNode>) {
   const {view,projection:p}=data;
+  const lifecycle=data.instance.scenarioId==='ST2'&&['actor','processor','queue','relation'].includes(view.role)&&!view.fields.length;
+  const banker=data.instance.scenarioId==='BK'&&['record','actor','resource'].includes(view.role);
+  const inode=data.instance.scenarioId==='IN'&&['storage','record'].includes(view.role);
+  const processStructure=data.instance.scenarioId==='PT'&&['record','actor','memory','region'].includes(view.role);
+  const tlb=data.instance.scenarioId==='TLB'&&['record','memory'].includes(view.role);
+  const contextSwitch=data.instance.scenarioId==='CS'&&['record','actor'].includes(view.role);
+  const boundedBuffer=data.instance.scenarioId==='PC'&&['record','actor','queue','resource'].includes(view.role);
+  const ipc=data.instance.scenarioId==='IPC'&&['record','actor','queue','memory','region'].includes(view.role);
+  const kernel=(data.instance.scenarioId==='K-SYSCALL'||data.instance.scenarioId==='K-INTERRUPT')&&view.role==='record';
+  const cpuSchedule=['G2','RR','PS'].includes(data.instance.scenarioId)&&view.role==='timeline';
+  const memoryPressure=data.instance.scenarioId==='TH'&&view.role==='memory';
+  const memoryFit=data.instance.scenarioId==='MF'&&view.role==='memory';
+  const resourceGraph=data.instance.scenarioId==='S3'&&view.role==='relation';
+  const philosophers=data.instance.scenarioId==='DP'&&view.role==='relation';
+  const diskSchedule=data.instance.scenarioId==='DS'&&view.role==='storage';
+  const pageReplacement=((data.instance.scenarioId==='P2'||data.instance.scenarioId==='OPT')&&view.role==='record')||(data.instance.scenarioId==='P3'&&view.role==='memory');
   return <div className={`h-full w-full overflow-hidden rounded-xl border-2 bg-white shadow-sm ${selected?'shadow-indigo-100':''}`} style={{borderColor:selected?view.color:'#e2e8f0'}}>
     <NodeResizer isVisible={selected&&data.editable} minWidth={100} minHeight={60} maxWidth={2000} maxHeight={2000} onResizeStart={()=>data.beginEdit?.()}/>
-    <Handle type="target" position={Position.Left} className="!h-2 !w-2 !bg-slate-400"/><Handle type="source" position={Position.Right} className="!h-2 !w-2 !bg-indigo-500"/>
+    <Handle type="target" position={Position.Left} style={{visibility:data.editable?'visible':'hidden'}} className="!h-2 !w-2 !bg-slate-400"/><Handle type="source" position={Position.Right} style={{visibility:data.editable?'visible':'hidden'}} className="!h-2 !w-2 !bg-indigo-500"/>
     <div className="truncate border-b border-slate-100 px-3 py-2 text-xs font-bold" style={{color:view.color}}>{view.label}{view.target&&<span className="ml-2 font-normal text-slate-500">{view.target}</span>}</div>
     <div className="nowheel h-[calc(100%-34px)] overflow-auto p-3 text-xs">
+      {memoryFit?<MemoryFitVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:resourceGraph?<ResourceGraphVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:philosophers?<PhilosophersVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:diskSchedule?<DiskScheduleVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:cpuSchedule?<CpuScheduleVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:memoryPressure?<MemoryPressureVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:pageReplacement?<PageReplacementVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:kernel?<KernelVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:ipc?<IpcVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:boundedBuffer?<BoundedBufferVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:contextSwitch?<ContextSwitchVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:tlb?<TlbVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:processStructure?<ProcessStructureVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:inode?<InodeVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:banker?<BankerVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:lifecycle?<LifecycleVisual instance={data.instance} execution={data.execution} cursor={data.cursor} view={view}/>:<>
       {p.metric!==null&&<p className="mb-2 text-3xl font-bold" style={{color:view.color}}>{p.metric}</p>}
       {p.tokens.length>0&&<div className="flex flex-wrap gap-1">{p.tokens.map((token,i)=><span key={i} className="min-w-8 rounded border border-indigo-100 bg-indigo-50 px-2 py-2 text-center font-semibold text-indigo-900">{token}</span>)}</div>}
       {p.bars.length>0&&<div className="flex min-h-14 overflow-hidden rounded border border-slate-200">{p.bars.map((b,i)=><div key={i} className="min-w-6 overflow-hidden border-r border-white p-1 text-center" style={{flexGrow:b.size,flexBasis:0,background:b.empty?'#f1f5f9':colorFor(b.label),color:b.empty?'#475569':'white'}} title={`${b.start}부터 ${b.size}`}><div className="truncate">{b.label}</div><small>{b.size}</small></div>)}</div>}
@@ -24,28 +58,45 @@ function SimulationNode({data,selected}:NodeProps<DisplayNode>) {
       {p.disk&&<svg viewBox="0 0 300 80" role="img" aria-label={`디스크 헤드 ${p.disk.head}`} className="h-20 w-full"><line x1="10" y1="35" x2="290" y2="35" stroke="#cbd5e1" strokeWidth="3"/>{p.disk.requests.map((x,i)=><circle key={i} cx={10+280*x/p.disk!.max} cy="35" r="4" fill="#94a3b8"/>)}<path d={`M ${10+280*p.disk.head/p.disk.max} 18 l -6 -10 h 12 z`} fill={view.color}/><text x="10" y="65" fontSize="12">헤드 {p.disk.head} / {p.disk.max}</text></svg>}
       {p.rows.length>0&&<table className="w-full table-fixed border-collapse text-left"><tbody>{p.rows.slice(0,40).map(([key,value],i)=><tr key={`${key}-${i}`} className="border-b border-slate-100"><th className="w-2/5 break-words py-1.5 pr-2 align-top font-medium text-slate-500">{key}</th><td className="break-words py-1.5 text-slate-800">{value}</td></tr>)}</tbody></table>}
       {!p.rows.length&&!p.tokens.length&&!p.bars.length&&!p.segments.length&&!p.disk&&p.metric===null&&<p className="text-slate-400">현재 표시할 항목이 없습니다.</p>}
+      </>}
     </div>
   </div>;
 }
 const nodeTypes={simulation:SimulationNode};
-export function SimulationScene({instance,execution,cursor,editable=false,selectedId,onSelect,onChanges,onConnect,onDeleteViews,onDeleteRelation,onBeginEdit}:{
+export function SimulationScene({instance,execution,cursor,editable=false,selectedId,revealViewId,onSelect,onChanges,onConnect,onDeleteViews,onDeleteRelation,onBeginEdit,onExplanationChange,onAddExplanation}:{
   instance:SimulationInstance;execution:ModelRun|null;cursor:number;editable?:boolean;selectedId?:string|null;onSelect?:(id:string|null)=>void;
   onChanges?:(changes:NodeChange<DisplayNode>[])=>void;onConnect?:(connection:Connection)=>void;onDeleteViews?:(ids:string[])=>void;onDeleteRelation?:(id:string)=>void;onBeginEdit?:()=>void;
+  onExplanationChange?:(id:string,text:string)=>void;onAddExplanation?:()=>void;revealViewId?:string|null;
 }) {
+  const canvasRef=useRef<HTMLDivElement>(null),lastRevealed=useRef<string|null>(null);
+  const [flow,setFlow]=useState<ReactFlowInstance<DisplayNode>|null>(null);
   const nodes=useMemo<DisplayNode[]>(()=>instance.views.map(view=>{
     let p:Projection;
     try{p=projection(instance,execution,cursor,view);}catch{p={title:view.label,rows:[['설정 확인','입력을 완성하면 표시됩니다.']],tokens:[],bars:[],links:[],metric:null,segments:[],disk:null,visible:!view.hidden,caption:''};}
-    return {id:view.id,type:'simulation',position:{x:view.x,y:view.y},style:{width:view.width,height:view.height},width:view.width,height:view.height,measured:{width:view.width,height:view.height},selected:view.id===selectedId,hidden:!p.visible,data:{view,projection:p,editable,beginEdit:onBeginEdit}};
+    return {id:view.id,type:'simulation',position:{x:view.x,y:view.y},style:{width:view.width,height:view.height},width:view.width,height:view.height,measured:{width:view.width,height:view.height},selected:view.id===selectedId,hidden:!p.visible||(hasLowerExplanation(instance.scenarioId)&&view.role==='annotation'),data:{view,projection:p,editable,beginEdit:onBeginEdit,instance,execution,cursor}};
   }),[instance,execution,cursor,editable,selectedId,onBeginEdit]);
+  useEffect(()=>{
+    if(!editable||!flow||!revealViewId||lastRevealed.current===revealViewId)return;
+    const node=nodes.find(node=>node.id===revealViewId);
+    if(!node)return;
+    lastRevealed.current=revealViewId;
+    if(node.hidden)return;
+    const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    void flow.setCenter(node.position.x+node.data.view.width/2,node.position.y+node.data.view.height/2,{zoom:flow.getZoom(),duration:reduced?0:250});
+    canvasRef.current?.scrollIntoView({block:'nearest',behavior:reduced?'instant':'smooth'});
+  },[editable,flow,revealViewId,nodes]);
   const edges=useMemo(()=>{
     let semantic:ReturnType<typeof semanticLinks>=[];try{semantic=semanticLinks(instance,execution,cursor);}catch{/* Keep malformed drafts editable. */}
-    const result=instance.decorations.map(e=>({...e,type:'default',style:{stroke:'#94a3b8',strokeDasharray:'5 4'},data:{decoration:true}}));
-    for(const relation of semantic){const source=instance.views.find(v=>v.target===relation.from&&!v.hidden),target=instance.views.find(v=>v.target===relation.to&&!v.hidden);if(source&&target)result.push({id:relation.id,source:source.id,target:target.id,type:'default',style:{stroke:relation.kind==='request'?'#d97706':'#4f46e5',strokeDasharray:relation.kind==='request'?'4 3':''},data:{decoration:false}});}
-    return result.map(e=>({...e,markerEnd:{type:MarkerType.ArrowClosed},label:e.data.decoration?'설명':e.id.startsWith('request')?'요청':'소유'}));
-  },[instance,execution,cursor]);
-  return <div className="h-[540px] min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50" data-testid="simulation-canvas">
-    <ReactFlow<DisplayNode> nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView minZoom={0.1} maxZoom={2.5} nodesDraggable={editable} nodesConnectable={editable} elementsSelectable onNodesChange={onChanges} onConnect={onConnect} onNodeClick={(_,node)=>onSelect?.(node.id)} onPaneClick={()=>onSelect?.(null)} onNodeDragStart={()=>onBeginEdit?.()} onNodesDelete={nodes=>onDeleteViews?.(nodes.map(n=>n.id))} onEdgesDelete={edges=>edges.forEach(e=>onDeleteRelation?.(e.id))} deleteKeyCode={editable?['Backspace','Delete']:null} proOptions={{hideAttribution:true}}>
+    const result=instance.decorations.map(e=>({...e,type:'default',style:{stroke:'#94a3b8',strokeDasharray:'5 4'},data:{decoration:true} as {decoration:boolean;kind?:string}}));
+    for(const relation of semantic){const source=instance.views.find(v=>v.target===relation.from&&!v.hidden),target=instance.views.find(v=>v.target===relation.to&&!v.hidden);if(source&&target)result.push({id:relation.id,source:source.id,target:target.id,type:'default',style:{stroke:relation.kind==='request'?'#d97706':'#4f46e5',strokeDasharray:relation.kind==='request'?'4 3':''},data:{decoration:false,kind:relation.kind}});}
+    const visible=new Set(nodes.filter(n=>!n.hidden).map(n=>n.id));
+    // Kernel mode links carry their own meaning (진입/복귀); they are not ownership.
+    const edgeLabel=(e:(typeof result)[number])=>e.data.decoration?'설명':e.id.startsWith('request')?'요청':e.id.startsWith('mode-')&&e.data.kind?e.data.kind:'소유';
+    return result.filter(e=>visible.has(e.source)&&visible.has(e.target)).map(e=>({...e,markerEnd:{type:MarkerType.ArrowClosed},label:edgeLabel(e)}));
+  },[instance,execution,cursor,nodes]);
+  return <div className="min-w-0"><div ref={canvasRef} className="h-[540px] min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50" data-testid="simulation-canvas">
+    <ReactFlow<DisplayNode> onInit={setFlow} nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView minZoom={0.1} maxZoom={2.5} nodesDraggable={editable} nodesConnectable={editable} elementsSelectable onNodesChange={onChanges} onConnect={onConnect} onNodeClick={(_,node)=>onSelect?.(node.id)} onPaneClick={()=>onSelect?.(null)} onNodeDragStart={()=>onBeginEdit?.()} onNodesDelete={nodes=>onDeleteViews?.(nodes.map(n=>n.id))} onEdgesDelete={edges=>edges.forEach(e=>onDeleteRelation?.(e.id))} deleteKeyCode={editable?['Backspace','Delete']:null} proOptions={{hideAttribution:true}}>
       <Background gap={20} color="#dbe3ee"/><Controls showInteractive={false}/>
     </ReactFlow>
-  </div>;
+  </div>{instance.scenarioId==='ST2'&&<LifecycleExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='BK'&&<BankerExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='IN'&&<InodeExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='PT'&&<ProcessStructureExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='TLB'&&<TlbExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='CS'&&<ContextSwitchExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='PC'&&<BoundedBufferExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='IPC'&&<IpcExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {(instance.scenarioId==='K-SYSCALL'||instance.scenarioId==='K-INTERRUPT')&&<KernelExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {(instance.scenarioId==='P2'||instance.scenarioId==='OPT'||instance.scenarioId==='P3')&&<PageReplacementExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='TH'&&<MemoryPressureExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {['G2','RR','PS'].includes(instance.scenarioId)&&<CpuScheduleExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='MF'&&<MemoryFitExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='S3'&&<ResourceGraphExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='DP'&&<PhilosophersExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>} {instance.scenarioId==='DS'&&<DiskScheduleExplanation instance={instance} execution={execution} cursor={cursor} onChange={onExplanationChange} onAdd={onAddExplanation}/>}</div>;
 }

@@ -1,5 +1,12 @@
 "use client";
+import { problemApi, problemToken } from "@/lib/problemApi";
+import { requestJson, requestIssue, httpIssue, isRequestCancelled, authHeaders, type RequestIssue } from "@/lib/request";
+import { RequestError } from "@/components/feedback/RequestError";
+import { useRemoteData } from "@/components/feedback/useRemoteData";
+import { logout } from "@/lib/authSession";
 
+import { useCodeDraft } from "@/components/coding/useCodeDraft";
+import { CodeDraftPanel } from "@/components/coding/CodeDraftPanel";
 import { useState, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
 import {
@@ -19,11 +26,6 @@ import {
 } from "@/components/ui/select";
 
 function MonacoSubmitContent() {
-  const CODE_SNIPPETS: Record<string, string> = {
-    c: `#include <stdio.h>\n\nint main() {\n    return 0;\n}`,
-    cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    return 0;\n}`,
-    python: `def solution():\n    pass\n\nif __name__ == "__main__":\n    solution()`, // python -> python
-  };
   const searchParams = useSearchParams();
   const router = useRouter();
   const probId = searchParams.get('probId');
@@ -31,22 +33,34 @@ function MonacoSubmitContent() {
   const contestId = searchParams.get('contestId');
   const USE_API_REQUEST = true;
   const [problemTitle, setProblemTitle] = useState("문제 정보 불러오는 중...");
-  const [language, setLanguage] = useState("c");
-  const [code, setCode] = useState(CODE_SNIPPETS.c);
+  const [problemVersion, setProblemVersion] = useState<string | null>(null);
+  const codeDraft = useCodeDraft({ kind: 'contest', problem: probId ?? '', contest: contestId ?? '', contestProblem: contestProbId ?? '' }, problemVersion);
+  const { code, language, edit: setCode, select: handleLanguageChange } = codeDraft;
+  const [submitNotice, setSubmitNotice] = useState('');
+  const [submitIssue, setSubmitIssue] = useState<RequestIssue | null>(null);
+  const submission = useRef<AbortController | null>(null);
+  useEffect(() => {
+    setIsLoggedIn(!!codeDraft.account);
+    setUserImgUrl('/avatar.png');
+    setSubmitNotice(''); setSubmitIssue(null); setIsSubmitting(false);
+    submission.current?.abort(); submission.current = null;
+    return () => { submission.current?.abort(); submission.current = null; };
+  }, [codeDraft.generation, codeDraft.account]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const editorRef = useRef(null);
   const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    let active = true;
     const fetchProfileImage = async () => {
-      const token = localStorage.getItem("token");
+      const token = problemToken();
       if (!token) return;
 
-      setIsLoggedIn(true);
+
 
       try {
-        const response = await fetch("https://diveon.net/api/profile/show", {
+        const response = await fetch(problemApi("/api/profile/show"), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -59,7 +73,7 @@ function MonacoSubmitContent() {
           const userInfo = result?.data?.userInfo;
 
           // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
-          if (userInfo?.profileImgUrl) {
+          if (active && userInfo?.profileImgUrl) {
             setUserImgUrl(userInfo.profileImgUrl);
           }
         }
@@ -69,40 +83,17 @@ function MonacoSubmitContent() {
     };
 
     fetchProfileImage();
-  }, []);
+    return () => { active = false; };
+  }, [codeDraft.account]);
 
+  const titleQuery = useRemoteData(probId, async signal => {
+    const json = await requestJson(problemApi(`/api/problems/${probId}`), {signal, headers:authHeaders()});
+    return json.data;
+  });
   useEffect(() => {
-    const fetchProblemTitle = async () => {
-      if (!USE_API_REQUEST) {
-        setProblemTitle(`MOCK 데이터 문제 #${probId}`);
-        return;
-      }
-
-      const token = localStorage.getItem("token");
-      try {
-        const res = await fetch(`https://diveon.net/api/problems/${probId}`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
-          }
-        });
-
-        if (res.ok) {
-          const json = await res.json();
-          // API 응답 구조(json.data.title)에 맞게 제목 세팅
-          setProblemTitle(json.data.title);
-        } else {
-          setProblemTitle("알 수 없는 문제");
-        }
-      } catch (error) {
-        console.error("문제 정보 로드 실패:", error);
-        setProblemTitle("문제 정보를 불러오지 못했습니다.");
-      }
-    };
-
-    fetchProblemTitle();
-  }, [probId, USE_API_REQUEST]);
+    setProblemTitle(titleQuery.data?.title ?? (titleQuery.loading ? '문제 정보 불러오는 중…' : '문제 정보 조회 실패'));
+    setProblemVersion(titleQuery.data?.revisionId ?? titleQuery.data?.editVersion ?? null);
+  }, [titleQuery.data, titleQuery.loading]);
 
   // 에디터 마운트 시 설정
   function handleEditorDidMount(editor: any) {
@@ -113,56 +104,28 @@ function MonacoSubmitContent() {
     }, 50);
   }
 
-  // 언어 변경 핸들러
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang);
-    setCode(CODE_SNIPPETS[lang]);
-  };
-
-
   // [API] 코드 제출
   const handleSubmit = async () => {
-    if (!code.trim()) {
-      alert("코드를 입력해주세요.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    const token = localStorage.getItem("token");
-
-    try {
-      const response = await fetch(`https://diveon.net/api/contests/${contestId}/problems/${contestProbId}/submit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          submissionType: "CODING",
-          language: language,
-          code: code
-        })
-      });
-
-      if (response.ok) {
-        alert("채점 요청이 접수되었습니다.");
-        // The contest board reads the committed contest submission directly.
-        // 채점 현황을 바로 볼 수 있도록 상세 페이지의 채점 탭으로 이동
-        window.location.href = `/contests/challenge/?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}&tab=grading`;
-      } else {
-        const errorData = await response.json();
-        alert(`제출 실패: ${errorData.message || "오류 발생"}`);
-      }
-    } catch (error) {
-      console.error("제출 에러:", error);
-      alert("서버 통신 오류가 발생했습니다.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    if(submission.current)return;
+    setSubmitIssue(null); setSubmitNotice('');
+    if(!code.trim()){setSubmitNotice('코드를 입력해 주세요.');return;}
+    const token=problemToken();
+    if(!token){setSubmitIssue(httpIssue(401));return;}
+    codeDraft.flush();
+    const controller=new AbortController();submission.current=controller;setIsSubmitting(true);
+    try{
+      const json=await requestJson(problemApi(`/api/contests/${contestId}/problems/${contestProbId}/submit`),{method:'POST',signal:controller.signal,
+        headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({ submissionType: "CODING", language, code })},{allowEmpty:true});
+      if(submission.current!==controller||problemToken()!==token)return;
+      router.push(`/contests/challenge/?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}&tab=grading`);
+    }catch(error){
+      if(submission.current===controller&&!isRequestCancelled(error))setSubmitIssue(requestIssue(error,true));
+    }finally{if(submission.current===controller){submission.current=null;setIsSubmitting(false);}}
   };
 
+
   return (
-    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden w-full">
+    <div className="h-dvh min-h-[640px] bg-slate-50 flex flex-col w-full">
       {/* 1. 고정 헤더 (h-16 = 4rem = 64px) */}
       <header className="shrink-0 h-16 border-b bg-white px-6 flex items-center justify-between z-50">
         <div className="flex items-center gap-8">
@@ -203,7 +166,8 @@ function MonacoSubmitContent() {
               </Link>
 
               <button
-                onClick={() => setIsLoggedIn(false)}
+                aria-label="로그아웃"
+                onClick={() => { if (logout()) setIsLoggedIn(false); }}
                 className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
               >
                 <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
@@ -229,17 +193,17 @@ function MonacoSubmitContent() {
       <main className="flex-1 flex flex-col gap-4 p-6 w-full max-w-[1400px] mx-auto min-h-0">
 
         {/* [A] 상단 툴바 */}
-        <div className="h-16 shrink-0 bg-white border border-slate-200 rounded-2xl px-6 flex items-center justify-between shadow-sm">
+        <div className="shrink-0 bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap gap-3 items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
               {problemTitle} <span className="text-slate-400 text-sm font-medium ml-2">코드 제출</span>
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-indigo-500" />
-              <span className="text-sm font-bold text-slate-700 mr-1">언어:</span>
+              <span className="whitespace-nowrap text-sm font-bold text-slate-700 mr-1">언어:</span>
               <Select value={language} onValueChange={handleLanguageChange}>
                 <SelectTrigger className="w-[120px] h-10 bg-slate-50 border-slate-200 font-mono text-sm focus:ring-indigo-500">
                   <SelectValue />
@@ -254,8 +218,8 @@ function MonacoSubmitContent() {
 
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-8 h-10 shadow-md shadow-indigo-200 transition-all"
+              disabled={isSubmitting || !codeDraft.draft}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-4 sm:px-8 h-10 shadow-md shadow-indigo-200 transition-all"
             >
               {isSubmitting ? "제출 중..." : (
                 <>
@@ -267,11 +231,18 @@ function MonacoSubmitContent() {
           </div>
         </div>
 
+        <RequestError issue={titleQuery.error} retry={titleQuery.retry} busy={titleQuery.loading} />
+        <CodeDraftPanel state={codeDraft} />
+        <RequestError issue={submitIssue} checkHref={`/contests/challenge?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}&tab=grading`} />
+        {isSubmitting && <p role="status">제출 요청을 보내는 중…</p>}
+        {submitNotice && <p role="alert" className="shrink-0 text-sm text-indigo-800">{submitNotice} <Link className="underline" href="/signin">로그인</Link> · <Link className="underline" href={`/contests/challenge?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}&tab=grading`}>제출 내역</Link></p>}
         {/* [B] Monaco 에디터 영역 */}
         <div className="flex-1 min-h-0">
           <div className="h-full w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-[#1e1e1e]">
             <Editor
-              height="calc(100vh - 240px)"
+              key={codeDraft.generation}
+              loading={<textarea aria-label="코드 입력 (편집기 로딩 중)" className="h-full w-full resize-none bg-[#1e1e1e] p-6 font-mono text-sm text-white outline-none" spellCheck={false} value={code} onChange={event=>setCode(event.target.value)} />}
+              height="100%"
               width="100%"
               language={language}
               theme="vs-dark"

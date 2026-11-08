@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react"; 
 import { useSearchParams } from "next/navigation";
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
+import { safeReturnPath } from "@/lib/request";
 import { problemApi } from "@/lib/problemApi";
 
 function LoginContent() {
@@ -53,21 +54,7 @@ function LoginContent() {
           if (nickname) localStorage.setItem("nickname", nickname);
           if (userImg) localStorage.setItem("userImgUrl", userImg);
           
-          // 전체 URL 수신 시, 안전하게 상대 경로만 추출해 내는 가드 코드입니다.
-          let safeRedirectPath = "/";
-          if (nextTarget) {
-            try {
-              // nextTarget이 풀 주소(https://...)인 경우 상대 경로만 추출
-              if (nextTarget.startsWith("http")) {
-                const urlObj = new URL(nextTarget);
-                safeRedirectPath = urlObj.pathname + urlObj.search;
-              } else {
-                safeRedirectPath = nextTarget;
-              }
-            } catch (e) {
-              safeRedirectPath = nextTarget;
-            }
-          }
+          const safeRedirectPath = safeReturnPath(nextTarget);
 
           // router.replace를 사용하면 Next.js 인프라가 쿼리스트링(?code=...)을 유실하지 않고 
           // 안전하게 목적지(초대 페이지)로 배달
