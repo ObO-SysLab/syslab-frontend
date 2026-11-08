@@ -3,6 +3,7 @@ import { useId } from 'react';
 import type { ModelRun } from '../runtime/index.mjs';
 import type { SimulationInstance, SimulationView } from '../runtime/document.mjs';
 import { lifecycleSnapshot, lifecycleStates, lifecycleTransitions, stateLabel, visibleLifecycleExplanation } from './lifecycleModel';
+import styles from './LifecycleVisual.module.css';
 
 const positions:Record<string,[number,number]>={New:[85,192],Ready:[280,92],Running:[490,192],Waiting:[280,310],Terminated:[685,192]};
 const paths=[
@@ -34,24 +35,29 @@ export function LifecycleVisual({instance,execution,cursor,view}:{instance:Simul
       <div className="flex items-center justify-center gap-3 text-base font-semibold"><span>{stateLabel(transition.from)}</span><span aria-hidden="true" className="text-slate-400">→</span><span style={{color:view.color}}>{stateLabel(transition.to)}</span></div></>
       :<div className="flex flex-wrap justify-center gap-2">{lifecycleStates.map(s=><span key={s.id} className="rounded-full border px-2 py-1 text-xs">{s.label} <strong>{Object.values(states).filter(v=>v===s.id).length}</strong></span>)}</div>}
   </div>;
-  return <svg width="770" height="390" viewBox="0 0 770 390" role="group" aria-label="프로세스 상태 전이" className="block" data-lifecycle-diagram>
+  return <svg width="770" height="390" viewBox="0 0 770 390" role="group" aria-label="프로세스 상태 전이" className="block h-auto w-full" data-lifecycle-diagram>
     <defs>{[false,true].map(active=><marker key={String(active)} id={`${marker}-${active}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill={active?view.color:'#94a3b8'}/></marker>)}</defs>
     {lifecycleTransitions.map((edge,i)=>{
       const active=transition?.kind===edge.kind;
       return <g key={edge.kind} data-transition={edge.kind} data-active={active}>
-        <path d={paths[i]} fill="none" stroke={active?view.color:'#cbd5e1'} strokeWidth={active?3:1.5} markerEnd={`url(#${marker}-${active})`}/>
-        <text x={labels[i][0]} y={labels[i][1]} textAnchor="middle" fontSize="13" fontWeight={active?700:400} fill={active?view.color:'#64748b'} paintOrder="stroke" stroke="white" strokeWidth="5" strokeLinejoin="round">{edge.label}</text>
+        {active&&<path d={paths[i]} fill="none" stroke={view.color} strokeOpacity="0.15" strokeWidth="10"/>}
+        <path d={paths[i]} fill="none" stroke={active?view.color:'#cbd5e1'} strokeWidth={active?3.5:1.5} markerEnd={`url(#${marker}-${active})`} className={active?styles.flow:undefined} data-lifecycle-flow={active||undefined}/>
+        <text x={labels[i][0]} y={labels[i][1]} textAnchor="middle" fontSize={active?14:13} fontWeight={active?800:400} fill={active?view.color:'#64748b'} paintOrder="stroke" stroke="white" strokeWidth="5" strokeLinejoin="round">{edge.label}</text>
       </g>;
     })}
     {lifecycleStates.map(state=>{
       const [x,y]=positions[state.id];const entries=Object.entries(states).filter(([,s])=>s===state.id);
       const active=current?.data.after===state.id;
       return <g key={state.id} data-lifecycle-state={state.id} data-active={active}>
-        <circle cx={x} cy={y} r="65" fill={active?'#f0fdfa':'white'} stroke={active?view.color:'#cbd5e1'} strokeWidth={active?3:1.5}/>
+        {active&&<>
+          <circle cx={x} cy={y} r="78" fill={view.color} fillOpacity="0.07"/>
+          <circle cx={x} cy={y} r="72" fill="none" stroke={view.color} strokeWidth="2.5" className={styles.orbit} data-lifecycle-orbit/>
+        </>}
+        <circle cx={x} cy={y} r="65" fill={entries.length?`${view.color}${active?'25':'0d'}`:'white'} stroke={entries.length||active?view.color:'#cbd5e1'} strokeWidth={active?4:entries.length?2:1.5}/>
         <text x={x} y={y-27} textAnchor="middle" fontSize="17" fontWeight="700" fill="#1e293b">{state.label}</text>
         <foreignObject x={x-53} y={y-16} width="106" height="64">
           <div tabIndex={0} className="nodrag nowheel flex h-full flex-wrap content-start justify-center gap-1 overflow-auto px-1 py-1" aria-label={`${state.label} 프로세스`}>
-            {entries.map(([id])=><span key={id} data-lifecycle-process={id} title={instance.labels[id]??id} className={`max-w-full break-all rounded px-2 py-1 text-xs font-semibold ${current?.actor===id?'bg-teal-700 text-white':'bg-slate-100 text-slate-700'}`}>{instance.labels[id]??id}</span>)}
+            {entries.map(([id])=><span key={id} data-lifecycle-process={id} title={instance.labels[id]??id} className={`max-w-full break-all rounded px-2 py-1 font-bold ${current?.actor===id?'bg-slate-900 text-sm text-white ring-2 ring-white':'bg-white text-xs text-slate-700'}`}>{instance.labels[id]??id}</span>)}
             {!entries.length&&<span className="pt-2 text-sm text-slate-300" aria-label="프로세스 없음">—</span>}
           </div>
         </foreignObject>
