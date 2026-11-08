@@ -27,7 +27,7 @@ export function lifecycleSnapshot(instance:SimulationInstance,execution:ModelRun
   const transition=current&&lifecycleTransitions.find(t=>t.kind===current.kind&&t.from===current.data.before&&t.to===current.data.after);
   const actor=current?.actor;
   return {states,current,transition,summary:transition&&actor
-    ? `${instance.labels[actor]??actor}: ${stateLabel(transition.from)} → ${stateLabel(transition.to)} · ${transition.label}`
+    ? `${Object.hasOwn(instance.labels,actor)?instance.labels[actor]:actor}: ${stateLabel(transition.from)} → ${stateLabel(transition.to)} · ${transition.label}`
     : '초기 상태'};
 }
 

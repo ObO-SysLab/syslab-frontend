@@ -15,23 +15,24 @@ const labels=[[171,126],[385,160],[405,298],[238,205],[444,51],[589,177]];
 
 export function LifecycleVisual({instance,execution,cursor,view}:{instance:SimulationInstance;execution:ModelRun|null;cursor:number;view:SimulationView}) {
   const marker=useId().replaceAll(':','');
+  const label=(id:string)=>Object.hasOwn(instance.labels,id)?instance.labels[id]:id;
   const {states,transition,current}=lifecycleSnapshot(instance,execution,cursor);
   if(view.role!=='relation') {
     let entries=Object.entries(states).filter(([id])=>!view.target||id===view.target);
     if(view.role==='processor')entries=entries.filter(([,state])=>state==='Running');
     if(view.role==='queue')entries=entries.filter(([,state])=>state==='Ready'||state==='Waiting');
-    if(view.fields.length&&view.role==='actor')entries=entries.filter(([id])=>view.fields.includes(instance.labels[id]??id));
+    if(view.fields.length&&view.role==='actor')entries=entries.filter(([id])=>view.fields.includes(label(id)));
     return <div className="flex flex-wrap gap-2" data-lifecycle-summary={view.role}>
-      {entries.map(([id,state])=><span key={id} title={`${instance.labels[id]??id} · ${stateLabel(state)}`} className="inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
+      {entries.map(([id,state])=><span key={id} title={`${label(id)} · ${stateLabel(state)}`} className="inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
         <span className={`h-2 w-2 shrink-0 rounded-full ${state==='Running'?'bg-teal-600':'bg-slate-400'}`}/>
-        <strong className="break-all">{instance.labels[id]??id}</strong><span className="shrink-0 text-slate-500">{stateLabel(state)}</span>
+        <strong className="break-all">{label(id)}</strong><span className="shrink-0 text-slate-500">{stateLabel(state)}</span>
       </span>)}
       {!entries.length&&<span className="text-sm text-slate-400">{view.role==='processor'?'유휴':'비어 있음'}</span>}
     </div>;
   }
   // Older authored documents keep their small view sizes and layout.
   if(view.width<600)return <div data-lifecycle-compact className="flex h-full flex-col justify-center gap-3">
-    {transition?<><p className="truncate text-center text-xs text-slate-500" title={current?.actor?instance.labels[current.actor]??current.actor:undefined}>{current?.actor?instance.labels[current.actor]??current.actor:''} · {transition.label}</p>
+    {transition?<><p className="truncate text-center text-xs text-slate-500" title={current?.actor?label(current.actor):undefined}>{current?.actor?label(current.actor):''} · {transition.label}</p>
       <div className="flex items-center justify-center gap-3 text-base font-semibold"><span>{stateLabel(transition.from)}</span><span aria-hidden="true" className="text-slate-400">→</span><span style={{color:view.color}}>{stateLabel(transition.to)}</span></div></>
       :<div className="flex flex-wrap justify-center gap-2">{lifecycleStates.map(s=><span key={s.id} className="rounded-full border px-2 py-1 text-xs">{s.label} <strong>{Object.values(states).filter(v=>v===s.id).length}</strong></span>)}</div>}
   </div>;
@@ -57,7 +58,7 @@ export function LifecycleVisual({instance,execution,cursor,view}:{instance:Simul
         <text x={x} y={y-27} textAnchor="middle" fontSize="17" fontWeight="700" fill="#1e293b">{state.label}</text>
         <foreignObject x={x-53} y={y-16} width="106" height="64">
           <div tabIndex={0} className="nodrag nowheel flex h-full flex-wrap content-start justify-center gap-1 overflow-auto px-1 py-1" aria-label={`${state.label} 프로세스`}>
-            {entries.map(([id])=><span key={id} data-lifecycle-process={id} title={instance.labels[id]??id} className={`max-w-full break-all rounded px-2 py-1 font-bold ${current?.actor===id?'bg-slate-900 text-sm text-white ring-2 ring-white':'bg-white text-xs text-slate-700'}`}>{instance.labels[id]??id}</span>)}
+            {entries.map(([id])=><span key={id} data-lifecycle-process={id} title={label(id)} className={`max-w-full break-all rounded px-2 py-1 font-bold ${current?.actor===id?'bg-slate-900 text-sm text-white ring-2 ring-white':'bg-white text-xs text-slate-700'}`}>{label(id)}</span>)}
             {!entries.length&&<span className="pt-2 text-sm text-slate-300" aria-label="프로세스 없음">—</span>}
           </div>
         </foreignObject>

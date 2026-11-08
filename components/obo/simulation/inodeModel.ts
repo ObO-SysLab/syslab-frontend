@@ -69,7 +69,7 @@ export function inodeSnapshot(instance: SimulationInstance, execution: ModelRun 
     requireValue(pointers.every(id => Object.hasOwn(blocks, id)), '데이터 블록이 없습니다.');
   }
   requireValue(accesses.every(access => Object.hasOwn(directory, access.name)), '접근할 파일 이름이 없습니다.');
-  const label = (id: string) => instance.labels[id] ?? id;
+  const label = (id: string) => Object.hasOwn(instance.labels, id) ? instance.labels[id] : id;
   const base = (kind: InodeNode['kind'], id: string) => ({ key: `${kind}:${id}`, id, label: label(id) });
   const nodes: InodeNode[] = [
     ...Object.entries(directory).map(([id, inode]): InodeNode => ({ ...base('name', id), kind: 'name', inode })),

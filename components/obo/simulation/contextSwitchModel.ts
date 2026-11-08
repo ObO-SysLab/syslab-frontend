@@ -61,7 +61,7 @@ export function contextSwitchSnapshot(instance: SimulationInstance, execution: M
   const input = instance.input as unknown as ContextSwitchInput;
   requireValue(Object.hasOwn(input.pcbs, input.initialId), '초기 PCB가 없습니다.');
   requireValue(input.order.every(id => Object.hasOwn(input.pcbs, id)), '교환할 PCB가 없습니다.');
-  const label = (id: string) => instance.labels[id] ?? id;
+  const label = (id: string) => Object.hasOwn(instance.labels, id) ? instance.labels[id] : id;
   let selectedId = input.initialId, loadedId = input.initialId;
   let cpu = { ...input.pcbs[input.initialId] }, stored = structuredClone(input.pcbs);
   let phase: ContextSwitchPhase = 'initial', transfer: ContextSwitchTransfer | null = null;

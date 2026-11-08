@@ -22,7 +22,7 @@ export function projection(instance,execution,cursor,view) {
   const input=instance.input,id=instance.scenarioId,family=registry[id].family;
   const prefix=execution?.events.slice(0,cursor+1)??[],event=prefix.at(-1),data=event?.data??{},entities=semanticEntities(instance);
   const final=execution&&cursor===execution.events.length-1&&cursor>=0?execution.result:null;
-  const title=view.label,label=x=>instance.labels[x]??x;
+  const title=view.label,label=x=>Object.hasOwn(instance.labels,x)?instance.labels[x]:x;
   const lifecycleStates={...input.processes};if(id==='ST2')for(const e of prefix)lifecycleStates[e.actor]=e.data.after;
   const effectiveSpaces=structuredClone(input.spaces??{});
   if(family==='process-structure')for(const e of prefix)if(e.kind==='write'&&e.data.scope==='shared')effectiveSpaces[input.threads[e.actor].process][e.data.key]=e.data.value;
