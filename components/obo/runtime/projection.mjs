@@ -34,6 +34,8 @@ export function projection(instance,execution,cursor,view) {
     else if(family==='bounded-buffer')states=Object.fromEntries(entities.actor.map(p=>[p,data.actors?.[p]?.blocked?'Waiting':`동작 ${data.actors?.[p]?.pc??0}`]));
     else if(family==='banker')states=Object.fromEntries(entities.actor.map(p=>[p,data.finish?.[p]?'검사 완료':'미완료']));
     else if(family==='process-structure')states=Object.fromEntries(entities.actor.map(p=>[p,`주소 공간 ${input.threads[p].process}`]));
+    // Before the first event the engine's initial states apply: current runs, blocked waits, the rest are ready.
+    else if(family==='kernel-flow'&&!event)states=Object.fromEntries(entities.actor.map(p=>[p,p===input.current?'Running':p===input.blocked?'Waiting':'Ready']));
     rows=entities.actor.filter(p=>!view.target||p===view.target).map(p=>[label(p),show(stateNames[states[p]]??states[p]??(event?.actor===p?'현재 동작':'준비'))]);
   }else if(view.role==='processor')rows=[['실행 대상',show(id==='ST2'?Object.keys(lifecycleStates).find(p=>lifecycleStates[p]==='Running'):data.current??(cursor<0?input.current??null:null))],['시각',show(data.time??(family==='kernel-flow'?input.at:0))],['실행 영역',show(data.mode??(family==='kernel-flow'?'user':null))]];
   else if(view.role==='queue') {
@@ -110,7 +112,11 @@ export function semanticLinks(instance,execution,cursor) {
     });
   }else if(family==='kernel-flow') {
     const prefix=execution?.events.slice(0,cursor+1)??[];
-    for(const e of prefix)if(e.kind==='enter'||e.kind==='return')links.push({id:`mode-${e.step}`,from:e.kind==='enter'?'사용자 영역':'커널 영역',to:e.kind==='enter'?'커널 영역':'사용자 영역',kind:e.kind==='enter'?'진입':'복귀',count:1});
+    // Mode changes only on enter/interrupt (user→kernel) and restore (kernel→user); return stays in kernel mode.
+    for(const e of prefix){
+      const entry=e.kind==='enter'||e.kind==='interrupt';
+      if(entry||e.kind==='restore')links.push({id:`mode-${e.step}`,from:entry?'사용자 영역':'커널 영역',to:entry?'커널 영역':'사용자 영역',kind:entry?'진입':'복귀',count:1});
+    }
   }else if(family==='lifecycle') {
     const prefix=execution?.events.slice(0,cursor+1)??[];for(const e of prefix)links.push({id:`transition-${e.step}`,from:e.data.before,to:e.data.after,kind:names[e.kind]??e.kind,count:1});
   }else if(family==='inode-access') {
