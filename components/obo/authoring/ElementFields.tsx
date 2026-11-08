@@ -6,6 +6,7 @@ import { ProcessDisplayFields } from './ProcessDisplayFields';
 type Data = Record<string, unknown>;
 type Row = Record<string, unknown>;
 const inputClass = 'w-full min-w-0 rounded border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800';
+const cellClass = 'w-20 min-w-0 rounded border border-slate-200 bg-white px-1.5 py-1 text-xs text-slate-800 focus:border-indigo-400 focus:outline-none';
 const buttonClass = 'rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40';
 const names: Record<string,string> = { label:'장면 이름', instances:'자원 개수', allocated:'사용 중 개수', capacity:'버퍼 용량', items:'항목', direction:'순서 방향', headers:'열 제목', rows:'셀 값', activeRow:'강조 행', width:'너비', height:'높이', start:'시작 주소', size:'전체 크기', segments:'메모리 구간', activeIds:'강조 구간', sections:'공유 영역', threads:'스레드 문맥', activeThreadId:'현재 스레드', xLabel:'가로축 이름',yLabel:'세로축 이름',xMin:'가로축 최소',xMax:'가로축 최대',yMin:'세로축 최소',yMax:'세로축 최대',xTicks:'가로축 눈금',yTicks:'세로축 눈금',series:'선과 좌표',progressIndex:'마지막 표시 점',activePointIndex:'현재 점' };
 Object.assign(names, { hiddenSectionNames: '숨긴 영역', hiddenThreadIds: '숨긴 스레드', threadFields: '스레드 표시 항목', threadLayout: '스레드 배치', sectionLayout: '영역 배치', showSharedLinks: '공유 관계선' });
@@ -51,6 +52,17 @@ export function ElementFields({ type, data, onApply, scope='base', validatePatch
   const tableRows=Array.isArray(draft.rows)?draft.rows as (string|number)[][]:[];
   const headers=Array.isArray(draft.headers)?draft.headers as string[]:[];
   const columns=headers.length || tableRows[0]?.length || 0;
+  // Multi-line paste (tabs or spaces) fills from the pasted cell, growing rows/columns as needed.
+  const pasteAt=(e:React.ClipboardEvent<HTMLInputElement>,r:number,c:number)=>{
+    const text=e.clipboardData.getData('text');if(!/[\n\t]/.test(text.trim()))return;e.preventDefault();
+    const lines=text.split(/\r?\n/).filter(l=>l.trim()).map(l=>l.includes('\t')?l.split('\t').map(v=>v.trim()):l.trim().split(/\s+/));
+    const width=Math.max(columns,c+Math.max(...lines.map(l=>l.length)));
+    setDraft(d=>{
+      const rows=tableRows.map(row=>Array.from({length:width},(_,j)=>row[j]??''));
+      lines.forEach((cells,i)=>{while(rows.length<=r+i)rows.push(Array(width).fill(''));cells.forEach((v,j)=>{rows[r+i][c+j]=v;});});
+      return {...d,rows,...(headers.length?{headers:Array.from({length:width},(_,j)=>headers[j]??'새 열')}:{})};
+    });
+  };
   const setTableRows=(next:(string|number)[][])=>setDraft(d=>({...d,rows:next,activeRow:typeof d.activeRow==='number'&&d.activeRow>=next.length?null:d.activeRow}));
   const series=rows('series');
   const setSeries=(next:Row[])=>{
@@ -74,11 +86,18 @@ export function ElementFields({ type, data, onApply, scope='base', validatePatch
     </>}
     {type==='table-grid'&&<>
       {numeric('width','표 너비',300)}
-      <Group title="표의 열">{Array.from({length:columns},(_,i)=><div key={i} className="flex items-end gap-1"><Field label={`열 ${i+1} 제목`} value={headers[i]??''} onChange={v=>set('headers',Array.from({length:columns},(_,j)=>j===i?v:headers[j]??''))}/><button type="button" className={buttonClass} aria-label={`열 ${i+1} 삭제`} onClick={()=>setDraft(d=>({...d,headers:Array.from({length:columns},(_,j)=>headers[j]??'').filter((_,j)=>j!==i),rows:tableRows.map(row=>row.filter((_,j)=>j!==i))}))}>삭제</button></div>)}
-        <button type="button" className={buttonClass} onClick={()=>setDraft(d=>({...d,headers:[...Array.from({length:columns},(_,j)=>headers[j]??''),'새 열'],rows:tableRows.map(row=>[...row,''])}))}>열 추가</button>
-      </Group>
-      <Group title="셀 값">{tableRows.map((row,r)=><div key={r} className="space-y-2 border-b border-slate-100 pb-2">{row.map((cell,c)=><Field key={c} label={`행 ${r+1} · 열 ${c+1}`} value={cell} onChange={v=>setTableRows(tableRows.map((cells,i)=>i===r?cells.map((x,j)=>j===c?v:x):cells))}/>)}<Move index={r} length={tableRows.length} name={`행 ${r+1}`} onMove={delta=>setTableRows(reordered(tableRows,r,delta))} onRemove={()=>setTableRows(tableRows.filter((_,i)=>i!==r))}/></div>)}
-        <button type="button" className={buttonClass} disabled={!columns} onClick={()=>setTableRows([...tableRows,Array(columns).fill('')])}>행 추가</button>
+      {/* Grid editing keeps the earlier accessible names (열 N 제목, 행 R · 열 C) used by regressions (2026-11-08). */}
+      <Group title="표 (열 제목과 셀)">
+        <div className="overflow-x-auto"><table className="border-collapse text-xs"><thead><tr>
+          {Array.from({length:columns},(_,i)=><th key={i} className="p-0.5 align-bottom"><div className="flex items-center gap-0.5"><input aria-label={`열 ${i+1} 제목`} className={`${cellClass} bg-slate-50 font-semibold`} value={headers[i]??''} onChange={e=>set('headers',Array.from({length:columns},(_,j)=>j===i?e.target.value:headers[j]??''))}/><button type="button" aria-label={`열 ${i+1} 삭제`} title="열 삭제" className="px-1 text-rose-500 hover:bg-rose-50" onClick={()=>setDraft(d=>({...d,headers:Array.from({length:columns},(_,j)=>headers[j]??'').filter((_,j)=>j!==i),rows:tableRows.map(row=>row.filter((_,j)=>j!==i))}))}>×</button></div></th>)}
+          <th />
+        </tr></thead><tbody>{tableRows.map((row,r)=><tr key={r} className={draft.activeRow===r?'bg-amber-50':undefined}>
+          {row.map((cell,c)=><td key={c} className="p-0.5"><input aria-label={`행 ${r+1} · 열 ${c+1}`} className={cellClass} value={String(cell??'')} onChange={e=>setTableRows(tableRows.map((cells,i)=>i===r?cells.map((x,j)=>j===c?e.target.value:x):cells))} onPaste={e=>pasteAt(e,r,c)}/></td>)}
+          <td className="whitespace-nowrap p-0.5"><Move index={r} length={tableRows.length} name={`행 ${r+1}`} onMove={delta=>setTableRows(reordered(tableRows,r,delta))} onRemove={()=>setTableRows(tableRows.filter((_,i)=>i!==r))}/></td>
+        </tr>)}</tbody></table></div>
+        <div className="flex gap-1"><button type="button" className={buttonClass} onClick={()=>setDraft(d=>({...d,headers:[...Array.from({length:columns},(_,j)=>headers[j]??''),'새 열'],rows:tableRows.map(row=>[...row,''])}))}>열 추가</button>
+        <button type="button" className={buttonClass} disabled={!columns} onClick={()=>setTableRows([...tableRows,Array(columns).fill('')])}>행 추가</button></div>
+        <p className="text-[11px] leading-relaxed text-slate-500">엑셀이나 메모장에서 여러 줄을 복사해 칸에 붙여넣으면 그 칸부터 채웁니다.</p>
       </Group>
       {select('activeRow','강조 행',[{value:'',label:'강조 없음'},...tableRows.map((_,i)=>({value:String(i),label:`${i+1}행`}))])}
     </>}

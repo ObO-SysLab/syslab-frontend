@@ -2,6 +2,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { useRef } from 'react';
 import { useFrameCtx } from '../FrameContext';
+import { editableClass, useNodeEdit } from '../lib/NodeEditContext';
 import { DEFAULT_PROCESS_SECTIONS, THREAD_FIELDS, processChanges, type ProcessData } from '../process/model';
 import styles from './ProcessBoxNode.module.css';
 import { ProcessRelations } from '../process/ProcessRelations';
@@ -11,6 +12,7 @@ export function ProcessBoxNode({ id, data, selected }: NodeProps) {
   const d = data as unknown as ProcessData;
   const bodyRef = useRef<HTMLDivElement>(null);
   const { previewFrame, previousNodeData } = useFrameCtx();
+  const { edit } = useNodeEdit();
   const changes = processChanges(previousNodeData?.[id] as ProcessData | undefined, d);
   const sections = (d.sections ?? DEFAULT_PROCESS_SECTIONS).map((section, index) => ({ ...section, index }))
     .filter(section => !d.hiddenSectionNames?.includes(section.name));
@@ -40,7 +42,8 @@ export function ProcessBoxNode({ id, data, selected }: NodeProps) {
       {renderSections(shared, '공유 영역', true)}
       {linked && <ProcessRelations container={bodyRef} signature={JSON.stringify(d)} />}
       <div className={styles.threads} data-thread-layout={d.threadLayout ?? 'row'} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, marginTop: linked ? 26 : 16, rowGap: linked ? 28 : 12 }}>
-        {threads.map(t => <section key={t.id} data-thread={t.id} data-active={t.id === d.activeThreadId} className={styles.thread}>
+        {threads.map(t => <section key={t.id} data-thread={t.id} data-active={t.id === d.activeThreadId} className={`${styles.thread} ${edit ? editableClass : ''}`}
+          title={edit ? '눌러서 현재 스레드로 표시/해제' : undefined} onClick={edit ? e => { e.stopPropagation(); edit(id, { activeThreadId: t.id === d.activeThreadId ? null : t.id }); } : undefined}>
           {t.id === d.activeThreadId && <svg aria-hidden="true" className={styles.orbit} width="100%" height="100%"><rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)" rx="10" /></svg>}
           <h3 className={styles.threadTitle}><span>{t.label}</span>{t.id === d.activeThreadId && <span className={styles.current}>현재</span>}</h3>
           <div className={styles.threadValues}>{fields.map(field => <div key={field} className={styles.cell} data-process-cell={`${t.id}:${field}`} data-changed={changes.threads[t.id]?.has(field) ?? false}>
