@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Mail, Lock, Fingerprint, ShieldCheck } from "lucide-react";
@@ -190,13 +191,13 @@ export default function FindAccountPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-slate-900 font-sans">
+    <div className="min-h-screen flex flex-col bg-panel text-ink font-sans">
 
       {/* 1. 상단 헤더 (뒤로가기 포함) */}
       <header className="w-full px-8 py-6 flex items-center justify-between">
         <Link
           href="/signin"
-          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors group"
+          className="flex items-center gap-2 text-ink-muted hover:text-ink transition-colors group"
         >
           <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
           <span className="text-sm font-bold">Back to Login</span>
@@ -204,32 +205,32 @@ export default function FindAccountPage() {
 
         { /* 우측 로고 영역 (메인 페이지 링크 포함) */}
         <Link href="/" className="inline-flex items-center gap-2">
-          <span className="text-3xl font-black tracking-tighter text-slate-900">Diveon</span>
+          <BrandMark size="lg" />
         </Link>
       </header>
 
       {/* 2. 메인 콘텐츠 */}
-      <main className="flex-1 flex items-center justify-center p-4 bg-slate-50/30">
+      <main className="flex-1 flex items-center justify-center p-4 bg-raised/30">
 
         <div className="w-full max-w-[450px] space-y-6">
 
           <div className="text-center space-y-2 mb-8">
-            <div className="bg-indigo-600 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-100">
+            <div className="bg-primary w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-black/40">
               <Fingerprint className="text-white w-7 h-7" />
             </div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">계정 정보 찾기</h2>
-            <p className="text-slate-400 text-sm font-medium">가입 시 등록한 정보로 본인 인증을 진행해 주세요.</p>
+            <h2 className="text-3xl font-black text-ink tracking-tight">계정 정보 찾기</h2>
+            <p className="text-ink-subtle text-sm font-medium">가입 시 등록한 정보로 본인 인증을 진행해 주세요.</p>
           </div>
 
-          <Card className="border-none shadow-2xl shadow-slate-200/50 bg-white rounded-3xl overflow-hidden">
+          <Card className="border-none shadow-2xl shadow-black/40 bg-panel rounded-3xl overflow-hidden">
             <CardContent className="p-2">
 
               <Tabs defaultValue="id" className="w-full" onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2 bg-slate-50 p-1 rounded-2xl h-14">
-                  <TabsTrigger value="id" className="rounded-xl font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                <TabsList className="grid w-full grid-cols-2 bg-canvas p-1 rounded-2xl h-14">
+                  <TabsTrigger value="id" className="rounded-xl font-bold data-[state=active]:bg-panel data-[state=active]:shadow-sm">
                     아이디 찾기
                   </TabsTrigger>
-                  <TabsTrigger value="pw" className="rounded-xl font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <TabsTrigger value="pw" className="rounded-xl font-bold data-[state=active]:bg-panel data-[state=active]:shadow-sm">
                     비밀번호 찾기
                   </TabsTrigger>
                 </TabsList>
@@ -238,15 +239,15 @@ export default function FindAccountPage() {
                 <TabsContent value="id" className="p-8 pt-6 space-y-6 animate-in fade-in duration-500">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">이메일</label>
+                      <label className="text-[11px] font-black uppercase tracking-widest text-ink-subtle ml-1">이메일</label>
                       <div className="relative">
-                        <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                        <Mail className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                         <Input
                           type="email"
                           value={emailForId}
                           onChange={(e) => setEmailForId(e.target.value)}
                           placeholder="diveon@gmail.com"
-                          className="pl-11 bg-slate-50 border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-900"
+                          className="pl-11 bg-canvas border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-primary"
                         />
                       </div>
                     </div>
@@ -254,7 +255,7 @@ export default function FindAccountPage() {
                   <Button
                     onClick={handleFindId}
                     disabled={isLoading}
-                    className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg shadow-slate-100 transition-all active:scale-[0.98]"
+                    className="w-full h-12 bg-raised border border-line-strong hover:bg-line text-white font-bold rounded-xl shadow-lg shadow-black/40 transition-all active:scale-[0.98]"
                   >
                     {isLoading ? "조회 중..." : "아이디 찾기"}
                   </Button>
@@ -267,22 +268,22 @@ export default function FindAccountPage() {
                   {!isResetMode && (
                     <div className="space-y-6">
                       <div className="space-y-2">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">이메일</label>
+                        <label className="text-[11px] font-black uppercase tracking-widest text-ink-subtle ml-1">이메일</label>
                         <div className="relative">
-                          <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                          <Mail className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                           <Input
                             type="email"
                             value={emailForPw}
                             onChange={(e) => setEmailForPw(e.target.value)}
                             placeholder="diveon@gmail.com"
-                            className="pl-11 bg-slate-50 border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-900"
+                            className="pl-11 bg-canvas border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-primary"
                           />
                         </div>
                       </div>
                       <Button
                         onClick={handleSendResetCode}
                         disabled={isLoading}
-                        className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 transition-all active:scale-[0.98]"
+                        className="w-full h-12 bg-primary hover:bg-primary-hover text-primary-ink font-bold rounded-xl shadow-lg shadow-black/40 transition-all active:scale-[0.98]"
                       >
                         {isLoading ? "발송 중..." : "인증 코드 발송"}
                       </Button>
@@ -292,26 +293,26 @@ export default function FindAccountPage() {
                   {/* [2단계] 인증 코드 입력 화면  */}
                   {isResetMode && !isCodeVerified && (
                     <div className="space-y-6 animate-in slide-in-from-right duration-300">
-                      <div className="p-4 bg-slate-50 rounded-2xl text-xs font-semibold text-slate-600 leading-normal border">
-                        <span className="underline font-mono font-bold text-slate-900">{emailForPw}</span> 계정으로 비밀번호 재설정 코드를 보냈습니다.
+                      <div className="p-4 bg-canvas rounded-2xl text-xs font-semibold text-ink-muted leading-normal border">
+                        <span className="underline font-mono font-bold text-ink">{emailForPw}</span> 계정으로 비밀번호 재설정 코드를 보냈습니다.
                       </div>
                       <div className="space-y-2">
                         {/* 라벨 영역에 타이머 정보 우측 정렬 배치 */}
                         <div className="flex justify-between items-center ml-1">
-                          <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">인증 코드 (6자리)</label>
+                          <label className="text-[11px] font-black uppercase tracking-widest text-ink-subtle">인증 코드 (6자리)</label>
                           {timeLeft > 0 ? (
-                            <span className="text-xs font-bold text-red-500 font-mono">
+                            <span className="text-xs font-bold text-danger font-mono">
                               남은 시간 {formatTime(timeLeft)}
                             </span>
                           ) : (
-                            <span className="text-xs font-bold text-red-500">
+                            <span className="text-xs font-bold text-danger">
                               인증 시간 만료
                             </span>
                           )}
                         </div>
 
                         <div className="relative">
-                          <Fingerprint className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                          <Fingerprint className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                           <Input
                             type="text"
                             maxLength={6}
@@ -320,7 +321,7 @@ export default function FindAccountPage() {
                             placeholder="인증코드"
                             // 시간 만료 시 입력 칸 비활성화 처리
                             disabled={timeLeft <= 0}
-                            className="pl-11 bg-slate-50 border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-900 font-mono tracking-widest font-bold text-slate-800 disabled:opacity-50"
+                            className="pl-11 bg-canvas border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-primary font-mono tracking-widest font-bold text-ink disabled:opacity-50"
                           />
                         </div>
                       </div>
@@ -332,7 +333,7 @@ export default function FindAccountPage() {
                             setIsResetMode(false);
                             setIsTimerActive(false); // 탭 전환 혹은 이전으로 갈 때 타이머 정지
                           }}
-                          className="h-12 px-4 rounded-xl text-slate-500 text-xs font-bold"
+                          className="h-12 px-4 rounded-xl text-ink-muted text-xs font-bold"
                         >
                           이전으로
                         </Button>
@@ -340,7 +341,7 @@ export default function FindAccountPage() {
                           onClick={handleVerifyResetCode}
                           // [수정] 시간 만료 시 확인 버튼도 비활성화
                           disabled={isLoading || timeLeft <= 0}
-                          className="flex-1 h-12 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg transition-all active:scale-[0.98]"
+                          className="flex-1 h-12 bg-raised border border-line-strong hover:bg-line text-white font-bold rounded-xl shadow-lg transition-all active:scale-[0.98]"
                         >
                           {isLoading ? "확인 중..." : "코드 확인"}
                         </Button>
@@ -351,35 +352,35 @@ export default function FindAccountPage() {
                   {/* [3단계] 비밀번호 변경 화면 */}
                   {isCodeVerified && (
                     <div className="space-y-6 animate-in zoom-in-95 duration-300">
-                      <div className="p-4 bg-green-50 border border-green-100 rounded-2xl text-xs font-bold text-green-800 leading-normal flex items-center gap-2">
+                      <div className="p-4 bg-success/10 border border-success/20 rounded-2xl text-xs font-bold text-success leading-normal flex items-center gap-2">
                         <span>이메일 인증이 성공적으로 확인되었습니다.</span>
                       </div>
 
                       {/* 새로운 비밀번호 입력 */}
                       <div className="space-y-2">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">새로운 비밀번호 입력</label>
+                        <label className="text-[11px] font-black uppercase tracking-widest text-ink-subtle ml-1">새로운 비밀번호 입력</label>
                         <div className="relative">
-                          <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                          <Lock className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                           <Input
                             type="password"
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             placeholder="새로운 비밀번호 입력"
-                            className="pl-11 bg-slate-50 border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-900"
+                            className="pl-11 bg-canvas border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-primary"
                           />
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">새로운 비밀번호 확인</label>
+                        <label className="text-[11px] font-black uppercase tracking-widest text-ink-subtle ml-1">새로운 비밀번호 확인</label>
                         <div className="relative">
-                          <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                          <Lock className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                           <Input
                             type="password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             placeholder="비밀번호 재입력"
-                            className="pl-11 bg-slate-50 border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-900"
+                            className="pl-11 bg-canvas border-none h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-primary"
                           />
                         </div>
                       </div>
@@ -387,7 +388,7 @@ export default function FindAccountPage() {
                       <Button
                         onClick={handleResetPassword}
                         disabled={isLoading}
-                        className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 transition-all active:scale-[0.98]"
+                        className="w-full h-12 bg-primary hover:bg-primary-hover text-primary-ink font-bold rounded-xl shadow-lg shadow-black/40 transition-all active:scale-[0.98]"
                       >
                         {isLoading ? "변경 중..." : "비밀번호 최종 변경"}
                       </Button>
@@ -402,11 +403,11 @@ export default function FindAccountPage() {
 
           {/* 하단 링크 */}
           <div className="flex justify-center gap-6 pt-2">
-            <Link href="/signup" className="text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors underline underline-offset-4 decoration-slate-200">
+            <Link href="/signup" className="text-xs font-bold text-ink-subtle hover:text-ink transition-colors underline underline-offset-4 decoration-ink">
               신규 회원가입
             </Link>
-            <div className="w-[1px] h-3 bg-slate-200 self-center" />
-            <Link href="/support" className="text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors underline underline-offset-4 decoration-slate-200">
+            <div className="w-[1px] h-3 bg-line self-center" />
+            <Link href="/support" className="text-xs font-bold text-ink-subtle hover:text-ink transition-colors underline underline-offset-4 decoration-ink">
               고객센터 문의
             </Link>
           </div>
@@ -415,7 +416,7 @@ export default function FindAccountPage() {
       </main>
 
       <footer className="py-8 text-center">
-        <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">
+        <p className="text-[10px] text-ink-subtle font-bold uppercase tracking-widest">
           Diveon Identity Management System
         </p>
       </footer>
