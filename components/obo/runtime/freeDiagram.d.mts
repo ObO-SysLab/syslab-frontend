@@ -3,3 +3,8 @@ export function validateDiagramElement(type:string|undefined,data:unknown,path?:
 export function validateDiagramBlob(blob:unknown,path?:string,trace?:boolean):void;
 export function validateFreeDiagram(document:unknown):unknown;
 export function parseDiagramTrace(text:string,nodes:unknown[],edges:unknown[]):{trace:import('../types').OboTraceStep[];errors:{line:number;message:string}[]};
+export function framesToTrace(nodes:unknown[],frames:import('../types').Frame[]):import('../types').OboTraceStep[];
+export const simpleOutputTypes:string[];
+export function validateOutputFormat(format:unknown,nodes:unknown[]):import('../types').SimpleOutputFormat;
+export function parseSimpleOutput(text:string,nodes:unknown[],edges:unknown[],format:import('../types').SimpleOutputFormat):{trace:import('../types').OboTraceStep[];errors:{line:number;message:string}[]};
+export function formatSimpleOutput(nodes:unknown[],frames:import('../types').Frame[],format:import('../types').SimpleOutputFormat):{lines:{scene:number;text:string}[];text:string;issues:string[]};

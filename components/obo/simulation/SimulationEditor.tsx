@@ -1,35 +1,29 @@
 'use client';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Plus, Copy, Trash2, Undo2, Redo2, Play, Pause, ChevronLeft, ChevronRight, Download, Upload, Eye, EyeOff } from 'lucide-react';
+import { Plus, Copy, Trash2, Undo2, Redo2, Download, Upload, Eye, EyeOff } from 'lucide-react';
 import type { Connection } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import { modelList, registry, parseBoundedJson, type Json, type ModelRun } from '../runtime/index.mjs';
 import { createInstance, copyInstance, createView, addActor, deleteActor, replaceInput, connectResource, validateDocument, semanticEntities, freshId, roleLabels, type SimulationDocument, type SimulationInstance, type SimulationView } from '../runtime/document.mjs';
 import { eventLabel, matchingCursor, semanticPosition, projection } from '../runtime/projection.mjs';
-import { arrangeViews } from '../runtime/document.mjs';
+import { arrangeViews, placeNewView } from '../runtime/document.mjs';
 import { InputForm, type FieldSchema } from './InputForm';
 import { SimulationScene } from './SimulationScene';
+import { hasLowerExplanation } from './lowerExplanations';
 import { useSimulation } from './useSimulation';
+import { TextFormatPreview } from './TextFormatPreview';
+import { PlaybackBar } from '../PlaybackBar';
+import { usePlayback } from '../playback';
 
 const domains:Record<string,string>={process:'프로세스·스레드',cpu:'CPU',sync:'동기화·교착',memory:'메모리',filesystem:'파일·디스크',kernel:'커널·I/O'};
 const fieldClass='w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs';
-export function Playback({execution,cursor,setCursor}:{execution:ModelRun|null;cursor:number;setCursor:(cursor:number)=>void}) {
-  const [playing,setPlaying]=useState(false),[speed,setSpeed]=useState(1);
+/** Simple-mode playback (2026-11-09 learner-playback): the shared bar, a start state before the first scene. */
+export function Playback({execution,cursor,setCursor,stopAt,wrongAt}:{execution:ModelRun|null;cursor:number;setCursor:(cursor:number)=>void;stopAt?:number;wrongAt?:number|null}) {
   const last=(execution?.events.length??0)-1;
-  useEffect(()=>{
-    if(!playing||cursor>=last)return;
-    const timer=window.setTimeout(()=>setCursor(cursor+1),700/speed);
-    return ()=>window.clearTimeout(timer);
-  },[playing,cursor,last,speed,setCursor]);
-  return <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
-    <div className="flex flex-wrap items-center gap-2">
-      <Button type="button" size="icon" variant="outline" aria-label="이전 사건" disabled={cursor<0} onClick={()=>{setPlaying(false);setCursor(cursor-1);}}><ChevronLeft className="h-4 w-4"/></Button>
-      <Button type="button" size="icon" aria-label={playing&&cursor<last?'일시 정지':'재생'} disabled={!execution||last<0} onClick={()=>{if(cursor>=last){setCursor(-1);setPlaying(true);}else setPlaying(p=>!p);}}>{playing&&cursor<last?<Pause className="h-4 w-4"/>:<Play className="h-4 w-4"/>}</Button>
-      <Button type="button" size="icon" variant="outline" aria-label="다음 사건" disabled={cursor>=last} onClick={()=>{setPlaying(false);setCursor(cursor+1);}}><ChevronRight className="h-4 w-4"/></Button>
-      <select aria-label="재생 속도" className="rounded border px-2 py-1 text-xs" value={speed} onChange={e=>setSpeed(Number(e.target.value))}>{[.5,1,2,4].map(n=><option key={n} value={n}>{n}배</option>)}</select>
-      <span className="text-xs font-medium text-slate-600">{cursor<0?'초기 상태':`${cursor+1} / ${last+1}`}</span>
-    </div>
-    <input className="w-full accent-indigo-600" type="range" aria-label="사건 탐색" min={-1} max={Math.max(-1,last)} value={Math.min(cursor,last)} onChange={e=>{setPlaying(false);setCursor(Number(e.target.value));}}/>
+  const pb=usePlayback({index:cursor,setIndex:setCursor,first:-1,last,stopAt});
+  return <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3" onKeyDown={pb.onKeyDown}>
+    <PlaybackBar pb={pb} index={cursor} wrongAt={wrongAt}/>
+    {wrongAt!=null&&cursor===wrongAt&&<p role="alert" data-wrong-scene className="text-xs font-semibold text-rose-700">여기서부터 정답과 다릅니다</p>}
     <p className="min-h-4 text-xs text-slate-600" aria-live="polite">{eventLabel(execution?.events[cursor])}</p>
   </div>;
 }
@@ -49,8 +43,11 @@ export function SimulationEditor({value,onChange,choices=[],allowCoding=false,on
   const [selectedModel,setSelectedModel]=useState('ST2'),[panel,setPanel]=useState<'input'|'view'|'question'>('input'),[compareId,setCompareId]=useState<string>('');
   const [history,setHistory]=useState<SimulationDocument[]>([]),[future,setFuture]=useState<SimulationDocument[]>([]),[notice,setNotice]=useState('');
   const [connectionKind,setConnectionKind]=useState('decoration');
+  const [revealViewId,setRevealViewId]=useState<string|null>(null);
   const fileInput=useRef<HTMLInputElement>(null);
   const active=value.instances.find(i=>i.id===activeId)??value.instances[0];
+  const lowerExplanation=hasLowerExplanation(active.scenarioId);
+  const placementOptions={excludedIds:lowerExplanation?active.views.filter(view=>view.role==='annotation').map(view=>view.id):[]};
   const selected=active.views.find(v=>v.id===selectedId);
   const {execution,error,loading}=useSimulation(active);
   let fields:string[]=[];
@@ -61,7 +58,7 @@ export function SimulationEditor({value,onChange,choices=[],allowCoding=false,on
   const updateInstance=useCallback((next:SimulationInstance,saveHistory=true)=>commit({...docRef.current,instances:docRef.current.instances.map(i=>i.id===next.id?next:i)},saveHistory),[commit]);
   const attempt=(fn:()=>void)=>{try{fn();setNotice('');}catch(e){setNotice(e instanceof Error?e.message:'설정을 확인하세요.');}};
   const changeView=(patch:Partial<SimulationView>)=>{if(selected)updateInstance({...active,views:active.views.map(v=>v.id===selected.id?{...v,...patch}:v)});};
-  const selectInstance=(id:string)=>{setActiveId(id);setSelectedId(null);setCursor(-1);};
+  const selectInstance=(id:string)=>{setActiveId(id);setSelectedId(null);setRevealViewId(null);setCursor(-1);};
   const removeViews=(ids:string[])=>{const removed=new Set(ids);updateInstance({...active,views:active.views.filter(v=>!removed.has(v.id)),decorations:active.decorations.filter(e=>!removed.has(e.source)&&!removed.has(e.target))});setSelectedId(null);};
   const connect=(c:Connection)=>attempt(()=>{
     if(!c.source||!c.target)return;
@@ -84,7 +81,7 @@ export function SimulationEditor({value,onChange,choices=[],allowCoding=false,on
       <select className="max-w-64 rounded-md border px-2 py-2 text-sm" aria-label="시뮬레이션 모델" value={selectedModel} onChange={e=>setSelectedModel(e.target.value)}>{Object.entries(domains).map(([domain,label])=><optgroup key={domain} label={label}>{modelList.filter(m=>m.domain===domain).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</optgroup>)}</select>
       <Button type="button" size="sm" disabled={value.instances.length>=8} onClick={()=>{const instance=createInstance(selectedModel);commit({...value,instances:[...value.instances,instance],explanations:{...value.explanations,common:[...value.explanations.common,instance.id]}});selectInstance(instance.id);}}><Plus className="mr-1 h-4 w-4"/>새 시뮬레이션</Button>
       <Button type="button" size="sm" variant="outline" disabled={value.instances.length>=8} onClick={()=>{const copy=copyInstance(active);commit({...value,instances:[...value.instances,copy]});setCompareId(copy.id);}}><Copy className="mr-1 h-4 w-4"/>독립 비교 만들기</Button>
-      <Button type="button" size="sm" variant="outline" onClick={()=>updateInstance(arrangeViews(active))}>배치 정리</Button>
+      <Button type="button" size="sm" variant="outline" onClick={()=>attempt(()=>updateInstance(arrangeViews(active,placementOptions)))}>배치 정리</Button>
       <Button type="button" size="icon" variant="ghost" aria-label="되돌리기" disabled={!history.length} onClick={()=>{const previous=history.at(-1)!;setFuture(f=>[structuredClone(value),...f].slice(0,30));setHistory(h=>h.slice(0,-1));commit(previous,false);setCursor(-1);}}><Undo2 className="h-4 w-4"/></Button>
       <Button type="button" size="icon" variant="ghost" aria-label="다시하기" disabled={!future.length} onClick={()=>{const next=future[0];setHistory(h=>[...h,structuredClone(value)].slice(-30));setFuture(f=>f.slice(1));commit(next,false);setCursor(-1);}}><Redo2 className="h-4 w-4"/></Button>
       <Button type="button" size="icon" variant="ghost" aria-label="설정 내보내기" onClick={download}><Download className="h-4 w-4"/></Button>
@@ -96,8 +93,8 @@ export function SimulationEditor({value,onChange,choices=[],allowCoding=false,on
     {(notice||error)&&<p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{notice||error}</p>}
     <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-[180px_minmax(320px,1fr)_300px]">
       <aside className="max-h-[720px] space-y-4 overflow-auto rounded-xl border border-slate-200 bg-white p-3">
-        <div><h3 className="mb-2 text-xs font-bold text-slate-500">표시 추가</h3><div className="grid grid-cols-2 gap-1">{registry[active.scenarioId].metadata.elements.map(role=><button type="button" key={role} className="rounded-md border border-slate-200 p-2 text-xs hover:bg-indigo-50" onClick={()=>{const view=createView(role,null,active.views.length);updateInstance({...active,views:[...active.views,view]});setSelectedId(view.id);setPanel('view');}}>{roleLabels[role]}</button>)}</div></div>
-        {registry[active.scenarioId].metadata.elements.includes('actor')&&<div className="space-y-2 border-t pt-3"><h3 className="text-xs font-bold text-slate-500">계산 대상</h3><Button type="button" size="sm" variant="outline" className="w-full text-xs" onClick={()=>attempt(()=>{updateInstance(addActor(active));setCursor(-1);})}>실행 주체 추가</Button><p className="text-[11px] text-slate-400">대상을 추가하면 계산에 반영됩니다.</p></div>}
+        <div><h3 className="mb-2 text-xs font-bold text-slate-500">표시 추가</h3><div className="grid grid-cols-2 gap-1">{registry[active.scenarioId].metadata.elements.map(role=><button type="button" key={role} className="rounded-md border border-slate-200 p-2 text-xs hover:bg-indigo-50" onClick={()=>attempt(()=>{const draft=createView(role,null,active.views.length);const view=lowerExplanation&&role==='annotation'?draft:placeNewView(active,draft,placementOptions);updateInstance({...active,views:[...active.views,view]});setSelectedId(view.id);setPanel('view');if(!(lowerExplanation&&role==='annotation'))setRevealViewId(view.id);})}>{roleLabels[role]}</button>)}</div></div>
+        {registry[active.scenarioId].metadata.elements.includes('actor')&&<div className="space-y-2 border-t pt-3"><h3 className="text-xs font-bold text-slate-500">계산 대상</h3><Button type="button" size="sm" variant="outline" className="w-full text-xs" onClick={()=>attempt(()=>{const next=addActor(active,'producer',placementOptions);const view=next.views.find(view=>!active.views.some(previous=>previous.id===view.id));updateInstance(next);setCursor(-1);if(view){setSelectedId(view.id);setPanel('view');setRevealViewId(view.id);}})}>실행 주체 추가</Button><p className="text-[11px] text-slate-400">대상을 추가하면 계산에 반영됩니다.</p></div>}
         <div className="space-y-1 border-t pt-3"><h3 className="mb-2 text-xs font-bold text-slate-500">화면의 표시</h3>{active.views.map(v=><div key={v.id} className={`flex items-center gap-1 rounded p-1 ${selectedId===v.id?'bg-indigo-50':''}`}><button type="button" className="min-w-0 flex-1 truncate text-left text-xs" onClick={()=>{setSelectedId(v.id);setPanel('view');}}>{v.label}{v.target?` · ${v.target}`:''}</button><button type="button" aria-label={`${v.label} ${v.hidden?'보이기':'숨기기'}`} onClick={()=>updateInstance({...active,views:active.views.map(x=>x.id===v.id?{...x,hidden:!x.hidden}:x)})}>{v.hidden?<EyeOff className="h-3 w-3 text-slate-400"/>:<Eye className="h-3 w-3 text-slate-500"/>}</button></div>)}</div>
       </aside>
       <main className="min-w-0 space-y-2">
@@ -105,13 +102,15 @@ export function SimulationEditor({value,onChange,choices=[],allowCoding=false,on
           <label className="ml-auto flex items-center gap-1">연결<select className="rounded border bg-white p-1" value={connectionKind} onChange={e=>setConnectionKind(e.target.value)}><option value="decoration">설명 선</option>{active.scenarioId==='S3'&&<><option value="request">요청 관계</option><option value="assign">소유 관계</option></>}</select></label>
           <label className="flex items-center gap-1">비교<select className="max-w-40 rounded border bg-white p-1" value={comparison?.id??''} onChange={e=>setCompareId(e.target.value)}><option value="">없음</option>{value.instances.filter(i=>i.id!==active.id).map(i=><option key={i.id} value={i.id}>{i.name}</option>)}</select></label>
         </div>
-        <SimulationScene key={active.id} instance={active} execution={execution} cursor={Math.min(cursor,(execution?.events.length??0)-1)} editable selectedId={selectedId} onSelect={id=>{setSelectedId(id);if(id)setPanel('view');}} onBeginEdit={remember} onChanges={changes=>{
+        <SimulationScene key={active.id} instance={active} execution={execution} cursor={Math.min(cursor,(execution?.events.length??0)-1)} editable selectedId={selectedId} revealViewId={revealViewId} onSelect={id=>{setSelectedId(id);if(id)setPanel('view');}} onBeginEdit={remember} onChanges={changes=>{
           const positions=new Map(changes.filter(c=>c.type==='position').map(c=>[c.id,c.type==='position'?c.position:undefined]));
           const sizes=new Map(changes.filter(c=>c.type==='dimensions').map(c=>[c.id,c.type==='dimensions'?c.dimensions:undefined]));
           if(!positions.size&&!sizes.size)return;
           const current=docRef.current.instances.find(i=>i.id===active.id)!;
           updateInstance({...current,views:current.views.map(v=>{const p=positions.get(v.id),s=sizes.get(v.id);return p||s?{...v,...(p?{x:p.x,y:p.y}:{}),...(s?{width:s.width,height:s.height}:{})}:v;})},false);
-        }} onConnect={connect} onDeleteViews={removeViews} onDeleteRelation={removeRelation}/>
+        }} onConnect={connect} onDeleteViews={removeViews} onDeleteRelation={removeRelation}
+          onExplanationChange={(id,text)=>updateInstance({...active,views:active.views.map(v=>v.id===id?{...v,text}:v)})}
+          onAddExplanation={()=>{const view=createView('annotation',null,active.views.length);updateInstance({...active,views:[...active.views,view]});setSelectedId(view.id);setPanel('view');}}/>
         <Playback execution={execution} cursor={cursor} setCursor={setCursor}/>
         {comparison&&<ComparisonPane key={`${comparison.id}-${JSON.stringify(comparison.input)}`} instance={comparison} primary={active} primaryRun={execution} primaryCursor={cursor}/>}
       </main>
@@ -130,16 +129,25 @@ export function SimulationEditor({value,onChange,choices=[],allowCoding=false,on
           </fieldset>}
           {selected.role==='annotation'&&<label className="block text-xs">나타날 실행 주체<select className={fieldClass} value={selected.when.actor??''} onChange={e=>changeView({when:{...selected.when,actor:e.target.value||null}})}><option value="">모든 주체</option>{semanticEntities(active).actor.map(id=><option key={id}>{id}</option>)}</select></label>}
           {['actor','resource'].includes(selected.role)&&<label className="block text-xs">표시할 대상<select className={fieldClass} value={selected.target??''} onChange={e=>changeView({target:e.target.value||null})}><option value="">전체</option>{(semanticEntities(active)[selected.role as 'actor'|'resource']??[]).map(id=><option key={id} value={id}>{id}</option>)}</select></label>}
-          {selected.target&&selected.role==='actor'&&<label className="block text-xs">화면 이름<input className={fieldClass} value={active.labels[selected.target]??selected.target} onChange={e=>updateInstance({...active,labels:{...active.labels,[selected.target!]:e.target.value}})}/></label>}
-          {selected.role==='annotation'&&<><label className="block text-xs">설명<textarea className={fieldClass} rows={5} value={selected.text} onChange={e=>changeView({text:e.target.value})}/></label><label className="block text-xs">나타날 사건<select className={fieldClass} value={selected.when.kind??''} onChange={e=>changeView({when:{...selected.when,kind:e.target.value||null}})}><option value="">항상</option>{[...new Set(execution?.events.map(e=>e.kind)??[])].map(k=><option key={k}>{k}</option>)}</select></label></>}
+          {selected.target&&selected.role==='actor'&&<label className="block text-xs">화면 이름<input className={fieldClass} value={Object.hasOwn(active.labels,selected.target)?active.labels[selected.target]:selected.target} onChange={e=>updateInstance({...active,labels:{...active.labels,[selected.target!]:e.target.value}})}/></label>}
+          {selected.role==='annotation'&&<>{lowerExplanation?<p className="text-xs text-slate-500">설명은 그림 아래 입력란에서 작성합니다.</p>:<label className="block text-xs">설명<textarea className={fieldClass} rows={5} value={selected.text} onChange={e=>changeView({text:e.target.value})}/></label>}<label className="block text-xs">나타날 장면<select className={fieldClass} value={selected.when.kind??''} onChange={e=>changeView({when:{...selected.when,kind:e.target.value||null}})}><option value="">항상</option>{[...new Set(execution?.events.map(e=>e.kind)??[])].map(k=><option key={k}>{k}</option>)}</select></label></>}
           <Button type="button" size="sm" variant="outline" className="w-full" onClick={()=>{const view={...structuredClone(selected),id:freshId('view'),x:selected.x+35,y:selected.y+35};updateInstance({...active,views:[...active.views,view]});setSelectedId(view.id);}}>같은 대상의 표시 복제</Button>
           <Button type="button" size="sm" variant="outline" className="w-full" onClick={()=>removeViews([selected.id])}>표시만 삭제</Button>
           {selected.role==='actor'&&selected.target&&<Button type="button" size="sm" variant="destructive" className="w-full" onClick={()=>attempt(()=>{updateInstance(deleteActor(active,selected.target!));setSelectedId(null);setCursor(-1);})}>계산 대상과 연결 표시 삭제</Button>}
         </div>:<p className="text-sm text-slate-400">캔버스 또는 표시 목록에서 선택하세요.</p>)}
         {panel==='question'&&<div className="space-y-4">
-          {allowCoding?<><label className="block text-xs">코딩 채점<select aria-label="코딩 채점" className={fieldClass} value={value.question.judgeProfile} onChange={e=>commit({...value,question:{...value.question,judgeProfile:e.target.value as 'text-v1'|'obo-v1',ioFormat:'json-v1',gradingInstanceId:e.target.value==='obo-v1'?active.id:null}})}><option value="text-v1">기존 출력 비교 · 시각화는 해설용</option><option value="obo-v1">시뮬레이션 의미 검사</option></select></label>
-            {value.question.judgeProfile==='obo-v1'&&<><label className="block text-xs">채점할 모델<select className={fieldClass} value={value.question.gradingInstanceId??''} onChange={e=>commit({...value,question:{...value.question,gradingInstanceId:e.target.value,ioFormat:'json-v1'}})}><option value="">선택하세요</option>{value.instances.map(i=><option key={i.id} value={i.id}>{i.name}</option>)}</select></label><label className="block text-xs">검증 범위<select className={fieldClass} value={value.question.assessmentMode} onChange={e=>commit({...value,question:{...value.question,assessmentMode:e.target.value as 'result'|'process',ioFormat:'json-v1'}})}><option value="result">최종 결과</option><option value="process">결과와 필수 과정</option></select></label><p className="text-xs text-slate-500">학생은 안내된 형식으로 결과·기록을 출력합니다. 화면 배치와 색상은 채점하지 않습니다.</p></>}
-            {value.question.judgeProfile==='obo-v1'&&value.question.assessmentMode==='result'&&value.instances.find(i=>i.id===value.question.gradingInstanceId)?.scenarioId==='RR'&&<label className="block text-xs">학생 입출력 형식<select aria-label="학생 입출력 형식" className={fieldClass} value={value.question.ioFormat??'json-v1'} onChange={e=>commit({...value,question:{...value.question,ioFormat:e.target.value as 'json-v1'|'rr-segments-v1'}})}><option value="json-v1">기존 JSON 결과 · 시간 지표 포함</option><option value="rr-segments-v1">RR 실행 구간 · ID 시작 종료</option></select><p className="mt-2 text-slate-500">실행 구간을 선택하면 학생은 구간만 출력합니다. I/O 없는 RR에 사용하며, 아래 버튼으로 현재 모델의 입력·출력 예제를 만들 수 있습니다.</p></label>}
+          {allowCoding?<><label className="block text-xs">코딩 채점<select aria-label="코딩 채점" className={fieldClass} value={value.question.judgeProfile} onChange={e=>commit({...value,question:{...value.question,judgeProfile:e.target.value as 'text-v1'|'obo-v1',ioFormat:e.target.value==='obo-v1'?'text-v1':'json-v1',assessmentMode:'result',gradingInstanceId:e.target.value==='obo-v1'?active.id:null}})}><option value="text-v1">기존 출력 비교 · 시각화는 해설용</option><option value="obo-v1">시뮬레이션 의미 검사</option></select></label>
+            {value.question.judgeProfile==='obo-v1'&&(()=>{
+              // 2026-11-08: every model can use Baekjoon-style text (recommended); JSON stays for process checks.
+              const q=value.question,graded=value.instances.find(i=>i.id===q.gradingInstanceId),format=q.ioFormat??'json-v1';
+              return <><label className="block text-xs">채점할 모델<select className={fieldClass} value={q.gradingInstanceId??''} onChange={e=>commit({...value,question:{...q,gradingInstanceId:e.target.value,...(format==='rr-segments-v1'?{ioFormat:'text-v1' as const,assessmentMode:'result' as const}:{})}})}><option value="">선택하세요</option>{value.instances.map(i=><option key={i.id} value={i.id}>{i.name}</option>)}</select></label>
+                <label className="block text-xs">학생 입출력 형식<select aria-label="학생 입출력 형식" className={fieldClass} value={format} onChange={e=>{const next=e.target.value as 'json-v1'|'rr-segments-v1'|'text-v1';commit({...value,question:{...q,ioFormat:next,...(next==='json-v1'?{}:{assessmentMode:'result' as const})}});}}>
+                  <option value="text-v1">백준식 텍스트 (추천) · 줄 단위 입력과 출력</option><option value="json-v1">JSON (고급) · 결과 또는 과정 기록</option>{format==='rr-segments-v1'&&<option value="rr-segments-v1">RR 실행 구간 (이전 형식)</option>}
+                </select></label>
+                {format==='json-v1'&&<label className="block text-xs">검증 범위<select className={fieldClass} value={q.assessmentMode} onChange={e=>commit({...value,question:{...q,assessmentMode:e.target.value as 'result'|'process'}})}><option value="result">최종 결과</option><option value="process">결과와 필수 과정</option></select></label>}
+                {format==='text-v1'&&graded&&<TextFormatPreview instance={graded}/>}
+                <p className="text-xs text-slate-500">{format==='text-v1'?'텍스트는 줄 단위로 비교합니다. 과정이 중요한 모델은 단계마다 한 줄을 출력합니다. 아래 버튼으로 예제와 숨김 테스트를 만들 수 있습니다.':'학생은 안내된 형식으로 결과·기록을 출력합니다. 화면 배치와 색상은 채점하지 않습니다.'}</p></>;
+            })()}
           </>:<label className="block text-xs">선택 형식<select className={fieldClass} value={value.question.selectionMode} onChange={e=>commit({...value,question:{...value.question,selectionMode:e.target.value as 'single'|'multiple'}})}><option value="single">단일 선택</option><option value="multiple">복수 선택</option></select></label>}
           <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={value.explanations.common.includes(active.id)} onChange={e=>commit({...value,explanations:{...value.explanations,common:e.target.checked?[...new Set([...value.explanations.common,active.id])]:value.explanations.common.filter(id=>id!==active.id)}})}/>공통 해설에 이 실행 포함</label>
           {choices.length>0&&<fieldset className="space-y-2 rounded border p-3 text-xs"><legend>현재 실행을 연결할 보기</legend>{choices.map(choice=><label key={choice.id} className="flex items-start gap-2"><input type="checkbox" checked={(value.explanations.choices[choice.id]??[]).includes(active.id)} onChange={e=>{const ids=value.explanations.choices[choice.id]??[];commit({...value,explanations:{...value.explanations,choices:{...value.explanations.choices,[choice.id]:e.target.checked?[...new Set([...ids,active.id])]:ids.filter(id=>id!==active.id)}}});}}/>{choice.text||choice.id}</label>)}</fieldset>}

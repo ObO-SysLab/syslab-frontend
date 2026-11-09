@@ -1,18 +1,25 @@
 "use client";
+import { requestJson, requestIssue, httpIssue, RequestFailure, authHeaders, type RequestIssue } from "@/lib/request";
+import { RequestError } from "@/components/feedback/RequestError";
+import { useRemoteData } from "@/components/feedback/useRemoteData";
+import { logout } from "@/lib/authSession";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import Link from "next/link";
 import {
-  Menu, LogOut, CheckCircle2, Target, Zap, Code2, PlusCircle, Eye,
-  StickyNote, Bell, Trash2, Network
+  Menu, LogOut, CheckCircle2, Zap, PlusCircle, Eye,
+  Bell, Trash2, Network
 } from "lucide-react";
 import type { ProblemOboData } from "@/components/obo/types";
 import { OboEditorSection } from "@/components/obo/OboEditorSection";
 import { freshId } from '@/components/obo/runtime/document.mjs';
 import { CodingExampleControl } from '@/components/obo/simulation/CodingExampleControl';
+import { DiagramExampleControl } from '@/components/obo/DiagramExampleControl';
 import { CodingRules } from '@/components/obo/simulation/CodingRules';
 import { describeCodingContract } from '@/components/obo/guidance/codingContract';
-import { validateProblemObo } from "@/components/obo/lib/validateObo";
+import { AuthoringChecklist } from "@/components/problem/AuthoringChecklist";
+import { authoringChecklist, requiredFieldErrors, type AuthoringState } from "@/components/problem/authoringSteps";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,12 +31,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { toApiCategory } from "@/lib/utils";
 import {problemApi,problemToken} from '@/lib/problemApi';
 import {useBrowserDraft} from '@/components/obo/authoring/useBrowserDraft';
 import {isProblemDraft,type ProblemDraft} from '@/components/obo/authoring/problemDraft';
 
 function ProblemCreateContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // The token lives in localStorage, so it is unknown during static prerender; render the same placeholder until checked.
+  const [sessionChecked, setSessionChecked] = useState(false);
   const searchParams = useSearchParams();
   const editId = searchParams.get("id"); // URL의 ?id=... 값을 가져옴
   const isEditMode = !!editId; // id가 있으면 수정 모드(true)
@@ -40,13 +50,13 @@ function ProblemCreateContent() {
     if (token) {
       setIsLoggedIn(true);
     } else {
-      alert("로그인이 필요한 서비스입니다.");
-      window.location.href = "/signin"; // 로그인 페이지로 리다이렉트
+      setIsLoggedIn(false);
     }
+    setSessionChecked(true);
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (!logout()) return;
     setIsLoggedIn(false);
     window.location.href = "/";
   };
@@ -59,7 +69,7 @@ function ProblemCreateContent() {
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState(""); // 스토리를 summary로 매핑
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("kernel");
+  const [category, setCategory] = useState("Kernel");
   const [difficulty, setDifficulty] = useState("1");
   const [visibility, setVisibility] = useState(isEditMode ? "" : "public");
 
@@ -89,6 +99,14 @@ function ProblemCreateContent() {
   const [editLoaded,setEditLoaded]=useState(!editId);
   const [editError,setEditError]=useState('');
   const [saveNotice,setSaveNotice]=useState('');
+  const [saveIssue,setSaveIssue]=useState<RequestIssue|null>(null);
+  const [fieldErrors,setFieldErrors]=useState<Record<string,string>>({});
+  const saving=useRef(false);
+  const focusField=(field:string)=>{
+    if(field==='description')setDescriptionTab('desc');
+    setTimeout(()=>{const target=document.getElementById(field)??document.getElementById(`${field}-error`);target?.scrollIntoView({behavior:'smooth',block:'center'});target?.focus();},0);
+  };
+  const fieldError=(field:string)=>fieldErrors[field]?<p id={`${field}-error`} tabIndex={-1} role="alert" className="mt-2 rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">{fieldErrors[field]}</p>:null;
   const [editVersion,setEditVersion]=useState<string|null>(null);
   const [oboAlternates,setOboAlternates]=useState<ProblemDraft['oboAlternates']>({});
 
@@ -194,32 +212,29 @@ function ProblemCreateContent() {
     }
   };
 
+  // “만드는 순서” (2026-11-09): live state of what registration needs; rows jump to their field.
+  const [previewed,setPreviewed]=useState(false);
+  // A function: group/contest selections are declared further down this component.
+  const authoringState=():AuthoringState=>({title,category,description,isEditMode,visibility,selectedGroupId,selectedContestId,problemType,choices,selectedAnswers,
+    hasDockerfile:!!dockerfile,flag,oboEnabled,oboData,testcases,previewed});
+  const goTo=(target:string)=>{
+    if(target==='description')setDescriptionTab('desc');
+    setTimeout(()=>{const el=document.getElementById(target);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});
+      const focusable=el.matches('input,textarea,select,button')?el:el.querySelector<HTMLElement>('input:not([type=hidden]),textarea,[role=combobox],button');focusable?.focus({preventScroll:true});},0);
+  };
+
   // [API] 제출 핸들러
   const handleSubmit = async () => {
-    setSaveNotice('');
-    if(isEditMode&&problemType!=='practice'&&!editVersion){setSaveNotice('서버 버전을 확인하지 못했습니다. 초안을 보관하고 다시 열어주세요.');return;}
-    draft.save();
+    if(saving.current)return;
+    setSaveNotice('');setSaveIssue(null);setFieldErrors({});
     if(!editLoaded)return;
-    if (!title || !category || !description) {
-      alert("제목, 카테고리, 문제 설명은 필수입니다.");
-      return;
-    }
-
-    if (!isEditMode && visibility === "group" && !selectedGroupId) {
-      alert("공개할 그룹을 선택해주세요.");
-      return;
-    }
-
-    if (oboEnabled) {
-      const oboErrors = validateProblemObo(oboData, { choiceCount: choices.length });
-      if (oboErrors.length) {
-        alert("OBO 설정을 확인하세요:\n- " + oboErrors.join("\n- "));
-        return;
-      }
-    }
-
-    setIsSubmitting(true);
-    const token = problemToken();
+    draft.save();
+    // Same checks the “만드는 순서” list shows (components/problem/authoringChecklist.ts, 2026-11-09).
+    const errors=requiredFieldErrors(authoringState());
+    if(Object.keys(errors).length){setFieldErrors(errors);focusField(Object.keys(errors)[0]);return;}
+    if(isEditMode&&problemType!=='practice'&&!editVersion){setSaveNotice('서버 버전을 확인하지 못했습니다. 초안을 파일로 보관하고 다시 열어 주세요.');return;}
+    const token=problemToken();if(!token){setSaveIssue(httpIssue(401));return;}
+    saving.current=true;setIsSubmitting(true);
 
     // 상태 변수 정의
     const method = isEditMode ? "PATCH" : "POST";
@@ -264,7 +279,7 @@ function ProblemCreateContent() {
           endpoint = problemApi(`/api/problems/practice`);
 
           if (!dockerfile) {
-            alert("Dockerfile zip 파일을 업로드해주세요.");
+            setFieldErrors({dockerfile:"Dockerfile zip 파일을 선택해 주세요."});focusField("dockerfile");
             setIsSubmitting(false);
             return;
           }
@@ -340,12 +355,12 @@ function ProblemCreateContent() {
             endpoint = problemApi(`/api/problems/objective`);
             if (choices.some(c => !c.content.trim())) {
               setIsSubmitting(false);
-              return alert('빈 보기의 내용을 입력하거나 해당 보기를 삭제하세요.');
+              setFieldErrors({choices:'빈 보기를 채우거나 삭제해 주세요.'});focusField('choices');return;
             }
             const validChoices = choices.map((c, i) => ({ id: c.id, index: i + 1, content: c.content, imageUrl: null }));
             if (validChoices.length < 2) {
               setIsSubmitting(false);
-              return alert("보기를 2개 이상 입력하세요.");
+              setFieldErrors({choices:'보기를 2개 이상 입력해 주세요.'});focusField('choices');return;
             }
 
             payload = {
@@ -360,68 +375,42 @@ function ProblemCreateContent() {
         }
       }
 
-      // API 전송 요청 실행
-      const response = await fetch(endpoint, {
-        method: method,
-        headers: fetchHeaders,
-        body: bodyData
-      });
-
-      if (response.ok) {
-        const savedResponse=await response.json().catch(()=>null);
-        const savedId=isEditMode?editId:savedResponse?.data?.probId;
-        draft.markSaved();
-        alert(isEditMode ? "수정되었습니다!" : problemType === 'practice'
-          ? "문제가 등록되었습니다. 상세 화면에서 실습 환경 제작 상태를 확인할 수 있습니다."
-          : "등록되었습니다!");
-        window.location.href = savedId ? `/challenges/detail?id=${savedId}` : "/challenges";
-      } else {
-        if(response.status===409){setSaveNotice('다른 창에서 수정되었습니다. 내 초안은 유지됩니다. 파일로 보관하거나 최신 서버 자료를 다시 연 뒤 비교하세요.');return;}
-        const errorText = await response.text();
-        let errorMessage = "입력값이 잘못되었거나 권한이 없습니다.";
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.detail || errorData.message || errorMessage;
-        } catch (e) { errorMessage = errorText; }
-        setSaveNotice(`서버 저장 실패: ${errorMessage} 작성 내용과 브라우저 초안을 유지합니다.`);
-        alert(`실패: ${errorMessage}`);
-      }
-    } catch (error) {
-      console.error(error);
-      setSaveNotice('서버에 연결하지 못했습니다. 작성 내용과 브라우저 초안을 유지합니다. 다시 저장할 수 있습니다.');
-      alert("서버 통신 중 오류가 발생했습니다.");
-    } finally {
-      setIsSubmitting(false);
-    }
+      const savedResponse=await requestJson(endpoint,{method,headers:fetchHeaders,body:bodyData},{allowEmpty:true});
+      if(problemToken()!==token)return;
+      const savedId=isEditMode?editId:savedResponse?.data?.probId;
+      if(!savedId)throw new RequestFailure({kind:'format',message:'서버의 저장 확인 정보를 읽지 못했습니다.',retryable:true,uncertain:true});
+      draft.markSaved();
+      setSaveNotice('서버에 저장되었습니다. 문제 화면으로 이동합니다.');
+      window.location.href=`/challenges/detail?id=${savedId}`;
+    }catch(error){
+      if(problemToken()!==token)return;
+      const issue=requestIssue(error,true);
+      // A stale edit version is an authoring conflict, not a generic failure: keep the specific recovery guidance.
+      setSaveIssue(issue.status===409?{...issue,message:'다른 창에서 수정되었습니다. 내 초안은 유지됩니다. 파일로 보관하거나 최신 서버 자료를 다시 연 뒤 비교하세요.'}:issue);
+    }finally{saving.current=false;setIsSubmitting(false);}
   };
 
-  // [API] 수정 모드용 데이터 로드
-  useEffect(() => {
-    if (isEditMode) {
-      const token = problemToken();
-
-      fetch(problemApi(`/api/problems/${editId}`), {
-        headers: { "Authorization": `Bearer ${token}` }
-      })
-        .then(res => {if(!res.ok)throw new Error('문제를 불러오지 못했습니다.');return res.json();})
-        .then(async json => {
-          const data = json.data;
-          if(!data?.isOwner)throw new Error('작성자만 문제를 수정할 수 있습니다.');
-          if(!['public','private','group','contest'].includes(data.visibility))throw new Error('공개 범위를 확인할 수 없습니다. 문제를 다시 열어주세요.');
-          if (data.isOwner && (data.type === 'objective' || data.type === 'coding')) {
-            const authorObo = await fetch(problemApi(`/api/challenges/obo/author/settings?id=${editId}`), {
-              headers: { Authorization: `Bearer ${token}` }, cache: 'no-store',
-            });
-            if (!authorObo.ok) throw new Error('작성자 OBO를 불러오지 못했습니다.');
-            const text = await authorObo.text();
-            Object.assign(data, text ? JSON.parse(text) : {});
-          }
+  const editQuery=useRemoteData(isEditMode?editId:null,async signal=>{
+    const json=await requestJson(problemApi(`/api/problems/${editId}`),{signal,headers:authHeaders()});
+    const data=json?.data;
+    if(!data?.isOwner)throw new RequestFailure(httpIssue(403));
+    if(!['public','private','group','contest'].includes(data.visibility))throw new RequestFailure({kind:'format',message:'공개 범위를 확인하지 못했습니다. 다시 불러와 주세요.',retryable:true});
+    if(data.type==='objective'||data.type==='coding'){
+      const settings=await requestJson(problemApi(`/api/challenges/obo/author/settings?id=${editId}`),{signal,headers:authHeaders(),cache:'no-store'},{allowEmpty:true});
+      Object.assign(data,settings??{});
+    }
+    return data;
+  });
+  useEffect(()=>{
+    setEditLoaded(!isEditMode);setEditError('');
+    if(!editQuery.data)return;
+    const data=editQuery.data;
           // 공통 필드 채우기
           setEditVersion(data.editVersion??null);
           setTitle(data.title);
           setSummary(data.summary || "");
           setDescription(data.description);
-          setCategory(data.category?.toLowerCase() || "");
+          setCategory(toApiCategory(data.category || ""));
           setDifficulty(String(data.difficulty));
           setVisibility(data.visibility);
           setProblemType(data.type); // 'coding', 'objective', 'practice' 중 하나
@@ -461,14 +450,8 @@ function ProblemCreateContent() {
             }
             setOboEnabled(true);
           }
-          setEditLoaded(true);setEditError('');
-        })
-        .catch(err => {
-          setEditError(err instanceof Error?err.message:'문제를 불러오지 못했습니다.');
-          console.error(err);
-        });
-    }
-  }, [editId]);
+    setEditLoaded(true);
+  },[editQuery.data,isEditMode]);
 
   useEffect(() => {
     const fetchProfileImage = async () => {
@@ -560,15 +543,21 @@ function ProblemCreateContent() {
   };
   const draft=useBrowserDraft({documentId:editId??'new',value:draftValue,restore:restoreDraft,enabled:editLoaded&&isLoggedIn&&problemType!=='practice',valid:isProblemDraft});
 
+  if(!sessionChecked)return <main className="mx-auto max-w-3xl p-8"><p role="status">불러오는 중…</p></main>;
+  if(!isLoggedIn&&!problemToken())return <main className="mx-auto max-w-3xl p-8"><RequestError issue={httpIssue(401)}/></main>;
+  if(isEditMode&&!editLoaded)return <main className="mx-auto max-w-3xl p-8"><h1 className="text-xl font-bold">수정할 문제 불러오기</h1>{editQuery.loading&&<p role="status">불러오는 중…</p>}<RequestError issue={editQuery.error} retry={editQuery.retry} busy={editQuery.loading}/></main>;
+  if(draft.locked)return <main className="p-8"><p role="alert">계정이 바뀌었습니다. 이전 계정의 작성 화면을 닫았습니다.</p><a className="underline" href="/signin">다시 로그인</a> · <a className="underline" href="/challenges/create">작성 화면 다시 열기</a></main>;
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+    <div className="min-h-screen bg-canvas text-ink font-sans">
       {/* 1. 고정 헤더 */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
         {/* [A] Diveon 로고 영역 */}
         <div className="flex items-center gap-4">
-          <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
-          <Link href="/" className="text-xl font-bold tracking-tight text-slate-900">
-            Diveon<span className="text-[10px] font-black text-indigo-500 ml-1">ADMIN</span>
+          <Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
+          <Link href="/" className="flex items-center gap-2" aria-label="DiveOn 홈">
+            <BrandMark size="sm" />
+            <span className="dv-hud text-primary">Studio</span>
           </Link>
         </div>
 
@@ -577,19 +566,19 @@ function ProblemCreateContent() {
           {isLoggedIn ? (
             /* --- 로그인된 상태: 알림 + 프로필 + 로그아웃 --- */
             <>
-              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              <button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
               </button>
               <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                <Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
                   <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-ink-muted rounded-full">
                     {/* 공백 상태 유지 */}
                   </AvatarFallback>
                 </Avatar>
               </Link>
-              <button onClick={handleLogout} className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors">
+              <button onClick={handleLogout} className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors">
                 <LogOut className="h-5 w-5" />
               </button>
             </>
@@ -597,10 +586,10 @@ function ProblemCreateContent() {
             /* --- 로그아웃된 상태 (보통 리다이렉트 되지만 렌더링 방어용) --- */
             <div className="flex items-center gap-2">
               <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+                <Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
               </Link>
               <Link href="/signup">
-                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+                <Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
                   Get Started
                 </Button>
               </Link>
@@ -614,82 +603,79 @@ function ProblemCreateContent() {
 
         {/* [A] 좌측 출제 가이드 */}
         <aside className="col-span-12 md:col-span-3 space-y-4 md:sticky md:top-24 h-fit">
-          <Card className="border-indigo-100 bg-white shadow-sm overflow-hidden rounded-2xl">
-            <div className="bg-indigo-600 p-6">
-              <StickyNote className="w-10 h-10 text-white fill-current" />
-              <p className="text-xl font-black text-white mt-2">출제 양식</p>
-              <p className="text-xs text-indigo-200 mt-1">문제 양식에 맞춰 정보를 입력하세요.</p>
-            </div>
-            <CardContent className="p-5 text-sm text-slate-600 space-y-3 font-medium">
-              <div className="flex gap-2.5 items-center"><Target className="w-4 h-4 text-indigo-500" /> 제목은 명확하게</div>
-              <div className="flex gap-2.5 items-center"><Code2 className="w-4 h-4 text-indigo-500" /> 설명은 Markdown 지원</div>
-              <div className="flex gap-2.5 items-center"><CheckCircle2 className="w-4 h-4 text-indigo-500" /> 정확한 테스트케이스 필수</div>
-            </CardContent>
-          </Card>
-          <Button variant="outline" className="w-full text-slate-500" asChild>
+          <AuthoringChecklist steps={authoringChecklist(authoringState())} onGo={goTo} />
+          <Button variant="outline" className="w-full text-ink-muted" asChild>
             <Link href="/challenges">출제 취소</Link>
           </Button>
         </aside>
 
         {/* [B] 중앙 출제 양식 */}
         <section inert={isSubmitting} className="col-span-12 md:col-span-9 space-y-8 animate-in fade-in-50 duration-500">
+          <RequestError issue={saveIssue} checkHref={editId?`/challenges/detail?id=${editId}`:'/challenges'} checkLabel="저장된 문제 확인"/>
+          {saveNotice&&<p role="status">{saveNotice}</p>}
+          {isSubmitting&&<p role="status">서버에 저장 요청을 보내는 중…</p>}
           {/* 타이틀 및 저장 버튼 */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-3xl font-black tracking-tighter text-slate-950">
+              <h1 className="text-3xl font-black tracking-tighter text-ink">
                 {isEditMode ? "문제 수정" : "문제 등록"}
               </h1>
-              <p className="text-slate-500">문제를 만들고 다른 유저들과 공유합니다.</p>
+              <p className="text-ink-muted">문제를 만들고 다른 유저들과 공유합니다.</p>
             </div>
             <div className="flex gap-2">
               <Button variant="secondary" className="px-6" onClick={draft.save}>브라우저에 보관</Button>
-              <Button variant="outline" onClick={()=>{setDescriptionTab('prev');document.getElementById(problemType==='coding'?'learner-preview':'problem-description')?.scrollIntoView({behavior:'smooth',block:'start'});}} className="px-6 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group">
-                <Eye size={16} className="mr-2 text-slate-400 group-hover:text-indigo-500 transition-colors" />{problemType==='coding'?'학습자 미리보기':'문제 미리보기'}
+              <Button variant="outline" onClick={()=>{setPreviewed(true);setDescriptionTab('prev');document.getElementById(problemType==='coding'?'learner-preview':'problem-description')?.scrollIntoView({behavior:'smooth',block:'start'});}} className="px-6 border-line text-ink-muted hover:bg-raised/60 hover:text-ink transition-all group">
+                <Eye size={16} className="mr-2 text-ink-subtle group-hover:text-primary transition-colors" />{problemType==='coding'?'학습자 미리보기':'문제 미리보기'}
               </Button>
               {/* 제출 버튼에 onClick 연결 */}
-              {editError&&<p role="alert" className="text-sm text-red-600">{editError}</p>}
+              {editError&&<p role="alert" className="text-sm text-danger">{editError}</p>}
               <Button onClick={handleSubmit} disabled={isSubmitting||!editLoaded}>
                 <Zap size={16} className="mr-2" />
                 {isSubmitting ? "처리 중..." : (isEditMode ? "수정 완료" : "문제 등록")}
               </Button>
             </div>
           </div>
-          {problemType!=='practice'&&<div className="space-y-2 rounded-xl border border-indigo-100 bg-white p-4 text-sm" aria-label="작성 자료 보관">
+          {problemType!=='practice'&&<div className="space-y-2 rounded-xl border border-line bg-panel p-4 text-sm" aria-label="작성 자료 보관">
             <p role="status">{draft.status}</p>
-            <p className="text-xs text-slate-500">이 기기·브라우저에 보관됩니다. 서버 저장은 문제 등록/수정 완료 버튼으로 진행합니다.</p>
+            <p className="text-xs text-ink-muted">이 기기·브라우저에 보관됩니다. 서버 저장은 문제 등록/수정 완료 버튼으로 진행합니다.</p>
             <Button variant="outline" size="sm" onClick={draft.exportFile}>초안 파일로 보관</Button>
+            <p className="text-xs text-ink-muted">초안은 암호화 없이 이 브라우저에 남습니다. 공용 기기에서는 사용 후 보관본을 삭제하세요.</p>
+            <Button variant="outline" size="sm" onClick={()=>{if(confirm('이 계정의 현재 문서 보관본을 모든 탭에 걸쳐 삭제할까요? 화면의 작성 내용은 유지됩니다.'))draft.deleteSaved();}}>이 문서의 보관본 삭제</Button>
             {draft.candidates.map(record=><div key={record.id} className="flex flex-wrap items-center gap-2"><span>{new Date(record.savedAt).toLocaleString('ko-KR')} · {record.value.title||'제목 없는 초안'}</span><Button variant="outline" size="sm" onClick={()=>{if(window.confirm('현재 작성 내용을 먼저 보관하고 선택한 초안을 불러올까요?')){if(draft.save())draft.recover(record);}}}>초안 복구</Button></div>)}
-            {saveNotice&&<p role="alert" className="text-rose-700">{saveNotice}</p>}
+
           </div>}
           <Separator />
 
           {/* 1. 기본 정보 설정 카드 */}
-          <Card className="border-slate-100 shadow-sm rounded-2xl">
+          <Card className="border-line shadow-sm rounded-2xl">
             <CardHeader>
               <CardTitle className="text-lg">기본 정보 설정</CardTitle>
               <CardDescription>문제의 제목, 스토리, 분류, 난이도, 공개 범위를 정의합니다.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="title">문제 제목 <span className="text-red-500">*</span></Label>
-                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="문제 제목을 입력하세요." className="focus-visible:ring-indigo-400" />
+                <Label htmlFor="title">문제 제목 <span className="text-danger">*</span></Label>
+                {fieldError('title')}
+                <Input aria-invalid={!!fieldErrors.title} aria-describedby="title-error" id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="문제 제목을 입력하세요." className="focus-visible:ring-primary/50" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="summary">스토리 (요약)</Label>
-                <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="스토리를 작성해주세요." className="min-h-[100px] resize-none focus-visible:ring-indigo-400 font-mono text-sm leading-relaxed" />
+                <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="스토리를 작성해주세요." className="min-h-[100px] resize-none focus-visible:ring-primary/50 font-mono text-sm leading-relaxed" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
-                <div className="space-y-2">
-                  <Label>카테고리 <span className="text-red-500">*</span></Label>
+                <div id="category-field" className="space-y-2 scroll-mt-24">
+                  <Label>카테고리 <span className="text-danger">*</span></Label>
+                  {fieldError('category')}
                   <Select value={category} onValueChange={setCategory}>
                     <SelectTrigger><SelectValue placeholder="카테고리 선택" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="kernel">Kernel</SelectItem>
-                      <SelectItem value="process">Process</SelectItem>
-                      <SelectItem value="thread">Thread</SelectItem>
-                      <SelectItem value="memory">Memory</SelectItem>
-                      <SelectItem value="file system">File System</SelectItem>
+                      {/* value는 명세 값(Process, FileSystem 등) 그대로 */}
+                      <SelectItem value="Kernel">Kernel</SelectItem>
+                      <SelectItem value="Process">Process</SelectItem>
+                      <SelectItem value="Thread">Thread</SelectItem>
+                      <SelectItem value="Memory">Memory</SelectItem>
+                      <SelectItem value="FileSystem">File System</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -701,84 +687,84 @@ function ProblemCreateContent() {
                     </SelectTrigger>
                     <SelectContent>
                       {/* 1단계: 100m */}
-                      <SelectItem value="1" className="text-emerald-600 font-bold">
+                      <SelectItem value="1" className="text-success font-bold">
                         <div className="flex items-center gap-2 font-mono">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" /> 100m
+                          <span className="w-2 h-2 rounded-full bg-success" /> 100m
                         </div>
                       </SelectItem>
 
                       {/* 2단계: 300m */}
-                      <SelectItem value="2" className="text-teal-600 font-bold">
+                      <SelectItem value="2" className="text-success font-bold">
                         <div className="flex items-center gap-2 font-mono">
-                          <span className="w-2 h-2 rounded-full bg-teal-500" /> 300m
+                          <span className="w-2 h-2 rounded-full bg-success" /> 300m
                         </div>
                       </SelectItem>
 
                       {/* 3단계: 500m */}
-                      <SelectItem value="3" className="text-sky-600 font-bold">
+                      <SelectItem value="3" className="text-primary font-bold">
                         <div className="flex items-center gap-2 font-mono">
-                          <span className="w-2 h-2 rounded-full bg-sky-500" /> 500m
+                          <span className="w-2 h-2 rounded-full bg-primary" /> 500m
                         </div>
                       </SelectItem>
 
                       {/* 4단계: 1,000m */}
-                      <SelectItem value="4" className="text-blue-600 font-bold">
+                      <SelectItem value="4" className="text-primary font-bold">
                         <div className="flex items-center gap-2 font-mono">
-                          <span className="w-2 h-2 rounded-full bg-blue-500" /> 1,000m
+                          <span className="w-2 h-2 rounded-full bg-primary" /> 1,000m
                         </div>
                       </SelectItem>
 
                       {/* 5단계: 3,000m */}
-                      <SelectItem value="5" className="text-indigo-600 font-bold">
+                      <SelectItem value="5" className="text-primary font-bold">
                         <div className="flex items-center gap-2 font-mono">
-                          <span className="w-2 h-2 rounded-full bg-indigo-500" /> 3,000m
+                          <span className="w-2 h-2 rounded-full bg-primary" /> 3,000m
                         </div>
                       </SelectItem>
 
                       {/* 6단계: 6,000m */}
-                      <SelectItem value="6" className="text-purple-600 font-bold">
+                      <SelectItem value="6" className="text-coral font-bold">
                         <div className="flex items-center gap-2 font-mono">
-                          <span className="w-2 h-2 rounded-full bg-purple-500" /> 6,000m
+                          <span className="w-2 h-2 rounded-full bg-coral" /> 6,000m
                         </div>
                       </SelectItem>
 
                       {/* 7단계: 10,000m+ */}
-                      <SelectItem value="7" className="text-slate-900 font-black">
+                      <SelectItem value="7" className="text-ink font-black">
                         <div className="flex items-center gap-2 font-mono">
-                          <span className="w-2 h-2 rounded-full bg-slate-950" /> 10,000m+
+                          <span className="w-2 h-2 rounded-full bg-deep" /> 10,000m+
                         </div>
                       </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>공개범위</Label>
+                <div id="audience-field" className="space-y-2 scroll-mt-24">
+                  <Label>공개범위</Label>{fieldError('audience')}
                   <Select value={visibility} onValueChange={setVisibility} disabled={isEditMode}>
                     <SelectTrigger><SelectValue placeholder="공개범위 선택" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="public" className="text-emerald-600 font-bold">전체 공개</SelectItem>
-                      <SelectItem value="group" className="text-blue-600 font-bold">그룹 공개</SelectItem>
-                      <SelectItem value="contest" className="text-purple-600 font-bold">대회 공개</SelectItem>
-                      <SelectItem value="private" className="text-amber-600 font-bold">비공개</SelectItem>
+                      <SelectItem value="public" className="text-success font-bold">전체 공개</SelectItem>
+                      <SelectItem value="group" className="text-primary font-bold">그룹 공개</SelectItem>
+                      <SelectItem value="contest" className="text-coral font-bold">대회 공개</SelectItem>
+                      <SelectItem value="private" className="text-warning font-bold">비공개</SelectItem>
                     </SelectContent>
                   </Select>
-                  {isEditMode && <p className="text-xs text-slate-500">현재 공개 범위입니다. 이 수정 화면에서는 변경할 수 없습니다.</p>}
+                  {isEditMode && <p className="text-xs text-ink-muted">현재 공개 범위입니다. 이 수정 화면에서는 변경할 수 없습니다.</p>}
                 </div>
               </div>
 
               {!isEditMode && visibility === "group" && (
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 animate-in fade-in duration-300 mt-4">
+                <div className="p-4 bg-canvas border border-line rounded-xl space-y-3 animate-in fade-in duration-300 mt-4">
 
                   { /* [임시] */}
                   {/* <Label className="font-bold flex items-center gap-2">
-                    공개할 그룹 선택 <span className="text-red-500">*</span>
-                    <span className="text-[10px] text-slate-400 font-normal">여러 그룹을 선택할 수 있습니다.</span>
+                    공개할 그룹 선택 <span className="text-danger">*</span>
+                    <span className="text-[10px] text-ink-subtle font-normal">여러 그룹을 선택할 수 있습니다.</span>
                   </Label>
 
                   {isFetchingGroups ? (
-                    <div className="text-sm text-slate-400 animate-pulse">그룹 목록을 불러오는 중...</div>
+                    <div className="text-sm text-ink-subtle animate-pulse">그룹 목록을 불러오는 중...</div>
                   ) : myGroups.length === 0 ? (
-                    <div className="text-sm text-slate-400">가입되거나 관리 중인 그룹이 없습니다.</div>
+                    <div className="text-sm text-ink-subtle">가입되거나 관리 중인 그룹이 없습니다.</div>
                   ) : (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {myGroups.map((group) => {
@@ -790,8 +776,8 @@ function ProblemCreateContent() {
                             key={groupId}
                             variant={isSelected ? "default" : "outline"}
                             className={`cursor-pointer px-3 py-1.5 text-xs transition-all ${isSelected
-                              ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
-                              : "bg-white hover:bg-slate-100 text-slate-600"
+                              ? "bg-primary hover:bg-primary-hover text-primary-ink shadow-sm"
+                              : "bg-panel hover:bg-raised text-ink-muted"
                               }`}
                             onClick={() => {
                               if (isSelected) {
@@ -810,14 +796,14 @@ function ProblemCreateContent() {
                   )} */}
 
                   <Label className="font-bold flex items-center gap-2">
-                    공개할 그룹 선택 <span className="text-red-500">*</span>
-                    <span className="text-[10px] text-slate-400 font-normal">문제를 공개할 1개의 그룹을 선택해주세요.</span>
+                    공개할 그룹 선택 <span className="text-danger">*</span>
+                    <span className="text-[10px] text-ink-subtle font-normal">문제를 공개할 1개의 그룹을 선택해주세요.</span>
                   </Label>
 
                   {isFetchingGroups ? (
-                    <div className="text-sm text-slate-400 animate-pulse">그룹 목록을 불러오는 중...</div>
+                    <div className="text-sm text-ink-subtle animate-pulse">그룹 목록을 불러오는 중...</div>
                   ) : myGroups.length === 0 ? (
-                    <div className="text-sm text-slate-400">가입되거나 관리 중인 그룹이 없습니다.</div>
+                    <div className="text-sm text-ink-subtle">가입되거나 관리 중인 그룹이 없습니다.</div>
                   ) : (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {myGroups.map((group) => {
@@ -829,8 +815,8 @@ function ProblemCreateContent() {
                             key={groupId}
                             variant={isSelected ? "default" : "outline"}
                             className={`cursor-pointer px-3 py-1.5 text-xs transition-all ${isSelected
-                              ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
-                              : "bg-white hover:bg-slate-100 text-slate-600"
+                              ? "bg-primary hover:bg-primary-hover text-primary-ink shadow-sm"
+                              : "bg-panel hover:bg-raised text-ink-muted"
                               }`}
                             onClick={() => {
                               setSelectedGroupId(isSelected ? null : groupId);
@@ -847,16 +833,16 @@ function ProblemCreateContent() {
               )}
 
               {!isEditMode && visibility === "contest" && (
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 animate-in fade-in duration-300 mt-4">
+                <div className="p-4 bg-canvas border border-line rounded-xl space-y-3 animate-in fade-in duration-300 mt-4">
                   <Label className="font-bold flex items-center gap-2">
-                    공개할 대회 선택 <span className="text-red-500">*</span>
-                    <span className="text-[10px] text-slate-400 font-normal">문제를 공개할 1개의 대회를 선택해주세요.</span>
+                    공개할 대회 선택 <span className="text-danger">*</span>
+                    <span className="text-[10px] text-ink-subtle font-normal">문제를 공개할 1개의 대회를 선택해주세요.</span>
                   </Label>
 
                   {isFetchingContests ? (
-                    <div className="text-sm text-slate-400 animate-pulse">대회 목록을 불러오는 중...</div>
+                    <div className="text-sm text-ink-subtle animate-pulse">대회 목록을 불러오는 중...</div>
                   ) : myContests.length === 0 ? (
-                    <div className="text-sm text-slate-400">관리 중인 대회 없습니다.</div>
+                    <div className="text-sm text-ink-subtle">관리 중인 대회 없습니다.</div>
                   ) : (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {myContests.map((contest) => {
@@ -868,8 +854,8 @@ function ProblemCreateContent() {
                             key={contestId}
                             variant={isSelected ? "default" : "outline"}
                             className={`cursor-pointer px-3 py-1.5 text-xs transition-all ${isSelected
-                              ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
-                              : "bg-white hover:bg-slate-100 text-slate-600"
+                              ? "bg-primary hover:bg-primary-hover text-primary-ink shadow-sm"
+                              : "bg-panel hover:bg-raised text-ink-muted"
                               }`}
                             onClick={() => {
                               setSelectedContestId(isSelected ? null : contestId);
@@ -888,25 +874,26 @@ function ProblemCreateContent() {
           </Card>
 
           {/* 2. 문제 본문 카드 */}
-          <Card id="problem-description" className="scroll-mt-20 border-slate-100 shadow-sm rounded-2xl overflow-hidden">
+          <Card id="problem-description" className="scroll-mt-20 border-line shadow-sm rounded-2xl overflow-hidden">
             <Tabs value={descriptionTab} onValueChange={setDescriptionTab}>
-              <CardHeader className="bg-slate-50/50 pb-0 border-b">
-                <TabsList className="bg-slate-100 p-0.5 h-auto">
-                  <TabsTrigger value="desc" className="px-5 py-2.5 text-xs">문제 설명 (Markdown) <span className="text-red-500">*</span></TabsTrigger>
+              <CardHeader className="bg-raised/50 pb-0 border-b">
+                <TabsList className="bg-raised p-0.5 h-auto">
+                  <TabsTrigger value="desc" className="px-5 py-2.5 text-xs">문제 설명 (Markdown) <span className="text-danger">*</span></TabsTrigger>
                   <TabsTrigger value="prev" className="px-5 py-2.5 text-xs">미리보기 (Preview)</TabsTrigger>
                 </TabsList>
               </CardHeader>
               <CardContent className="p-6">
                 <TabsContent value="desc" className="space-y-2 mt-0">
-                  <Textarea
+                  {fieldError('description')}
+                  <Textarea id="description" aria-invalid={!!fieldErrors.description} aria-describedby="description-error"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="문제를 해결하기 위한 설명, 목표를 Markdown 형식으로 상세히 기술하세요."
-                    className="min-h-[300px] resize-none focus-visible:ring-indigo-400 font-mono text-sm leading-relaxed"
+                    className="min-h-[300px] resize-none focus-visible:ring-primary/50 font-mono text-sm leading-relaxed"
                   />
                 </TabsContent>
                 <TabsContent value="prev" className="space-y-2 mt-0">
-                  <div className="min-h-[300px] p-4 bg-slate-50 border rounded-lg prose prose-sm max-w-none whitespace-pre-wrap">
+                  <div className="min-h-[300px] p-4 bg-canvas border rounded-lg prose prose-sm max-w-none whitespace-pre-wrap">
                     {description || "작성된 설명이 없습니다."}
                   </div>
                 </TabsContent>
@@ -914,8 +901,9 @@ function ProblemCreateContent() {
             </Tabs>
           </Card>
 
+          {fieldError('choices')}
           {/* 3. 데이터셋 및 정답 설정 카드 */}
-          <Card className="border-slate-100 shadow-sm rounded-2xl">
+          <Card className="border-line shadow-sm rounded-2xl">
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
@@ -928,7 +916,7 @@ function ProblemCreateContent() {
                   setProblemType(v);
                   if (v === "practice") { setOboEnabled(false); setOboData({ mode: 'single', single: { nodes: [], edges: [], frames: [] } }); }
                 }}>
-                  <SelectTrigger className="w-[140px] bg-slate-100"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[140px] bg-raised"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="coding">코딩 문제</SelectItem>
                     <SelectItem value="practice">실습 문제</SelectItem>
@@ -946,18 +934,18 @@ function ProblemCreateContent() {
                     <div className="space-y-1.5">
                       <Label>시간 제한 (sec)</Label>
                       <Input type="number" min={1} max={30} step={1} value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value))} className="font-mono" />
-                      <p className="text-xs text-slate-500">1~30초, 정수 단위</p>
+                      <p className="text-xs text-ink-muted">1~30초, 정수 단위</p>
                     </div>
                     <div className="space-y-1.5">
                       <Label>메모리 제한 (MB)</Label>
                       <Input type="number" min={16} max={1024} step={1} value={memoryLimit} onChange={(e) => setMemoryLimit(Number(e.target.value))} className="font-mono" />
-                      <p className="text-xs text-slate-500">16~1024 MiB</p>
+                      <p className="text-xs text-ink-muted">16~1024 MiB</p>
                     </div>
                   </div>
 
                   {/* 허용 언어 선택 영역 */}
-                  <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <Label className="text-xs font-bold text-slate-500 uppercase">Allowed Languages</Label>
+                  <div className="space-y-3 p-4 bg-canvas rounded-xl border border-line">
+                    <Label className="text-xs font-bold text-ink-muted uppercase">Allowed Languages</Label>
                     <div className="flex flex-wrap gap-4">
                       {["c", "cpp", "python"].map((lang) => (
                         <div key={lang} className="flex items-center space-x-2">
@@ -973,7 +961,7 @@ function ProblemCreateContent() {
                                 setAllowedLanguages(allowedLanguages.filter((l) => l !== lang));
                               }
                             }}
-                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            className="w-4 h-4 rounded border-line-strong text-primary focus:ring-primary"
                           />
                           <Label htmlFor={`lang-${lang}`} className="text-sm font-bold uppercase cursor-pointer">
                             {lang === "cpp" ? "C++" : lang}
@@ -1003,16 +991,16 @@ function ProblemCreateContent() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-4 pt-2">
+                  <div id="testcases-field" className="space-y-4 pt-2 scroll-mt-24">
                     <div className="flex justify-between items-center">
                       <Label className="font-bold flex items-center gap-2">
-                        테스트케이스 설정 <span className="text-[10px] text-slate-400 font-normal">(최소 1개 필수)</span>
+                        테스트케이스 설정 <span className="text-[10px] text-ink-subtle font-normal">(최소 1개 필수)</span>
                       </Label>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setTestcases([...testcases, { index: testcases.length + 1, input: "", output: "", is_sample: false }])}
-                        className="h-8 rounded-lg border-dashed border-slate-300 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all"
+                        className="h-8 rounded-lg border-dashed border-line-strong text-ink-muted hover:text-primary hover:border-primary/30 transition-all"
                       >
                         <PlusCircle className="w-3 h-3 mr-2" />케이스 추가
                       </Button>
@@ -1020,14 +1008,14 @@ function ProblemCreateContent() {
 
                     <div className="space-y-5">
                       {testcases.map((tc, idx) => (
-                        <div key={idx} className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-4 relative group transition-all hover:border-indigo-200">
+                        <div key={idx} className="p-5 bg-panel border border-line rounded-2xl shadow-sm space-y-4 relative group transition-all hover:border-primary/30">
                           {/* 상단 헤더: 번호 및 삭제 버튼 */}
-                          <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+                          <div className="flex justify-between items-center border-b border-line pb-3">
                             <div className="flex items-center gap-2">
-                              <span className="flex items-center justify-center w-6 h-6 bg-slate-900 text-white text-[10px] font-black rounded-md shadow-sm">
+                              <span className="flex items-center justify-center w-6 h-6 bg-raised border border-line-strong text-white text-[10px] font-black rounded-md shadow-sm">
                                 #{idx + 1}
                               </span>
-                              <span className="text-sm font-bold text-slate-700">Testcase</span>
+                              <span className="text-sm font-bold text-ink">Testcase</span>
 
                               {/* 예제 여부 토글 (선택 사항) */}
                               <label className="ml-3 flex items-center gap-1.5 cursor-pointer">
@@ -1039,9 +1027,9 @@ function ProblemCreateContent() {
                                     newTc[idx].is_sample = e.target.checked;
                                     setTestcases(newTc);
                                   }}
-                                  className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                  className="w-3.5 h-3.5 rounded border-line-strong text-primary focus:ring-primary"
                                 />
-                                <span className="text-[11px] font-medium text-slate-500">예제로 공개</span>
+                                <span className="text-[11px] font-medium text-ink-muted">예제로 공개</span>
                               </label>
                             </div>
 
@@ -1049,7 +1037,7 @@ function ProblemCreateContent() {
                               variant="ghost"
                               size="icon"
                               onClick={() => removeTestcase(idx)}
-                              className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                              className="h-8 w-8 text-ink-subtle hover:text-danger hover:bg-danger/10 opacity-0 group-hover:opacity-100 transition-all"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -1059,27 +1047,27 @@ function ProblemCreateContent() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <div className="flex items-center gap-1.5 ml-1">
-                                <div className="w-1 h-3 bg-indigo-400 rounded-full" />
-                                <Label className="text-[11px] font-black uppercase tracking-tight text-slate-400">Standard Input</Label>
+                                <div className="w-1 h-3 bg-primary rounded-full" />
+                                <Label className="text-[11px] font-black uppercase tracking-tight text-ink-subtle">Standard Input</Label>
                               </div>
                               <Textarea
                                 value={tc.input}
                                 onChange={(e) => { const n = [...testcases]; n[idx].input = e.target.value; setTestcases(n); }}
                                 placeholder="프로그램에 입력될 데이터"
-                                className="min-h-[100px] text-xs font-mono bg-slate-50 border-0 focus-visible:ring-1 focus-visible:ring-indigo-400 rounded-xl p-4 resize-none leading-relaxed"
+                                className="min-h-[100px] text-xs font-mono bg-canvas border-0 focus-visible:ring-1 focus-visible:ring-primary/50 rounded-xl p-4 resize-none leading-relaxed"
                               />
                             </div>
 
                             <div className="space-y-2">
                               <div className="flex items-center gap-1.5 ml-1">
-                                <div className="w-1 h-3 bg-emerald-400 rounded-full" />
-                                <Label className="text-[11px] font-black uppercase tracking-tight text-slate-400">Expected Output</Label>
+                                <div className="w-1 h-3 bg-success rounded-full" />
+                                <Label className="text-[11px] font-black uppercase tracking-tight text-ink-subtle">Expected Output</Label>
                               </div>
                               <Textarea
                                 value={tc.output}
                                 onChange={(e) => { const n = [...testcases]; n[idx].output = e.target.value; setTestcases(n); }}
                                 placeholder="예상되는 정답 출력값"
-                                className="min-h-[100px] text-xs font-mono bg-slate-50 border-0 focus-visible:ring-1 focus-visible:ring-indigo-400 rounded-xl p-4 resize-none leading-relaxed"
+                                className="min-h-[100px] text-xs font-mono bg-canvas border-0 focus-visible:ring-1 focus-visible:ring-primary/50 rounded-xl p-4 resize-none leading-relaxed"
                               />
                             </div>
                           </div>
@@ -1090,9 +1078,9 @@ function ProblemCreateContent() {
 
                   <div className="space-y-2.5 pt-2">
                     <Label>첨부 파일 업로드</Label>
-                    <div className="p-5 border-2 border-dashed border-slate-200 rounded-2xl text-center bg-slate-50 hover:bg-slate-100/50 cursor-pointer transition-colors">
-                      <Zap className="h-6 w-6 text-slate-300 mx-auto fill-current" />
-                      <span className="text-xs font-medium text-slate-500 mt-1 block">Click or Drag & Drop to upload binary/pcap/image</span>
+                    <div className="p-5 border-2 border-dashed border-line rounded-2xl text-center bg-canvas hover:bg-raised/50 cursor-pointer transition-colors">
+                      <Zap className="h-6 w-6 text-ink-subtle mx-auto fill-current" />
+                      <span className="text-xs font-medium text-ink-muted mt-1 block">Click or Drag & Drop to upload binary/pcap/image</span>
                     </div>
                   </div>
                 </div>
@@ -1102,29 +1090,29 @@ function ProblemCreateContent() {
               {problemType === "practice" && (
                 <div className="space-y-5 animate-in fade-in-30 duration-300">
                   <div className="space-y-2 pt-1">
-                    <Label htmlFor="flag">Secret Flag 인증 문자열 <span className="text-red-500">*</span></Label>
-                    <Input id="flag" value={flag} onChange={(e) => setFlag(e.target.value)} placeholder="DK{Correct_Flag_Here}" className="font-mono text-sm border-indigo-200" />
+                    <Label htmlFor="flag">Secret Flag 인증 문자열 <span className="text-danger">*</span></Label>
+                    <Input id="flag" value={flag} onChange={(e) => setFlag(e.target.value)} placeholder="DK{Correct_Flag_Here}" className="font-mono text-sm border-primary/30" />
                   </div>
 
                   {/* [추가] VM 환경 설정 입력란 */}
-                  {/* <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-4 mt-2">
-                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">VM Environment Config</h4>
+                  {/* <div className="p-4 bg-canvas border border-line rounded-xl space-y-4 mt-2">
+                    <h4 className="text-xs font-bold text-ink-muted uppercase tracking-wider mb-2">VM Environment Config</h4>
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <Label>OS 이미지 <span className="text-red-500">*</span></Label>
-                        <Input value={osImage} onChange={(e) => setOsImage(e.target.value)} placeholder="ubuntu:22.04" className="font-mono text-sm bg-white" />
+                        <Label>OS 이미지 <span className="text-danger">*</span></Label>
+                        <Input value={osImage} onChange={(e) => setOsImage(e.target.value)} placeholder="ubuntu:22.04" className="font-mono text-sm bg-panel" />
                       </div>
                       <div className="space-y-1.5">
                         <Label>허용 명령어 (쉼표로 구분)</Label>
-                        <Input value={allowedCommandsInput} onChange={(e) => setAllowedCommandsInput(e.target.value)} placeholder="ls, cat, grep" className="font-mono text-sm bg-white" />
+                        <Input value={allowedCommandsInput} onChange={(e) => setAllowedCommandsInput(e.target.value)} placeholder="ls, cat, grep" className="font-mono text-sm bg-panel" />
                       </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <Label>CPU 제한 (Core)</Label>
-                        <Input type="number" step="0.1" value={cpuLimit} onChange={(e) => setCpuLimit(Number(e.target.value))} className="font-mono text-sm bg-white" />
+                        <Input type="number" step="0.1" value={cpuLimit} onChange={(e) => setCpuLimit(Number(e.target.value))} className="font-mono text-sm bg-panel" />
                       </div>
                       <div className="space-y-1.5">
                         <Label>메모리 제한</Label>
@@ -1132,16 +1120,17 @@ function ProblemCreateContent() {
                           value={vmMemoryLimit}
                           onChange={(e) => setVmMemoryLimit(e.target.value)}
                           placeholder="512m, 1g"
-                          className="font-mono text-sm bg-white"
+                          className="font-mono text-sm bg-panel"
                         />
                       </div>
                     </div>
                   </div> */}
 
-                  <div className="space-y-2.5 pt-2">
-                    <Label>Dockerfile 업로드 (.zip) <span className="text-red-500">*</span></Label>
-                    <p className="text-xs text-slate-500">등록 후 실습 환경을 제작합니다. 상세 화면에서 제작 중·완료·실패 상태를 확인할 수 있으며, 제작 완료 후 실습을 시작할 수 있습니다.</p>
-                    <div className="relative p-5 border-2 border-dashed border-slate-200 rounded-2xl text-center bg-slate-50 hover:bg-slate-100/50 cursor-pointer transition-colors">
+                  <div id="dockerfile-field" className="space-y-2.5 pt-2 scroll-mt-24">
+                    {fieldError('dockerfile')}
+                    <Label>Dockerfile 업로드 (.zip) <span className="text-danger">*</span></Label>
+                    <p className="text-xs text-ink-muted">등록 후 실습 환경을 제작합니다. 상세 화면에서 제작 중·완료·실패 상태를 확인할 수 있으며, 제작 완료 후 실습을 시작할 수 있습니다.</p>
+                    <div className="relative p-5 border-2 border-dashed border-line rounded-2xl text-center bg-canvas hover:bg-raised/50 cursor-pointer transition-colors">
                       <input
                         type="file"
                         accept=".zip"
@@ -1152,8 +1141,8 @@ function ProblemCreateContent() {
                           }
                         }}
                       />
-                      <Zap className="h-6 w-6 text-slate-300 mx-auto fill-current" />
-                      <span className="text-xs font-medium text-slate-500 mt-1 block">
+                      <Zap className="h-6 w-6 text-ink-subtle mx-auto fill-current" />
+                      <span className="text-xs font-medium text-ink-muted mt-1 block">
                         {dockerfile ? dockerfile.name : "Click or Drag & Drop to upload dockerfile.zip"}
                       </span>
                     </div>
@@ -1166,12 +1155,12 @@ function ProblemCreateContent() {
                 <div className="space-y-5 animate-in fade-in-30 duration-300">
 
                   {/* 순서 매칭 옵션 설정 카드 피처 */}
-                  {!modernObjective&&<div className="flex items-center justify-between p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                  {!modernObjective&&<div className="flex items-center justify-between p-4 bg-primary/10 border border-primary/20 rounded-xl">
                     <div className="space-y-0.5">
-                      <Label className="text-sm font-bold text-slate-900 cursor-pointer" htmlFor="toggle-order">
+                      <Label className="text-sm font-bold text-ink cursor-pointer" htmlFor="toggle-order">
                         정답 선택 순서 일치 옵션 활성화
                       </Label>
-                      <p className="text-[11px] text-slate-500">체크하면 문제를 푸는 학생도 출제자가 선택한 순서대로 입력해야 정답 처리됩니다.</p>
+                      <p className="text-[11px] text-ink-muted">체크하면 문제를 푸는 학생도 출제자가 선택한 순서대로 입력해야 정답 처리됩니다.</p>
                     </div>
                     <input
                       type="checkbox"
@@ -1184,14 +1173,14 @@ function ProblemCreateContent() {
                         // 옵션을 변경할 때 유저가 등록해 둔 기존 정답들을 번호 순으로 깔끔하게 정렬 리셋해 주어 UX 충돌을 방지
                         setSelectedAnswers((prev) => [...prev].sort((a, b) => a - b));
                       }}
-                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      className="w-4 h-4 rounded border-line-strong text-primary focus:ring-primary cursor-pointer"
                     />
                   </div>}
 
-                  <div className="space-y-4 pt-1">
+                  <div id="choices-field" className="space-y-4 pt-1 scroll-mt-24">
                     <Label className="flex justify-between items-center">
-                      <span>보기 설정 및 정답 선택 <span className="text-red-500">*</span></span>
-                      <span className="text-[10px] text-slate-400">
+                      <span>보기 설정 및 정답 선택 <span className="text-danger">*</span></span>
+                      <span className="text-[10px] text-ink-subtle">
                         {orderedSelection ? "번호를 누른 순서가 정답 순서가 됩니다." : modernObjective&&oboData.simulation?.question.selectionMode==='single'?'정답 하나를 선택하세요.':"정답 보기를 모두 선택하세요."}
                       </span>
                     </Label>
@@ -1208,15 +1197,15 @@ function ProblemCreateContent() {
                             <div
                               onClick={() => toggleAnswer(idx)}
                               className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all text-xs font-black select-none ${isSelected
-                                  ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
-                                  : "border-slate-200 text-transparent hover:border-indigo-300"
+                                  ? "bg-primary border-primary text-primary-ink shadow-sm"
+                                  : "border-line text-transparent hover:border-primary/50"
                                 }`}
                             >
                               {/* 순서 모드이고 선택됐다면 순서 번호(1, 2..)를 노출하고, 아니면 체크 아이콘 배치 */}
                               {isSelected && orderedSelection ? orderIndex + 1 : <CheckCircle2 size={14} />}
                             </div>
 
-                            <span className="font-bold text-slate-400 w-4">{idx + 1}.</span>
+                            <span className="font-bold text-ink-subtle w-4">{idx + 1}.</span>
 
                             <Input
                               value={choice.content}
@@ -1226,7 +1215,7 @@ function ProblemCreateContent() {
                                 setChoices(newChoices);
                               }}
                               placeholder={`보기 ${idx + 1} 내용`}
-                              className={`flex-1 ${selectedAnswers.includes(idx + 1) ? "border-indigo-200 bg-indigo-50/30" : ""}`}
+                              className={`flex-1 ${selectedAnswers.includes(idx + 1) ? "border-primary/30 bg-primary/6" : ""}`}
                             />
 
                             {/* 보기 삭제 버튼 */}
@@ -1235,7 +1224,7 @@ function ProblemCreateContent() {
                               variant="ghost"
                               size="icon"
                               onClick={() => removeChoice(idx)}
-                              className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                              className="text-ink-subtle hover:text-danger opacity-0 group-hover:opacity-100 transition-all"
                             >
                               <Trash2 size={16} />
                             </Button>
@@ -1249,7 +1238,7 @@ function ProblemCreateContent() {
                       variant="outline"
                       size="sm"
                       onClick={() => setChoices([...choices, { id: freshId('choice'), index: choices.length + 1, content: "" }])}
-                      className="w-full border-dashed text-slate-500 mt-2"
+                      className="w-full border-dashed text-ink-muted mt-2"
                     >
                       <PlusCircle className="w-4 h-4 mr-2" /> 보기 추가
                     </Button>
@@ -1259,13 +1248,14 @@ function ProblemCreateContent() {
             </CardContent>
           </Card>
 
+          {fieldError('obo')}
           {/* 4. OBO 시각화 섹션 - 코딩/객관식만 표시 */}
-          {(problemType === "coding" || problemType === "objective") && <Card className="border-slate-100 shadow-sm rounded-2xl">
+          {(problemType === "coding" || problemType === "objective") && <Card id="obo-field" className="border-line shadow-sm rounded-2xl scroll-mt-24">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Network className="w-5 h-5 text-indigo-500" />
+                    <Network className="w-5 h-5 text-primary" />
                     OBO 시각화 포함
                   </CardTitle>
                   <CardDescription>
@@ -1281,39 +1271,43 @@ function ProblemCreateContent() {
                     }
                     setOboEnabled(v => !v);
                   }}
-                  className={`w-11 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0 cursor-pointer ${oboEnabled ? "bg-indigo-600" : "bg-slate-200"}`}
+                  className={`w-11 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0 cursor-pointer ${oboEnabled ? "bg-primary" : "bg-line"}`}
                 >
-                  <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${oboEnabled ? "translate-x-5" : "translate-x-0"}`} />
+                  <div className={`w-5 h-5 bg-panel rounded-full shadow transition-transform ${oboEnabled ? "translate-x-5" : "translate-x-0"}`} />
                 </button>
               </div>
             </CardHeader>
 
             {oboEnabled && (
               <CardContent className="pt-0">
-                {problemType==='coding'&&oboData.mode==='simulation'&&oboData.simulation?.question.judgeProfile==='obo-v1'&&<CodingExampleControl document={oboData.simulation} onAdd={(input,output)=>{
+                {problemType==='coding'&&oboData.mode==='simulation'&&oboData.simulation?.question.judgeProfile==='obo-v1'&&<CodingExampleControl document={oboData.simulation} existing={testcases.map(tc=>tc.input)} onAdd={(input,output,sample)=>{
                   setTestcases(previous=>{
                     const kept=previous.filter(tc=>tc.input.trim()||tc.output.trim());
-                    return [...kept,{index:kept.length+1,input,output,is_sample:true}];
+                    return [...kept,{index:kept.length+1,input,output,is_sample:sample}];
                   });
                 }}/>}
-                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                  <p className="text-sm text-slate-500">
+                {problemType==='coding'&&oboData.mode==='coding_diff'&&oboData.codingDiff?.outputFormat&&<DiagramExampleControl schema={oboData.codingDiff} testcases={testcases}
+                  onAdd={(output,sample)=>setTestcases(previous=>{const kept=previous.filter(tc=>tc.input.trim()||tc.output.trim());return [...kept,{index:kept.length+1,input:'',output,is_sample:sample}];})}
+                  onFill={(index,output)=>setTestcases(previous=>previous.map(tc=>tc.index===index?{...tc,output}:tc))}/>}
+                <div className="flex items-center justify-between p-4 bg-canvas border border-line rounded-xl">
+                  <p className="text-sm text-ink-muted">
                     {oboData.mode === 'simulation' ? (
-                      <>규칙 기반 시뮬레이션 · {oboData.simulation?.instances.length ?? 0}개 독립 실행</>
+                      <>간편 모드 · 모델 {oboData.simulation?.instances.length ?? 0}개</>
                     ) : oboData.mode === 'per_choice' ? (
-                      <>보기별 모드 &nbsp;·&nbsp; 보기 <span className="font-bold text-slate-800">{Object.keys(oboData.perChoice ?? {}).length}</span>개 설정됨</>
+                      <>자유 모드 &nbsp;·&nbsp; 보기별 그림 &nbsp;·&nbsp; 보기 <span className="font-bold text-ink">{Object.keys(oboData.perChoice ?? {}).length}</span>개 설정됨</>
                     ) : oboData.mode === 'coding_diff' ? (
                       <>
-                        출력 기록 재생 &nbsp;·&nbsp;
-                        노드 <span className="font-bold text-slate-800">{oboData.codingDiff?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
-                        엣지 <span className="font-bold text-slate-800">{oboData.codingDiff?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
-                        트레이스 <span className="font-bold text-slate-800">{oboData.codingDiff?.referenceTrace.length ?? 0}</span>스텝
+                        자유 모드 &nbsp;·&nbsp; 출력 기록 재생 &nbsp;·&nbsp;
+                        요소 <span className="font-bold text-ink">{oboData.codingDiff?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        연결선 <span className="font-bold text-ink">{oboData.codingDiff?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        출력 기록 <span className="font-bold text-ink">{oboData.codingDiff?.referenceTrace.length ?? 0}</span>장면
                       </>
                     ) : (
                       <>
-                        노드 <span className="font-bold text-slate-800">{oboData.single?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
-                        엣지 <span className="font-bold text-slate-800">{oboData.single?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
-                        프레임 <span className="font-bold text-slate-800">{oboData.single?.frames.length ?? 0}</span>개
+                        자유 모드 &nbsp;·&nbsp;
+                        요소 <span className="font-bold text-ink">{oboData.single?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        연결선 <span className="font-bold text-ink">{oboData.single?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        장면 <span className="font-bold text-ink">{oboData.single?.frames.length ?? 0}</span>개
                       </>
                     )}
                   </p>
@@ -1326,7 +1320,7 @@ function ProblemCreateContent() {
             )}
           </Card>}
 
-          {problemType==='coding'&&<section id="learner-preview" className="scroll-mt-20 rounded-2xl border bg-white p-5">
+          {problemType==='coding'&&<section id="learner-preview" className="obo-scope scroll-mt-20 rounded-2xl border bg-white p-5">
             <h2 className="font-semibold">학습자 제출 안내 미리보기</h2>
             <p className="mt-2 text-sm text-slate-600">저장 전 현재 작성 내용으로 확인합니다. 공개 예제만 표시하며, 실제 저장은 문제 등록·수정 버튼을 눌러야 합니다.</p>
             <div className="my-4 border-b pb-4"><h3 className="font-semibold">{title||'문제 제목'}</h3><p className="mt-2 whitespace-pre-wrap break-words text-sm">{description||'문제 설명을 작성하세요.'}</p></div>
@@ -1338,15 +1332,16 @@ function ProblemCreateContent() {
 
           {/* OBO 전체화면 모달 */}
           {oboModalOpen && (
-            <div className="fixed inset-0 z-50 flex flex-col bg-white">
+            <div className="fixed inset-0 z-50 flex flex-col bg-panel">
               <header className="h-14 border-b flex items-center justify-between px-6 shrink-0">
-                <span className="font-bold text-slate-900">OBO 편집</span>
+                <span className="font-bold text-ink">OBO 편집</span>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" onClick={cancelOboModal}>취소</Button>
                   <Button size="sm" onClick={confirmOboModal}>작성 내용에 반영</Button>
                 </div>
               </header>
-              <div className="flex-1 min-h-0">
+              {/* OBO는 라이트 테마 유지 (다른 팀원 담당 영역) */}
+              <div className="obo-scope flex-1 min-h-0 bg-white">
                 <OboEditorSection
                   value={oboData}
                   onChange={setOboData}
@@ -1372,8 +1367,8 @@ function ProblemCreateContent() {
 export default function ProblemCreatePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-canvas">
+        <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
       </div>
     }>
       <ProblemCreateContent />

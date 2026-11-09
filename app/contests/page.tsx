@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -127,13 +128,13 @@ export default function ContestListPage() {
 
   // [HANDLER] 로그아웃
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (!logout()) return;
     setIsLoggedIn(false);
     window.location.href = "/";
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
+    <div className="min-h-screen bg-panel text-ink font-sans">
 
       <Header
         isLoggedIn={isLoggedIn}
@@ -147,13 +148,9 @@ export default function ContestListPage() {
         }}
         onLogout={async () => {
           // 1. 쿠키 완전 만료 파기
-          localStorage.removeItem("token");
-          localStorage.removeItem("nickname");
-          localStorage.removeItem("userImgUrl");
+          if (!logout()) return;
 
           // 2. 로컬 / 세션 스토리지 클리어
-          localStorage.clear();
-          sessionStorage.clear();
 
           // 3. 인메모리 로그인 상태 리셋
           setIsLoggedIn(false);
@@ -168,13 +165,13 @@ export default function ContestListPage() {
 
         {/* [A] 좌측 사이드바 (2칸) */}
         <aside className="col-span-12 md:col-span-2 space-y-4">
-          <Card className="border-slate-200 shadow-none bg-slate-50/50">
+          <Card className="border-line shadow-none bg-raised/50">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 uppercase tracking-wider text-slate-500">
+              <CardTitle className="text-sm font-bold flex items-center gap-2 uppercase tracking-wider text-ink-muted">
                 <ShieldAlert className="w-4 h-4" /> 주의사항
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-[11px] leading-relaxed text-slate-600 space-y-2">
+            <CardContent className="text-[11px] leading-relaxed text-ink-muted space-y-2">
               <p>• 다중 계정 사용 시 영구 제재 처리됩니다.</p>
               <p>• 문제 풀이 공유는 대회 종료 후 공식 게시판에서만 가능합니다.</p>
               <p>• 시스템 공격 행위는 즉시 실격 사유입니다.</p>
@@ -186,15 +183,16 @@ export default function ContestListPage() {
         <section className="col-span-12 md:col-span-8 space-y-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6">
             <div className="space-y-1">
-              <h1 className="text-3xl font-black tracking-tighter text-slate-950">CONTESTS</h1>
-              <p className="text-slate-500 font-medium">검색된 대회: {totalContests}개</p>
+              <p className="dv-hud text-coral">Expeditions</p>
+              <h1 className="text-[32px] leading-10 font-bold tracking-[-0.01em] text-ink">원정</h1>
+              <p className="text-sm text-ink-muted">찾은 원정 <span className="font-mono text-ink">{totalContests}</span>개</p>
             </div>
 
             <div className="flex items-center gap-2">
               <Button
                 variant={showEntered ? "default" : "outline"}
                 size="sm"
-                className={`rounded-xl font-bold transition-all ${showEntered ? "bg-slate-900 text-white shadow-md" : "text-slate-600 hover:bg-slate-100"
+                className={`rounded-xl font-bold transition-all ${showEntered ? "bg-raised border border-line-strong text-white shadow-md" : "text-ink-muted hover:bg-raised"
                   }`}
                 onClick={() => setShowEntered(!showEntered)}
               >
@@ -203,7 +201,7 @@ export default function ContestListPage() {
 
               {/* 대회 생성 버튼 */}
               <Link href="/contests/create">
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md shadow-indigo-200 transition-all">
+                <Button size="sm" className="bg-primary hover:bg-primary-hover text-primary-ink rounded-xl font-bold shadow-md shadow-black/40 transition-all">
                   <Plus className="w-4 h-4 mr-1.5" /> 대회 생성하기
                 </Button>
               </Link>
@@ -211,7 +209,7 @@ export default function ContestListPage() {
           </div>
 
           <Tabs value={selectedStatus} className="w-full">
-            <TabsList className="bg-slate-100 p-1 mb-6">
+            <TabsList className="bg-raised p-1 mb-6">
               <TabsTrigger value="all" onClick={() => { setSelectedStatus("all"); setCurrentPage(1); }}>전체</TabsTrigger>
               <TabsTrigger value="ongoing" onClick={() => { setSelectedStatus("ongoing"); setCurrentPage(1); }}>진행 중</TabsTrigger>
               <TabsTrigger value="upcoming" onClick={() => { setSelectedStatus("upcoming"); setCurrentPage(1); }}>예정</TabsTrigger>
@@ -225,38 +223,40 @@ export default function ContestListPage() {
                   href={`/contests/detail?id=${contest.contestId}`}
                   className="block group"
                 >
-                  <Card className={`overflow-hidden border-slate-200 hover:border-indigo-300 transition-all shadow-sm ${contest.status === "진행 중" ? "ring-1 ring-indigo-500/20" : ""}`}>
+                  <Card className={`overflow-hidden border-line bg-panel transition-colors shadow-none ${contest.status === "진행 중" ? "hover:border-coral/60" : "hover:border-line-strong"} ${contest.status === "종료" ? "opacity-75" : ""}`}>
                     <CardContent className="p-0">
                       <div className="flex flex-col md:flex-row">
-                        {/* 상태 표시 컬러바 */}
-                        <div className={`w-full md:w-2 h-2 md:h-auto ${contest.status === "진행 중" ? "bg-green-500" :
-                          contest.status === "접수 중" ? "bg-indigo-500" : "bg-slate-300"
-                          }`} />
-
                         <div className="flex-1 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                           <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <Badge variant={contest.status === "진행 중" ? "default" : "secondary"} className={contest.status === "진행 중" ? "bg-green-500 hover:bg-green-600" : ""}>
+                            {/* 상태는 색 + 문구로 함께 표시 (원정 = coral) */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex items-center gap-1.5 h-[22px] px-2 rounded-md text-xs font-semibold ${
+                                contest.status === "진행 중" ? "bg-coral-soft text-coral"
+                                  : contest.status === "접수 중" ? "bg-primary-soft text-primary"
+                                    : "bg-raised text-ink-muted"}`}>
+                                {contest.status === "진행 중" && <span className="w-1.5 h-1.5 rounded-full bg-coral animate-pulse" />}
                                 {contest.status}
-                              </Badge>
+                              </span>
                               {contest.isJoined && (
-                                <Badge variant="outline" className="border-indigo-500 text-indigo-600 bg-indigo-50">
-                                  <CheckCircle2 className="w-3 h-3 mr-1" /> 참가
-                                </Badge>
+                                <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-success-soft text-success text-xs font-semibold">
+                                  <CheckCircle2 className="w-3 h-3" /> 참가
+                                </span>
                               )}
-                              {contest.isHot && <Badge variant="destructive" className="animate-pulse">HOT</Badge>}
-                              <span className="text-xs font-bold text-indigo-600">{contest.type}</span>
+                              {contest.isHot && (
+                                <span className="inline-flex items-center h-[22px] px-2 rounded-md bg-danger-soft text-danger font-mono text-[11px] font-bold tracking-[0.08em]">HOT</span>
+                              )}
+                              <span className="inline-flex items-center h-[22px] px-2 rounded-md bg-raised text-ink-muted text-xs">{contest.type}</span>
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900">{contest.title}</h3>
-                            <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-sm text-slate-500 font-medium">
+                            <h3 className="text-xl font-bold text-ink">{contest.title}</h3>
+                            <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-sm text-ink-muted font-medium">
                               <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(contest.startTime).toLocaleString()}/{new Date(contest.endTime).toLocaleString()}</span>
                               <span className="flex items-center gap-1.5"><Users size={14} /> {contest.participants}명 참여 중</span>
-                              <span className="flex items-center gap-1.5 text-amber-600"><Award size={14} /> {contest.prize}</span>
+                              <span className="flex items-center gap-1.5 text-warning"><Award size={14} /> {contest.prize}</span>
                             </div>
                           </div>
                           <div className="w-full md:w-auto">
-                            <Button className={`w-full md:w-32 ${contest.status === "진행 중" ? "bg-green-600 hover:bg-green-700" : "bg-slate-900"}`} disabled={contest.status === "종료"}>
-                              {contest.status === "종료" ? "대회 종료" : "참가하기"}
+                            <Button className={`w-full md:w-32 h-10 rounded-[10px] font-semibold ${contest.status === "진행 중" ? "bg-coral text-primary-ink hover:bg-coral/85" : "bg-panel border border-line-strong text-ink hover:bg-raised"}`} disabled={contest.status === "종료"}>
+                              {contest.status === "종료" ? "원정 종료" : contest.status === "진행 중" ? "원정 합류" : "참가하기"}
                             </Button>
                           </div>
                         </div>
@@ -287,7 +287,7 @@ export default function ContestListPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(i + 1)}
-                  className={`rounded-lg ${currentPage === i + 1 ? 'bg-slate-950 text-white border-slate-950' : ''}`}
+                  className={`rounded-lg ${currentPage === i + 1 ? 'bg-deep text-white border-line' : ''}`}
                 >
                   {i + 1}
                 </Button>
@@ -311,12 +311,12 @@ export default function ContestListPage() {
           <div className="sticky top-24 space-y-4">
             {ads.length > 0 ? (
               ads.map((ad) => (
-                <a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-xl border border-slate-200 shadow-sm transition-transform hover:scale-105">
+                <a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-xl border border-line shadow-sm transition-transform hover:scale-105">
                   <img src={ad.image_url} alt={ad.alt_text} className="w-full object-cover" />
                 </a>
               ))
             ) : (
-              <div className="border border-slate-200 rounded-xl bg-slate-50 h-[600px] flex flex-col items-center justify-center text-slate-400 text-xs font-bold p-6 text-center leading-relaxed">
+              <div className="border border-line rounded-xl bg-canvas h-[600px] flex flex-col items-center justify-center text-ink-subtle text-xs font-bold p-6 text-center leading-relaxed">
                 <ShoppingBag className="mb-2 h-6 w-6 opacity-20" />
                 광고 영역입니다.
               </div>

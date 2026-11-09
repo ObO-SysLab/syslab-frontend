@@ -21,7 +21,7 @@ export function CounterBadgeOverrideForm({ node, base, override, onFieldChange, 
         />
       </div>
       <div className="space-y-1">
-        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">변화량 (이번 프레임)</label>
+        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">변화량 (이번 장면)</label>
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => onFieldChange('delta', 1)}

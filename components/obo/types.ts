@@ -9,6 +9,8 @@ export interface Frame {
   visibleEdges?: string[];
   nodeDataOverrides?: Record<string, Record<string, unknown>>;
   cursorTime?: number;
+  /** Coding problems: an explanation-only scene (e.g. start/finish) that learners do not print. */
+  excludeFromOutput?: boolean;
 }
 
 export type OboMode = 'single' | 'per_choice' | 'coding_diff' | 'simulation';
@@ -27,6 +29,25 @@ export interface OboCodingSchema {
   edges: OboBlob['edges'];
   referenceTrace: OboTraceStep[]; // 출제자가 공개하는 참고 재생 기록. 의미 정답의 정의가 아니다.
   sourceTraceText?: string; // Preserve incomplete author input in browser drafts; rejected at publish if invalid.
+  /** Scenes the reference record was made from (2026-11-08). Keeps captions, gantt time and edge highlights for explanations. */
+  frames?: Frame[];
+  /** Baekjoon-style learner output: one plain line per included scene. Omitted = JSON record lines. */
+  outputFormat?: SimpleOutputFormat;
+}
+
+/** How one plain output line fills the drawing (lines-v1). Grading still compares lines with the expected output. */
+export interface SimpleOutputFormat {
+  kind: 'lines-v1';
+  /** Element each line fills. */
+  target: string;
+  /** Token for an empty cell. Default '-'. */
+  blank?: string;
+  /** Slot grids: line i highlights cell i of this other slot grid (e.g. the reference string). */
+  lineIndexTarget?: string;
+  /** Slot grids: mark the cell that changed since the previous line (Miss). */
+  markChanged?: boolean;
+  /** Slot grids: when nothing changed, mark the cell holding this slot grid's i-th value (Hit). */
+  markFoundFrom?: string;
 }
 
 export interface ProblemOboData {
@@ -76,7 +97,7 @@ export function resolveOboBlob(
   if (normalized.mode === 'coding_diff') {
     const schema = normalized.codingDiff;
     if (!schema) return null;
-    return { nodes: schema.nodes, edges: schema.edges, frames: generateFramesFromTrace(schema.referenceTrace, schema.edges) };
+    return { nodes: schema.nodes, edges: schema.edges, frames: schema.frames ?? generateFramesFromTrace(schema.referenceTrace, schema.edges) };
   }
 
   if (selectedChoiceIndex == null) return null;

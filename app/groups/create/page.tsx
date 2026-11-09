@@ -1,6 +1,8 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import { useEffect, useState, useRef } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -224,21 +226,22 @@ export default function GroupCreatePage() {
 
   // [HANDLER] 로그아웃
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (!logout()) return;
     setIsLoggedIn(false);
     window.location.href = "/";
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+    <div className="min-h-screen bg-canvas text-ink font-sans">
 
       {/* 1. 고정 헤더 */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
         {/* [A] Diveon 로고 영역 */}
         <div className="flex items-center gap-4">
-          <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
-          <Link href="/" className="text-xl font-bold tracking-tight text-slate-900">
-            Diveon<span className="text-[10px] font-black text-indigo-500 ml-1">ADMIN</span>
+          <Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
+          <Link href="/" className="flex items-center gap-2" aria-label="DiveOn 홈">
+            <BrandMark size="sm" />
+            <span className="dv-hud text-primary">Studio</span>
           </Link>
         </div>
 
@@ -247,19 +250,19 @@ export default function GroupCreatePage() {
           {isLoggedIn ? (
             /* --- 로그인된 상태: 알림 + 프로필 + 로그아웃 --- */
             <>
-              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              <button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
               </button>
               <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                <Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
                   <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-ink-muted rounded-full">
                     {/* 공백 상태 유지 */}
                   </AvatarFallback>
                 </Avatar>
               </Link>
-              <button onClick={handleLogout} className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors">
+              <button onClick={handleLogout} className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors">
                 <LogOut className="h-5 w-5" />
               </button>
             </>
@@ -267,10 +270,10 @@ export default function GroupCreatePage() {
             /* --- 로그아웃된 상태 (보통 리다이렉트 되지만 렌더링 방어용) --- */
             <div className="flex items-center gap-2">
               <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+                <Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
               </Link>
               <Link href="/signup">
-                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+                <Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
                   Get Started
                 </Button>
               </Link>
@@ -285,20 +288,20 @@ export default function GroupCreatePage() {
         {/* [A] 좌측 안내 섹션 (4칸) */}
         <aside className="col-span-12 md:col-span-4 space-y-6">
           <div className="space-y-2">
-            <h1 className="text-3xl font-black tracking-tighter text-slate-950">새 그룹 만들기</h1>
-            <p className="text-slate-500 leading-relaxed">
+            <h1 className="text-3xl font-black tracking-tighter text-ink">새 그룹 만들기</h1>
+            <p className="text-ink-muted leading-relaxed">
               함께 공부하고 성장할 동료들을 모아보세요. <br />
               스터디, 캡스톤 팀, 보안 동아리 등 무엇이든 좋습니다.
             </p>
           </div>
 
-          <Card className="border-indigo-100 bg-indigo-50/50 shadow-none rounded-2xl">
+          <Card className="border-primary/20 bg-primary/10 shadow-none rounded-2xl">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-indigo-900">
+              <CardTitle className="text-sm font-bold flex items-center gap-2 text-primary">
                 <Info className="w-4 h-4" /> 그룹 생성 팁
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-xs text-indigo-700/80 space-y-3 leading-relaxed">
+            <CardContent className="text-xs text-primary/80 space-y-3 leading-relaxed">
               <p>• **명확한 이름:** 그룹의 목적이 드러나는 이름이 가입률이 높습니다.</p>
               <p>• **아이콘 설정:** 그룹을 상징하는 이미지를 등록하면 리스트에서 돋보입니다.</p>
               <p>• **규칙 설정:** 가입 전 그룹의 규칙을 명시하여 소통의 오해를 줄이세요.</p>
@@ -310,10 +313,10 @@ export default function GroupCreatePage() {
         <section className="col-span-12 md:col-span-8 space-y-8 animate-in slide-in-from-bottom-4 duration-500">
 
           {/* 1. 기본 정보 */}
-          <Card className="border-slate-200 shadow-sm rounded-2xl">
+          <Card className="border-line shadow-sm rounded-2xl">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="w-5 h-5 text-indigo-600" /> 그룹 기본 정보
+                <Users className="w-5 h-5 text-primary" /> 그룹 기본 정보
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -329,13 +332,13 @@ export default function GroupCreatePage() {
                 />
 
                 <Avatar
-                  className="w-20 h-20 border-2 border-slate-200 shadow-inner cursor-pointer hover:opacity-80 transition-opacity"
+                  className="w-20 h-20 border-2 border-line shadow-inner cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => !isUploading && fileInputRef.current?.click()}
                 >
                   {/* 선택된 임시 프리뷰 주소가 있으면 띄우고 없으면 기본 껍데기 노출 */}
                   <AvatarImage src={previewUrl} alt="Group Preview" />
-                  <AvatarFallback className="bg-slate-100">
-                    <ImageIcon className="text-slate-400" />
+                  <AvatarFallback className="bg-raised">
+                    <ImageIcon className="text-ink-subtle" />
                   </AvatarFallback>
                 </Avatar>
                 <div className="space-y-1.5">
@@ -357,7 +360,7 @@ export default function GroupCreatePage() {
                       variant="ghost"
                       onClick={handleResetImage}
                       disabled={isUploading || !previewUrl}
-                      className="text-xs text-slate-400 font-bold hover:text-red-500"
+                      className="text-xs text-ink-subtle font-bold hover:text-danger"
                     >
                       초기화
                     </Button>
@@ -366,13 +369,13 @@ export default function GroupCreatePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="group-name">그룹 이름 <span className="text-red-500">*</span></Label>
-                <Input id="group-name" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="예: 단국대 알고리즘 스터디" className="focus-visible:ring-indigo-400" />
+                <Label htmlFor="group-name">그룹 이름 <span className="text-danger">*</span></Label>
+                <Input id="group-name" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="예: 단국대 알고리즘 스터디" className="focus-visible:ring-primary/50" />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="group-desc">그룹 소개</Label>
-                <Textarea id="group-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="그룹의 목적과 활동 내용을 간단히 적어주세요." className="resize-none min-h-[100px] focus-visible:ring-indigo-400" />
+                <Textarea id="group-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="그룹의 목적과 활동 내용을 간단히 적어주세요." className="resize-none min-h-[100px] focus-visible:ring-primary/50" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -393,48 +396,48 @@ export default function GroupCreatePage() {
                 </div>
                 {/* <div className="space-y-2">
                   <Label>최대 인원</Label>
-                  <Input type="number" placeholder="제한 없음" className="focus-visible:ring-indigo-400" />
+                  <Input type="number" placeholder="제한 없음" className="focus-visible:ring-primary/50" />
                 </div> */}
               </div>
             </CardContent>
           </Card>
 
           {/* 2. 공개 및 가입 설정 */}
-          <Card className="border-slate-200 shadow-sm rounded-2xl">
+          <Card className="border-line shadow-sm rounded-2xl">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-indigo-600" /> 가입 및 공개 설정
+                <ShieldCheck className="w-5 h-5 text-primary" /> 가입 및 공개 설정
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               { /* 그룹 비공개 설정 토글 */}
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="flex items-center justify-between p-4 bg-canvas rounded-xl border border-line">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm font-bold">비공개 그룹으로 설정</Label>
-                    {isPrivate ? <Lock size={14} className="text-indigo-600" /> : <Globe size={14} className="text-slate-400" />}
+                    {isPrivate ? <Lock size={14} className="text-primary" /> : <Globe size={14} className="text-ink-subtle" />}
                   </div>
-                  <p className="text-xs text-slate-500">비공개 시 초대받은 인원만 그룹을 볼 수 있습니다.</p>
+                  <p className="text-xs text-ink-muted">비공개 시 초대받은 인원만 그룹을 볼 수 있습니다.</p>
                 </div>
                 <Switch
                   checked={isPrivate}
                   onCheckedChange={setIsPrivate}
-                  className="data-[state=checked]:bg-indigo-600"
+                  className="data-[state=checked]:bg-primary"
                 />
               </div>
 
               {/* 자동 승인 설정 토글 */}
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="flex items-center justify-between p-4 bg-canvas rounded-xl border border-line">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm font-bold">멤버 자동 승인</Label>
                     {isAutoApprove ? (
-                      <CheckCircle2 size={14} className="text-emerald-600" />
+                      <CheckCircle2 size={14} className="text-success" />
                     ) : (
-                      <Users size={14} className="text-slate-400" />
+                      <Users size={14} className="text-ink-subtle" />
                     )}
                   </div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-ink-muted">
                     {isAutoApprove
                       ? "신청 즉시 그룹원이 됩니다."
                       : "관리자가 승인해야 가입이 완료됩니다."}
@@ -443,7 +446,7 @@ export default function GroupCreatePage() {
                 <Switch
                   checked={isAutoApprove}
                   onCheckedChange={setIsAutoApprove}
-                  className="data-[state=checked]:bg-indigo-600"
+                  className="data-[state=checked]:bg-primary"
                 />
               </div>
             </CardContent>
@@ -451,10 +454,10 @@ export default function GroupCreatePage() {
 
           {/* 하단 버튼 */}
           <div className="flex items-center justify-end gap-3">
-            <Button variant="ghost" className="text-slate-500" asChild>
+            <Button variant="ghost" className="text-ink-muted" asChild>
               <Link href="/groups">취소</Link>
             </Button>
-            <Button className="bg-indigo-600 hover:bg-indigo-700 px-8 shadow-lg shadow-indigo-100" onClick={handleSubmit}>
+            <Button className="bg-primary hover:bg-primary-hover px-8 shadow-lg shadow-black/40" onClick={handleSubmit}>
               <Check className="ml-2 w-4 h-4" /> 그룹 생성하기
             </Button>
           </div>

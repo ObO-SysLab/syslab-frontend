@@ -83,12 +83,13 @@ export function NodeEditor({ node, onUpdate, takenLabels, frames = [] }: NodeEdi
   if (node.type === 'state-node') {
     return (
       <Section>
-        <UniqueLabelField label="라벨" value={(d.label as string) ?? ''} taken={takenLabels} onCommit={v => onUpdate({ label: v })} />
+        <UniqueLabelField label="이름" value={(d.label as string) ?? ''} taken={takenLabels} onCommit={v => onUpdate({ label: v })} />
         <SegField label="모양" value={(d.shape as string) ?? 'circle'}
           options={[{ value: 'circle', label: '원' }, { value: 'box', label: '박스' }]}
           onChange={v => onUpdate({ shape: v })} />
         <ColorField label="색상" value={(d.fill as string) ?? '#6366f1'} onChange={v => onUpdate({ fill: v })} />
         <ToggleField label="강조" value={(d.highlight as boolean) ?? false} onChange={v => onUpdate({ highlight: v })} />
+        <ToggleField label="삭제됨으로 표시" value={(d.removed as boolean) ?? false} onChange={v => onUpdate({ removed: v })} />
       </Section>
     );
   }
@@ -97,10 +98,10 @@ export function NodeEditor({ node, onUpdate, takenLabels, frames = [] }: NodeEdi
     const instances = (d.instances as number) ?? 1;
     return (
       <Section>
-        <UniqueLabelField label="라벨" value={(d.label as string) ?? ''} taken={takenLabels} onCommit={v => onUpdate({ label: v })} />
-        <NumField label="인스턴스 수" value={instances} min={1} max={8}
+        <UniqueLabelField label="이름" value={(d.label as string) ?? ''} taken={takenLabels} onCommit={v => onUpdate({ label: v })} />
+        <NumField label="자원 개수" value={instances} min={1} max={8}
           onChange={v => onUpdate({ instances: v, allocated: Math.min((d.allocated as number) ?? 0, v) })} />
-        <NumField label="할당 수" value={(d.allocated as number) ?? 0} min={0} max={instances}
+        <NumField label="사용 중 개수" value={(d.allocated as number) ?? 0} min={0} max={instances}
           onChange={v => onUpdate({ allocated: v })} />
       </Section>
     );
@@ -114,7 +115,7 @@ export function NodeEditor({ node, onUpdate, takenLabels, frames = [] }: NodeEdi
         <p className="text-xs font-semibold text-slate-600">기본 그림의 값</p>
         <SlotGridFields values={slotValues(d)} onChange={slots => onUpdate({ slots })} />
         <TextField label="다음 위치 표식 이름" value={String(d.pointerLabel || '다음')} onChange={pointerLabel => onUpdate({ pointerLabel })} />
-        <p className="text-xs leading-relaxed text-slate-500">장면별 값과 강조는 프레임 탭에서 바꿉니다. 그림의 칸을 눌러도 값을 수정할 수 있습니다.</p>
+        <p className="text-xs leading-relaxed text-slate-500">장면별 값과 강조는 장면 탭에서 바꿉니다. 그림의 칸을 눌러도 값을 수정할 수 있습니다.</p>
       </Section>
     );
   }
@@ -126,7 +127,12 @@ export function NodeEditor({ node, onUpdate, takenLabels, frames = [] }: NodeEdi
         <Section>
           <TextField label="프로세스 이름" value={(d.trackId as string) ?? ''} onChange={v => onUpdate({ trackId: v })} />
           <TextField label="간트 묶음 이름" value={String(d.ganttGroup || '기본 간트')} onChange={v => onUpdate({ ganttGroup: v })} />
-          <p className="text-xs leading-relaxed text-slate-500">같은 이름의 묶음은 시간축을 공유하며 함께 이동합니다. 막대를 눌러 기본 구간을 수정하세요.</p>
+          <label className="block space-y-1 text-xs text-slate-600"><span>시간축 끝 (비우면 마지막 구간까지)</span>
+            <input aria-label="시간축 끝" type="number" min={0} step="any" value={typeof d.axisEnd === 'number' ? d.axisEnd : ''} placeholder="자동"
+              onChange={e => { const raw = e.target.value, value = Number(raw); if (raw === '') onUpdate({ axisEnd: undefined }); else if (Number.isFinite(value) && value >= 0) onUpdate({ axisEnd: value }); }}
+              className="w-full rounded border border-slate-200 px-2 py-1.5 text-xs" />
+          </label>
+          <p className="text-xs leading-relaxed text-slate-500">같은 이름의 묶음은 시간축을 공유하며 함께 이동합니다. 시간축 끝은 묶음 전체에 적용됩니다. 막대를 눌러 기본 구간을 수정하세요.</p>
         </Section>
         <Divider />
         <Section title="블록 목록">
@@ -141,7 +147,13 @@ export function NodeEditor({ node, onUpdate, takenLabels, frames = [] }: NodeEdi
     const max = (d.max as number) ?? 10;
     return (
       <Section>
-        <UniqueLabelField label="라벨" value={(d.label as string) ?? ''} taken={takenLabels} onCommit={v => onUpdate({ label: v })} />
+        <UniqueLabelField label="이름" value={(d.label as string) ?? ''} taken={takenLabels} onCommit={v => onUpdate({ label: v })} />
+        <label className="block space-y-1 text-xs text-slate-600"><span>숫자 표시 방식</span><select aria-label="숫자 표시 방식" value={String(d.displayStyle ?? 'badge')} onChange={e => onUpdate({ displayStyle: e.target.value })} className="w-full rounded border p-1.5"><option value="badge">숫자 배지</option><option value="semaphore">세마포어 허용 횟수</option></select></label>
+        {d.displayStyle === 'semaphore' && <>
+          <label className="block space-y-1 text-xs text-slate-600"><span>세마포어 의미</span><input aria-label="세마포어 의미" maxLength={80} value={String(d.caption ?? '')} onChange={e => onUpdate({ caption: e.target.value })} className="w-full rounded border p-1.5" placeholder="예: 넣기 허용" /></label>
+          <label className="flex items-center gap-2 text-xs"><input type="checkbox" aria-label="허용 토큰 표시" checked={d.showTokens !== false} onChange={e => onUpdate({ showTokens: e.target.checked })} />허용 토큰 표시</label>
+        </>}
+        <label className="flex items-center gap-2 text-xs"><input type="checkbox" aria-label="재생에 숫자 표시" checked={d.showInPlayback !== false} onChange={e => onUpdate({ showInPlayback: e.target.checked })} />재생에 숫자 표시</label>
         <NumField label="최솟값" value={min} min={-999} max={max}
           onChange={v => onUpdate({ min: v })} />
         <NumField label="최댓값" value={max} min={min} max={999}
@@ -158,8 +170,8 @@ export function NodeEditor({ node, onUpdate, takenLabels, frames = [] }: NodeEdi
       <div className="space-y-4">
         <Section>
           <TextField label="차트 제목" value={(d.label as string) ?? ''} onChange={v => onUpdate({ label: v })} />
-          <TextField label="X축 라벨" value={(d.xLabel as string) ?? ''} onChange={v => onUpdate({ xLabel: v })} />
-          <TextField label="Y축 라벨" value={(d.yLabel as string) ?? ''} onChange={v => onUpdate({ yLabel: v })} />
+          <TextField label="가로축 이름" value={(d.xLabel as string) ?? ''} onChange={v => onUpdate({ xLabel: v })} />
+          <TextField label="세로축 이름" value={(d.yLabel as string) ?? ''} onChange={v => onUpdate({ yLabel: v })} />
         </Section>
         <Divider />
         <Section title="시리즈">
@@ -179,14 +191,17 @@ export function NodeEditor({ node, onUpdate, takenLabels, frames = [] }: NodeEdi
             { value: 'plain', label: '텍스트' },
             { value: 'dashed-box', label: '점선' },
             { value: 'pill', label: '뱃지' },
+            { value: 'item', label: '항목' },
+            { value: 'status', label: '상태' },
           ]}
           onChange={v => onUpdate({ variant: v })} />
+        {d.variant === 'item' && <label className="block space-y-1 text-xs text-slate-600"><span>항목 설명</span><input aria-label="항목 설명" maxLength={80} value={String(d.caption ?? '')} onChange={e => onUpdate({ caption: e.target.value })} className="w-full rounded border p-1.5" /></label>}
         <ColorField label="색상" value={(d.color as string) ?? '#334155'} onChange={v => onUpdate({ color: v })} />
       </Section>
     );
   }
 
   return (
-    <p className="text-xs text-slate-400 text-center py-4">알 수 없는 노드 타입: {node.type}</p>
+    <p className="text-xs text-slate-400 text-center py-4">알 수 없는 요소 종류: {node.type}</p>
   );
 }

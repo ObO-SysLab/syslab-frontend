@@ -38,9 +38,11 @@ describe('simulation documents and projections',()=>{
   });
   it('initial projection does not expose future state and an event updates it',()=>{
     const instance=createDocument('ST2').instances[0],execution=run('ST2',instance.input);
-    const view=instance.views.find(v=>v.role==='actor');
-    expect(projection(instance,execution,-1,view).rows).toContainEqual(['P','생성']);
-    expect(projection(instance,execution,0,view).rows).toContainEqual(['P','준비']);
+    const view=createView('actor');
+    // The ST2 authoring default starts with P1 and P2 in New since 2026-11-08; the first event creates P1.
+    expect(projection(instance,execution,-1,view).rows).toContainEqual(['P1','생성']);
+    expect(projection(instance,execution,0,view).rows).toContainEqual(['P1','준비']);
+    expect(projection(instance,execution,0,view).rows).toContainEqual(['P2','생성']);
   });
   it('different model families never align by raw event number',()=>{
     const a=createDocument('ST2').instances[0],b=createDocument('P2').instances[0];
@@ -60,7 +62,7 @@ describe('simulation documents and projections',()=>{
   });
   it('input replacement removes deleted view bindings and stale annotation actor conditions',()=>{
     const instance=createDocument('ST2').instances[0];
-    instance.views[0].target='P';instance.views.at(-1).when.actor='P';
+    instance.views.unshift(createView('actor','P'));instance.views.at(-1).when.actor='P';
     const next=replaceInput(instance,{processes:{Q:'New'},actions:[]});
     expect(next.views.some(v=>v.target==='P')).toBe(false);
     expect(next.views.at(-1).when.actor).toBeNull();

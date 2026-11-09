@@ -1,6 +1,8 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import { useEffect, useState } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -8,6 +10,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toApiLocalDateTime } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
@@ -100,8 +103,8 @@ export default function ContestCreatePage() {
       participationType: participationType.toUpperCase(), 
       visibility: visibility.toUpperCase(),              
       tags: tagsArray,
-      startTime: new Date(startTime).toISOString(),
-      endTime: new Date(endTime).toISOString(),
+      startTime: toApiLocalDateTime(startTime), // 명세: 로컬 시각 "YYYY-MM-DDTHH:mm:ss" (UTC 변환 금지)
+      endTime: toApiLocalDateTime(endTime),
       duration: duration ? Number(duration) : null,
       rules,
       prizeDescription: isRewardEnabled ? prizeDescription : null,
@@ -186,21 +189,22 @@ export default function ContestCreatePage() {
 
   // [HANDLER] 로그아웃
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (!logout()) return;
     setIsLoggedIn(false);
     window.location.href = "/";
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+    <div className="min-h-screen bg-canvas text-ink font-sans">
 
       {/* 1. 고정 헤더 */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
         {/* [A] Diveon 로고 영역 */}
         <div className="flex items-center gap-4">
-          <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
-          <Link href="/" className="text-xl font-bold tracking-tight text-slate-900">
-            Diveon<span className="text-[10px] font-black text-indigo-500 ml-1">ADMIN</span>
+          <Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
+          <Link href="/" className="flex items-center gap-2" aria-label="DiveOn 홈">
+            <BrandMark size="sm" />
+            <span className="dv-hud text-primary">Studio</span>
           </Link>
         </div>
 
@@ -209,19 +213,19 @@ export default function ContestCreatePage() {
           {isLoggedIn ? (
             /* --- 로그인된 상태: 알림 + 프로필 + 로그아웃 --- */
             <>
-              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              <button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
               </button>
               <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                <Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
                   <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-ink-muted rounded-full">
                     {/* 공백 상태 유지 */}
                   </AvatarFallback>
                 </Avatar>
               </Link>
-              <button onClick={handleLogout} className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors">
+              <button onClick={handleLogout} className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors">
                 <LogOut className="h-5 w-5" />
               </button>
             </>
@@ -229,10 +233,10 @@ export default function ContestCreatePage() {
             /* --- 로그아웃된 상태 (보통 리다이렉트 되지만 렌더링 방어용) --- */
             <div className="flex items-center gap-2">
               <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+                <Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
               </Link>
               <Link href="/signup">
-                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+                <Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
                   Get Started
                 </Button>
               </Link>
@@ -246,33 +250,33 @@ export default function ContestCreatePage() {
 
         {/* [A] 좌측 안내 섹션 (3칸) */}
         <aside className="col-span-12 md:col-span-3 space-y-4">
-          <Card className="border-none shadow-xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-2xl overflow-hidden">
+          <Card className="border border-line bg-panel text-ink rounded-2xl overflow-hidden">
             <CardHeader className="pb-2">
-              <Trophy className="w-10 h-10 text-amber-300 fill-current mb-2" />
+              <Trophy className="w-8 h-8 text-coral mb-2" />
               <CardTitle className="text-xl font-black">새 대회 설계</CardTitle>
-              <CardDescription className="text-indigo-100 text-xs">사용자들을 위한 최상의 경쟁 환경을 구축하세요.</CardDescription>
+              <CardDescription className="text-ink-muted text-xs">사용자들을 위한 최상의 경쟁 환경을 구축하세요.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-4 text-sm font-medium">
-              <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl">
-                <Clock className="w-4 h-4 text-amber-300" />
+              <div className="flex items-center gap-3 bg-raised p-3 rounded-xl text-ink-muted">
+                <Clock className="w-4 h-4 text-warning" />
                 <span>정확한 시간 설정 필수</span>
               </div>
-              <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl">
-                <ShieldAlert className="w-4 h-4 text-amber-300" />
+              <div className="flex items-center gap-3 bg-raised p-3 rounded-xl text-ink-muted">
+                <ShieldAlert className="w-4 h-4 text-warning" />
                 <span>부정행위 방지 규칙 명시</span>
               </div>
-              <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl">
-                <Award className="w-4 h-4 text-amber-300" />
+              <div className="flex items-center gap-3 bg-raised p-3 rounded-xl text-ink-muted">
+                <Award className="w-4 h-4 text-warning" />
                 <span>매력적인 보상과 혜택</span>
               </div>
             </CardContent>
           </Card>
 
-          <div className="p-4 border rounded-2xl bg-white space-y-2">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+          <div className="p-4 border rounded-2xl bg-panel space-y-2">
+            <h4 className="text-xs font-bold text-ink-subtle uppercase tracking-widest flex items-center gap-2">
               <Info size={14} /> 운영 팁
             </h4>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
+            <p className="text-[11px] text-ink-muted leading-relaxed">
               대회 시작 전 '예정' 상태로 노출하여 참가자들을 미리 모집하는 것이 좋습니다. 포렌식 대회라면 데이터셋 용량을 미리 확인하세요.
             </p>
           </div>
@@ -284,25 +288,25 @@ export default function ContestCreatePage() {
           {/* 상단 버튼 */}
           <div className="flex justify-between items-end border-b pb-6">
             <div className="space-y-1">
-              <h2 className="text-3xl font-black tracking-tighter text-slate-950">Contest Blueprint</h2>
-              <p className="text-slate-500 font-medium">대회의 일정, 보상, 규칙을 상세히 설정합니다.</p>
+              <h2 className="text-3xl font-black tracking-tighter text-ink">Contest Blueprint</h2>
+              <p className="text-ink-muted font-medium">대회의 일정, 보상, 규칙을 상세히 설정합니다.</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="px-6 rounded-xl">취소</Button>
-              <Button className="bg-slate-950 hover:bg-slate-800 px-8 rounded-xl shadow-lg" onClick={handleCreateContest}>대회 생성</Button>
+              <Button className="bg-deep hover:bg-line px-8 rounded-xl shadow-lg" onClick={handleCreateContest}>대회 생성</Button>
             </div>
           </div>
 
           {/* 1. 대회 기본 정보 */}
-          <Card className="border-slate-200 shadow-sm rounded-2xl">
+          <Card className="border-line shadow-sm rounded-2xl">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2"><Trophy className="w-5 h-5 text-amber-500" /> 기본 정보</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2"><Trophy className="w-5 h-5 text-warning" /> 기본 정보</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
 
               {/* 대회 명칭 */}
               <div className="grid gap-2">
-                <Label htmlFor="contest-title">대회 명칭 <span className="text-red-500">*</span></Label>
+                <Label htmlFor="contest-title">대회 명칭 <span className="text-danger">*</span></Label>
                 <Input
                   id="contest-title"
                   value={title}
@@ -314,7 +318,7 @@ export default function ContestCreatePage() {
 
               {/* 대회 소개 */}
               <div className="grid gap-2">
-                <Label htmlFor="contest-desc">대회 소개 <span className="text-red-500">*</span></Label>
+                <Label htmlFor="contest-desc">대회 소개 <span className="text-danger">*</span></Label>
                 <Textarea
                   id="contest-desc"
                   placeholder="대회의 목적, 주제 등 포스터 탭에 노출될 상세한 소개를 입력하세요."
@@ -377,15 +381,15 @@ export default function ContestCreatePage() {
           </Card>
 
           {/* 2. 일정 및 시간 설정 */}
-          <Card className="border-slate-200 shadow-sm rounded-2xl">
+          <Card className="border-line shadow-sm rounded-2xl">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2"><Clock className="w-5 h-5 text-indigo-500" /> 일정 설정</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2"><Clock className="w-5 h-5 text-primary" /> 일정 설정</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* 대회 시작 일시 */}
                 <div className="space-y-3">
-                  <Label className="text-indigo-600 font-bold">대회 시작 일시</Label>
+                  <Label className="text-primary font-bold">대회 시작 일시</Label>
                   <Input
                     type="datetime-local"
                     value={startTime}
@@ -395,7 +399,7 @@ export default function ContestCreatePage() {
                 </div>
                 {/* 대회 종료 일시 */}
                 <div className="space-y-3">
-                  <Label className="text-red-600 font-bold">대회 종료 일시</Label>
+                  <Label className="text-danger font-bold">대회 종료 일시</Label>
                   <Input
                     type="datetime-local"
                     value={endTime}
@@ -405,7 +409,7 @@ export default function ContestCreatePage() {
                 </div>
                 {/* 진행 시간 */}
                 <div className="space-y-3">
-                  <Label className="font-bold text-slate-700">진행 시간 (시간 단위)</Label>
+                  <Label className="font-bold text-ink">진행 시간 (시간 단위)</Label>
                   <Input
                     type="number"
                     step="0.5" // 0.5시간(30분) 단위 입력도 지원 가능하도록 설정
@@ -420,21 +424,21 @@ export default function ContestCreatePage() {
           </Card>
 
           {/* 3. 보상 및 규칙 */}
-          <Card className="border-slate-200 shadow-sm rounded-2xl">
+          <Card className="border-line shadow-sm rounded-2xl">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2"><Award className="w-5 h-5 text-emerald-500" /> 보상 및 규칙</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2"><Award className="w-5 h-5 text-success" /> 보상 및 규칙</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
 
               {/* 보상 ON/OFF 로직 */}
-              <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <div className="space-y-4 bg-canvas p-4 rounded-xl border border-line">
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="reward-toggle"
                     checked={isRewardEnabled}
                     onCheckedChange={(checked) => setIsRewardEnabled(checked as boolean)}
                   />
-                  <Label htmlFor="reward-toggle" className="font-bold cursor-pointer text-slate-800">
+                  <Label htmlFor="reward-toggle" className="font-bold cursor-pointer text-ink">
                     대회 보상 제공 여부
                   </Label>
                 </div>
@@ -443,13 +447,13 @@ export default function ContestCreatePage() {
                 {isRewardEnabled && (
                   <div className="space-y-2 pl-6 animate-in fade-in duration-300">
                     <Label>보상 및 혜택 내역</Label>
-                    <Input placeholder="예: 상금 100만원, 총장 표창, 채용 우대권 등" className="bg-white" onChange={(e) => setPrizeDescription(e.target.value)} />
+                    <Input placeholder="예: 상금 100만원, 총장 표창, 채용 우대권 등" className="bg-panel" onChange={(e) => setPrizeDescription(e.target.value)} />
                   </div>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label>참가 규칙 및 주의사항 <span className="text-red-500">*</span></Label>
+                <Label>참가 규칙 및 주의사항 <span className="text-danger">*</span></Label>
                 <Textarea
                   placeholder="대회 중 금지 행위(부정행위, 공격 등)와 순위 산정 기준을 입력하세요."
                   className="min-h-[120px] resize-none"
@@ -472,14 +476,14 @@ export default function ContestCreatePage() {
           </Card>
 
           {/* 4. 문제지 구성 */}
-          {/* <Card className="border-dashed border-2 border-slate-200 shadow-none bg-slate-50/50 rounded-2xl">
+          {/* <Card className="border-dashed border-2 border-line shadow-none bg-raised/50 rounded-2xl">
              <CardContent className="flex flex-col items-center justify-center py-10 space-y-4">
-                <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center border shadow-sm">
-                   <Plus className="text-slate-400" />
+                <div className="h-12 w-12 rounded-full bg-panel flex items-center justify-center border shadow-sm">
+                   <Plus className="text-ink-subtle" />
                 </div>
                 <div className="text-center">
-                   <p className="font-bold text-slate-700">문제 뱅크에서 문제 불러오기</p>
-                   <p className="text-xs text-slate-400 mt-1">대회에서 사용할 문제들을 선택하거나 새로 출제할 수 있습니다.</p>
+                   <p className="font-bold text-ink">문제 뱅크에서 문제 불러오기</p>
+                   <p className="text-xs text-ink-subtle mt-1">대회에서 사용할 문제들을 선택하거나 새로 출제할 수 있습니다.</p>
                 </div>
                 <Button variant="secondary" size="sm">문제지 구성하기</Button>
              </CardContent>

@@ -1,6 +1,9 @@
 "use client";
+import { logout } from "@/lib/authSession";
 
 import { useState, useEffect } from "react";
+import { BrandMark } from "@/components/BrandMark";
+import { TierBadge } from "@/components/dv";
 import Link from "next/link";
 import {
   Search, Bell, LogOut, Menu, Trophy, Users, BarChart3, ShoppingBag,
@@ -191,13 +194,13 @@ export default function GlobalRankingPage() {
     else if (tier === "1") tier = "Bronze";
 
     switch (tier) {
-      case 'Challenger': return 'bg-rose-950 text-rose-200 border-rose-800';
-      case 'Master': return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'Diamond': return 'bg-cyan-50 text-cyan-600 border-cyan-200';
-      case 'Platinum': return 'bg-emerald-50 text-emerald-600 border-emerald-200';
-      case 'Gold': return 'bg-amber-50 text-amber-600 border-amber-200';
-      case 'Silver': return 'bg-slate-100 text-slate-600 border-slate-200';
-      default: return 'bg-slate-50 text-slate-500 border-slate-200';
+      case 'Challenger': return 'bg-danger/15 text-danger border-danger/30';
+      case 'Master': return 'bg-coral/10 text-coral border-coral/30';
+      case 'Diamond': return 'bg-primary/10 text-primary border-primary/30';
+      case 'Platinum': return 'bg-success/10 text-success border-success/30';
+      case 'Gold': return 'bg-warning/10 text-warning border-warning/30';
+      case 'Silver': return 'bg-raised text-ink-muted border-line';
+      default: return 'bg-canvas text-ink-muted border-line';
     }
   };
 
@@ -207,15 +210,13 @@ export default function GlobalRankingPage() {
   const totalElements = rankType === "user" ? userTotalElements : groupTotalElements;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+    <div className="min-h-screen bg-canvas text-ink font-sans">
 
       {/* 1. 고정 헤더 */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
-          <Link href="/" className="text-2xl font-black tracking-tighter text-slate-900 mr-4">
-            Diveon
-          </Link>
+          <Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
+          <Link href="/" className="mr-4" aria-label="DiveOn 홈"><BrandMark /></Link>
           <nav className="hidden lg:flex items-center gap-1">
             <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
             <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
@@ -228,27 +229,27 @@ export default function GlobalRankingPage() {
         <div className="flex items-center gap-3">
           {isLoggedIn ? (
             <>
-              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              <button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
               </button>
               <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                <Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
                   <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
                   <AvatarFallback className="bg-transparent" />
                 </Avatar>
               </Link>
               <button
-                onClick={() => setIsLoggedIn(false)}
-                className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
+                onClick={() => { if (logout()) setIsLoggedIn(false); }}
+                className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors group"
               >
                 <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
               </button>
             </>
           ) : (
             <div className="flex items-center gap-2">
-              <Link href="/signin"><Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button></Link>
-              <Link href="/signup"><Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">Get Started</Button></Link>
+              <Link href="/signin"><Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button></Link>
+              <Link href="/signup"><Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">Get Started</Button></Link>
             </div>
           )}
         </div>
@@ -258,26 +259,26 @@ export default function GlobalRankingPage() {
       <main className="container mx-auto max-w-[1200px] pt-10 px-4 pb-20 space-y-12">
 
         {/* 상단 타이틀 및 필터 */}
-        <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-slate-200 pb-6">
+        <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-line pb-6">
           <div className="space-y-4 w-full md:w-auto">
             <div className="space-y-2">
-              <h1 className="text-4xl font-black tracking-tighter text-slate-950 uppercase flex items-center gap-3">
-                <BarChart3 className="h-8 w-8 text-indigo-600" /> Ranking
+              <h1 className="text-4xl font-black tracking-tighter text-ink uppercase flex items-center gap-3">
+                <BarChart3 className="h-8 w-8 text-primary" /> Ranking
               </h1>
-              <p className="text-slate-500 font-medium">Diveon 최고의 명예를 거머쥔 주인공들을 확인하세요.</p>
+              <p className="text-ink-muted font-medium">Diveon 최고의 명예를 거머쥔 주인공들을 확인하세요.</p>
             </div>
 
-            <div className="inline-flex p-1 bg-slate-200/70 border border-slate-200 rounded-xl">
+            <div className="inline-flex p-1 bg-line/70 border border-line rounded-xl">
               <button
                 onClick={() => setRankType("user")}
-                className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${rankType === "user" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${rankType === "user" ? "bg-panel text-ink shadow-sm" : "text-ink-muted hover:text-ink"
                   }`}
               >
                 유저 랭킹
               </button>
               <button
                 onClick={() => setRankType("group")}
-                className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${rankType === "group" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${rankType === "group" ? "bg-panel text-ink shadow-sm" : "text-ink-muted hover:text-ink"
                   }`}
               >
                 그룹 랭킹
@@ -287,18 +288,18 @@ export default function GlobalRankingPage() {
 
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-subtle" />
               <Input
                 placeholder={rankType === "user" ? "유저 검색..." : "그룹 검색..."}
-                className="pl-10 bg-white border-slate-200 rounded-xl"
+                className="pl-10 bg-panel border-line rounded-xl"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="flex bg-white border border-slate-200 rounded-xl p-1 shrink-0">
+            <div className="flex bg-panel border border-line rounded-xl p-1 shrink-0">
               <Button variant={timeFilter === "weekly" ? "secondary" : "ghost"} size="sm" onClick={() => setTimeFilter("weekly")} className="rounded-lg h-8 text-xs font-bold">주간</Button>
               <Button variant={timeFilter === "monthly" ? "secondary" : "ghost"} size="sm" onClick={() => setTimeFilter("monthly")} className="rounded-lg h-8 text-xs font-bold">월간</Button>
-              <Button variant={timeFilter === "all-time" ? "default" : "ghost"} size="sm" onClick={() => setTimeFilter("all-time")} className="rounded-lg h-8 text-xs font-bold bg-slate-900 text-white">전체</Button>
+              <Button variant={timeFilter === "all-time" ? "default" : "ghost"} size="sm" onClick={() => setTimeFilter("all-time")} className="rounded-lg h-8 text-xs font-bold bg-raised border border-line-strong text-white">전체</Button>
             </div>
           </div>
         </div>
@@ -313,18 +314,18 @@ export default function GlobalRankingPage() {
               key={`podium-silver-${rankType}-${currentTop3[1].userId || currentTop3[1].groupId}`}
               className="order-2 md:order-1 transform transition-transform hover:-translate-y-2"
             >
-              <Card className="border-slate-200 bg-white shadow-md relative overflow-hidden h-[230px] flex flex-col items-center justify-center pt-8">
-                <div className="absolute top-0 left-0 w-full h-2 bg-slate-300"></div>
-                <div className="absolute top-4 left-4 h-8 w-8 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-500">2</div>
-                <Avatar className="h-18 w-18 border-4 border-slate-100 shadow-sm mb-3">
+              <Card className="border-line bg-panel shadow-md relative overflow-hidden h-[230px] flex flex-col items-center justify-center pt-8">
+                <div className="absolute top-0 left-0 w-full h-2 bg-line-strong"></div>
+                <div className="absolute top-4 left-4 h-8 w-8 bg-raised rounded-full flex items-center justify-center font-black text-ink-muted">2</div>
+                <Avatar className="h-18 w-18 border-4 border-line shadow-sm mb-3">
                   {/* Date.now()를 cacheBuster 변수로 치환하여 Hydration 붕괴를 원천 차단합니다. */}
                   <AvatarImage src={rankType === "group" && currentTop3[1].image ? currentTop3[1].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[1].userId : currentTop3[1].groupId}?v=${cacheBuster}`} className="object-cover" />
-                  <AvatarFallback className="bg-slate-200 text-slate-600 font-bold text-lg">{currentTop3[1].avatar}</AvatarFallback>
+                  <AvatarFallback className="bg-line text-ink-muted font-bold text-lg">{currentTop3[1].avatar}</AvatarFallback>
                 </Avatar>
-                <h3 className="font-black text-base text-slate-800 text-center px-2 line-clamp-1">{currentTop3[1].nickname}</h3>
-                <p className="text-sm font-bold text-slate-500 mt-1">{currentTop3[1].score.toLocaleString()} PTS</p>
+                <h3 className="font-black text-base text-ink text-center px-2 line-clamp-1">{currentTop3[1].nickname}</h3>
+                <p className="text-sm font-bold text-ink-muted mt-1">{currentTop3[1].score.toLocaleString()} PTS</p>
                 {"memberCount" in currentTop3[1] && (
-                  <p className="text-[11px] text-slate-400 font-medium">멤버 {currentTop3[1].memberCount}명</p>
+                  <p className="text-[11px] text-ink-subtle font-medium">멤버 {currentTop3[1].memberCount}명</p>
                 )}
               </Card>
             </div>
@@ -335,19 +336,19 @@ export default function GlobalRankingPage() {
               className="order-1 md:order-2 transform transition-transform hover:-translate-y-2 z-10 relative"
             >
               <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20 animate-bounce">
-                <Crown className="h-8 w-8 text-yellow-500 fill-yellow-500" />
+                <Crown className="h-8 w-8 text-warning fill-warning" />
               </div>
-              <Card className="border-yellow-200 bg-gradient-to-b from-yellow-50 to-white shadow-xl relative overflow-hidden h-[270px] flex flex-col items-center justify-center pt-6 border-2">
-                <div className="absolute top-0 left-0 w-full h-2 bg-yellow-400"></div>
-                <div className="absolute top-4 left-4 h-8 w-8 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center font-black">1</div>
-                <Avatar className="h-22 w-24 border-4 border-white shadow-md mb-3">
+              <Card className="border-warning/30 bg-gradient-to-b from-warning/10 to-panel shadow-xl relative overflow-hidden h-[270px] flex flex-col items-center justify-center pt-6 border-2">
+                <div className="absolute top-0 left-0 w-full h-2 bg-warning"></div>
+                <div className="absolute top-4 left-4 h-8 w-8 bg-warning/15 text-warning rounded-full flex items-center justify-center font-black">1</div>
+                <Avatar className="h-22 w-24 border-4 border-panel shadow-md mb-3">
                   <AvatarImage src={rankType === "group" && currentTop3[0].image ? currentTop3[0].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[0].userId : currentTop3[0].groupId}?v=${cacheBuster}`} className="object-cover" />
-                  <AvatarFallback className="bg-yellow-200 text-yellow-700 font-black text-xl">{currentTop3[0].avatar}</AvatarFallback>
+                  <AvatarFallback className="bg-warning/25 text-warning font-black text-xl">{currentTop3[0].avatar}</AvatarFallback>
                 </Avatar>
-                <h3 className="font-black text-lg text-slate-900 text-center px-2 line-clamp-1">{currentTop3[0].nickname}</h3>
-                <p className="text-sm font-black text-yellow-600 bg-yellow-100 px-3 py-0.5 rounded-full mt-1.5">{currentTop3[0].score.toLocaleString()} PTS</p>
+                <h3 className="font-black text-lg text-ink text-center px-2 line-clamp-1">{currentTop3[0].nickname}</h3>
+                <p className="text-sm font-black text-warning bg-warning/15 px-3 py-0.5 rounded-full mt-1.5">{currentTop3[0].score.toLocaleString()} PTS</p>
                 {"memberCount" in currentTop3[0] && (
-                  <p className="text-[11px] text-slate-400 font-medium mt-1">멤버 {currentTop3[0].memberCount}명</p>
+                  <p className="text-[11px] text-ink-subtle font-medium mt-1">멤버 {currentTop3[0].memberCount}명</p>
                 )}
               </Card>
             </div>
@@ -357,17 +358,17 @@ export default function GlobalRankingPage() {
               key={`podium-bronze-${rankType}-${currentTop3[2].userId || currentTop3[2].groupId}`}
               className="order-3 md:order-3 transform transition-transform hover:-translate-y-2"
             >
-              <Card className="border-amber-100 bg-white shadow-md relative overflow-hidden h-[210px] flex flex-col items-center justify-center pt-8">
-                <div className="absolute top-0 left-0 w-full h-2 bg-amber-600/60"></div>
-                <div className="absolute top-4 left-4 h-8 w-8 bg-amber-50 rounded-full flex items-center justify-center font-black text-amber-700">3</div>
-                <Avatar className="h-16 w-16 border-4 border-amber-50 shadow-sm mb-3">
+              <Card className="border-warning/20 bg-panel shadow-md relative overflow-hidden h-[210px] flex flex-col items-center justify-center pt-8">
+                <div className="absolute top-0 left-0 w-full h-2 bg-warning/60"></div>
+                <div className="absolute top-4 left-4 h-8 w-8 bg-warning/10 rounded-full flex items-center justify-center font-black text-warning">3</div>
+                <Avatar className="h-16 w-16 border-4 border-warning/20 shadow-sm mb-3">
                   <AvatarImage src={rankType === "group" && currentTop3[2].image ? currentTop3[2].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[2].userId : currentTop3[2].groupId}?v=${cacheBuster}`} className="object-cover" />
-                  <AvatarFallback className="bg-amber-100 text-amber-700 font-bold text-base">{currentTop3[2].avatar}</AvatarFallback>
+                  <AvatarFallback className="bg-warning/15 text-warning font-bold text-base">{currentTop3[2].avatar}</AvatarFallback>
                 </Avatar>
-                <h3 className="font-black text-base text-slate-800 text-center px-2 line-clamp-1">{currentTop3[2].nickname}</h3>
-                <p className="text-sm font-bold text-slate-500 mt-1">{currentTop3[2].score.toLocaleString()} PTS</p>
+                <h3 className="font-black text-base text-ink text-center px-2 line-clamp-1">{currentTop3[2].nickname}</h3>
+                <p className="text-sm font-bold text-ink-muted mt-1">{currentTop3[2].score.toLocaleString()} PTS</p>
                 {"memberCount" in currentTop3[2] && (
-                  <p className="text-[11px] text-slate-400 font-medium">멤버 {currentTop3[2].memberCount}명</p>
+                  <p className="text-[11px] text-ink-subtle font-medium">멤버 {currentTop3[2].memberCount}명</p>
                 )}
               </Card>
             </div>
@@ -376,9 +377,9 @@ export default function GlobalRankingPage() {
         )}
 
         {/* 랭킹 메인 보드 테이블 스킨 */}
-        <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <section className="bg-panel border border-line rounded-2xl shadow-sm overflow-hidden">
           <Table>
-            <TableHeader className="bg-slate-50 border-b border-slate-100">
+            <TableHeader className="bg-canvas border-b border-line">
               <TableRow>
                 <TableHead className="w-[80px] text-center font-black">순위</TableHead>
                 <TableHead className="font-black">{rankType === "user" ? "사용자" : "그룹명"}</TableHead>
@@ -391,7 +392,7 @@ export default function GlobalRankingPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-slate-400 text-sm font-bold animate-pulse">
+                  <TableCell colSpan={6} className="text-center py-12 text-ink-subtle text-sm font-bold animate-pulse">
                     랭킹 데이터 파이프라인 동기화 중...
                   </TableCell>
                 </TableRow>
@@ -406,33 +407,31 @@ export default function GlobalRankingPage() {
                     : `${(item.memberCount || 0).toLocaleString()}명`;
 
                   return (
-                    <TableRow key={`table-row-${rankType}-${displayId}`} className="hover:bg-slate-50/50 transition-colors group">
-                      <TableCell className="text-center font-black text-slate-500">{item.rank}위</TableCell>
+                    <TableRow key={`table-row-${rankType}-${displayId}`} className="hover:bg-raised/50 transition-colors group">
+                      <TableCell className="text-center font-black text-ink-muted">{item.rank}위</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8 border border-slate-100">
+                          <Avatar className="h-8 w-8 border border-line">
                             <AvatarImage src={rankType === "group" && item.image ? item.image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${displayId}?v=${cacheBuster}`} className="object-cover" />
-                            <AvatarFallback className={rankType === "user" ? "bg-indigo-50 text-indigo-600 text-xs font-bold" : "bg-purple-50 text-purple-600 text-xs font-bold"}>
+                            <AvatarFallback className={rankType === "user" ? "bg-primary/10 text-primary text-xs font-bold" : "bg-coral/10 text-coral text-xs font-bold"}>
                               {displayName ? displayName.substring(0, 1).toUpperCase() : ""}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors cursor-pointer">
+                          <span className="font-bold text-ink group-hover:text-primary transition-colors cursor-pointer">
                             {displayName}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge variant="outline" className={`font-bold ${getTierColor(displayTier)}`}>
-                          {displayTier}
-                        </Badge>
+                        <TierBadge tier={displayTier} size="sm" showRank={false} />
                       </TableCell>
-                      <TableCell className="text-right font-medium text-slate-600">
+                      <TableCell className="text-right font-medium text-ink-muted">
                         {subCount}
                       </TableCell>
-                      <TableCell className="text-right font-black text-slate-800">
+                      <TableCell className="text-right font-black text-ink">
                         {item.score.toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-right text-xs text-slate-400 font-medium pr-6">
+                      <TableCell className="text-right text-xs text-ink-subtle font-medium pr-6">
                         {rankType === "user" ? item.recentActivity : "LIVE"}
                       </TableCell>
                     </TableRow>
@@ -442,8 +441,8 @@ export default function GlobalRankingPage() {
           </Table>
 
           {/* 하단 페이지네이션 디바이스 */}
-          <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-            <p className="text-xs text-slate-500 font-medium ml-2">
+          <div className="p-4 border-t border-line flex items-center justify-between bg-raised/50">
+            <p className="text-xs text-ink-muted font-medium ml-2">
               {rankType === "user"
                 ? `전체 ${totalElements}명 중 ${(currentPage - 1) * 10 + 1}-${Math.min(currentPage * 10, totalElements)}위 표시`
                 : `전체 ${totalElements}개 그룹 중 1-${totalElements}위 표시`
@@ -458,7 +457,7 @@ export default function GlobalRankingPage() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" className="h-8 w-8 rounded-lg bg-slate-900 text-white border-slate-900">{currentPage}</Button>
+              <Button variant="outline" size="sm" className="h-8 w-8 rounded-lg bg-raised text-white border-line">{currentPage}</Button>
               <Button
                 variant="outline" size="icon"
                 disabled={currentPage * (rankType === "user" ? 10 : 20) >= totalElements}
@@ -481,7 +480,7 @@ function NavMenuLink({ href, icon, label, active = false }: { href: string; icon
   return (
     <Link
       href={href}
-      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active ? "text-indigo-600 bg-indigo-50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active ? "text-primary bg-primary/10" : "text-ink-muted hover:text-ink hover:bg-raised/60"
         }`}
     >
       <span>{icon}</span>

@@ -57,6 +57,6 @@ export function NodeOverrideEditor({ node, frames, frameIndex, override, onField
     case 'counter-badge':
       return <CounterBadgeOverrideForm {...formProps} />;
     default:
-      return <p className="text-[10px] text-slate-400">오버라이드할 수 없는 노드 타입입니다.</p>;
+      return <p className="text-[10px] text-slate-400">이 요소는 장면마다 값을 따로 정할 수 없습니다.</p>;
   }
 }
