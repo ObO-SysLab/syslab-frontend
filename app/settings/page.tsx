@@ -2,6 +2,7 @@
 import { logout } from "@/lib/authSession";
 
 import { useState, useEffect, useRef, Suspense } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -20,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge"
+import { getLevelLabel } from "@/lib/utils";
 
 
 function SettingsContent() {
@@ -109,15 +111,13 @@ function SettingsContent() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
+    <div className="min-h-screen bg-panel text-ink font-sans">
 
       {/* 1. 고정 헤더 (기존 디자인 유지) */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8"> {/* gap을 넓혀서 메뉴 공간 확보 */}
-          <Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
-          <Link href="/" className="text-2xl font-black tracking-tighter text-slate-900 mr-4">
-            Diveon
-          </Link>
+          <Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
+          <Link href="/" className="mr-4" aria-label="DiveOn 홈"><BrandMark /></Link>
 
           {/* 중앙 네비게이션 메뉴 */}
           <nav className="hidden lg:flex items-center gap-1">
@@ -132,8 +132,8 @@ function SettingsContent() {
         {/* 검색창 영역 */}
         <div className="flex-1 max-w-sm px-4">
           <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-            <Input type="search" placeholder="검색..." className="pl-9 bg-slate-50 border-slate-200 rounded-full h-9 text-sm" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-ink-muted" />
+            <Input type="search" placeholder="검색..." className="pl-9 bg-canvas border-line rounded-full h-9 text-sm" />
           </div>
         </div>
 
@@ -142,15 +142,15 @@ function SettingsContent() {
           {isLoggedIn ? (
             /* --- [A] 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
             <>
-              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              <button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
               </button>
 
               <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                <Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
                   <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-ink-muted rounded-full">
                     {/* 공백 상태 유지 */}
                   </AvatarFallback>
                 </Avatar>
@@ -158,7 +158,7 @@ function SettingsContent() {
 
               <button
                 onClick={() => { if (logout()) setIsLoggedIn(false); }}
-                className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
+                className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors group"
               >
                 <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
               </button>
@@ -167,10 +167,10 @@ function SettingsContent() {
             /* --- [B] 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
             <div className="flex items-center gap-2">
               <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+                <Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
               </Link>
               <Link href="/signup">
-                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+                <Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
                   Get Started
                 </Button>
               </Link>
@@ -220,7 +220,7 @@ function SettingsContent() {
           </nav>
           <Separator className="my-6" />
           <div className="px-3">
-            <button className="flex items-center gap-3 text-sm font-bold text-red-500 hover:text-red-600 transition-colors">
+            <button className="flex items-center gap-3 text-sm font-bold text-danger hover:text-danger transition-colors">
               <Trash2 size={18} /> 계정 탈퇴
             </button>
           </div>
@@ -232,7 +232,7 @@ function SettingsContent() {
           {/* [수정] 프로필 섹션에 데이터를 넘겨줌 */}
           {activeTab === "profile" && (
             isLoading ? (
-              <div className="py-20 text-center text-slate-400 font-bold">프로필 로드 중...</div>
+              <div className="py-20 text-center text-ink-subtle font-bold">프로필 로드 중...</div>
             ) : (
               <ProfileSection
                 data={profileData}
@@ -343,14 +343,14 @@ function ProfileSection({
   const getTierBadgeStyle = (tier: string | number) => {
     const label = getTierLabel(tier);
     switch (label) {
-      case 'Challenger': return 'bg-rose-950 text-rose-200 border-rose-800 font-black animate-pulse';
-      case 'Master': return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'Diamond': return 'bg-cyan-50 text-cyan-600 border-cyan-200';
-      case 'Platinum': return 'bg-emerald-50 text-emerald-600 border-emerald-200';
-      case 'Gold': return 'bg-amber-50 text-amber-600 border-amber-200';
-      case 'Silver': return 'bg-slate-100 text-slate-600 border-slate-200';
-      case 'Bronze': return 'bg-orange-50 text-orange-700 border-orange-200';
-      default: return 'bg-slate-50 text-slate-500 border-slate-200';
+      case 'Challenger': return 'bg-danger/15 text-danger border-danger/30 font-black animate-pulse';
+      case 'Master': return 'bg-coral/10 text-coral border-coral/30';
+      case 'Diamond': return 'bg-primary/10 text-primary border-primary/30';
+      case 'Platinum': return 'bg-success/10 text-success border-success/30';
+      case 'Gold': return 'bg-warning/10 text-warning border-warning/30';
+      case 'Silver': return 'bg-raised text-ink-muted border-line';
+      case 'Bronze': return 'bg-warning/10 text-warning border-warning/30';
+      default: return 'bg-canvas text-ink-muted border-line';
     }
   };
 
@@ -416,11 +416,11 @@ function ProfileSection({
       <section className="space-y-6">
         <div className="space-y-1">
           <h3 className="text-xl font-bold">프로필 편집</h3>
-          <p className="text-sm text-slate-500">다른 사용자에게 보여지는 정보를 설정합니다.</p>
+          <p className="text-sm text-ink-muted">다른 사용자에게 보여지는 정보를 설정합니다.</p>
         </div>
         <Separator />
 
-        <div className="flex items-center gap-6 p-6 bg-slate-50/50 rounded-3xl border border-slate-100">
+        <div className="flex items-center gap-6 p-6 bg-raised/50 rounded-3xl border border-line">
 
           {/* 숨겨진 File Input 컴포넌트 가드 주입 */}
           <input
@@ -435,10 +435,10 @@ function ProfileSection({
             className="relative group cursor-pointer"
             onClick={() => !isImageUploading && fileInputRef.current?.click()} // 클릭 시 파일창 트리거
           >
-            <Avatar className="w-24 h-24 border-4 border-white shadow-xl transition-transform active:scale-95">
+            <Avatar className="w-24 h-24 border-4 border-panel shadow-xl transition-transform active:scale-95">
               {/* 기 가공된 profileImgUrl 상태 소스 연결 */}
               <AvatarImage src={profileImgUrl} />
-              <AvatarFallback className="bg-indigo-100 text-indigo-600 font-black text-xl">
+              <AvatarFallback className="bg-primary/15 text-primary font-black text-xl">
                 {isImageUploading ? "..." : "DY"}
               </AvatarFallback>
             </Avatar>
@@ -448,7 +448,7 @@ function ProfileSection({
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-bold text-slate-900">
+            <p className="text-sm font-bold text-ink">
               {isImageUploading ? "이미지 업로드 중..." : "프로필 이미지"}
             </p>
             <div className="flex gap-2">
@@ -469,12 +469,12 @@ function ProfileSection({
                   setProfileImgUrl("/avatar.png"); // 기본 프레임 스킨 복원
                 }}
                 disabled={isImageUploading}
-                className="text-red-500 hover:bg-red-50 font-bold"
+                className="text-danger hover:bg-danger/10 font-bold"
               >
                 삭제
               </Button>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">* 1MB 이하의 JPG, PNG, WEBP 파일만 허용됩니다.</p>
+            <p className="text-[11px] text-ink-subtle font-medium">* 1MB 이하의 JPG, PNG, WEBP 파일만 허용됩니다.</p>
           </div>
         </div>
 
@@ -485,7 +485,7 @@ function ProfileSection({
               id="nickname"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              className="rounded-xl h-11 border-slate-200"
+              className="rounded-xl h-11 border-line"
             />
           </div>
           <div className="grid gap-2">
@@ -494,7 +494,7 @@ function ProfileSection({
               id="bio"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              className="rounded-xl min-h-[100px] border-slate-200"
+              className="rounded-xl min-h-[100px] border-line"
             />
           </div>
         </div>
@@ -504,17 +504,17 @@ function ProfileSection({
       <section className="space-y-6">
         <div className="space-y-1">
           <h3 className="text-xl font-bold">개인정보 및 보안</h3>
-          <p className="text-sm text-slate-500">계정 관리와 본인 인증을 위한 정보입니다.</p>
+          <p className="text-sm text-ink-muted">계정 관리와 본인 인증을 위한 정보입니다.</p>
         </div>
         <Separator />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label className="text-slate-400 flex items-center gap-2 ml-1">
+            <Label className="text-ink-subtle flex items-center gap-2 ml-1">
               티어 <Lock size={12} />
             </Label>
-            <div className="h-11 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-between cursor-not-allowed">
-              <span className="text-slate-700 text-sm font-bold">
+            <div className="h-11 px-4 bg-raised border border-line rounded-xl flex items-center justify-between cursor-not-allowed">
+              <span className="text-ink text-sm font-bold">
                 {getTierLabel(info?.tier)} Tier
               </span>
               <Badge variant="outline" className={`font-black text-[10px] uppercase tracking-tight py-0.5 px-2 rounded-full ${getTierBadgeStyle(info?.tier || "4")}`}>
@@ -524,17 +524,17 @@ function ProfileSection({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-400 flex items-center gap-2 ml-1">
+            <Label className="text-ink-subtle flex items-center gap-2 ml-1">
               계정 생성일 <Lock size={12} />
             </Label>
-            <div className="h-11 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-slate-500 text-sm font-medium cursor-not-allowed">
+            <div className="h-11 px-4 bg-raised border border-line rounded-xl flex items-center text-ink-muted text-sm font-medium cursor-not-allowed">
               {formattedDate}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-400 flex items-center gap-2 ml-1">이메일 <Lock size={12} /></Label>
-            <div className="h-11 px-4 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-slate-500 text-sm font-medium cursor-not-allowed">
+            <Label className="text-ink-subtle flex items-center gap-2 ml-1">이메일 <Lock size={12} /></Label>
+            <div className="h-11 px-4 bg-raised border border-line rounded-xl flex items-center text-ink-muted text-sm font-medium cursor-not-allowed">
               {info?.email || "dy.park@dankook.ac.kr"}
             </div>
           </div>
@@ -545,7 +545,7 @@ function ProfileSection({
               id="org"
               value={org}
               onChange={(e) => setOrg(e.target.value)}
-              className="rounded-xl h-11 border-slate-200"
+              className="rounded-xl h-11 border-line"
             />
           </div>
         </div>
@@ -555,7 +555,7 @@ function ProfileSection({
       <section className="space-y-6">
         <div className="space-y-1">
           <h3 className="text-xl font-bold">커리어 정보</h3>
-          <p className="text-sm text-slate-500">포트폴리오나 챌린지 매칭에 활용되는 정보입니다.</p>
+          <p className="text-sm text-ink-muted">포트폴리오나 챌린지 매칭에 활용되는 정보입니다.</p>
         </div>
         <Separator />
 
@@ -576,7 +576,7 @@ function ProfileSection({
                   }
                 }}
                 placeholder="예: Reverse Engineering, Web Hacking"
-                className="rounded-xl h-9 text-xs border-slate-200"
+                className="rounded-xl h-9 text-xs border-line"
               />
               <Button
                 type="button"
@@ -594,15 +594,15 @@ function ProfileSection({
               {(interests || []).map((tag: string) => (
                 <Badge
                   key={tag}
-                  className="pl-3 pr-1.5 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100/80 border-none rounded-lg font-bold flex items-center gap-1.5 transition-colors"
+                  className="pl-3 pr-1.5 py-1.5 bg-primary/10 text-primary hover:bg-primary/10 border-none rounded-lg font-bold flex items-center gap-1.5 transition-colors"
                 >
                   #{tag}
                   <button
                     type="button"
                     onClick={() => handleRemoveTag(tag)}
-                    className="hover:bg-indigo-200/60 rounded-md p-0.5 transition-colors"
+                    className="hover:bg-primary/10 rounded-md p-0.5 transition-colors"
                   >
-                    <X size={12} className="text-indigo-500 hover:text-indigo-900" />
+                    <X size={12} className="text-primary hover:text-primary" />
                   </button>
                 </Badge>
               ))}
@@ -616,7 +616,7 @@ function ProfileSection({
         <Button
           onClick={handleUpdateProfile}
           disabled={isUpdating}
-          className="bg-indigo-600 hover:bg-indigo-700 rounded-xl px-8 shadow-lg shadow-indigo-100 font-bold"
+          className="bg-primary hover:bg-primary-hover rounded-xl px-8 shadow-lg shadow-black/40 font-bold"
         >
           {isUpdating ? "저장 중..." : "모든 변경사항 저장"}
         </Button>
@@ -677,7 +677,7 @@ function SecuritySection() {
     <div className="space-y-6 animate-in fade-in-50 duration-300">
       <div className="space-y-1">
         <h3 className="text-xl font-bold">보안 및 계정</h3>
-        <p className="text-sm text-slate-500">비밀번호 변경 및 계정 보안 설정을 관리합니다.</p>
+        <p className="text-sm text-ink-muted">비밀번호 변경 및 계정 보안 설정을 관리합니다.</p>
       </div>
       <Separator />
 
@@ -721,9 +721,9 @@ function SecuritySection() {
       <div className="p-4 border rounded-xl flex items-center justify-between">
         <div className="space-y-1">
           <p className="text-sm font-bold flex items-center gap-2">
-            <ShieldCheck className="text-green-500 w-4 h-4" /> 2단계 인증 (2FA)
+            <ShieldCheck className="text-success w-4 h-4" /> 2단계 인증 (2FA)
           </p>
-          <p className="text-xs text-slate-500">로그인 시 OTP 번호를 추가로 확인합니다.</p>
+          <p className="text-xs text-ink-muted">로그인 시 OTP 번호를 추가로 확인합니다.</p>
         </div>
         <Switch />
       </div>
@@ -739,7 +739,7 @@ function NotificationSection() {
     <div className="space-y-6 animate-in fade-in-50 duration-300">
       <div className="space-y-1">
         <h3 className="text-xl font-bold">알림 설정</h3>
-        <p className="text-sm text-slate-500">플랫폼 활동에 대한 알림 수신 방식을 선택합니다.</p>
+        <p className="text-sm text-ink-muted">플랫폼 활동에 대한 알림 수신 방식을 선택합니다.</p>
       </div>
       <Separator />
 
@@ -761,7 +761,7 @@ function AppearanceSection() {
     <div className="space-y-6 animate-in fade-in-50 duration-300">
       <div className="space-y-1">
         <h3 className="text-xl font-bold">테마 및 외관</h3>
-        <p className="text-sm text-slate-500">사용자 환경에 맞는 테마를 설정합니다.</p>
+        <p className="text-sm text-ink-muted">사용자 환경에 맞는 테마를 설정합니다.</p>
       </div>
       <Separator />
 
@@ -801,8 +801,14 @@ function ChartSection({ data }: { data: any }) {
   // [STATE] 서브 메뉴 토글 및 필터 제어
   const [subTab, setSubTab] = useState<"solved" | "failed" | "authored" | "groups" | "contests">("solved");
   const [visibility, setVisibility] = useState<string>("");
-  const [listData, setListData] = useState<any[]>([]);
-  const [isSubLoading, setIsSubLoading] = useState(false);
+  // 목록을 "어느 탭/필터로 받아온 데이터인지"와 함께 저장한다.
+  // 탭을 바꾸면 subTab은 즉시 바뀌지만 fetch는 그 뒤에 끝나므로, 태그 없이 저장하면
+  // 이전 탭의 데이터(예: 문제 목록)를 새 탭의 렌더러(예: 그룹)로 그리게 되어
+  // key가 `group-undefined`로 중복되는 등 오류가 났다.
+  const [listState, setListState] = useState<{ key: string; items: any[] } | null>(null);
+  const listKey = `${subTab}|${visibility}`;
+  const isSubLoading = listState?.key !== listKey;
+  const listData = isSubLoading ? [] : listState!.items;
 
   // [STATE] 오각형 차트용 실시간 API 데이터 풀
   const [categoryStats, setCategoryStats] = useState<Record<string, number>>({
@@ -853,9 +859,18 @@ function ChartSection({ data }: { data: any }) {
 
   // 2. [EFFECT] 하단 리스트업 제어 체인 (푼 문제, 그룹, 대회 등)
   useEffect(() => {
+    // 탭을 빠르게 바꿀 때 먼저 보낸 요청의 응답이 늦게 도착해 덮어쓰지 않도록 무시 플래그를 둔다.
+    let ignore = false;
+    const key = `${subTab}|${visibility}`;
+    const setListData = (items: any[]) => {
+      if (!ignore) setListState({ key, items: Array.isArray(items) ? items : [] });
+    };
+
     const fetchSubTabData = async () => {
-      if (!token) return;
-      setIsSubLoading(true);
+      if (!token) {
+        setListData([]);
+        return;
+      }
       try {
         let url = `https://diveon.net/api/profile/problems/${subTab}?page=1`;
 
@@ -884,12 +899,13 @@ function ChartSection({ data }: { data: any }) {
       } catch (err) {
         console.error("서브 탭 데이터 연동 오류:", err);
         setListData([]);
-      } finally {
-        setIsSubLoading(false);
       }
     };
 
     fetchSubTabData();
+    return () => {
+      ignore = true;
+    };
   }, [subTab, visibility, token]);
 
   // 카테고리 점수 안전 가출출 (소문자/대문자/공백 키 안전 매핑)
@@ -915,17 +931,18 @@ function ChartSection({ data }: { data: any }) {
   ];
 
   // 공용 수심 배지 테마 렌더러
-  const renderDepthBadge = (diff: string) => {
-    const labels: Record<string, string> = { "1": "100m", "2": "300m", "3": "500m", "4": "1,000m", "5": "3,000m+" };
+  const renderDepthBadge = (rawDiff: string | number) => {
+    // 난이도는 Lvl 1~7 (lib/utils.ts getLevelLabel 기준). 6·7은 5와 같은 최심부 스타일로 표시.
+    const diff = String(rawDiff ?? "");
     return (
       <Badge variant="outline" className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-black border
-        ${diff === "1" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : ""}
-        ${diff === "2" ? "bg-amber-50 text-amber-600 border-amber-200" : ""}
-        ${diff === "3" ? "bg-rose-50 text-rose-600 border-rose-100" : ""}
-        ${diff === "4" ? "bg-violet-50 text-violet-700 border-violet-200" : ""}
-        ${diff === "5" ? "bg-slate-900 text-white border-slate-950 shadow-sm" : ""}
+        ${diff === "1" ? "bg-success/10 text-success border-success/30" : ""}
+        ${diff === "2" ? "bg-warning/10 text-warning border-warning/30" : ""}
+        ${diff === "3" ? "bg-danger/10 text-danger border-danger/20" : ""}
+        ${diff === "4" ? "bg-coral/10 text-coral border-coral/30" : ""}
+        ${["5", "6", "7"].includes(diff) ? "bg-raised text-white border-line shadow-sm" : ""}
       `}>
-        {labels[diff] || "100m"}
+        {getLevelLabel(diff)}
       </Badge>
     );
   };
@@ -937,18 +954,18 @@ function ChartSection({ data }: { data: any }) {
       <div className="space-y-6">
         <div className="space-y-1">
           <h3 className="text-xl font-bold">능력치 차트</h3>
-          <p className="text-sm text-slate-500">각 카테고리별로 대원님이 획득한 누적 점수 수심(m) 분포도입니다. (맞힌 문제 난이도 × 10 합산)</p>
+          <p className="text-sm text-ink-muted">각 카테고리별로 대원님이 획득한 누적 점수 수심(m) 분포도입니다. (맞힌 문제 난이도 × 10 합산)</p>
         </div>
         <Separator />
 
         {isChartLoading ? (
-          <div className="h-[400px] flex items-center justify-center text-slate-400 text-sm font-bold animate-pulse bg-slate-50 border rounded-2xl">
+          <div className="h-[400px] flex items-center justify-center text-ink-subtle text-sm font-bold animate-pulse bg-canvas border rounded-2xl">
             심해 분석 시스템 가동 중...
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
             {/* 오각형 차트 그래픽 패널 */}
-            <Card className="col-span-12 lg:col-span-7 bg-slate-950 border-slate-900 shadow-xl overflow-hidden rounded-2xl h-[400px] flex items-center justify-center p-4">
+            <Card className="col-span-12 lg:col-span-7 bg-deep border-line shadow-xl overflow-hidden rounded-2xl h-[400px] flex items-center justify-center p-4">
               <ResponsiveContainer width="100%" height="100%">
                 {/* outerRadius를 60% 정도로 지정하고 domain에 여유를 두어 꼭짓점 여백을 확보합니다. */}
                 <RadarChart cx="50%" cy="50%" outerRadius="60%" data={formattedChartData}>
@@ -963,11 +980,11 @@ function ChartSection({ data }: { data: any }) {
 
             {/* 카테고리별 상세 리포트 스태츠 패널 */}
             <div className="col-span-12 lg:col-span-5 space-y-3">
-              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Live Score Details</Label>
+              <Label className="text-xs font-bold text-ink-subtle uppercase tracking-wider ml-1">Live Score Details</Label>
               {formattedChartData.map((item) => (
-                <div key={item.subject} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
-                  <span className="text-sm font-bold text-slate-700">{item.subject}</span>
-                  <Badge variant="secondary" className="font-mono text-xs font-black text-indigo-600 bg-indigo-50 border-none">
+                <div key={item.subject} className="p-3 bg-canvas border border-line rounded-xl flex items-center justify-between">
+                  <span className="text-sm font-bold text-ink">{item.subject}</span>
+                  <Badge variant="secondary" className="font-mono text-xs font-black text-primary bg-primary/10 border-none">
                     {item.depth.toLocaleString()} m
                   </Badge>
                 </div>
@@ -979,17 +996,17 @@ function ChartSection({ data }: { data: any }) {
 
       {/* [하단 대시보드 통합 허브] 문제/그룹/대회 5단 스위처 팩 */}
       <div className="space-y-6">
-        <div className="flex flex-wrap gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200/50">
-          <button onClick={() => { setSubTab("solved"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "solved" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-white/50"}`}>🌊 푼 문제</button>
-          <button onClick={() => { setSubTab("failed"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "failed" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-white/50"}`}>❌ 못 푼 문제</button>
-          <button onClick={() => { setSubTab("authored"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "authored" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-white/50"}`}>🛠️ 출제한 문제</button>
-          <button onClick={() => { setSubTab("groups"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "groups" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-white/50"}`}>👥 속한 그룹</button>
-          <button onClick={() => { setSubTab("contests"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "contests" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-white/50"}`}>🏆 참여 대회</button>
+        <div className="flex flex-wrap gap-1 bg-raised p-1.5 rounded-xl border border-line/50">
+          <button onClick={() => { setSubTab("solved"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "solved" ? "bg-raised border border-line-strong text-white shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>🌊 푼 문제</button>
+          <button onClick={() => { setSubTab("failed"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "failed" ? "bg-raised border border-line-strong text-white shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>❌ 못 푼 문제</button>
+          <button onClick={() => { setSubTab("authored"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "authored" ? "bg-raised border border-line-strong text-white shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>🛠️ 출제한 문제</button>
+          <button onClick={() => { setSubTab("groups"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "groups" ? "bg-raised border border-line-strong text-white shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>👥 속한 그룹</button>
+          <button onClick={() => { setSubTab("contests"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "contests" ? "bg-raised border border-line-strong text-white shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>🏆 참여 대회</button>
         </div>
 
         {["solved", "failed", "authored"].includes(subTab) && (
           <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium pl-1">
-            <span className="text-slate-400 mr-2 font-bold">필터:</span>
+            <span className="text-ink-subtle mr-2 font-bold">필터:</span>
             {[
               { label: "전체", value: "" },
               { label: "공개 문제", value: "public" },
@@ -1001,8 +1018,8 @@ function ChartSection({ data }: { data: any }) {
                 key={filter.label}
                 onClick={() => setVisibility(filter.value)}
                 className={`px-3 py-1 rounded-full border transition-all font-bold ${visibility === filter.value
-                  ? "bg-indigo-50 border-indigo-300 text-indigo-600 shadow-sm"
-                  : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                  ? "bg-primary/10 border-primary/50 text-primary shadow-sm"
+                  : "bg-panel border-line text-ink-muted hover:border-line-strong"
                   }`}
               >
                 {filter.label}
@@ -1011,37 +1028,37 @@ function ChartSection({ data }: { data: any }) {
           </div>
         )}
 
-        <Card className="border border-slate-100 shadow-sm rounded-2xl overflow-hidden min-h-[250px] flex flex-col justify-between">
+        <Card className="border border-line shadow-sm rounded-2xl overflow-hidden min-h-[250px] flex flex-col justify-between">
           <CardContent className="p-0">
             {isSubLoading ? (
-              <div className="py-20 text-center text-slate-400 text-sm font-bold animate-pulse">심해 서버 엔지니어링 동기화 중...</div>
+              <div className="py-20 text-center text-ink-subtle text-sm font-bold animate-pulse">심해 서버 엔지니어링 동기화 중...</div>
             ) : listData.length === 0 ? (
-              <div className="py-20 text-center text-slate-400 text-sm font-medium">검출된 탐사 기록 데이터가 비어 있습니다.</div>
+              <div className="py-20 text-center text-ink-subtle text-sm font-medium">검출된 탐사 기록 데이터가 비어 있습니다.</div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-line">
                 {listData.map((item: any) => {
                   if (["solved", "failed", "authored"].includes(subTab)) {
                     return (
                       <Link
                         href={`/challenges/detail?id=${item.probId}`} // [수정 필요] 이동할 문제 상세 페이지 URL 경로를 입력하세요. (예: `/problems/${item.probId}`)
                         key={`prob-${item.probId}`}
-                        className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors group"
+                        className="flex items-center justify-between p-4 hover:bg-raised/50 transition-colors group"
                       >
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-bold text-slate-400 group-hover:text-indigo-600 transition-colors">#{item.probId}</span>
-                            <Badge variant="secondary" className="text-[10px] font-semibold bg-slate-100 text-slate-500 rounded-md py-0 px-1.5">{item.category}</Badge>
+                            <span className="text-xs font-mono font-bold text-ink-subtle group-hover:text-primary transition-colors">#{item.probId}</span>
+                            <Badge variant="secondary" className="text-[10px] font-semibold bg-raised text-ink-muted rounded-md py-0 px-1.5">{item.category}</Badge>
                             {subTab === "authored" && (
-                              <Badge className={`text-[9px] font-black rounded border-none shadow-none px-1.5 ${item.isSolved ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
+                              <Badge className={`text-[9px] font-black rounded border-none shadow-none px-1.5 ${item.isSolved ? "bg-success/10 text-success" : "bg-raised text-ink-muted"}`}>
                                 {item.isSolved ? "내가 풂" : "미풀이"}
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:underline">{item.title}</p>
+                          <p className="text-sm font-bold text-ink line-clamp-1 group-hover:underline">{item.title}</p>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           {renderDepthBadge(item.difficulty)}
-                          <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">{item.author}</span>
+                          <span className="text-[11px] text-ink-subtle font-mono hidden sm:inline">{item.author}</span>
                         </div>
                       </Link>
                     );
@@ -1052,22 +1069,22 @@ function ChartSection({ data }: { data: any }) {
                       <Link
                         href={`/groups/detail?id=${item.groupId}`} // [수정 필요] 이동할 그룹 상세 페이지 URL 경로를 입력하세요. (예: `/group/detail/${item.groupId}`)
                         key={`group-${item.groupId}`}
-                        className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors group"
+                        className="flex items-center justify-between p-4 hover:bg-raised/50 transition-colors group"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <Avatar className="h-9 w-9 border border-slate-100 rounded-xl">
+                          <Avatar className="h-9 w-9 border border-line rounded-xl">
                             <AvatarImage src={item.image} alt={item.title} className="object-cover" />
-                            <AvatarFallback className="bg-slate-100 text-slate-500 text-xs font-bold rounded-xl">👥</AvatarFallback>
+                            <AvatarFallback className="bg-raised text-ink-muted text-xs font-bold rounded-xl">👥</AvatarFallback>
                           </Avatar>
                           <div className="space-y-0.5 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:underline">{item.title}</p>
-                              <Badge className={`text-[9px] font-black border-none rounded px-1.5 ${item.role === "LEADER" ? "bg-amber-50 text-amber-600" : "bg-slate-100 text-slate-500"}`}>{item.role}</Badge>
+                              <p className="text-sm font-bold text-ink line-clamp-1 group-hover:underline">{item.title}</p>
+                              <Badge className={`text-[9px] font-black border-none rounded px-1.5 ${item.role === "LEADER" ? "bg-warning/10 text-warning" : "bg-raised text-ink-muted"}`}>{item.role}</Badge>
                             </div>
-                            <p className="text-[11px] text-slate-400 font-medium">대원 수 {item.memberCount}명</p>
+                            <p className="text-[11px] text-ink-subtle font-medium">대원 수 {item.memberCount}명</p>
                           </div>
                         </div>
-                        <Badge variant="outline" className="text-[10px] rounded-full font-bold px-2 py-0.5 border-slate-200 text-slate-400">
+                        <Badge variant="outline" className="text-[10px] rounded-full font-bold px-2 py-0.5 border-line text-ink-subtle">
                           {item.isPrivate ? "🔒 비공개" : "🌐 공개"}
                         </Badge>
                       </Link>
@@ -1081,20 +1098,20 @@ function ChartSection({ data }: { data: any }) {
                       <Link
                         href={`/contests/detail?id=${item.contestId}`} // [수정 필요] 이동할 대회 상세 페이지 URL 경로를 입력하세요. (예: `/contests/detail/${item.contestId}`)
                         key={`contest-${item.contestId}`}
-                        className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors group"
+                        className="flex items-center justify-between p-4 hover:bg-raised/50 transition-colors group"
                       >
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <Badge className={`text-[9px] font-black border-none shadow-none rounded px-1.5 ${isOngoing ? "bg-blue-50 text-blue-600 animate-pulse" :
-                              isUpcoming ? "bg-amber-50 text-amber-600" : "bg-slate-100 text-slate-400"
+                            <Badge className={`text-[9px] font-black border-none shadow-none rounded px-1.5 ${isOngoing ? "bg-primary/10 text-primary animate-pulse" :
+                              isUpcoming ? "bg-warning/10 text-warning" : "bg-raised text-ink-subtle"
                               }`}>
                               {item.status === "ENDED" ? "종료됨" : isOngoing ? "진행중" : "대기중"}
                             </Badge>
-                            <Badge variant="outline" className="text-[9px] font-medium border-slate-200 text-slate-400 uppercase">{item.role}</Badge>
+                            <Badge variant="outline" className="text-[9px] font-medium border-line text-ink-subtle uppercase">{item.role}</Badge>
                           </div>
-                          <p className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:underline">{item.title}</p>
+                          <p className="text-sm font-bold text-ink line-clamp-1 group-hover:underline">{item.title}</p>
                         </div>
-                        <div className="text-right shrink-0 font-mono text-[10px] text-slate-400 space-y-0.5 hidden sm:block">
+                        <div className="text-right shrink-0 font-mono text-[10px] text-ink-subtle space-y-0.5 hidden sm:block">
                           <p>시작: {new Date(item.startTime).toLocaleDateString("ko-KR")} {new Date(item.startTime).toLocaleTimeString("ko-KR", { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
                           <p>종료: {new Date(item.endTime).toLocaleDateString("ko-KR")} {new Date(item.endTime).toLocaleTimeString("ko-KR", { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
                         </div>
@@ -1123,7 +1140,7 @@ function SettingsNavItem({ icon, label, active, onClick }: { icon: any, label: s
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-bold transition-all ${active ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-bold transition-all ${active ? "bg-raised border border-line-strong text-white shadow-md" : "text-ink-muted hover:bg-raised hover:text-ink"
         }`}
     >
       {icon} <span>{label}</span>
@@ -1134,10 +1151,10 @@ function SettingsNavItem({ icon, label, active, onClick }: { icon: any, label: s
 // 알림 토글 행
 function NotificationToggle({ title, desc, defaultChecked = false }: { title: string, desc: string, defaultChecked?: boolean }) {
   return (
-    <div className="flex items-center justify-between p-4 border rounded-xl hover:bg-slate-50 transition-colors">
+    <div className="flex items-center justify-between p-4 border rounded-xl hover:bg-raised/60 transition-colors">
       <div className="space-y-0.5">
-        <p className="text-sm font-bold text-slate-800">{title}</p>
-        <p className="text-xs text-slate-500">{desc}</p>
+        <p className="text-sm font-bold text-ink">{title}</p>
+        <p className="text-xs text-ink-muted">{desc}</p>
       </div>
       <Switch defaultChecked={defaultChecked} />
     </div>
@@ -1151,7 +1168,7 @@ function ThemeCard({ value, label, icon }: { value: string, label: string, icon:
       <RadioGroupItem value={value} id={value} className="peer sr-only" />
       <Label
         htmlFor={value}
-        className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-white p-4 hover:bg-slate-50 peer-data-[state=checked]:border-slate-900 peer-data-[state=checked]:bg-slate-50 cursor-pointer"
+        className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-panel p-4 hover:bg-raised/60 peer-data-[state=checked]:border-line peer-data-[state=checked]:bg-canvas cursor-pointer"
       >
         {icon}
         <span className="mt-2 text-[10px] font-bold uppercase tracking-wider">{label}</span>
@@ -1165,9 +1182,9 @@ function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNod
   return (
     <Link
       href={href}
-      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all active:scale-95"
+      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-ink-muted hover:text-ink hover:bg-raised/60 transition-all active:scale-95"
     >
-      <span className="text-slate-400 group-hover:text-slate-900">{icon}</span>
+      <span className="text-ink-subtle group-hover:text-ink">{icon}</span>
       {label}
     </Link>
   );
@@ -1176,8 +1193,8 @@ function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNod
 export default function SettingsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-slate-400 font-bold animate-pulse">설정 로딩 중...</div>
+      <div className="min-h-screen flex items-center justify-center bg-panel">
+        <div className="text-ink-subtle font-bold animate-pulse">설정 로딩 중...</div>
       </div>
     }>
       <SettingsContent />

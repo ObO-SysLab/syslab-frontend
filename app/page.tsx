@@ -4,17 +4,32 @@ import { logout } from "@/lib/authSession";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  Search, LogOut, Bell, Menu, Target, Zap, Flame, Cpu, Layers, HardDrive, Lock,
-  BarChart3, Users, Trophy, ShoppingBag, Anchor, Flag, BookOpenText, ChevronDown, Crown
+  Target, Flame, Cpu, Layers, HardDrive, Lock, Users, Trophy, Anchor, Crown,
+  ArrowRight, Eye, ShieldCheck, Gauge, ChevronRight,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback, } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { mockUser, mockFeaturedProblems } from "@/lib/mockData";
 import { Header } from "@/components/Header";
+import { DepthBadge, DivoBubble, TierBadge, TypeChip, StatusIcon, Bubbles } from "@/components/dv";
+
+// 카테고리 아이콘 (Kernel/Process/Thread/Memory/File System)
+const CATEGORY_ICON: Record<string, React.ReactNode> = {
+  Process: <Cpu size={12} />,
+  Memory: <Layers size={12} />,
+  Kernel: <HardDrive size={12} />,
+  Thread: <Users size={12} />,
+  "File System": <Lock size={12} />,
+  FileSystem: <Lock size={12} />,
+};
+
+// 예전 easy/medium/hard 값이 섞여 들어오는 경우 대비
+const toLevel = (difficulty: string | number) => {
+  const d = String(difficulty);
+  if (d === "easy" || d === "하") return 1;
+  if (d === "medium" || d === "중") return 3;
+  if (d === "hard" || d === "상") return 5;
+  return Number(d) || 0;
+};
 
 export default function HomePage() {
   // [STATE] 페이지 상태
@@ -147,8 +162,11 @@ export default function HomePage() {
     silentRefreshAndFetchProfile();
   }, []);
 
+  const problems =
+    recommendData?.problems && recommendData.problems.length > 0 ? recommendData.problems : mockFeaturedProblems;
+
   return (
-    <div className="min-h-screen bg-[#F7F9FC] text-slate-900 font-sans">
+    <div className="min-h-screen bg-canvas text-ink font-sans">
       <Header
         isLoggedIn={isLoggedIn}
         userImgUrl={userImgUrl}
@@ -167,277 +185,211 @@ export default function HomePage() {
         }}
       />
 
-      {/* 3. 메인 콘텐츠 */}
-      <main className="container mx-auto max-w-[1500px] pt-10 px-6 pb-16 space-y-12">
-
-        {/* [A] 메인 카드 영역 */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center bg-slate-950 border border-slate-900 p-10 rounded-3xl shadow-xl overflow-hidden relative text-white">
-          <div className="absolute inset-0 opacity-5 font-mono text-[10px] text-[#00FFA3] leading-tight select-none pointer-events-none">
-            {`01000100 01001011 00101101 01010111 01101111 01110010 01101100 01100100 
-              11001010 11111110 10111010 10111110 01101110 01110101 01101011 01100001`}
-          </div>
-
+      {/* ============ [A] 히어로: 심해 일러스트 + 디보 + Dive CTA ============ */}
+      <section className="dv-hero relative overflow-hidden">
+        <Bubbles />
+        <div className="relative mx-auto max-w-[1280px] px-6 pt-20 pb-24 md:pt-28 md:pb-32 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-end">
           {isLoggedIn ? (
-            /* ==================== CASE 1. 로그인 유저용 대시보드 ==================== */
+            /* ---------- CASE 1. 로그인 대원 ---------- */
             <>
-              <div className="col-span-2 space-y-4 relative z-10">
-                <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-tight">
-                  반갑습니다, <span className="text-[#00D1FF]">{nickname}</span> 대원님!<br />
-                  오늘도 커널 심해로 다이브해 볼까요?
+              <div className="space-y-6 dv-descend">
+                <p className="dv-hud text-primary">DIVE LOG · ACTIVE</p>
+                <h1 className="text-4xl md:text-[56px] md:leading-[64px] font-extrabold tracking-[-0.02em]">
+                  반가워요, <span className="text-primary">{nickname}</span> 대원님.<br />
+                  오늘은 어디까지 내려가 볼까요?
                 </h1>
-                <p className="text-slate-400 max-w-2xl text-base">
-                  지금까지 <span className="font-bold text-[#00FFA3]">{mockUser.solved}개</span>의 커널 과제를 돌파했습니다. <br />
-                  현재 탐사 랭킹 <span className="font-bold text-[#00FFA3]">{mockUser.ranking}위</span>이며, 다음 수층 진입이 머지않았습니다!
+                <p className="text-ink-muted text-[17px] leading-7 max-w-[60ch]">
+                  지금까지 <b className="text-ink font-mono">{mockUser.solved}개</b>의 다이브 포인트에 도달했고,
+                  탐사 랭킹 <b className="text-ink font-mono">{mockUser.ranking}위</b>예요. 다음 수층이 머지않았어요.
                 </p>
-                <div className="flex gap-3 pt-3">
-                  <Link href="/challenges">
-                    <Button size="lg" className="bg-[#00D1FF] text-slate-950 font-bold hover:bg-[#00FFA3] transition-colors shadow-[0_0_15px_rgba(0,209,255,0.2)]">
-                      지금 다이브하기 <Zap size={18} className="ml-2 fill-current" />
-                    </Button>
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <Link href="/challenges" className="dv-btn-dive">
+                    다이브 시작 <ArrowRight size={18} />
                   </Link>
-                  <Link href="/settings?tab=chart">
-                    <Button size="lg" variant="outline" className="text-slate-300 border-white/10 hover:bg-white/5 hover:text-white">
-                      차트 분석
-                    </Button>
+                  <Link
+                    href="/settings?tab=chart"
+                    className="inline-flex h-12 items-center gap-2 rounded-full border border-line-strong bg-panel/70 px-5 text-sm font-semibold text-ink backdrop-blur hover:bg-raised transition-colors"
+                  >
+                    <Gauge size={16} /> 내 로그북 분석
                   </Link>
                 </div>
               </div>
 
-              {/* 우측 1칸: 디보 성장 티어 카드 */}
-              <Card className="bg-white/[0.04] border border-white/10 shadow-xl text-white backdrop-blur relative z-10 rounded-2xl">
-                <CardContent className="pt-6 text-center space-y-4">
-                  <div className="w-24 h-24 bg-gradient-to-tr from-[#00D1FF]/20 to-[#00FFA3]/20 rounded-full flex items-center justify-between mx-auto border border-[#00D1FF]/30 animate-pulse">
-                    <span className="text-4xl mx-auto">👓</span>
+              {/* 대원 HUD 카드 */}
+              <div className="rounded-3xl border border-line bg-panel/80 backdrop-blur-md p-6 shadow-dv space-y-5 dv-descend">
+                <div className="flex items-center justify-between">
+                  <span className="dv-hud text-ink-muted">DIVER STATUS</span>
+                  <TierBadge tier={tier} size="sm" showRank={false} />
+                </div>
+                <div className="flex items-end gap-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/images/divo.webp" alt="" className="w-20 h-auto" />
+                  <div>
+                    <p className="dv-hud text-ink-subtle">MAX DEPTH</p>
+                    <p className="dv-readout text-ink">{Number(mockUser.score).toLocaleString()}m</p>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">현재 대원 등급</p>
-                    <p className="text-2xl font-black text-[#00FFA3]">{tier}</p>
-                    <p className="text-xs font-mono text-slate-400">{mockUser.score} meters</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between dv-hud text-ink-muted">
+                    <span>NEXT ZONE</span>
+                    <span className="text-signal">{mockUser.progress}%</span>
                   </div>
-                  <div className="space-y-1.5 pt-2">
-                    <Progress value={mockUser.progress} className="h-1.5 bg-white/5" indicatorClassName="bg-[#00D1FF]" />
-                    <p className="text-[11px] text-slate-500 text-right">다음 수층까지 {mockUser.progress}%</p>
-                  </div>
-                </CardContent>
-              </Card>
+                  <Progress value={mockUser.progress} className="h-2 bg-raised" indicatorClassName="bg-signal" />
+                </div>
+              </div>
             </>
           ) : (
-            /* ==================== CASE 2. 로그아웃 게스트용 온보딩 가이드 ==================== */
+            /* ---------- CASE 2. 게스트 온보딩 ---------- */
             <>
-              {/* 왼쪽 & 중앙 2칸: 디보 안내 가이드 + 플랫폼 거대 통계 (2+3번 합체) */}
-              <div className="col-span-2 space-y-6 relative z-10">
-                <div className="flex items-start gap-4">
-                  {/* 귀여운 말랑 디보 이모지 영역 */}
-                  <div className="text-4xl p-3 bg-white/5 rounded-2xl border border-white/10 animate-bounce [animation-duration:3s]">
-                    🤿
-                  </div>
-                  <div className="space-y-2">
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tighter leading-tight text-white">
-                      운영체제의 깊은 바다 속으로,<br />
-                      가이드 <span className="text-[#00D1FF]">디보</span>와 함께 다이브하세요!
-                    </h1>
-                    <p className="text-slate-400 max-w-xl text-sm leading-relaxed">
-                      이론으로만 보던 스케줄링, 가상 메모리 알고리즘을 웹 단계별 동적 시각화로 직접 조작하고 체험하세요. 격리된 다층 샌드박스에서 안전하게 코딩할 수 있습니다.
-                    </p>
-                  </div>
-                </div>
-
-                {/* 하단 배치형 실시간 글로벌 탐사 통계 수치 */}
-                <div className="grid grid-cols-3 gap-4 border-t border-white/10 pt-5 max-w-lg">
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">누적 다이브 횟수</p>
-                    <p className="text-xl font-mono font-black text-[#00FFA3]">142,503 m</p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">현재 탐사 대원</p>
-                    <p className="text-xl font-mono font-black text-[#00D1FF]">342 명</p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">안전 격리 컨테이너</p>
-                    <p className="text-xl font-mono font-black text-amber-400">84,912 개</p>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <Link href="/signup">
-                    <Button size="lg" className="bg-gradient-to-r from-[#00D1FF] to-[#0066FF] text-white font-black hover:from-[#00FFA3] hover:to-[#00A3FF] hover:text-slate-950 transition-all duration-300 shadow-[0_0_20px_rgba(0,102,255,0.3)]">
-                      정식 대원 자격증 발급받기 (가입)
-                    </Button>
+              <div className="space-y-6 dv-descend">
+                <p className="dv-hud text-primary">OS LEARNING · DIVE 0m</p>
+                <h1 className="text-4xl md:text-[56px] md:leading-[64px] font-extrabold tracking-[-0.02em]">
+                  운영체제의 깊은 바다로<br />
+                  <span className="text-primary">다이브</span>하세요.
+                </h1>
+                <p className="text-ink-muted text-[17px] leading-7 max-w-[60ch]">
+                  교과서로만 보던 스케줄링·가상 메모리·동기화를 단계별 시각화로 직접 조작하고,
+                  격리된 샌드박스에서 안전하게 실습해요.
+                </p>
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <Link href="/signup" className="dv-btn-dive">
+                    다이브 시작 <ArrowRight size={18} />
+                  </Link>
+                  <Link
+                    href="/challenges"
+                    className="inline-flex h-12 items-center gap-2 rounded-full border border-line-strong bg-panel/70 px-5 text-sm font-semibold text-ink backdrop-blur hover:bg-raised transition-colors"
+                  >
+                    다이브 포인트 둘러보기
                   </Link>
                 </div>
+
+                {/* 글로벌 통계 — HUD 수치 */}
+                <dl className="grid grid-cols-3 gap-6 pt-8 max-w-xl">
+                  {[
+                    { k: "TOTAL DIVES", v: "142,503" },
+                    { k: "DIVERS", v: "342" },
+                    { k: "SANDBOXES", v: "84,912" },
+                  ].map((s) => (
+                    <div key={s.k} className="space-y-1">
+                      <dt className="dv-hud text-ink-subtle">{s.k}</dt>
+                      <dd className="font-mono text-2xl font-semibold text-ink">{s.v}</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
 
-              {/* 우측 1칸: 미니 OBO 시뮬레이터 맛보기 카드 (1번 독립 칸) */}
-              <Card className="bg-white/[0.03] border border-white/10 shadow-2xl text-white backdrop-blur relative z-10 rounded-2xl flex flex-col justify-between h-full min-h-[280px]">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs font-black uppercase tracking-widest text-[#00D1FF] flex items-center gap-1.5">
-                    <Cpu size={12} className="animate-pulse" /> Micro OBO Visualizer
-                  </CardTitle>
-                  <CardDescription className="text-slate-500 text-[11px]">
-                    로그인 없이 맛보는 100m 수심 시뮬레이터
-                  </CardDescription>
-                </CardHeader>
-
-                {/* 무한 루프로 데이터 이동을 보여주는 은은한 미니 애니메이션 영역 */}
-                <CardContent className="py-2 flex-1 flex flex-col justify-center">
-                  <div className="bg-black/40 rounded-xl p-3 border border-white/5 space-y-3 font-mono text-[10px]">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500">[Ready Queue]</span>
-                      <span className="text-[#00FFA3] animate-pulse">● RUNNING</span>
-                    </div>
-                    <div className="flex items-center gap-2 justify-center py-2">
-                      <div className="px-2 py-1 bg-white/5 border border-white/10 rounded text-slate-400 line-through">P_ID: 01</div>
-                      <span className="text-slate-600">→</span>
-                      <div className="px-2 py-1 bg-[#00D1FF]/20 border border-[#00D1FF] rounded text-[#00D1FF] font-bold animate-pulse">P_ID: 02</div>
-                    </div>
-                  </div>
-                </CardContent>
-
-                <div className="p-4 pt-0">
-                  <Link href="/challenges/detail?id=1">
-                    <Button variant="outline" className="w-full text-xs font-bold text-[#00FFA3] border-[#00FFA3]/30 hover:bg-[#00FFA3]/10 hover:text-white hover:border-[#00FFA3] transition-all">
-                      ⚡ 100m 수심 맛보기 체험
-                    </Button>
-                  </Link>
-                </div>
-              </Card>
+              <div className="dv-descend">
+                <DivoBubble avatarSize={96}>
+                  처음 오셨군요! 100m 해수면 문제부터 같이 내려가 봐요. 다이브 시작할까요?
+                </DivoBubble>
+              </div>
             </>
           )}
-        </section>
+        </div>
+      </section>
 
+      <main className="mx-auto w-full max-w-[1280px] px-6 pb-20 space-y-12 -mt-6 relative">
+        {/* ============ 게스트: 핵심 가치 3개 (수심 층처럼 내려가며) ============ */}
+        {!isLoggedIn && (
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { icon: <Eye size={20} />, lv: 1, title: "시각적 체험", desc: "Context Switch, Page Fault가 일어나는 순간을 노드 그래프로 한 단계씩 재생해요." },
+              { icon: <ShieldCheck size={20} />, lv: 3, title: "안전한 격리 실행", desc: "gVisor·seccomp로 격리된 VM에서 커널 실습을 마음껏 해 볼 수 있어요." },
+              { icon: <Gauge size={20} />, lv: 5, title: "즉시 피드백", desc: "제출하면 바로 채점하고, 무엇이 달랐는지 테스트 단위로 알려 줘요." },
+            ].map((v, i) => (
+              <div key={v.title} className="rounded-2xl border border-line bg-panel p-6 space-y-3" style={{ marginTop: `${i * 16}px` }}>
+                <div className="flex items-center justify-between">
+                  <span className="grid place-items-center w-10 h-10 rounded-xl bg-primary-soft text-primary">{v.icon}</span>
+                  <DepthBadge level={v.lv} size="sm" />
+                </div>
+                <h3 className="text-lg font-semibold">{v.title}</h3>
+                <p className="text-sm text-ink-muted leading-6">{v.desc}</p>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* ============ 오늘의 다이브 포인트 ============ */}
         {todayProblem && (
           <section className="space-y-4">
-            <h2 className="text-xl font-black text-slate-950 flex items-center gap-2">
-              <Crown className="w-5 h-5 text-amber-500 fill-amber-100" /> 오늘의 단독 탐사 임무
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Crown className="w-5 h-5 text-warning" /> 오늘의 다이브 포인트
             </h2>
-            <Link href={`/challenges/detail?id=${todayProblem.probId}`}>
-              <Card className="bg-gradient-to-r from-blue-50/60 via-indigo-50/30 to-white border border-blue-100 shadow-sm hover:shadow-md hover:border-blue-400/40 transition-all rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 group cursor-pointer">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-[#0055FF] text-white text-[10px] uppercase font-mono px-2 py-0.5 shadow-none border-none">
-                      Daily Mission
-                    </Badge>
-                    <Badge variant="outline" className="font-mono text-[10px] text-slate-500 bg-white">
-                      {todayProblem.category.toUpperCase()}
-                    </Badge>
-                    {todayProblem.isSolved && (
-                      <Badge className="bg-emerald-500 text-white text-[10px] font-bold border-none shadow-none">
-                        탐사 완료
-                      </Badge>
-                    )}
-                  </div>
-                  <h3 className="text-xl font-black text-slate-900 group-hover:text-[#0055FF] transition-colors">
-                    {todayProblem.title}
-                  </h3>
-                  <p className="text-xs text-slate-400 font-medium">
-                    출제 대원: <span className="text-slate-600 font-bold">{todayProblem.author}</span> ·
-                    현재까지 <span className="text-slate-600 font-bold">{todayProblem.solvedCount}명</span> 생존 완료
-                  </p>
+            <Link
+              href={`/challenges/detail?id=${todayProblem.probId}`}
+              className="group flex flex-col md:flex-row md:items-center justify-between gap-5 rounded-2xl border border-line bg-panel p-6 hover:border-primary/50 hover:bg-raised/40 transition-colors"
+            >
+              <div className="space-y-3 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="dv-hud text-primary">DAILY</span>
+                  <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-raised text-ink-muted text-xs font-medium">
+                    {CATEGORY_ICON[todayProblem.category]} {todayProblem.category}
+                  </span>
+                  {todayProblem.type && <TypeChip type={todayProblem.type} />}
+                  {todayProblem.isSolved && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
+                      <StatusIcon status="solved" className="w-4 h-4" /> 도달
+                    </span>
+                  )}
                 </div>
-
-                <div className="flex items-center gap-3 shrink-0 w-full md:w-auto">
-                  {/* 난이도 매핑 규칙에 맞춘 수심 컴팩트 출력 */}
-                  <Badge className={`rounded-full px-3 py-1 text-xs font-mono font-black border tracking-tight
-                    ${todayProblem.difficulty === "easy" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : ""}
-                    ${todayProblem.difficulty === "medium" ? "bg-amber-50 text-amber-600 border-amber-200" : ""}
-                    ${todayProblem.difficulty === "hard" ? "bg-rose-50 text-rose-600 border-rose-100" : ""}
-                  `}>
-                    {todayProblem.difficulty === "easy" ? "100m" : todayProblem.difficulty === "medium" ? "500m" : "1,000m+"}
-                  </Badge>
-                  <Button className="bg-slate-950 text-white font-bold text-xs rounded-xl px-4 group-hover:bg-[#0055FF] transition-colors">
-                    임무 개시 <Zap size={14} className="ml-1.5 fill-current" />
-                  </Button>
-                </div>
-              </Card>
+                <h3 className="text-xl font-bold group-hover:text-primary transition-colors truncate">{todayProblem.title}</h3>
+                <p className="text-sm text-ink-muted">
+                  출제 <span className="text-ink font-medium">{todayProblem.author}</span> · 도달한 대원{" "}
+                  <span className="font-mono text-ink">{todayProblem.solvedCount.toLocaleString()}</span>명
+                </p>
+              </div>
+              <div className="flex items-center gap-4 shrink-0">
+                <DepthBadge level={toLevel(todayProblem.difficulty)} showZone />
+                <span className="inline-flex h-10 items-center gap-1.5 rounded-[10px] bg-primary px-4 text-sm font-semibold text-primary-ink group-hover:bg-primary-hover transition-colors">
+                  다이브 <ChevronRight size={16} />
+                </span>
+              </div>
             </Link>
           </section>
         )}
 
-        {/* [B] 추천 챌린지 영역 */}
-        <section className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2.5 tracking-tight">
-                <Target className="w-5.5 h-5.5 text-[#0066FF] animate-pulse" />
-                대원 맞춤 탐사 영역 추천
+        {/* ============ 추천 다이브 포인트 ============ */}
+        <section className="space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div className="space-y-1.5">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Target className="w-5 h-5 text-primary" /> 대원 맞춤 다이브 포인트
               </h2>
-              {/* 추천 사유 문구 가시성 극대화 및 폴백 텍스트 대응 */}
-              <div className="inline-flex items-center gap-1.5 bg-blue-50 text-[#0066FF] px-2.5 py-1 rounded-md text-xs font-bold font-mono">
-                <span>🎯</span> {recommendData?.reason || "많은 사람들이 푼 문제를 추천해드려요"}
-              </div>
+              <p className="text-sm text-ink-muted">{recommendData?.reason || "많은 대원이 도달한 문제를 추천해 드려요."}</p>
             </div>
-            <Link href="/challenges" className="text-xs font-black text-[#0066FF] bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-xl transition-all tracking-tight shrink-0 self-start sm:self-center">
-              전체 수심 도전하기 →
+            <Link href="/challenges" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-hover">
+              전체 다이브 포인트 <ArrowRight size={14} />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {(recommendData?.problems && recommendData.problems.length > 0
-              ? recommendData.problems
-              : mockFeaturedProblems
-            ).map((prob: any) => {
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {problems.map((prob: any) => {
               const currentId = prob.probId || prob.id;
               const category = prob.category || "Process";
-              const difficulty = String(prob.difficulty || "1");
               const solvedCount = prob.solvedCount ?? 0;
 
               return (
-                <Link href={`/challenges/detail?id=${currentId}`} key={String(currentId)} className="block h-full">
-                  {/* 사이버네틱 심해 잠수정 컨셉의 다크 테크 카드 인프라 */}
-                  <div className="group relative bg-slate-950 border border-slate-900 rounded-2xl overflow-hidden shadow-xl hover:shadow-[0_0_30px_rgba(0,102,255,0.15)] hover:border-[#0066FF]/50 transition-all duration-300 h-full flex flex-col justify-between text-white p-5 space-y-5">
-
-                    {/* 우측 상단 배경에 은은하게 박히는 빅 사이즈 카테고리 워터마크 (시각적 입체감) */}
-                    <div className="absolute right-[-10px] top-[-10px] text-slate-900 font-mono text-5xl font-black opacity-20 select-none pointer-events-none group-hover:text-[#0066FF]/10 group-hover:scale-105 transition-all">
-                      {category.substring(0, 4).toUpperCase()}
+                <Link
+                  href={`/challenges/detail?id=${currentId}`}
+                  key={String(currentId)}
+                  className="group flex h-full flex-col justify-between gap-6 rounded-2xl border border-line bg-panel p-5 hover:border-primary/50 hover:bg-raised/40 transition-colors"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-raised text-ink-muted text-xs font-medium">
+                        {CATEGORY_ICON[category]} {category}
+                      </span>
+                      <DepthBadge level={toLevel(prob.difficulty)} size="sm" />
                     </div>
-
-                    <div className="space-y-4 relative z-10">
-                      <div className="flex items-center justify-between">
-                        {/* 카테고리 칩 - 5대 코어에 맞춘 네온 컬러 포인트 */}
-                        <Badge className={`font-mono text-[10px] font-black tracking-wider border-none rounded-lg px-2 py-0.5 shadow-none
-                          ${category === "Process" ? "bg-[#00A3FF]/10 text-[#00A3FF]" : ""}
-                          ${category === "Memory" ? "bg-[#00E699]/10 text-[#00E699]" : ""}
-                          ${category === "Kernel" ? "bg-purple-500/10 text-purple-400" : ""}
-                          ${category === "Thread" ? "bg-fuchsia-500/10 text-fuchsia-400" : ""}
-                          ${category === "File System" ? "bg-amber-400/10 text-amber-400" : ""}
-                        `}>
-                          <span className="mr-1">
-                            {category === "Process" && <Cpu size={10} className="inline" />}
-                            {category === "Memory" && <Layers size={10} className="inline" />}
-                            {category === "Kernel" && <HardDrive size={10} className="inline" />}
-                            {category === "Thread" && <Users size={10} className="inline" />}
-                            {category === "File System" && <Lock size={10} className="inline" />}
-                          </span>
-                          {category}
-                        </Badge>
-
-                        {/* 수심 단계별 메인 인디케이터 배지 (칼 정렬 및 입체 스킨) */}
-                        <Badge className={`rounded-full px-2.5 py-0.5 text-[10px] font-black border tracking-tight font-mono shadow-inner
-                          ${difficulty === "1" ? "bg-emerald-950/40 text-emerald-400 border-emerald-800" : ""}
-                          ${difficulty === "2" ? "bg-amber-950/40 text-amber-400 border-amber-800" : ""}
-                          ${difficulty === "3" ? "bg-rose-950/40 text-rose-400 border-rose-800" : ""}
-                          ${difficulty === "4" ? "bg-violet-950/40 text-violet-400 border-violet-800" : ""}
-                          ${difficulty === "5" ? "bg-white/10 text-white border-white/20" : "bg-slate-900 text-slate-400 border-slate-800"}
-                        `}>
-                          {difficulty === "1" ? "100m" : difficulty === "2" ? "300m" : difficulty === "3" ? "500m" : difficulty === "4" ? "1,000m" : "3,000m+"}
-                        </Badge>
-                      </div>
-
-                      {/* 호버 시 네온 블루로 변광하는 타이틀 라인 */}
-                      <h3 className="text-base font-bold text-slate-100 group-hover:text-[#00D1FF] transition-colors line-clamp-2 leading-snug tracking-tight">
-                        {prob.title}
-                      </h3>
-                    </div>
-
-                    {/* 카드 하단 스태츠 바 - 다크 그레이 가로 단락 마감 */}
-                    <div className="pt-3 border-t border-slate-900 flex justify-between items-center font-mono text-[10px] text-slate-500 relative z-10">
-                      <p className="tracking-tight bg-slate-900/50 px-2 py-0.5 rounded text-slate-400">ID: {currentId}</p>
-                      <p className="flex items-center gap-1 text-slate-400 font-bold">
-                        <Anchor size={12} className="text-slate-500 group-hover:text-[#00D1FF] transition-colors" />
-                        {solvedCount.toLocaleString()}명 돌파
-                      </p>
-                    </div>
-
+                    <h3 className="text-base font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                      {prob.title}
+                    </h3>
+                  </div>
+                  <div className="flex items-center justify-between pt-3 border-t border-line text-xs text-ink-muted">
+                    <span className="font-mono">#{currentId}</span>
+                    <span className="flex items-center gap-1">
+                      <Anchor size={12} /> <span className="font-mono text-ink">{solvedCount.toLocaleString()}</span>명 도달
+                    </span>
                   </div>
                 </Link>
               );
@@ -445,109 +397,87 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* [C] 하단 영역 */}
-        {/* 전체 유저 최근 활동 로그 */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* 전체 유저 최근 활동 로그 (터미널 로그 콘솔 스타일로 빌드) */}
-          <Card className="bg-white border border-slate-100 shadow-sm rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xl font-black flex items-center gap-2 text-slate-900">
-                <Flame className="w-5 h-5 text-orange-500 fill-orange-100" /> 실시간 탐사 로그
-              </CardTitle>
-              <CardDescription className="text-slate-400">
-                현재 심해를 탐사 중인 대원들의 격리 샌드박스 커널 이벤트입니다.
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="pt-1">
-              {/* 리눅스 터미널 화면을 연상시키는 다크 쉘 레이아웃 */}
-              <div className="bg-slate-900 rounded-xl p-4 space-y-2.5 font-mono text-[11px] leading-relaxed text-slate-300 border border-slate-950 shadow-inner">
-
-                {/* 로그 1: 성공 / 최적화 */}
-                <div className="flex items-start gap-2">
-                  <span className="text-slate-500 select-none">[00:34:12]</span>
-                  <span className="text-[#00E699] font-bold">[SUCCESS]</span>
-                  <p className="flex-1">
-                    대원 <span className="font-bold text-white underline decoration-[#00A3FF] underline-offset-2">DanKook</span>이
-                    <span className="text-[#00A3FF]"> [가상 메모리 108] </span> 페이지 교체 루틴을 최적화했습니다.
-                  </p>
-                </div>
-
-                {/* 로그 2: 일반 활동 / 댓글 */}
-                <div className="flex items-start gap-2">
-                  <span className="text-slate-500 select-none">[00:31:05]</span>
-                  <span className="text-sky-400 font-bold">[INFO]</span>
-                  <p className="flex-1">
-                    대원 <span className="font-bold text-white">Newbie</span>가
-                    <span className="text-slate-400"> [세마포어 시각화] </span> 스크립트에 커널 분석 노트를 마운트했습니다.
-                  </p>
-                </div>
-
-                {/* 로그 3: 실패 / 데드락 에러 */}
-                <div className="flex items-start gap-2 bg-red-950/20 p-1 rounded border border-red-900/30">
-                  <span className="text-red-400/50 select-none">[00:28:49]</span>
-                  <span className="text-[#FF4B72] font-black animate-pulse">[CRITICAL]</span>
-                  <p className="flex-1 text-red-200">
-                    대원 <span className="font-bold text-white">Security</span>의 스레드 코드가
-                    <span className="font-bold text-[#FF4B72]"> [교착 상태 (Deadlock)] </span> 판정을 받아 격리되었습니다.
-                  </p>
-                </div>
-
+        {/* ============ 실시간 로그 + 원정 ============ */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 실시간 탐사 로그 — 터미널 틀 */}
+          <div className="rounded-2xl border border-line bg-panel p-6 space-y-4">
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Flame className="w-5 h-5 text-warning" /> 실시간 탐사 로그
+              </h2>
+              <p className="text-sm text-ink-muted">지금 심해를 탐사 중인 대원들의 샌드박스 이벤트예요.</p>
+            </div>
+            <div className="overflow-hidden rounded-xl border border-line bg-term font-mono text-[12px] leading-5">
+              <div className="flex items-center gap-2 h-9 px-3 bg-panel border-b border-line text-ink-muted text-xs">
+                <span className="flex-1 truncate">diveon@abyss:~/events</span>
+                <span className="dv-term__guard">
+                  <ShieldCheck /> GVISOR
+                </span>
               </div>
-            </CardContent>
-          </Card>
+              <div className="p-4 space-y-2 text-[#D7E6F5]">
+                <p>
+                  <span className="text-[#8DA3BA]">00:34:12</span> <span className="text-success font-semibold">AC</span>{" "}
+                  <b>DanKook</b> · 가상 메모리 108 <span className="text-[#8DA3BA]">페이지 교체 최적화</span>
+                </p>
+                <p>
+                  <span className="text-[#8DA3BA]">00:31:05</span> <span className="text-primary font-semibold">INFO</span>{" "}
+                  <b>Newbie</b> · 세마포어 시각화 <span className="text-[#8DA3BA]">분석 노트 작성</span>
+                </p>
+                <p>
+                  <span className="text-[#8DA3BA]">00:28:49</span> <span className="text-danger font-semibold">WA</span>{" "}
+                  <b>Security</b> · 스레드 동기화 <span className="text-[#8DA3BA]">Deadlock 판정</span>
+                </p>
+                <p className="text-signal">
+                  diveon@abyss:~$ <span className="inline-block w-2 h-4 align-[-3px] bg-signal animate-pulse" />
+                </p>
+              </div>
+            </div>
+          </div>
 
-          {/* 대회 추천 */}
-          <Card className="bg-white border border-slate-100 shadow-sm rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xl font-black flex items-center gap-2 text-slate-900">
-                <Trophy className="w-5 h-5 text-amber-500 fill-amber-100" /> 추천 대회
-              </CardTitle>
-              <CardDescription className="text-slate-400">
-                대원님의 등급에 매칭되는 실시간 심해 경쟁 미션입니다.
-              </CardDescription>
-            </CardHeader>
+          {/* 추천 원정 — coral 강조 */}
+          <div className="rounded-2xl border border-line bg-panel p-6 space-y-4">
+            <div className="flex items-end justify-between gap-3">
+              <div className="space-y-1">
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-coral" /> 추천 원정
+                </h2>
+                <p className="text-sm text-ink-muted">대원님 수심에 맞는 원정(대회)이에요.</p>
+              </div>
+              <Link href="/contests" className="text-sm font-semibold text-primary hover:text-primary-hover shrink-0">
+                전체 보기
+              </Link>
+            </div>
 
-            <CardContent className="space-y-3 pt-1">
-              {/* 대회 1: 진행 중 / 개인전 예시 */}
-              <div className="flex items-center justify-between p-3 bg-blue-50/40 rounded-xl border border-blue-100/70 hover:bg-blue-50/80 transition-colors group cursor-pointer">
-                <div className="space-y-0.5">
-                  <span className="font-bold text-slate-800 text-sm group-hover:text-[#0055FF] transition-colors">
-                    제1회 챌린저스 커널 동기화 레이스
+            {[
+              { title: "제1회 챌린저스 커널 동기화 레이스", meta: "O₂ 2일 14시간 남음", state: "진행중", mode: "개인전", live: true },
+              { title: "심해 구조 대항전 (Memory Rescue)", meta: "접수 ~ 07/15", state: "접수중", mode: "팀전", live: false },
+            ].map((c) => (
+              <Link
+                href="/contests"
+                key={c.title}
+                className="group flex items-center justify-between gap-3 rounded-xl border border-line bg-canvas p-4 hover:border-coral/50 transition-colors"
+              >
+                <div className="min-w-0 space-y-1">
+                  <p className="font-semibold text-sm truncate group-hover:text-coral transition-colors">{c.title}</p>
+                  <p className="text-xs font-mono text-ink-muted">{c.meta}</p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span
+                    className={
+                      c.live
+                        ? "inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-coral-soft text-coral text-xs font-semibold"
+                        : "inline-flex items-center h-[22px] px-2 rounded-md bg-warning-soft text-warning text-xs font-semibold"
+                    }
+                  >
+                    {c.live && <span className="w-1.5 h-1.5 rounded-full bg-coral animate-pulse" />}
+                    {c.state}
                   </span>
-                  <p className="text-[11px] text-slate-400 font-mono">남은 시간: 2일 14시간</p>
+                  <span className="inline-flex items-center h-[22px] px-2 rounded-md bg-raised text-ink-muted text-xs">{c.mode}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Badge className="bg-[#0055FF] text-white hover:bg-[#0055FF] shadow-none border-none text-[10px] px-2 py-0.5">
-                    진행중
-                  </Badge>
-                  <Badge variant="outline" className="text-slate-500 border-slate-200 bg-white text-[10px] px-2 py-0.5">
-                    개인전
-                  </Badge>
-                </div>
-              </div>
-
-              {/* 대회 2: 접수 중 / 팀전 예시 */}
-              <div className="flex items-center justify-between p-3 bg-amber-50/30 rounded-xl border border-amber-100/50 hover:bg-amber-50/60 transition-colors group cursor-pointer">
-                <div className="space-y-0.5">
-                  <span className="font-bold text-slate-800 text-sm group-hover:text-amber-600 transition-colors">
-                    심해 구조 대항전 (Memory Rescue)
-                  </span>
-                  <p className="text-[11px] text-slate-400 font-mono">접수 기간: ~ 07/15까지</p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Badge className="bg-amber-500 text-white hover:bg-amber-500 shadow-none border-none text-[10px] px-2 py-0.5">
-                    접수중
-                  </Badge>
-                  <Badge variant="outline" className="text-amber-600 border-amber-200 bg-white text-[10px] px-2 py-0.5">
-                    팀전
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </Link>
+            ))}
+          </div>
         </section>
-
       </main>
     </div>
   );
