@@ -75,7 +75,7 @@ export function LifecycleExplanation({instance,execution,cursor,onChange,onAdd}:
     <p className="text-sm font-semibold text-slate-800" aria-live="polite">{summary}</p>
     {onChange?<div className="mt-3 space-y-3">
       {notes.map((view,i)=><label key={view.id} className="block text-sm text-slate-600">
-        <span className="mb-1 flex flex-wrap items-center gap-2"><span>{notes.length===1?'설명':`설명 ${i+1}`}</span><span className="text-xs text-slate-400">{view.hidden?'숨김':view.when.kind||view.when.actor?`${lifecycleTransitions.find(t=>t.kind===view.when.kind)?.label??view.when.kind??'모든 사건'} · ${view.when.actor??'모든 프로세스'}`:'항상 표시'}</span></span>
+        <span className="mb-1 flex flex-wrap items-center gap-2"><span>{notes.length===1?'설명':`설명 ${i+1}`}</span><span className="text-xs text-slate-400">{view.hidden?'숨김':view.when.kind||view.when.actor?`${lifecycleTransitions.find(t=>t.kind===view.when.kind)?.label??view.when.kind??'모든 장면'} · ${view.when.actor??'모든 프로세스'}`:'항상 표시'}</span></span>
         <textarea aria-label={`ST2 설명 ${i+1}`} rows={3} maxLength={4000} value={view.text} onChange={e=>onChange(view.id,e.target.value)} placeholder="이 그림에서 전달할 내용을 적으세요." className="w-full resize-y rounded-lg border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-800"/>
       </label>)}
       {onAdd&&<button type="button" onClick={onAdd} className="text-sm font-medium text-teal-700">+ 설명 추가</button>}

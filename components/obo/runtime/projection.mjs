@@ -89,7 +89,7 @@ export function projection(instance,execution,cursor,view) {
     else if(family==='cpu-scheduling')rows=final?Object.entries(final.metrics).map(([actor,m])=>[label(actor),`대기 ${m.waiting} · 응답 ${m.response} · 반환 ${m.turnaround}`]):[['시각',show(data.time??0)],['대기 중',String(data.ready?.length??0)]];
     else if(family==='disk-scheduling')metric=String(data.distance??0);
     else if(family==='bounded-buffer')rows=pairs(data.semaphores??{});
-    else rows=final?pairs(final):[['진행한 사건',String(prefix.length)]];
+    else rows=final?pairs(final):[['진행한 장면',String(prefix.length)]];
   }else if(view.role==='storage') {
     if(family==='disk-scheduling')disk={head:data.to??input.start,max:input.max,requests:input.requests.map(r=>r.position)};
     else rows=pairs({디렉터리:input.fs.directory,inode:input.fs.inodes,간접블록:input.fs.indirect,데이터:input.fs.blocks});

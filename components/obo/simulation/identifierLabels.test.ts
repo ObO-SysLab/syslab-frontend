@@ -120,7 +120,7 @@ describe('valid identifiers keep their names through real traces and renderers',
     const bk = fixture(cases[0]);
     bk.instance.views.find(view => view.role === 'annotation')!.when.actor = 'toString';
     const html = renderToStaticMarkup(createElement(BankerExplanation, { instance: bk.instance, execution: bk.execution, cursor: 0, onChange() {} }));
-    expect(html).toContain('모든 사건 · toString');
+    expect(html).toContain('모든 장면 · toString');
     expect(html).not.toContain('[native code]');
   });
 

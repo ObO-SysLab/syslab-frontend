@@ -56,6 +56,11 @@ function OboResultContent() {
   const blob=explanations.find(item=>item.id===activeExplanation)?.blob??explanations[0]?.blob??null;
   useEffect(()=>setActiveExplanation(''),[query.data]);
   const verdict=submissionVerdict(result),isSuccess=verdict.kind==='correct';
+  // Coding answers that are not right yet keep the author's answer hidden (2026-11-09 learner-playback); objective
+  // explanations stay as they are. Objective submissions carry their choices or selected answers.
+  const objective=choices.length>0||selectedAnswers.length>0||(!!oboJson&&'mode' in oboJson&&oboJson.mode==='per_choice');
+  const coding=!objective&&(!!codingSchema||publicCases.length>0||diagramRecords.length>0||simulation?.question.judgeProfile==='obo-v1'||!!simulation?.question.ioFormat);
+  const hideAnswer=coding&&!isSuccess;
 
   if(query.error&&error!=='pending')return <main className="mx-auto max-w-3xl p-8"><h1 className="text-xl font-bold">OBO 결과 조회</h1><RequestError issue={query.error} retry={query.retry} busy={query.loading}/></main>;
 
@@ -117,7 +122,8 @@ function OboResultContent() {
         <div className="w-full max-w-4xl mx-auto">
           {publicCases.length>0&&<div className="mb-8"><PublicCasePlayer records={publicCases} document={simulation}/></div>}
           {codingSchema&&diagramRecords.length>0&&<div className="mb-8"><DiagramOutputPlayer schema={codingSchema} records={diagramRecords}/></div>}
-          {codingSchema&&blob&&<h2 className="mb-3 font-bold">출제자의 참고 출력 기록</h2>}
+          {hideAnswer?<p className="rounded-xl border border-dashed bg-white p-6 text-center text-sm text-slate-500" data-answer-hidden>정답을 맞히면 출제자의 풀이가 열립니다.</p>:<>
+          {codingSchema&&blob&&<h2 className="mb-3 font-bold">출제자의 풀이</h2>}
           {legacyRevision && <p className="mb-3 text-sm text-slate-500">이전 제출은 당시 문제 설정이 보관되지 않아 현재 등록된 해설을 보여줍니다.</p>}
           {explanations.length > 1 && <div className="mb-3 flex flex-wrap gap-2" aria-label="보기별 해설">
             {explanations.map(item => <Button key={item.id} variant={item.id === activeExplanation ? 'default' : 'outline'} onClick={() => setActiveExplanation(item.id)}>
@@ -134,7 +140,7 @@ function OboResultContent() {
             <Card className="border-slate-100 shadow-sm bg-white p-12 text-center text-slate-400 font-medium">
               이 문제는 OBO 시각화 데이터가 없습니다.
             </Card>
-          )}
+          )}</>}
         </div>
       </div>
     </div>
