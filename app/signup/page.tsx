@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -270,34 +271,34 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-canvas flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md mb-8 text-center">
         <Link href="/" className="inline-flex items-center gap-2">
-          <div className="bg-slate-900 p-1.5 rounded-lg shadow-lg">
+          <div className="bg-raised border border-line-strong text-ink p-1.5 rounded-lg shadow-lg">
             <Shield className="w-6 h-6 text-white" />
           </div>
-          <span className="text-3xl font-black tracking-tighter text-slate-900">Diveon</span>
+          <BrandMark size="lg" />
         </Link>
-        <p className="mt-2 text-sm text-slate-500 font-medium">
+        <p className="mt-2 text-sm text-ink-muted font-medium">
           운영체제의 깊은 바다를 함께 탐험해봐요.
         </p>
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-[550px]">
-        <Card className="border-none shadow-2xl shadow-slate-200/60 rounded-[2.5rem] overflow-hidden bg-white">
-          <CardHeader className="pt-10 pb-6 px-10 border-b border-slate-50 bg-white">
-            <CardTitle className="text-2xl font-black flex items-center gap-2 text-slate-900">
-              <UserPlus className="w-6 h-6 text-indigo-600" /> 계정 생성
+        <Card className="border-none shadow-2xl shadow-black/40 rounded-[2.5rem] overflow-hidden bg-panel">
+          <CardHeader className="pt-10 pb-6 px-10 border-b border-line bg-panel">
+            <CardTitle className="text-2xl font-black flex items-center gap-2 text-ink">
+              <UserPlus className="w-6 h-6 text-primary" /> 계정 생성
             </CardTitle>
-            <CardDescription className="text-slate-400 font-medium">모든 항목은 필수 입력 사항입니다.</CardDescription>
+            <CardDescription className="text-ink-subtle font-medium">모든 항목은 필수 입력 사항입니다.</CardDescription>
           </CardHeader>
 
           <form onSubmit={handleSignUp}>
             <CardContent className="p-10 space-y-10">
 
               <section className="space-y-6">
-                <div className="flex items-center gap-2 text-indigo-600">
+                <div className="flex items-center gap-2 text-primary">
                   <ShieldCheck size={16} />
                   <span className="text-[11px] font-black uppercase tracking-widest">Personal Info & Security</span>
                 </div>
@@ -305,10 +306,10 @@ export default function SignUpPage() {
                 <div className="grid gap-3">
                   {/* 이메일 구역 */}
                   <div className="grid gap-2">
-                    <Label className="text-xs font-bold text-slate-500 ml-1">이메일 인증</Label>
+                    <Label className="text-xs font-bold text-ink-muted ml-1">이메일 인증</Label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
-                        <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                        <Mail className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                         <Input
                           id="email"
                           type="email"
@@ -317,14 +318,14 @@ export default function SignUpPage() {
                           disabled={isEmailVerified}
                           required
                           placeholder="example@dankook.ac.kr"
-                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50 disabled:opacity-60"
+                          className="pl-11 h-12 rounded-xl border-line bg-raised/50 disabled:opacity-60"
                         />
                       </div>
                       <Button
                         type="button"
                         onClick={handleSendEmailCode}
                         disabled={isEmailVerified}
-                        className={`h-12 px-5 rounded-xl font-bold text-xs transition-all ${isEmailVerified ? "bg-slate-100 text-slate-400 border" : "bg-indigo-600 hover:bg-indigo-700 text-white"}`}
+                        className={`h-12 px-5 rounded-xl font-bold text-xs transition-all ${isEmailVerified ? "bg-raised text-ink-subtle border" : "bg-primary hover:bg-primary-hover text-primary-ink"}`}
                       >
                         {isEmailVerified ? "인증 완결" : isEmailSent ? "코드 재발송" : "인증하기"}
                       </Button>
@@ -335,13 +336,13 @@ export default function SignUpPage() {
                   {isEmailSent && !isEmailVerified && (
                     <div className="space-y-2 animate-in slide-in-from-top-2 duration-300 w-full">
                       <div className="flex justify-between items-center px-1">
-                        <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400">인증 코드 입력</Label>
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-ink-subtle">인증 코드 입력</Label>
                         {timeLeft > 0 ? (
-                          <span className="text-xs font-bold text-red-500 font-mono">
+                          <span className="text-xs font-bold text-danger font-mono">
                             남은 시간 {formatTime(timeLeft)}
                           </span>
                         ) : (
-                          <span className="text-xs font-bold text-red-500">
+                          <span className="text-xs font-bold text-danger">
                             인증 시간 만료
                           </span>
                         )}
@@ -349,7 +350,7 @@ export default function SignUpPage() {
 
                       <div className="flex gap-2">
                         <div className="relative flex-1">
-                          <ShieldCheck className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                          <ShieldCheck className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                           <Input
                             type="text"
                             maxLength={6}
@@ -357,14 +358,14 @@ export default function SignUpPage() {
                             onChange={(e) => setEmailCode(e.target.value)}
                             placeholder="인증코드 6자리 입력"
                             disabled={timeLeft <= 0}
-                            className="pl-11 h-12 rounded-xl border-indigo-100 bg-indigo-50/10 font-mono tracking-widest text-sm font-bold text-slate-800 disabled:opacity-50"
+                            className="pl-11 h-12 rounded-xl border-primary/20 bg-primary/6 font-mono tracking-widest text-sm font-bold text-ink disabled:opacity-50"
                           />
                         </div>
                         <Button
                           type="button"
                           onClick={handleVerifyEmailCode}
                           disabled={timeLeft <= 0}
-                          className="h-12 px-6 rounded-xl bg-slate-950 text-white font-black text-xs hover:bg-slate-800 shrink-0 disabled:opacity-50"
+                          className="h-12 px-6 rounded-xl bg-deep text-white font-black text-xs hover:bg-line shrink-0 disabled:opacity-50"
                         >
                           코드 확인
                         </Button>
@@ -374,24 +375,24 @@ export default function SignUpPage() {
 
                   {/* 아이디 구역 */}
                   <div className="grid gap-2">
-                    <Label className="text-xs font-bold text-slate-500 ml-1">아이디</Label>
+                    <Label className="text-xs font-bold text-ink-muted ml-1">아이디</Label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
-                        <Hash className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                        <Hash className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                         <Input
                           id="id"
                           value={formData.id}
                           onChange={handleInputChange}
                           required
                           placeholder="아이디"
-                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50"
+                          className="pl-11 h-12 rounded-xl border-line bg-raised/50"
                         />
                       </div>
                       <Button
                         type="button"
                         variant={isIdChecked ? "secondary" : "outline"}
                         onClick={handleCheckId}
-                        className={`h-12 px-5 rounded-xl border-slate-200 font-bold text-xs transition-all ${isIdChecked ? "bg-green-50 text-green-600 border-green-200" : "hover:bg-slate-50"}`}
+                        className={`h-12 px-5 rounded-xl border-line font-bold text-xs transition-all ${isIdChecked ? "bg-success/10 text-success border-success/30" : "hover:bg-raised/60"}`}
                       >
                         {isIdChecked ? "확인 완료" : "중복 확인"}
                       </Button>
@@ -400,9 +401,9 @@ export default function SignUpPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label className="text-xs font-bold text-slate-500 ml-1">비밀번호</Label>
+                      <Label className="text-xs font-bold text-ink-muted ml-1">비밀번호</Label>
                       <div className="relative">
-                        <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                        <Lock className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                         <Input
                           id="password"
                           type="password"
@@ -410,25 +411,25 @@ export default function SignUpPage() {
                           onChange={handleInputChange}
                           required
                           placeholder="••••••••"
-                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50"
+                          className="pl-11 h-12 rounded-xl border-line bg-raised/50"
                         />
                       </div>
                     </div>
                     <div className="grid gap-2">
-                      <Label className="text-xs font-bold text-slate-500 ml-1">비밀번호 확인</Label>
+                      <Label className="text-xs font-bold text-ink-muted ml-1">비밀번호 확인</Label>
                       <div className="relative">
-                        <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                        <Input type="password" placeholder="••••••••" className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50" />
+                        <Lock className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
+                        <Input type="password" placeholder="••••••••" className="pl-11 h-12 rounded-xl border-line bg-raised/50" />
                       </div>
                     </div>
                   </div>
                 </div>
               </section>
 
-              <Separator className="bg-slate-100" />
+              <Separator className="bg-raised" />
 
               <section className="space-y-6">
-                <div className="flex items-center gap-2 text-indigo-600">
+                <div className="flex items-center gap-2 text-primary">
                   <User size={16} />
                   <span className="text-[11px] font-black uppercase tracking-widest">Public Profile</span>
                 </div>
@@ -436,24 +437,24 @@ export default function SignUpPage() {
                 <div className="grid gap-4">
                   {/* 닉네임 구역 */}
                   <div className="grid gap-2">
-                    <Label className="text-xs font-bold text-slate-500 ml-1">닉네임</Label>
+                    <Label className="text-xs font-bold text-ink-muted ml-1">닉네임</Label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
-                        <Hash className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                        <Hash className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                         <Input
                           id="nickname"
                           value={formData.nickname}
                           onChange={handleInputChange}
                           required
                           placeholder="닉네임"
-                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50"
+                          className="pl-11 h-12 rounded-xl border-line bg-raised/50"
                         />
                       </div>
                       <Button
                         type="button"
                         variant={isNicknameChecked ? "secondary" : "outline"}
                         onClick={handleCheckNickname}
-                        className={`h-12 px-5 rounded-xl border-slate-200 font-bold text-xs transition-all ${isNicknameChecked ? "bg-green-50 text-green-600 border-green-200" : "hover:bg-slate-50"}`}
+                        className={`h-12 px-5 rounded-xl border-line font-bold text-xs transition-all ${isNicknameChecked ? "bg-success/10 text-success border-success/30" : "hover:bg-raised/60"}`}
                       >
                         {isNicknameChecked ? "확인 완료" : "중복 확인"}
                       </Button>
@@ -462,38 +463,38 @@ export default function SignUpPage() {
 
                   {/* 소속 필드 */}
                   <div className="grid gap-2">
-                    <Label className="text-xs font-bold text-slate-500 ml-1">소속 (직접 입력)</Label>
+                    <Label className="text-xs font-bold text-ink-muted ml-1">소속 (직접 입력)</Label>
                     <div className="relative">
-                      <Briefcase className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                      <Briefcase className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                       <Input
                         id="belong"
                         value={formData.belong}
                         onChange={handleInputChange}
                         placeholder="소속 입력"
-                        className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50"
+                        className="pl-11 h-12 rounded-xl border-line bg-raised/50"
                       />
                     </div>
                   </div>
 
                   {/* 관심 분야 */}
                   <div className="grid gap-2">
-                    <Label className="text-xs font-bold text-slate-500 ml-1">관심 분야 (Enter로 추가)</Label>
+                    <Label className="text-xs font-bold text-ink-muted ml-1">관심 분야 (Enter로 추가)</Label>
                     <div className="space-y-3">
                       <div className="relative">
-                        <Search className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                        <Search className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                         <Input
                           value={tagInput}
                           onChange={(e) => setTagInput(e.target.value)}
                           onKeyDown={addTag}
                           placeholder="예: 백엔드, AI"
-                          className="pl-11 h-12 rounded-xl border-slate-100 bg-slate-50/50"
+                          className="pl-11 h-12 rounded-xl border-line bg-raised/50"
                         />
                       </div>
                       <div className="flex flex-wrap gap-2 min-h-[32px]">
                         {interests.map(tag => (
-                          <Badge key={tag} className="pl-3 pr-1 py-1.5 bg-indigo-50 text-indigo-600 border-none rounded-lg font-bold flex items-center gap-1">
+                          <Badge key={tag} className="pl-3 pr-1 py-1.5 bg-primary/10 text-primary border-none rounded-lg font-bold flex items-center gap-1">
                             {tag}
-                            <button type="button" onClick={() => removeTag(tag)} className="hover:bg-indigo-100 rounded-md p-0.5 transition-colors">
+                            <button type="button" onClick={() => removeTag(tag)} className="hover:bg-primary/20 rounded-md p-0.5 transition-colors">
                               <X size={14} />
                             </button>
                           </Badge>
@@ -505,14 +506,14 @@ export default function SignUpPage() {
               </section>
 
               <div className="space-y-6 pt-4">
-                <div className="flex items-start space-x-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <Checkbox id="terms" className="mt-1 data-[state=checked]:bg-indigo-600" required />
+                <div className="flex items-start space-x-3 p-4 bg-canvas rounded-2xl border border-line">
+                  <Checkbox id="terms" className="mt-1 data-[state=checked]:bg-primary" required />
                   <div className="grid gap-1.5 leading-none">
-                    <label htmlFor="terms" className="text-xs font-bold text-slate-700 leading-normal cursor-pointer">
-                      <Link href="/signup/terms" target="_blank" className="text-indigo-600 hover:underline">서비스 이용약관</Link> 및{" "}
-                      <Link href="/signup/privacy" target="_blank" className="text-indigo-600 hover:underline">개인정보 처리방침</Link>에 동의합니다. (필수)
+                    <label htmlFor="terms" className="text-xs font-bold text-ink leading-normal cursor-pointer">
+                      <Link href="/signup/terms" target="_blank" className="text-primary hover:underline">서비스 이용약관</Link> 및{" "}
+                      <Link href="/signup/privacy" target="_blank" className="text-primary hover:underline">개인정보 처리방침</Link>에 동의합니다. (필수)
                     </label>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-[10px] text-ink-subtle">
                       어뷰징, 답안 공유, 플랫폼 대상 공격 등 부정행위 적발 시 계정이 영구 중단되며 소속에 통보될 수 있습니다.
                     </p>
                   </div>
@@ -521,7 +522,7 @@ export default function SignUpPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-slate-950 hover:bg-slate-800 h-14 rounded-2xl text-lg font-black shadow-xl shadow-slate-200 transition-all active:scale-[0.98]"
+                  className="w-full bg-deep hover:bg-line h-14 rounded-2xl text-lg font-black shadow-xl shadow-black/40 transition-all active:scale-[0.98]"
                 >
                   {isLoading ? <Loader2 className="animate-spin mr-2" /> : "회원가입하기"}
                   {!isLoading && <ArrowRight className="ml-2 w-5 h-5" />}
@@ -531,9 +532,9 @@ export default function SignUpPage() {
             </CardContent>
           </form>
 
-          <CardFooter className="bg-slate-50/50 border-t border-slate-100 py-8 flex justify-center">
-            <p className="text-sm font-bold text-slate-500">
-              이미 계정이 있으신가요? <Link href="/signin" className="text-indigo-600 hover:underline ml-1">로그인</Link>
+          <CardFooter className="bg-raised/50 border-t border-line py-8 flex justify-center">
+            <p className="text-sm font-bold text-ink-muted">
+              이미 계정이 있으신가요? <Link href="/signin" className="text-primary hover:underline ml-1">로그인</Link>
             </p>
           </CardFooter>
         </Card>

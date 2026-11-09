@@ -2,6 +2,7 @@
 import { rememberSubmission } from "@/lib/authSession";
 
 import { useEffect, useRef, useState, Suspense } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -22,8 +23,7 @@ function PracticeContent() {
   const router = useRouter();
   const probId = searchParams.get('id') || "1";
 
-  // API 연동 스위치 및 동적 상태 선언
-  const USE_API_REQUEST = true;
+  // 동적 상태 선언
   const [problemTitle, setProblemTitle] = useState("실습 환경 구성 중...");
   const [osImage, setOsImage] = useState("Ubuntu 22.04 LTS"); // 기본 OS
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -32,7 +32,7 @@ function PracticeContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
 
-  // API 연동 스위치 및 동적 상태 선언 아래에 추가
+  // VM 상태
   const [containerId, setContainerId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [isVmLoading, setIsVmLoading] = useState(true); // VM 생성 로딩 상태
@@ -45,12 +45,6 @@ function PracticeContent() {
     hasFetched.current = true;
 
     const fetchProblemDataAndCreateVm = async () => {
-      if (!USE_API_REQUEST) {
-        setProblemTitle(`MOCK 데이터 실습 문제 #${probId}`);
-        setIsVmLoading(false);
-        return;
-      }
-
       const token = localStorage.getItem("token");
       const headers = {
         "Content-Type": "application/json",
@@ -108,11 +102,6 @@ function PracticeContent() {
   //  실습 종료 시 문제 상세 페이지로 복귀
   const handleEndPractice = async () => {
     if (!confirm("실습을 종료하시겠습니까? 진행 중인 모든 데이터가 삭제(초기화)됩니다.")) {
-      return;
-    }
-
-    if (!USE_API_REQUEST) {
-      router.push(`/challenges/detail?id=${probId}`);
       return;
     }
 
@@ -208,8 +197,8 @@ function PracticeContent() {
       term = new Terminal({
         cursorBlink: true,
         fontSize: 15,
-        fontFamily: '"Fira Code", monospace',
-        theme: { background: "#020617", foreground: "#f8fafc", cursor: "#818cf8" },
+        fontFamily: '"JetBrains Mono", D2Coding, ui-monospace, monospace',
+        theme: { background: "#05080C", foreground: "#D7E6F5", cursor: "#00FFA3", cursorAccent: "#05080C", selectionBackground: "rgba(0,209,255,0.28)", green: "#00FFA3", brightGreen: "#5CFFC2", blue: "#00D1FF", brightBlue: "#5CE1FF", red: "#FF6B86", yellow: "#FFB547", magenta: "#B79CFF", cyan: "#7FE7FF" },
       });
 
       const fitAddon = new FitAddon();
@@ -248,13 +237,13 @@ function PracticeContent() {
   }, [probId, containerId]);
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden w-full font-sans text-slate-900">
+    <div className="h-screen flex flex-col bg-canvas overflow-hidden w-full font-sans text-ink">
 
       {/* 1. 고정 헤더 */}
-      <header className="shrink-0 h-16 border-b bg-white px-6 flex items-center justify-between z-50">
+      <header className="shrink-0 h-16 border-b bg-panel px-6 flex items-center justify-between z-50">
         <div className="flex items-center gap-8">
-          <Menu className="h-6 w-6 text-slate-500 lg:hidden" />
-          <Link href="/" className="text-2xl font-black tracking-tighter text-slate-900 mr-4">Diveon</Link>
+          <Menu className="h-6 w-6 text-ink-muted lg:hidden" />
+          <Link href="/" className="mr-4" aria-label="DiveOn 홈"><BrandMark /></Link>
           <nav className="hidden lg:flex items-center gap-1">
             <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" active />
             <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
@@ -264,9 +253,9 @@ function PracticeContent() {
           </nav>
         </div>
         <div className="flex items-center gap-3">
-          <button className="p-2 hover:bg-slate-100 rounded-full relative"><Bell className="h-5 w-5 text-slate-500" /></button>
-          <Avatar className="h-9 w-9 border border-slate-200"><AvatarFallback>DY</AvatarFallback></Avatar>
-          <button className="p-2 hover:bg-red-50 rounded-full text-red-500"><LogOut className="h-5 w-5" /></button>
+          <button className="p-2 hover:bg-raised rounded-full relative"><Bell className="h-5 w-5 text-ink-muted" /></button>
+          <Avatar className="h-9 w-9 border border-line"><AvatarFallback>DY</AvatarFallback></Avatar>
+          <button className="p-2 hover:bg-danger/10 rounded-full text-danger"><LogOut className="h-5 w-5" /></button>
         </div>
       </header>
 
@@ -275,33 +264,33 @@ function PracticeContent() {
         <main className="h-full max-w-[1400px] mx-auto p-6 flex flex-col gap-4">
 
           {/* [A] 상단 타이틀 바 */}
-          <div className="h-16 shrink-0 bg-white border border-slate-200 rounded-2xl px-6 flex items-center justify-between shadow-sm">
+          <div className="h-16 shrink-0 bg-panel border border-line rounded-2xl px-6 flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-4">
-              <div className="h-10 w-10 bg-indigo-50 rounded-xl flex items-center justify-center">
-                <Shield className="h-6 w-6 text-indigo-600" />
+              <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                <Shield className="h-6 w-6 text-primary" />
               </div>
               <div>
                 {/*  동적으로 받아온 제목과 OS 이미지 렌더링 */}
-                <h1 className="text-xl font-bold text-slate-900 tracking-tight">{problemTitle}</h1>
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Instance: {osImage}</p>
+                <h1 className="text-xl font-bold text-ink tracking-tight">{problemTitle}</h1>
+                <p className="text-[11px] text-ink-subtle font-bold uppercase tracking-wider">Instance: {osImage}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               {/* 남은 시간 표시 배지 */}
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 font-mono font-bold transition-colors ${timeLeft < 300 ? "bg-red-50 border-red-200 text-red-600 animate-pulse" : "bg-slate-50 border-slate-100 text-slate-700"
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 font-mono font-bold transition-colors ${timeLeft < 300 ? "bg-danger/10 border-danger/30 text-danger animate-pulse" : "bg-canvas border-line text-ink"
                 }`}>
-                <Clock className={`w-4 h-4 ${timeLeft < 300 ? "text-red-500" : "text-slate-400"}`} />
+                <Clock className={`w-4 h-4 ${timeLeft < 300 ? "text-danger" : "text-ink-subtle"}`} />
                 <span>{formatTime(timeLeft)}</span>
               </div>
 
-              <div className="h-6 w-[1px] bg-slate-200 mx-1" />
+              <div className="h-6 w-[1px] bg-line mx-1" />
 
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-10 border-slate-200 text-slate-600 rounded-xl px-4 font-bold hover:bg-slate-50"
+                  className="h-10 border-line text-ink-muted rounded-xl px-4 font-bold hover:bg-raised/60"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" /> 인스턴스 재시작
                 </Button>
@@ -311,7 +300,7 @@ function PracticeContent() {
                   onClick={handleEndPractice}
                   variant="destructive"
                   size="sm"
-                  className="h-10 bg-red-500 hover:bg-red-600 text-white rounded-xl px-6 font-bold shadow-lg shadow-red-100"
+                  className="h-10 bg-danger hover:bg-danger/85 text-primary-ink rounded-xl px-6 font-bold shadow-lg shadow-black/40"
                 >
                   실습 종료
                 </Button>
@@ -320,39 +309,39 @@ function PracticeContent() {
           </div>
 
           {/* [B] 터미널 메인 영역 (다크모드 밀봉 유지) */}
-          <div className="flex-1 min-h-0 w-full rounded-2xl overflow-hidden border border-slate-800 shadow-lg bg-slate-950 flex flex-col relative">
+          <div className="flex-1 min-h-0 w-full rounded-2xl overflow-hidden border border-line shadow-lg bg-deep flex flex-col relative">
 
             <style dangerouslySetInnerHTML={{
               __html: `
               .xterm-viewport::-webkit-scrollbar { width: 10px; }
-              .xterm-viewport::-webkit-scrollbar-track { background: #020617; }
-              .xterm-viewport::-webkit-scrollbar-thumb { background: #334155; border-radius: 5px; }
-              .xterm, .xterm-viewport, .xterm-screen { background-color: #020617 !important; }
+              .xterm-viewport::-webkit-scrollbar-track { background: #05080C; }
+              .xterm-viewport::-webkit-scrollbar-thumb { background: #182233; border-radius: 5px; }
+              .xterm, .xterm-viewport, .xterm-screen { background-color: #05080C !important; }
             `}} />
 
             {/* 터미널 헤더 */}
-            <div className="h-10 bg-slate-900 border-b border-slate-800 flex items-center px-4 justify-between shrink-0 z-10">
+            <div className="h-10 bg-deep border-b border-line flex items-center px-4 justify-between shrink-0 z-10">
               <div className="flex items-center gap-2">
-                <TerminalIcon className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold text-slate-400 font-mono tracking-tight">root@diveon: ~</span>
+                <TerminalIcon className="w-4 h-4 text-success" />
+                <span className="text-xs font-bold text-ink-subtle font-mono tracking-tight">root@diveon: ~</span>
               </div>
               <div className="flex gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
-                <div className="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
-                <div className="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-line-strong"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-line-strong"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-line-strong"></div>
               </div>
             </div>
 
             {/* 실제 터미널 렌더링 영역 */}
-            <div className="flex-1 min-h-0 w-full bg-slate-950 pl-4 pt-3 pb-3 pr-1 flex flex-col">
-              <div ref={terminalRef} className="flex-1 min-h-0 w-full bg-slate-950" />
+            <div className="flex-1 min-h-0 w-full bg-deep pl-4 pt-3 pb-3 pr-1 flex flex-col">
+              <div ref={terminalRef} className="flex-1 min-h-0 w-full bg-deep" />
             </div>
           </div>
 
           {/* [C] 하단 FLAG 제출 칸 */}
-          <div className="h-20 shrink-0 bg-slate-900 border border-slate-800 rounded-2xl px-6 flex items-center gap-6 shadow-2xl">
+          <div className="h-20 shrink-0 bg-deep border border-line rounded-2xl px-6 flex items-center gap-6 shadow-2xl">
             <div className="flex items-center gap-3 shrink-0">
-              <Zap className="h-5 w-5 text-amber-400 fill-amber-400" />
+              <Zap className="h-5 w-5 text-warning fill-warning" />
               <span className="text-sm font-black text-white uppercase tracking-widest">FLAG</span>
             </div>
             <div className="flex-1 flex gap-2">
@@ -360,12 +349,12 @@ function PracticeContent() {
                 value={flag}
                 onChange={(e) => setFlag(e.target.value)}
                 placeholder="DK{Enter_The_Flag_Here}"
-                className="h-11 bg-slate-950 border-slate-700 text-emerald-400 font-mono focus-visible:ring-indigo-500 rounded-xl"
+                className="h-11 bg-deep border-line text-success font-mono focus-visible:ring-primary rounded-xl"
               />
               <Button
                 onClick={handleFlagSubmit}
                 disabled={isSubmitting}
-                className="h-11 px-8 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg transition-all active:scale-95"
+                className="h-11 px-8 bg-primary hover:bg-primary-hover text-primary-ink font-black rounded-xl shadow-lg transition-all active:scale-95"
               >
                 {isSubmitting ? "인증 중..." : "인증하기"}
               </Button>
@@ -381,7 +370,7 @@ function NavMenuLink({ href, icon, label, active = false }: { href: string; icon
   return (
     <Link
       href={href}
-      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active ? "text-indigo-600 bg-indigo-50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active ? "text-primary bg-primary/10" : "text-ink-muted hover:text-ink hover:bg-raised/60"
         }`}
     >
       <span>{icon}</span>
@@ -393,8 +382,8 @@ function NavMenuLink({ href, icon, label, active = false }: { href: string; icon
 export default function PracticePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-canvas">
+        <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
       </div>
     }>
       <PracticeContent />
