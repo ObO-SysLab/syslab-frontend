@@ -332,6 +332,12 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
     setSelectedFrameId(id);
   }, [frames]);
 
+  // Lines → scenes (2026-11-09): the dialog returns the whole scene list.
+  const replaceFrames = useCallback((next: Frame[], selectId: string | null) => {
+    setFrames(next);
+    setSelectedFrameId(selectId);
+  }, []);
+
   const removeFrame = useCallback((id: string) => {
     setFrames(fs => fs.filter(f => f.id !== id));
     setSelectedFrameId(prev => prev === id ? null : prev);
@@ -622,6 +628,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
           selectedFrameId={selectedFrameId}
           onSelectFrame={setSelectedFrameId}
           onAddFrame={addFrame}
+          onReplaceFrames={replaceFrames}
           onDuplicateFrame={handleDuplicateFrame}
           onMoveFrame={handleMoveFrame}
           onRemoveFrame={removeFrame}
