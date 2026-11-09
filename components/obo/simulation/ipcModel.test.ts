@@ -161,7 +161,7 @@ describe('IPC display follows actual operations in the observed prefix', () => {
     expect(s.reads).toHaveLength(10000); expect(s.reads[9999]).toMatchObject({ index: 9999, op: 'read', key: 'x', value: null });
     expect(s.shared).toEqual([{ key: 'x', nodeKey: 'shared:x', value: null }]);
   // Recording 10000 snapshots shares CPU with the full suite on the authoring machine.
-  }, 45000);
+  }, 120000); // 10000 reads: 45 s was exceeded under load (48 s on 2026-11-09); the content and expectations are unchanged.
 
   it('reconstructs earlier cursors without inspecting future events or final reads and blocked sets', () => {
     const i = instance(), execution = run('IPC', i.input), earlier = ipcSnapshot(i, execution, 1);
