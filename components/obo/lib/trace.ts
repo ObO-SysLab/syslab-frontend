@@ -23,7 +23,7 @@ export function generateFramesFromTrace(trace: OboTraceStep[], edges: OboBlob['e
     }
     return {
       id: `f_${i + 1}`,
-      label: `스텝 ${i + 1}`,
+      label: `장면 ${i + 1}`,
       highlightNodes: step.highlightNodes,
       highlightEdges,
       nodeDataOverrides: step.overrides,

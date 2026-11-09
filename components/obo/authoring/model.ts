@@ -6,7 +6,7 @@ import { memoryLayout, type MemorySegment } from '../examples/memory';
 
 // Manual authoring only. Never add these to the coding trace/grading field registry.
 export const AUTHORING_FIELDS: Record<string, string[]> = {
-  'state-node': ['label'],
+  'state-node': ['label', 'removed'],
   'resource-square': ['instances', 'allocated'],
   'queue-strip': ['capacity', 'items', 'direction', 'displayStyle', 'showCount', 'showDirection'],
   'table-grid': ['headers', 'rows', 'activeRow', 'width'],

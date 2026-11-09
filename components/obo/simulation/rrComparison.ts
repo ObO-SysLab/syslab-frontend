@@ -24,7 +24,7 @@ export function compareRr(record: PublicCase) {
     rrInputText(record.input);
     const reference = segments(record.reference.result.segments, record.input);
     let reported: ScheduleSegment[] | null = null, reportedError = '';
-    try { reported = segments(record.reported?.result.segments, record.input); }
+    try { reported = segments(record.reported?.result?.segments, record.input); }
     catch (error) { reportedError = error instanceof Error ? error.message : '출력 형식을 읽을 수 없습니다.'; }
     const times = [...new Set([0, ...reference.flatMap(s => [s.start, s.end]), ...(reported ?? []).flatMap(s => [s.start, s.end])])].sort((a,b) => a-b);
     // rr-segments-v1 accepts splitting/merging adjacent intervals of the same actor.

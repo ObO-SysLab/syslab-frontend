@@ -26,7 +26,7 @@ export function SlotGrid({ id, data, selected }: NodeProps) {
         {values.map((value, index) => {
           const fault = data.faultSlotIndex === index, hit = !fault && data.hitSlotIndex === index;
           const active = data.activeSlotIndex === index, pointer = data.pointerSlotIndex === index;
-          const badge = fault ? 'FAULT' : hit ? 'HIT' : active ? '이번 참조' : '';
+          const badge = fault ? 'Miss' : hit ? 'Hit' : active ? '이번 참조' : '';
           const color = fault ? '#be123c' : hit ? '#047857' : active ? '#4338ca' : '#64748b';
           return <div key={index} data-slot-index={index} data-slot-value={value ?? ''} data-slot-marker={badge} data-slot-pointer={pointer} className="text-center">
             <div className="flex h-6 items-start justify-center"><span data-slot-badge className="rounded px-1 py-0.5 text-xs font-bold" style={{ color, backgroundColor: badge ? `${color}12` : undefined }}>{badge}</span></div>

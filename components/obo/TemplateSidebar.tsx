@@ -51,22 +51,18 @@ export function TemplateSidebar({ selectedTemplateId, onSelect }: TemplateSideba
                   : 'border-transparent hover:border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className={`text-xs font-black ${isSelected ? 'text-indigo-700' : 'text-slate-800'}`}>
-                  {template.id}
-                </span>
-                <Badge
-                  variant="outline"
-                  className={`text-[9px] px-1.5 py-0 h-4 shrink-0 ${
-                    isSelected ? 'border-indigo-300 text-indigo-500' : 'text-slate-400'
-                  }`}
-                >
-                  {template.description}
-                </Badge>
-              </div>
-              <p className={`text-[11px] mt-0.5 truncate ${isSelected ? 'text-indigo-600' : 'text-slate-400'}`}>
+              {/* Internal IDs stay hidden: free `G2` (Round Robin) differs from rule `G2` (SJF·FCFS). */}
+              <span data-template-id={template.id} className={`block text-xs font-bold leading-snug ${isSelected ? 'text-indigo-700' : 'text-slate-800'}`}>
                 {template.name}
-              </p>
+              </span>
+              <Badge
+                variant="outline"
+                className={`mt-1 h-auto max-w-full whitespace-normal px-1.5 py-0 text-left text-[10px] leading-snug ${
+                  isSelected ? 'border-indigo-300 text-indigo-500' : 'text-slate-500'
+                }`}
+              >
+                {template.description}
+              </Badge>
             </button>
           );
         })}

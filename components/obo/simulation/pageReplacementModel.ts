@@ -88,7 +88,7 @@ export function pageSnapshot(instance: SimulationInstance, execution: ModelRun |
     checkShape(registry[model].eventSchema, event, 'event');
     const data = event.data as unknown as EventData, want = s.expected[position];
     requireValue(event.step === position && event.kind === 'reference' && data.index === position, '사건 순서가 참조열과 다릅니다.');
-    requireValue(data.page === want.page && data.hit === want.hit && data.victim === want.victim, '적중·교체가 기록과 다릅니다.');
+    requireValue(data.page === want.page && data.hit === want.hit && data.victim === want.victim, 'Hit/Miss·교체가 기록과 다릅니다.');
     requireValue(data.frames.length === want.frames.length && data.frames.every((v, i) => v === want.frames[i]), '프레임 내용이 기록과 다릅니다.');
   }
   const position = events.length - 1, current = position >= 0 ? s.expected[position] : null;
