@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Plus, X, Copy, ArrowUp, ArrowDown } from 'lucide-react';
 import type { Node, Edge } from '@xyflow/react';
-import type { Frame } from '../types';
+import type { Frame, SimpleOutputFormat } from '../types';
+import { LinesToScenesDialog } from './LinesToScenesDialog';
 import { MANUAL_OVERRIDE_TYPES, sceneConflicts } from '../authoring/model';
 import { NodeOverrideEditor } from './overrides/NodeOverrideEditor';
 
@@ -29,6 +30,10 @@ interface FramePanelProps {
   /** Coding problems built from scenes: each scene can be left out of the learner's output (start/finish explanations). */
   codingOutput?: boolean;
   onUpdateFrameExclude?: (frameId: string, exclude: boolean) => void;
+  /** Lines → scenes (2026-11-09): replaces the scene list in one step. */
+  onReplaceFrames?: (frames: Frame[], selectId: string | null) => void;
+  /** Coding problems: the learner's line format, used as the dialog's starting choice. */
+  lineFormat?: SimpleOutputFormat | null;
 }
 
 function nodeLabel(nodes: Node[], id: string): string {
@@ -49,8 +54,9 @@ export function FramePanel({
   onDuplicateFrame, onMoveFrame,
   onRemoveHighlightNode, onRemoveHighlightEdge,
   onAddNodeOverride, onRemoveNodeOverride, onSetOverrideField, onClearOverrideField, onUpdateFrameCursorTime,
-  nodes, edges, codingOutput = false, onUpdateFrameExclude,
+  nodes, edges, codingOutput = false, onUpdateFrameExclude, onReplaceFrames, lineFormat = null,
 }: FramePanelProps) {
+  const [linesOpen, setLinesOpen] = useState(false);
   const selectedFrame = frames.find(f => f.id === selectedFrameId) ?? null;
   const selectedFrameIndex = selectedFrame ? frames.findIndex(f => f.id === selectedFrame.id) : -1;
   const [pickerNodeId, setPickerNodeId] = useState('');
@@ -69,13 +75,19 @@ export function FramePanel({
   return (
     <div className="p-3 space-y-3">
 
-      {/* 추가 버튼 */}
+      {/* 추가 버튼 · 줄로 장면 만들기 */}
+      <div className={`grid gap-1 ${onReplaceFrames ? 'grid-cols-2' : ''}`}>
       <button
         onClick={onAddFrame}
         className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded border border-dashed border-slate-300 text-xs text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors"
       >
         <Plus size={12} /> 장면 추가
       </button>
+      {onReplaceFrames && <button type="button" onClick={() => setLinesOpen(true)}
+        className="w-full rounded border border-indigo-200 bg-indigo-50 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">줄로 장면 만들기</button>}
+      </div>
+      {linesOpen && onReplaceFrames && <LinesToScenesDialog nodes={nodes} edges={edges} frames={frames} selectedFrameId={selectedFrameId}
+        initialFormat={lineFormat} onApply={onReplaceFrames} onClose={() => setLinesOpen(false)} />}
 
       {/* 장면 목록 */}
       {frames.length === 0 ? (

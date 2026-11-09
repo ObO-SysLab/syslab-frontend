@@ -62,6 +62,7 @@ interface PropertyPanelProps {
   onOutputFormatChange?: (format: SimpleOutputFormat | null) => void;
   formatFrames?: Frame[];
   onUpdateFrameExclude?: (frameId: string, exclude: boolean) => void;
+  onReplaceFrames?: (frames: Frame[], selectId: string | null) => void;
 }
 
 export function PropertyPanel({
@@ -76,7 +77,7 @@ export function PropertyPanel({
   onUpdateFrameLabel, onRemoveHighlightNode, onRemoveHighlightEdge,
   onAddNodeOverride, onRemoveNodeOverride, onSetOverrideField, onClearOverrideField, onUpdateFrameCursorTime,
   traceText, onTraceTextChange, testcaseOutputs,
-  codingSource = 'text', onCodingSourceChange, outputFormat = null, onOutputFormatChange, formatFrames = [], onUpdateFrameExclude,
+  codingSource = 'text', onCodingSourceChange, outputFormat = null, onOutputFormatChange, formatFrames = [], onUpdateFrameExclude, onReplaceFrames,
 }: PropertyPanelProps) {
   const coding = oboMode === 'coding_diff';
   const codingScenes = coding && codingSource === 'scenes';
@@ -172,6 +173,8 @@ export function PropertyPanel({
               edges={edges}
               codingOutput={codingScenes}
               onUpdateFrameExclude={onUpdateFrameExclude}
+              onReplaceFrames={onReplaceFrames}
+              lineFormat={outputFormat}
             />
           )}
         </div>
