@@ -22,7 +22,7 @@ export function DiagramExampleControl({ schema, testcases, onAdd, onFill }: {
   const [status, setStatus] = useState('');
   if (!expected) return null;
   const ready = expected.lines.length > 0 && expected.issues.length === 0;
-  return <div className="mt-3 space-y-2 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-sm" data-diagram-example>
+  return <div className="obo-scope mt-3 space-y-2 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-sm" data-diagram-example>
     <p className="font-semibold text-slate-800">그림에서 만든 정답 출력 · {expected.lines.length}줄</p>
     <pre className="max-h-48 overflow-auto rounded bg-white p-2 text-xs">{expected.text || '(학생 출력에 포함된 장면이 없습니다)'}</pre>
     {expected.issues.map((m, i) => <p key={i} role="alert" className="text-xs text-amber-700">{m}</p>)}
