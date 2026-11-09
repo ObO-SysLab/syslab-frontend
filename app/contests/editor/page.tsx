@@ -8,6 +8,7 @@ import { logout } from "@/lib/authSession";
 import { useCodeDraft } from "@/components/coding/useCodeDraft";
 import { CodeDraftPanel } from "@/components/coding/CodeDraftPanel";
 import { useState, useRef, useEffect, Suspense } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import Link from "next/link";
 import {
   FileText, Play, LogOut, Bell, LayoutGrid, Users, BarChart3,
@@ -31,7 +32,6 @@ function MonacoSubmitContent() {
   const probId = searchParams.get('probId');
   const contestProbId = searchParams.get('contestProblemId');
   const contestId = searchParams.get('contestId');
-  const USE_API_REQUEST = true;
   const [problemTitle, setProblemTitle] = useState("문제 정보 불러오는 중...");
   const [problemVersion, setProblemVersion] = useState<string | null>(null);
   const codeDraft = useCodeDraft({ kind: 'contest', problem: probId ?? '', contest: contestId ?? '', contestProblem: contestProbId ?? '' }, problemVersion);
@@ -125,18 +125,16 @@ function MonacoSubmitContent() {
 
 
   return (
-    <div className="h-dvh min-h-[640px] bg-slate-50 flex flex-col w-full">
+    <div className="h-dvh min-h-[640px] bg-canvas flex flex-col w-full">
       {/* 1. 고정 헤더 (h-16 = 4rem = 64px) */}
-      <header className="shrink-0 h-16 border-b bg-white px-6 flex items-center justify-between z-50">
+      <header className="shrink-0 h-16 border-b bg-panel px-6 flex items-center justify-between z-50">
         <div className="flex items-center gap-8">
-          <Menu className="h-6 w-6 text-slate-500 lg:hidden" />
+          <Menu className="h-6 w-6 text-ink-muted lg:hidden" />
 
           <Link
             href="/"
-            className="text-2xl font-black tracking-tighter text-slate-900 mr-4"
-          >
-            Diveon
-          </Link>
+            className="mr-4" aria-label="DiveOn 홈"
+          ><BrandMark /></Link>
 
           <nav className="hidden lg:flex items-center gap-1">
             <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" active />
@@ -151,15 +149,15 @@ function MonacoSubmitContent() {
           {isLoggedIn ? (
             /* --- 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
             <>
-              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              <button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
+                <Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
               </button>
 
               <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+                <Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
                   <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+                  <AvatarFallback className="bg-transparent text-xs font-bold text-ink-muted rounded-full">
                     {/* 공백 상태 유지 */}
                   </AvatarFallback>
                 </Avatar>
@@ -168,7 +166,7 @@ function MonacoSubmitContent() {
               <button
                 aria-label="로그아웃"
                 onClick={() => { if (logout()) setIsLoggedIn(false); }}
-                className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
+                className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors group"
               >
                 <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
               </button>
@@ -177,10 +175,10 @@ function MonacoSubmitContent() {
             /* --- 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
             <div className="flex items-center gap-2">
               <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+                <Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
               </Link>
               <Link href="/signup">
-                <Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+                <Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
                   Get Started
                 </Button>
               </Link>
@@ -193,19 +191,19 @@ function MonacoSubmitContent() {
       <main className="flex-1 flex flex-col gap-4 p-6 w-full max-w-[1400px] mx-auto min-h-0">
 
         {/* [A] 상단 툴바 */}
-        <div className="shrink-0 bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap gap-3 items-center justify-between shadow-sm">
+        <div className="shrink-0 bg-panel border border-line rounded-2xl p-4 flex flex-wrap gap-3 items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              {problemTitle} <span className="text-slate-400 text-sm font-medium ml-2">코드 제출</span>
+            <h1 className="text-xl font-bold text-ink tracking-tight">
+              {problemTitle} <span className="text-ink-subtle text-sm font-medium ml-2">코드 제출</span>
             </h1>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-indigo-500" />
-              <span className="whitespace-nowrap text-sm font-bold text-slate-700 mr-1">언어:</span>
+              <FileText className="w-4 h-4 text-primary" />
+              <span className="whitespace-nowrap text-sm font-bold text-ink mr-1">언어:</span>
               <Select value={language} onValueChange={handleLanguageChange}>
-                <SelectTrigger className="w-[120px] h-10 bg-slate-50 border-slate-200 font-mono text-sm focus:ring-indigo-500">
+                <SelectTrigger className="w-[120px] h-10 bg-canvas border-line font-mono text-sm focus:ring-primary">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -219,7 +217,7 @@ function MonacoSubmitContent() {
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting || !codeDraft.draft}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-4 sm:px-8 h-10 shadow-md shadow-indigo-200 transition-all"
+              className="bg-primary hover:bg-primary-hover text-primary-ink font-bold rounded-xl px-4 sm:px-8 h-10 shadow-md shadow-black/40 transition-all"
             >
               {isSubmitting ? "제출 중..." : (
                 <>
@@ -238,7 +236,7 @@ function MonacoSubmitContent() {
         {submitNotice && <p role="alert" className="shrink-0 text-sm text-indigo-800">{submitNotice} <Link className="underline" href="/signin">로그인</Link> · <Link className="underline" href={`/contests/challenge?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}&tab=grading`}>제출 내역</Link></p>}
         {/* [B] Monaco 에디터 영역 */}
         <div className="flex-1 min-h-0">
-          <div className="h-full w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-[#1e1e1e]">
+          <div className="h-full w-full rounded-2xl overflow-hidden border border-line shadow-sm bg-deep">
             <Editor
               key={codeDraft.generation}
               loading={<textarea aria-label="코드 입력 (편집기 로딩 중)" className="h-full w-full resize-none bg-[#1e1e1e] p-6 font-mono text-sm text-white outline-none" spellCheck={false} value={code} onChange={event=>setCode(event.target.value)} />}
@@ -283,8 +281,8 @@ function NavMenuLink({
     <Link
       href={href}
       className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active
-        ? "text-indigo-600 bg-indigo-50"
-        : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+        ? "text-primary bg-primary/10"
+        : "text-ink-muted hover:text-ink hover:bg-raised/60"
         }`}
     >
       <span>{icon}</span>
@@ -296,8 +294,8 @@ function NavMenuLink({
 export default function MonacoSubmitPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-canvas">
+        <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
       </div>
     }>
       <MonacoSubmitContent />

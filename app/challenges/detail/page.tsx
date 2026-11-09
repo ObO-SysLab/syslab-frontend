@@ -29,6 +29,7 @@ import { OboPlayer } from "@/components/obo/OboPlayer";
 import { CodingRules } from '@/components/obo/simulation/CodingRules';
 import { resolveOboBlob, type OboBlob, type ProblemOboData } from "@/components/obo/types";
 import { Header } from "@/components/Header";
+import { TierBadge, DepthBadge } from "@/components/dv";
 
 function OboPlayerSection({ oboData, selectedChoiceIndex }: {
   oboData: ProblemOboData | OboBlob;
@@ -40,10 +41,11 @@ function OboPlayerSection({ oboData, selectedChoiceIndex }: {
 
   return (
     <div className="mt-8 space-y-2">
-      <p className="text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5">
-        <Activity className="w-4 h-4 text-indigo-600" /> OBO 시각화
+      <p className="text-sm font-black tracking-tight text-ink flex items-center gap-1.5">
+        <Activity className="w-4 h-4 text-primary" /> OBO 시각화
       </p>
-      <div style={{ height: 440 }}>
+      {/* OBO는 라이트 테마 유지 (다른 팀원 담당 영역) */}
+      <div className="obo-scope rounded-2xl overflow-hidden border border-line" style={{ height: 440 }}>
         <OboPlayer blob={blob} />
       </div>
     </div>
@@ -51,9 +53,6 @@ function OboPlayerSection({ oboData, selectedChoiceIndex }: {
 }
 
 function ProblemDetailContent() {
-  // API 연동 스위치
-  const USE_API_REQUEST = true;
-
   // URL에서 가져온 값 상태
   const searchParams = useSearchParams();
   const probId = searchParams.get('id');
@@ -254,7 +253,7 @@ function ProblemDetailContent() {
         const pendingSub = {
           submissionId: newSubmissionId,
           nickname: localStorage.getItem("nickname") || "내 제출",
-          submissionStatus: json.data.submission_status, // "PENDING"
+          submissionStatus: json.data.submissionStatus, // "PENDING"
           progress: 0,
           submittedAt: new Date().toISOString(),
           _isPending: true // 폴링 봇이 추적할 타겟이라는 표시!
@@ -529,20 +528,20 @@ function ProblemDetailContent() {
 
     switch (tierName) {
       case "Challenger":
-        return "bg-rose-950 text-rose-200 border-rose-800";
+        return "bg-danger/15 text-danger border-danger/30";
       case "Master":
-        return "bg-purple-50 text-purple-700 border-purple-200";
+        return "bg-coral/10 text-coral border-coral/30";
       case "Diamond":
-        return "bg-cyan-50 text-cyan-600 border-cyan-200";
+        return "bg-primary/10 text-primary border-primary/30";
       case "Platinum":
-        return "bg-emerald-50 text-emerald-600 border-emerald-200";
+        return "bg-success/10 text-success border-success/30";
       case "Gold":
-        return "bg-amber-50 text-amber-600 border-amber-200";
+        return "bg-warning/10 text-warning border-warning/30";
       case "Silver":
-        return "bg-slate-100 text-slate-600 border-slate-200";
+        return "bg-raised text-ink-muted border-line";
       case "Bronze":
       default:
-        return "bg-slate-50 text-slate-500 border-slate-200";
+        return "bg-canvas text-ink-muted border-line";
     }
   };
 
@@ -551,7 +550,7 @@ function ProblemDetailContent() {
   if(detailQuery.error&&!problemData)return <main className="mx-auto max-w-3xl p-8"><h1 className="text-xl font-bold">문제 조회</h1><RequestError issue={detailQuery.error} retry={detailQuery.retry} busy={detailQuery.loading}/></main>;
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
+    <div className="min-h-screen bg-panel text-ink font-sans">
 
       <Header
         isLoggedIn={isLoggedIn}
@@ -572,10 +571,10 @@ function ProblemDetailContent() {
         <aside className="col-span-12 md:col-span-2 space-y-4">
 
           {/* First Blood 패널 */}
-          <Card className="shadow-none border-slate-200 overflow-hidden">
-            <CardHeader className="pb-2 bg-slate-50/50">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
-                <Flame className="h-4 w-4 text-red-500" /> First Blood
+          <Card className="shadow-none border-line overflow-hidden">
+            <CardHeader className="pb-2 bg-raised/50">
+              <CardTitle className="text-sm font-bold flex items-center gap-2 text-ink">
+                <Flame className="h-4 w-4 text-danger" /> First Blood
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
@@ -583,26 +582,26 @@ function ProblemDetailContent() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-100">
-                        <span className="text-xs font-bold text-slate-500">
+                      <div className="h-10 w-10 rounded-full bg-line flex items-center justify-center overflow-hidden border border-line">
+                        <span className="text-xs font-bold text-ink-muted">
                           {firstBlood.user?.[0]}
                         </span>
                       </div>
-                      <div className="absolute -bottom-1 -right-1 bg-red-500 rounded-full p-0.5 border-2 border-white">
+                      <div className="absolute -bottom-1 -right-1 bg-danger rounded-full p-0.5 border-2 border-panel">
                         <Flame className="h-2 w-2 text-white" />
                       </div>
                     </div>
-                    <span className="font-semibold text-sm text-slate-900 leading-none mb-1">
+                    <span className="font-semibold text-sm text-ink leading-none mb-1">
                       {firstBlood.user}
                     </span>
                   </div>
-                  <span className="text-[11px] text-slate-400 font-medium tracking-tight">
+                  <span className="text-[11px] text-ink-subtle font-medium tracking-tight">
                     {firstBlood.date}
                   </span>
                 </div>
               ) : (
                 <div className="py-4 text-center">
-                  <p className="text-xs text-slate-400 italic">아직 문제를 해결한 유저가 없습니다.</p>
+                  <p className="text-xs text-ink-subtle italic">아직 문제를 해결한 유저가 없습니다.</p>
                 </div>
               )}
             </CardContent>
@@ -610,10 +609,10 @@ function ProblemDetailContent() {
 
           {/* Top 3 랭킹 패널 */}
           {problemData?.type !== "objective" && (
-            <Card className="shadow-none border-slate-200">
+            <Card className="shadow-none border-line">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-yellow-500" /> Top 3 명예의 전당
+                  <Trophy className="h-4 w-4 text-warning" /> Top 3 명예의 전당
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -623,47 +622,47 @@ function ProblemDetailContent() {
                       <Badge variant="secondary" className="h-5 w-5 flex items-center justify-center p-0 rounded-full font-black text-[10px]">
                         {ranker.rank}
                       </Badge>
-                      <span className="font-semibold text-slate-700">{ranker.nickname}</span>
+                      <span className="font-semibold text-ink">{ranker.nickname}</span>
                     </div>
                     {ranker.language ? (
-                      <Badge variant="outline" className="text-[10px] uppercase font-mono px-1.5 h-4 border-slate-200 text-slate-400">
+                      <Badge variant="outline" className="text-[10px] uppercase font-mono px-1.5 h-4 border-line text-ink-subtle">
                         {ranker.language}
                       </Badge>
                     ) : (
-                      <span className="text-slate-400 text-[11px] font-medium">
+                      <span className="text-ink-subtle text-[11px] font-medium">
                         {new Date(ranker.firstSolvedAt).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })}
                       </span>
                     )}
                   </div>
                 ))}
                 {rankings.length === 0 && (
-                  <p className="text-xs text-slate-400 text-center py-2">랭킹 정보가 없습니다.</p>
+                  <p className="text-xs text-ink-subtle text-center py-2">랭킹 정보가 없습니다.</p>
                 )}
               </CardContent>
             </Card>
           )}
 
           {/* Recent 댓글 패널 */}
-          <Card className="shadow-none border-slate-200">
+          <Card className="shadow-none border-line">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-blue-500" /> Recent
+                <MessageSquare className="h-4 w-4 text-primary" /> Recent
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {comments.slice(0, 5).map((comment) => (
                 <div key={comment.commentId} className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-700">{comment.authorNickname}</span>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-xs font-bold text-ink">{comment.authorNickname}</span>
+                    <span className="text-[10px] text-ink-subtle">
                       {formatTime(comment.createdAt, true)}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600 line-clamp-2">{comment.content}</p>
+                  <p className="text-xs text-ink-muted line-clamp-2">{comment.content}</p>
                 </div>
               ))}
               {comments.length === 0 && (
-                <p className="text-xs text-slate-400 text-center py-2">최근 댓글이 없습니다.</p>
+                <p className="text-xs text-ink-subtle text-center py-2">최근 댓글이 없습니다.</p>
               )}
             </CardContent>
           </Card>
@@ -675,7 +674,7 @@ function ProblemDetailContent() {
 
           {/* 탭 컨트롤러 */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-slate-100 p-1 rounded-lg sticky top-16 z-40">
+            <TabsList className="grid w-full grid-cols-4 bg-raised p-1 rounded-lg sticky top-16 z-40">
               <TabsTrigger value="problem">문제</TabsTrigger>
               <TabsTrigger value="grading">채점</TabsTrigger>
               <TabsTrigger value="rank">순위</TabsTrigger>
@@ -687,19 +686,18 @@ function ProblemDetailContent() {
               <RequestError issue={answerIssue} checkHref={`/challenges/detail?id=${probId}&tab=grading`}/>
               {answerNotice&&<p role="status">{answerNotice}</p>}
               <div className="flex gap-6 items-start">
-                <div className="w-24 h-24 bg-slate-100 rounded-2xl flex items-center justify-center shrink-0 border border-slate-200">
-                  <div className="grid grid-cols-2 gap-1 opacity-50">
-                    <div className="w-3 h-3 bg-slate-400 rounded-full" />
-                    <div className="w-3 h-3 bg-slate-400 rounded-sm" />
-                    <div className="w-3 h-3 bg-slate-400 rounded-sm" />
-                    <div className="w-3 h-3 bg-slate-400 rounded-full" />
-                  </div>
+                <div className="w-24 h-24 bg-deep rounded-2xl grid place-items-center shrink-0 border border-line">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/images/divo.webp" alt="" className="w-16 h-auto" />
                 </div>
-                <div className="space-y-2">
-                  <h1 className="text-2xl font-bold text-slate-900">
+                <div className="space-y-2 min-w-0">
+                  {(problemData as any)?.difficulty && (
+                    <DepthBadge level={(problemData as any).difficulty} showZone />
+                  )}
+                  <h1 className="text-2xl font-bold text-ink">
                     {isLoading ? "불러오는 중..." : problemData?.title}
                   </h1>
-                  <p className="text-sm text-slate-500 leading-relaxed whitespace-pre-wrap">
+                  <p className="text-sm text-ink-muted leading-relaxed whitespace-pre-wrap">
                     {isLoading ? "" : problemData?.summary || "문제 요약이 없습니다."}
                   </p>
                 </div>
@@ -719,13 +717,13 @@ function ProblemDetailContent() {
                   {/* 문제 유형에 따른 동작 버튼 변경 */}
                   {problemData?.type === "coding" ? (
                     <Link href={`/challenges/editor?id=${probId}`}>
-                      <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200 font-bold">
+                      <Button className="bg-primary hover:bg-primary-hover shadow-md shadow-black/40 font-bold">
                         코드 제출하기
                       </Button>
                     </Link>
                   ) : problemData?.type === "objective" ? (
                     <Button
-                      className="bg-slate-900 hover:bg-slate-800 font-bold disabled:opacity-50"
+                      className="bg-raised border border-line-strong text-ink hover:bg-line font-bold disabled:opacity-50"
                       onClick={handleObjectiveSubmit}
                       disabled={isSubmittingAnswer || selectedChoices.length === 0} // 선택된 게 없으면 비활성화
                     >
@@ -733,18 +731,18 @@ function ProblemDetailContent() {
                     </Button>
                   ) : problemData?.type === "practice" ? (
                     practiceBuild.canStart && !practiceStatusError ? <Link href={`/challenges/terminal?id=${probId}`}>
-                      <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md shadow-emerald-200">
+                      <Button className="bg-success hover:bg-success/85 text-primary-ink font-bold shadow-md shadow-black/40">
                         실습 환경 켜기
                       </Button>
-                    </Link> : <Button disabled className="bg-emerald-600 text-white font-bold">실습 환경 켜기</Button>
+                    </Link> : <Button disabled className="bg-success text-primary-ink font-bold">실습 환경 켜기</Button>
                   ) : (
-                    <Button className="bg-slate-800 hover:bg-slate-700">답안 제출하기</Button> // Fallback
+                    <Button className="bg-raised hover:bg-line">답안 제출하기</Button> // Fallback
                   )}
 
                   {problemData?.visibility === "public" && (
                     <Button
                       variant="outline"
-                      className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold"
+                      className="border-primary/30 text-primary hover:bg-primary/10 font-bold"
                       onClick={handleOpenGroupModal}
                     >
                       <Users className="h-4 w-4 mr-1.5" /> 그룹에 공유
@@ -762,7 +760,7 @@ function ProblemDetailContent() {
                     {/* 문제 수정 버튼 */}
                     <Button
                       variant="outline"
-                      className="border-indigo-100 text-indigo-600 hover:bg-indigo-50 shadow-none"
+                      className="border-primary/20 text-primary hover:bg-primary/10 shadow-none"
                       onClick={() => {
                         window.location.href = `/challenges/create?id=${probId}`;
                       }}
@@ -771,8 +769,8 @@ function ProblemDetailContent() {
                       문제 수정
                     </Button>
                     <Button
-                      variant="destructive"
-                      className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-100 shadow-none"
+                      variant="default"
+                      className="bg-danger/10 text-danger hover:bg-danger/20 hover:text-danger border-danger/20 shadow-none"
                       onClick={handleDeleteProblem}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
@@ -784,7 +782,7 @@ function ProblemDetailContent() {
               <Separator />
 
               <div className="prose prose-slate max-w-none">
-                <p className="text-slate-800 whitespace-pre-wrap">
+                <p className="text-ink whitespace-pre-wrap">
                   {problemData?.description}
                 </p>
 
@@ -793,7 +791,7 @@ function ProblemDetailContent() {
                   <div className="mt-6 space-y-2">
                     {/* 서버 상태(isOrderedAnswer)가 활성화되어 있다면 순서 저격 경고 배지 출력 */}
                     {problemData?.isOrderedAnswer && (
-                      <div className="mb-3 p-3 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-700 font-bold flex items-center gap-2 animate-pulse">
+                      <div className="mb-3 p-3 bg-warning/10 border border-warning/20 rounded-xl text-xs text-warning font-bold flex items-center gap-2 animate-pulse">
                         이 문제는 정답을 선택하는 <span className="underline decoration-2">정확한 순서</span>까지 일치해야 정답 처리됩니다.
                       </div>
                     )}
@@ -808,19 +806,19 @@ function ProblemDetailContent() {
                           key={choice.index}
                           onClick={() => handleChoiceToggle(choice.index)}
                           className={`w-full text-left p-4 border-2 rounded-xl flex items-center gap-4 cursor-pointer transition-all ${isSelected
-                            ? "border-indigo-600 bg-indigo-50/50 shadow-sm"
-                            : "border-slate-100 bg-slate-50 hover:border-slate-300 hover:bg-slate-100"
+                            ? "border-primary bg-primary/10 shadow-sm"
+                            : "border-line bg-canvas hover:border-line-strong hover:bg-raised"
                             }`}
                         >
                           {/* 서버 옵션이 순서 모드(isOrderedAnswer)라면 동글 내부에 누른 순서 숫자(1, 2..)를 띄우고, 일반 모드라면 기존 기호 유지 */}
                           <div className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-black transition-all ${isSelected
-                            ? "bg-indigo-600 text-white border-indigo-600 shadow-inner"
-                            : "border-slate-300 bg-white text-slate-400"
+                            ? "bg-primary text-primary-ink border-primary shadow-inner"
+                            : "border-line-strong bg-panel text-ink-subtle"
                             }`}>
                             {isSelected && problemData?.isOrderedAnswer ? orderIndex + 1 : choice.index}
                           </div>
 
-                          <span className={`text-sm ${isSelected ? "text-indigo-950 font-bold" : "text-slate-700"}`}>
+                          <span className={`text-sm ${isSelected ? "text-primary font-bold" : "text-ink"}`}>
                             {choice.content}
                           </span>
                         </button>
@@ -835,16 +833,16 @@ function ProblemDetailContent() {
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* 입력 예시 */}
                     <div>
-                      <span className="text-xs font-bold text-slate-500 mb-1 block">&lt;입력 예시&gt;</span>
-                      <pre className="bg-slate-50 border border-slate-200 p-4 rounded-lg font-mono text-sm text-slate-800 leading-6 whitespace-pre-wrap min-h-[100px]">
+                      <span className="text-xs font-bold text-ink-muted mb-1 block">&lt;입력 예시&gt;</span>
+                      <pre className="bg-canvas border border-line p-4 rounded-lg font-mono text-sm text-ink leading-6 whitespace-pre-wrap min-h-[100px]">
                         {problemData.testcases[0].input.replace(/\\n/g, "\n")}
                       </pre>
                     </div>
 
                     {/* 출력 예시 */}
                     <div>
-                      <span className="text-xs font-bold text-slate-500 mb-1 block">&lt;출력 예시&gt;</span>
-                      <pre className="bg-slate-50 border border-slate-200 p-4 rounded-lg font-mono text-sm text-slate-800 leading-6 whitespace-pre-wrap min-h-[100px]">
+                      <span className="text-xs font-bold text-ink-muted mb-1 block">&lt;출력 예시&gt;</span>
+                      <pre className="bg-canvas border border-line p-4 rounded-lg font-mono text-sm text-ink leading-6 whitespace-pre-wrap min-h-[100px]">
                         {problemData.testcases[0].output.replace(/\\n/g, "\n")}
                       </pre>
                     </div>
@@ -862,27 +860,27 @@ function ProblemDetailContent() {
 
               {/* 실습형(CTF) VM 환경 동적 렌더링 */}
               {problemData?.type === "practice" && (
-                <div className="mt-8 p-6 bg-slate-900 rounded-2xl space-y-6 shadow-lg border border-slate-800">
+                <div className="mt-8 p-6 bg-deep rounded-2xl space-y-6 shadow-lg border border-line">
 
                   {/* 상단 헤더 및 OS 이미지 정보 */}
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-black text-white flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-emerald-400 fill-emerald-400" /> VM 실습 환경
+                      <Zap className="w-4 h-4 text-success fill-success" /> VM 실습 환경
                     </h3>
-                    <Badge variant="outline" className="text-slate-300 border-slate-700 font-mono text-xs bg-slate-800">
+                    <Badge variant="outline" className="text-ink-subtle border-line font-mono text-xs bg-raised">
                       OS: {problemData?.vm_info?.os_image || "ubuntu:latest"}
                     </Badge>
                   </div>
 
                   {/* 허용된 명령어 목록 (안전하게 배열 체크) */}
                   {Array.isArray(problemData?.vm_info?.allowed_commands) && problemData.vm_info.allowed_commands.length > 0 && (
-                    <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl">
-                      <span className="text-[10px] font-bold text-slate-500 mb-2 block uppercase tracking-widest">
+                    <div className="bg-deep border border-line p-4 rounded-xl">
+                      <span className="text-[10px] font-bold text-ink-muted mb-2 block uppercase tracking-widest">
                         Allowed Commands
                       </span>
                       <div className="flex flex-wrap gap-2">
                         {problemData.vm_info.allowed_commands.map((cmd: string, idx: number) => (
-                          <code key={idx} className="bg-slate-800 text-emerald-400 px-2 py-1 rounded text-xs font-mono border border-slate-700">
+                          <code key={idx} className="bg-raised text-success px-2 py-1 rounded text-xs font-mono border border-line">
                             {`> ${cmd}`}
                           </code>
                         ))}
@@ -903,7 +901,7 @@ function ProblemDetailContent() {
                   variant={showMySubmissions ? "default" : "outline"}
                   size="sm"
                   onClick={() => setShowMySubmissions(!showMySubmissions)}
-                  className={`rounded-xl font-bold ${showMySubmissions ? "bg-slate-900 text-white" : "text-slate-600"}`}
+                  className={`rounded-xl font-bold ${showMySubmissions ? "bg-raised border border-line-strong text-white" : "text-ink-muted"}`}
                 >
                   내 제출만 보기
                 </Button>
@@ -911,7 +909,7 @@ function ProblemDetailContent() {
 
               <div className="border rounded-lg overflow-hidden">
                 <Table>
-                  <TableHeader className="bg-slate-50">
+                  <TableHeader className="bg-canvas">
                     <TableRow>
                       <TableHead className="w-[100px]">제출 번호</TableHead>
                       <TableHead>닉네임</TableHead>
@@ -955,33 +953,28 @@ function ProblemDetailContent() {
                           <TableRow
                             key={sub.submissionId}
                             // 행 전체 클릭(onClick) 제거 (버튼을 따로 둘 것이므로 오작동 방지)
-                            className="hover:bg-slate-50 transition-colors"
+                            className="hover:bg-raised/60 transition-colors"
                           >
                             <TableCell className="font-mono text-xs">{sub.submissionId}</TableCell>
-                            <TableCell className="font-bold text-slate-700">{sub.nickname || "User"}</TableCell>
+                            <TableCell className="font-bold text-ink">{sub.nickname || "User"}</TableCell>
 
                             {/* 티어 표시 컬럼 */}
                             <TableCell>
-                              <Badge
-                                variant="outline"
-                                className={`font-mono text-[10px] font-bold border ${getTierColor(sub.userTier)}`}
-                              >
-                                {submissionTierLabel(sub.userTier)}
-                              </Badge>
+                              <TierBadge tier={sub.userTier} size="sm" showRank={false} />
                             </TableCell>
 
                             {/* 결과 배지 컬럼 */}
                             <TableCell>
                               {isPending ? (
                                 <div className="flex flex-col gap-1">
-                                  <Badge variant="outline" className="text-indigo-600 border-indigo-200 bg-indigo-50 w-fit">
-                                    <div className="w-3 h-3 mr-1 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                                  <Badge variant="outline" className="text-primary border-primary/30 bg-primary/10 w-fit">
+                                    <div className="w-3 h-3 mr-1 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
                                     {resultText}
                                   </Badge>
                                   {sub.progress !== undefined && (
-                                    <div className="w-24 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="w-24 h-1 bg-raised rounded-full overflow-hidden">
                                       <div
-                                        className="h-full bg-indigo-500 transition-all duration-500"
+                                        className="h-full bg-primary transition-all duration-500"
                                         style={{ width: `${sub.progress}%` }}
                                       />
                                     </div>
@@ -989,14 +982,20 @@ function ProblemDetailContent() {
                                 </div>
                               ) : (
                                 <div className="space-y-1">
-                                  <Badge
-                                    variant={isSuccess ? "default" : verdict.kind === "unknown" || verdict.kind === "error" ? "outline" : "destructive"}
-                                    className={isSuccess ? "bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm shadow-indigo-100" : verdict.kind === "error" ? "font-bold border-amber-200 bg-amber-50 text-amber-800" : "font-bold"}
-                                  >
-                                    {isSuccess ? <CheckCircle2 className="w-3 h-3 mr-1" /> : verdict.kind === "unknown" ? <Clock className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
-                                    {resultText}
-                                  </Badge>
-                                  {verdict.hint && <p className="text-xs text-slate-500">{verdict.hint}</p>}
+                                  {/* 판정 코드 라벨 + 문구 (디자인 시스템 Verdict 축약형) */}
+                                  <span className="inline-flex items-center gap-2">
+                                    <span
+                                      className={`min-w-[40px] text-center px-1.5 py-1 rounded-md font-mono text-[11px] font-bold tracking-[0.08em] ${
+                                        isSuccess ? "bg-success-soft text-success" : verdict.kind === "wrong" ? "bg-danger-soft text-danger" : verdict.kind === "error" ? "bg-warning-soft text-warning" : "bg-raised text-ink-muted"
+                                      }`}
+                                    >
+                                      {isSuccess ? "AC" : verdict.kind === "wrong" ? "WA" : verdict.kind === "error" ? "ERR" : "?"}
+                                    </span>
+                                    <span className={`text-xs font-semibold ${isSuccess ? "text-success" : verdict.kind === "wrong" ? "text-danger" : verdict.kind === "error" ? "text-warning" : "text-ink-muted"}`}>
+                                      {isSuccess ? "도달" : verdict.kind === "wrong" ? "산소 부족" : resultText}
+                                    </span>
+                                  </span>
+                                  {verdict.hint && <p className="text-xs text-ink-muted">{verdict.hint}</p>}
                                 </div>
                               )}
                             </TableCell>
@@ -1004,19 +1003,19 @@ function ProblemDetailContent() {
                             {/* 코딩 문제 전용 데이터 */}
                             {isCoding && (
                               <>
-                                <TableCell className="text-xs text-slate-500">{!isPending && sub.memoryUsage != null ? `${sub.memoryUsage} MB` : "-"}</TableCell>
-                                <TableCell className="text-xs text-slate-500">{!isPending && sub.runtime != null ? `${sub.runtime} ms` : "-"}</TableCell>
-                                <TableCell className="text-xs font-bold text-slate-600">{!isPending ? (sub.language || "-") : "-"}</TableCell>
+                                <TableCell className="text-xs text-ink-muted">{!isPending && sub.memoryUsage != null ? `${sub.memoryUsage} MB` : "-"}</TableCell>
+                                <TableCell className="text-xs text-ink-muted">{!isPending && sub.runtime != null ? `${sub.runtime} ms` : "-"}</TableCell>
+                                <TableCell className="text-xs font-bold text-ink-muted">{!isPending ? (sub.language || "-") : "-"}</TableCell>
                               </>
                             )}
 
                             {/* 실습 문제 전용 데이터 */}
                             {problemData?.type === "practice" && (
-                              <TableCell className="text-xs text-slate-300">-</TableCell>
+                              <TableCell className="text-xs text-ink-subtle">-</TableCell>
                             )}
 
                             {/* 제출 시간 */}
-                            <TableCell className="text-right text-xs text-slate-400">
+                            <TableCell className="text-right text-xs text-ink-subtle">
                               {formatTime(sub.submittedAt, false)}
                             </TableCell>
 
@@ -1024,7 +1023,7 @@ function ProblemDetailContent() {
                             <TableCell className="text-center">
                               {/* 1. 객관식: OBO 페이지로 이동 */}
                               {problemData?.type === "objective" && !isPending && (
-                                <Button variant="outline" size="sm" className="h-7 text-xs font-bold text-slate-600" asChild>
+                                <Button variant="outline" size="sm" className="h-7 text-xs font-bold text-ink-muted" asChild>
                                   <Link href={`/challenges/obo?id=${sub.submissionId}`}>결과 확인</Link>
                                 </Button>
                               )}
@@ -1032,10 +1031,10 @@ function ProblemDetailContent() {
                               {/* 2. 코딩: 코드 보기 / OBO 보기 2가지 버튼 제공 */}
                               {problemData?.type === "coding" && !isPending && !isFailed && (
                                 <div className="flex justify-center gap-1.5">
-                                  <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold text-slate-600" asChild>
+                                  <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold text-ink-muted" asChild>
                                     <Link href={`/challenges/submissions?id=${sub.submissionId}`}>코드</Link>
                                   </Button>
-                                  {sub.hasObo === true && <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50" asChild>
+                                  {sub.hasObo === true && <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold border-primary/30 text-primary hover:bg-primary/10" asChild>
                                     <Link href={`/challenges/obo?id=${sub.submissionId}`}>OBO</Link>
                                   </Button>}
                                 </div>
@@ -1043,7 +1042,7 @@ function ProblemDetailContent() {
 
                               {/* 3. 실습: 버튼 없음 (또는 채점 중일 때 대기 상태 표시) */}
                               {(problemData?.type === "practice" || isPending || isFailed) && (
-                                <span className="text-xs text-slate-300">-</span>
+                                <span className="text-xs text-ink-subtle">-</span>
                               )}
                             </TableCell>
                           </TableRow>
@@ -1052,7 +1051,7 @@ function ProblemDetailContent() {
 
                     {submissions.length === 0 && !boardQuery.loading && !boardQuery.error && (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-slate-400">
+                        <TableCell colSpan={7} className="text-center py-8 text-ink-subtle">
                           아직 제출된 답안이 없습니다.
                         </TableCell>
                       </TableRow>
@@ -1066,9 +1065,9 @@ function ProblemDetailContent() {
             <TabsContent value="rank" className="mt-6 animate-in fade-in-50 duration-300">
               <RequestError issue={rankQuery.error} retry={rankQuery.retry} busy={rankQuery.loading}/>
               <h2 className="text-lg font-bold mb-4">전체 랭킹 (실시간 제출 완료 순)</h2>
-              <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+              <div className="border rounded-lg overflow-hidden bg-panel shadow-sm">
                 <Table>
-                  <TableHeader className="bg-slate-50">
+                  <TableHeader className="bg-canvas">
                     <TableRow>
                       <TableHead className="w-[80px] text-center font-bold">순위</TableHead>
                       <TableHead className="font-bold">사용자</TableHead>
@@ -1079,21 +1078,21 @@ function ProblemDetailContent() {
                   </TableHeader>
                   <TableBody>
                     {rankings.map((rank) => (
-                      <TableRow key={rank.userId} className="hover:bg-slate-50/50 transition-colors">
-                        <TableCell className="text-center font-black text-slate-400">{rank.rank}위</TableCell>
+                      <TableRow key={rank.userId} className="hover:bg-raised/50 transition-colors">
+                        <TableCell className="text-center font-black text-ink-subtle">{rank.rank}위</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-7 w-7 border border-slate-100">
+                            <Avatar className="h-7 w-7 border border-line">
                               {/* 백엔드 규칙에 맞게 확장자 떼고 쿼리스트링 매핑 우회 적용 */}
                               <AvatarImage
                                 src={`https://d3ghudecvdi62z.cloudfront.net/profiles/users/${rank.userId}?v=${Date.now()}`}
                                 className="object-cover"
                               />
-                              <AvatarFallback className="bg-slate-100 text-[10px] text-slate-500 font-bold">
+                              <AvatarFallback className="bg-raised text-[10px] text-ink-muted font-bold">
                                 {rank.nickname[0]}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="font-bold text-slate-800">{rank.nickname}</span>
+                            <span className="font-bold text-ink">{rank.nickname}</span>
                           </div>
                         </TableCell>
 
@@ -1111,16 +1110,16 @@ function ProblemDetailContent() {
                         {problemData?.type === "coding" && (
                           <TableCell className="text-center">
                             {rank.language ? (
-                              <Badge variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono text-xs uppercase px-2 py-0.5 rounded-md">
+                              <Badge variant="secondary" className="bg-raised hover:bg-line text-ink font-mono text-xs uppercase px-2 py-0.5 rounded-md">
                                 {rank.language}
                               </Badge>
                             ) : (
-                              <span className="text-slate-300">-</span>
+                              <span className="text-ink-subtle">-</span>
                             )}
                           </TableCell>
                         )}
 
-                        <TableCell className="text-right text-xs text-slate-500 font-mono pr-6">
+                        <TableCell className="text-right text-xs text-ink-muted font-mono pr-6">
                           {/* 백엔드가 제공하는 firstSolvedAt 파싱 적용 */}
                           {new Date(rank.firstSolvedAt).toLocaleString("ko-KR", {
                             year: "numeric",
@@ -1136,7 +1135,7 @@ function ProblemDetailContent() {
 
                     {rankings.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={problemData?.type === "coding" ? 4 : 3} className="text-center py-12 text-slate-400 text-sm font-medium">
+                        <TableCell colSpan={problemData?.type === "coding" ? 4 : 3} className="text-center py-12 text-ink-subtle text-sm font-medium">
                           이 문제를 해결한 사용자가 아직 없습니다. 최초의 정답자가 되어보세요! 🚀
                         </TableCell>
                       </TableRow>
@@ -1174,29 +1173,29 @@ function ProblemDetailContent() {
                       <div
                         key={comment.commentId}
                         onClick={() => { if (editingCommentId !== comment.commentId) handleSelectComment(comment); }}
-                        className="flex gap-4 p-4 border rounded-xl bg-white hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer group"
+                        className="flex gap-4 p-4 border rounded-xl bg-panel hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group"
                       >
-                        <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-indigo-50 transition-colors">
-                          <User className="h-5 w-5 text-slate-400 group-hover:text-indigo-400" />
+                        <div className="h-10 w-10 rounded-full bg-raised flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
+                          <User className="h-5 w-5 text-ink-subtle group-hover:text-primary" />
                         </div>
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-sm text-slate-900">{comment.authorNickname}</span>
+                            <span className="font-bold text-sm text-ink">{comment.authorNickname}</span>
                             <div className="flex items-center gap-3">
-                              <span className="text-xs text-slate-400 flex items-center gap-1">
+                              <span className="text-xs text-ink-subtle flex items-center gap-1">
                                 <Clock className="w-3 h-3" /> {formatTime(comment.createdAt, false)}
                               </span>
                               {/* 수정 버튼 */}
                               <button
                                 onClick={(e) => { e.stopPropagation(); setEditingCommentId(comment.commentId); setEditContent(comment.content); }}
-                                className="text-slate-300 hover:text-indigo-500 transition-colors"
+                                className="text-ink-subtle hover:text-primary transition-colors"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
                               {/* 삭제 버튼 */}
                               <button
                                 onClick={(e) => handleDeleteComment(e, comment.commentId)}
-                                className="text-slate-300 hover:text-red-500 transition-colors"
+                                className="text-ink-subtle hover:text-danger transition-colors"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -1209,7 +1208,7 @@ function ProblemDetailContent() {
                               <Textarea
                                 value={editContent}
                                 onChange={(e) => setEditContent(e.target.value)}
-                                className="resize-none text-sm min-h-[60px] bg-slate-50"
+                                className="resize-none text-sm min-h-[60px] bg-canvas"
                               />
                               <div className="flex justify-end gap-2">
                                 <Button size="sm" variant="ghost" onClick={() => setEditingCommentId(null)}>취소</Button>
@@ -1217,16 +1216,16 @@ function ProblemDetailContent() {
                               </div>
                             </div>
                           ) : (
-                            <p className="text-sm text-slate-600 line-clamp-2">{comment.content}</p>
+                            <p className="text-sm text-ink-muted line-clamp-2">{comment.content}</p>
                           )}
 
                           <div className="pt-2 flex items-center gap-2 text-xs font-bold transition-colors">
-                            <div className="flex items-center gap-1 text-slate-400 group-hover:text-indigo-600">
+                            <div className="flex items-center gap-1 text-ink-subtle group-hover:text-primary">
                               <MessageCircle className="w-3.5 h-3.5" />
                               <span>답글 보기 / 달기</span>
                             </div>
-                            {/* <span className="text-slate-300">|</span>
-                            <span className="text-slate-500 group-hover:text-indigo-600 transition-colors">상세 보기</span> */}
+                            {/* <span className="text-ink-subtle">|</span>
+                            <span className="text-ink-muted group-hover:text-primary transition-colors">상세 보기</span> */}
                           </div>
                         </div>
                       </div>
@@ -1241,25 +1240,25 @@ function ProblemDetailContent() {
                   <Button
                     variant="ghost"
                     onClick={() => setSelectedComment(null)}
-                    className="mb-2 -ml-4 text-slate-500 hover:text-slate-900"
+                    className="mb-2 -ml-4 text-ink-muted hover:text-ink"
                   >
                     <ChevronLeft className="w-4 h-4 mr-1" />
                     목록으로 돌아가기
                   </Button>
 
                   {/* 선택된 메인 댓글 (크게 표시) */}
-                  <div className="flex gap-4 p-6 border-2 border-indigo-100 rounded-2xl bg-indigo-50/30 shadow-sm">
-                    <div className="h-12 w-12 rounded-full bg-white border border-indigo-100 flex items-center justify-center shrink-0">
-                      <User className="h-6 w-6 text-indigo-400" />
+                  <div className="flex gap-4 p-6 border-2 border-primary/20 rounded-2xl bg-primary/6 shadow-sm">
+                    <div className="h-12 w-12 rounded-full bg-panel border border-primary/20 flex items-center justify-center shrink-0">
+                      <User className="h-6 w-6 text-primary" />
                     </div>
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="font-black text-base text-slate-900">{selectedComment.authorNickname}</span>
-                        <span className="text-xs font-medium text-slate-400">
+                        <span className="font-black text-base text-ink">{selectedComment.authorNickname}</span>
+                        <span className="text-xs font-medium text-ink-subtle">
                           {formatTime(selectedComment.createdAt, false)}
                         </span>
                       </div>
-                      <p className="text-base text-slate-700 leading-relaxed">{selectedComment.content}</p>
+                      <p className="text-base text-ink leading-relaxed">{selectedComment.content}</p>
                     </div>
                   </div>
 
@@ -1271,7 +1270,7 @@ function ProblemDetailContent() {
                       value={replyInput}
                       onChange={(e) => setReplyInput(e.target.value)}
                       placeholder={`${selectedComment.authorNickname}님에게 답글 남기기...`}
-                      className="resize-none min-h-[80px] bg-slate-50 focus:bg-white"
+                      className="resize-none min-h-[80px] bg-canvas focus:bg-raised"
                     />
                     <Button
                       onClick={() => handleCreateComment(selectedComment.commentId)}
@@ -1282,30 +1281,30 @@ function ProblemDetailContent() {
                   </div>
 
                   {/* 대댓글 목록 */}
-                  <div className="space-y-3 pl-6 border-l-2 border-slate-100 ml-6">
+                  <div className="space-y-3 pl-6 border-l-2 border-line ml-6">
                     {selectedComment.replies && selectedComment.replies.map((reply: any) => (
-                      <div key={reply.commentId} className="flex gap-3 p-4 border rounded-xl bg-white group">
-                        <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                          <User className="h-4 w-4 text-slate-400" />
+                      <div key={reply.commentId} className="flex gap-3 p-4 border rounded-xl bg-panel group">
+                        <div className="h-8 w-8 rounded-full bg-raised flex items-center justify-center shrink-0">
+                          <User className="h-4 w-4 text-ink-subtle" />
                         </div>
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-sm text-slate-900">{reply.authorNickname}</span>
+                            <span className="font-bold text-sm text-ink">{reply.authorNickname}</span>
                             <div className="flex items-center gap-3">
-                              <span className="text-[10px] text-slate-400">
+                              <span className="text-[10px] text-ink-subtle">
                                 {formatTime(reply.createdAt, false)}
                               </span>
                               {/* 대댓글 수정 버튼 */}
                               <button
                                 onClick={() => { setEditingCommentId(reply.commentId); setEditContent(reply.content); }}
-                                className="text-slate-300 hover:text-indigo-500 transition-colors opacity-0 group-hover:opacity-100"
+                                className="text-ink-subtle hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
                               >
                                 <Edit2 className="w-3 h-3" />
                               </button>
                               {/* 대댓글 삭제 버튼 */}
                               <button
                                 onClick={(e) => handleDeleteComment(e, reply.commentId, true)}
-                                className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                className="text-ink-subtle hover:text-danger transition-colors opacity-0 group-hover:opacity-100"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </button>
@@ -1318,7 +1317,7 @@ function ProblemDetailContent() {
                               <Textarea
                                 value={editContent}
                                 onChange={(e) => setEditContent(e.target.value)}
-                                className="resize-none text-xs min-h-[60px] bg-slate-50"
+                                className="resize-none text-xs min-h-[60px] bg-canvas"
                               />
                               <div className="flex justify-end gap-2">
                                 <Button size="sm" variant="ghost" onClick={() => setEditingCommentId(null)}>취소</Button>
@@ -1326,7 +1325,7 @@ function ProblemDetailContent() {
                               </div>
                             </div>
                           ) : (
-                            <p className="text-sm text-slate-600">{reply.content}</p>
+                            <p className="text-sm text-ink-muted">{reply.content}</p>
                           )}
                         </div>
                       </div>
@@ -1346,12 +1345,12 @@ function ProblemDetailContent() {
           <div className="sticky top-24 space-y-4">
             {ads.length > 0 ? (
               ads.map((ad) => (
-                <a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-xl border border-slate-200 shadow-sm transition-transform hover:scale-105">
+                <a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-xl border border-line shadow-sm transition-transform hover:scale-105">
                   <img src={ad.image_url} alt={ad.alt_text} className="w-full object-cover" />
                 </a>
               ))
             ) : (
-              <div className="border border-slate-200 rounded-xl bg-slate-50 h-[500px] flex flex-col items-center justify-center text-slate-400 text-sm font-medium">
+              <div className="border border-line rounded-xl bg-canvas h-[500px] flex flex-col items-center justify-center text-ink-subtle text-sm font-medium">
                 AD Area
               </div>
             )}
@@ -1359,33 +1358,33 @@ function ProblemDetailContent() {
         </aside>
 
         {showGroupModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
             <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
               <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
                 <CardTitle className="text-lg">내 그룹에 추가하기</CardTitle>
                 <Button variant="ghost" size="icon" onClick={() => setShowGroupModal(false)}>
-                  <XCircle className="w-5 h-5 text-slate-500" />
+                  <XCircle className="w-5 h-5 text-ink-muted" />
                 </Button>
               </CardHeader>
               <CardContent className="pt-4 max-h-[50vh] overflow-y-auto">
                 {isFetchingGroups ? (
-                  <div className="py-8 text-center text-slate-400 text-sm animate-pulse">
+                  <div className="py-8 text-center text-ink-subtle text-sm animate-pulse">
                     가입된 그룹을 불러오는 중입니다...
                   </div>
                 ) : myGroups.length === 0 ? (
-                  <div className="py-8 text-center text-slate-400 text-sm">
+                  <div className="py-8 text-center text-ink-subtle text-sm">
                     가입된 그룹이 없습니다.
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {myGroups.map((group) => (
-                      <div key={group.groupId} className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 hover:border-indigo-100 transition-colors">
-                        <span className="font-bold text-sm text-slate-800">{group.title}</span>
+                      <div key={group.groupId} className="flex justify-between items-center p-3 border border-line rounded-xl hover:bg-raised/60 hover:border-primary/20 transition-colors">
+                        <span className="font-bold text-sm text-ink">{group.title}</span>
 
                         <Button
                           size="sm"
                           disabled={group.alreadyAdded}
-                          className={group.alreadyAdded ? "bg-slate-100 text-slate-400 border border-slate-200" : "bg-indigo-600 hover:bg-indigo-700 text-white"}
+                          className={group.alreadyAdded ? "bg-raised text-ink-subtle border border-line" : "bg-primary hover:bg-primary-hover text-primary-ink"}
                           onClick={() => handleAddToGroup(group.groupId)}
                         >
                           {group.alreadyAdded ? "추가됨" : "추가"}
@@ -1408,9 +1407,9 @@ function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNod
   return (
     <Link
       href={href}
-      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all active:scale-95"
+      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-ink-muted hover:text-ink hover:bg-raised/60 transition-all active:scale-95"
     >
-      <span className="text-slate-400 group-hover:text-slate-900">{icon}</span>
+      <span className="text-ink-subtle group-hover:text-ink">{icon}</span>
       {label}
     </Link>
   );
@@ -1419,8 +1418,8 @@ function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNod
 export default function ProblemDetailPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-canvas">
+        <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
       </div>
     }>
       <ProblemDetailContent />

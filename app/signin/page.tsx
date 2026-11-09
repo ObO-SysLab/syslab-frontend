@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react"; 
+import { BrandMark } from "@/components/BrandMark";
 import { useRouter } from "next/navigation"; 
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -78,21 +79,21 @@ function LoginContent() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-slate-900 font-sans">
+    <div className="min-h-screen flex flex-col bg-panel text-ink font-sans">
       <header className="w-full px-8 py-6">
         <Link href="/" className="inline-flex items-center gap-2">
-          <span className="text-3xl font-black tracking-tighter text-slate-900">Diveon</span>
+          <BrandMark size="lg" />
         </Link>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-4 bg-slate-50/30">
+      <main className="flex-1 flex items-center justify-center p-4 bg-raised/30">
         <div className="w-full max-w-[420px] space-y-4">
-          <Card className="border-none shadow-2xl shadow-slate-200/50 bg-white rounded-3xl overflow-hidden">
+          <Card className="border-none shadow-2xl shadow-black/40 bg-panel rounded-3xl overflow-hidden">
             <CardContent className="pt-12 pb-12 px-10 space-y-8 text-center">
               {/* 소셜 로그인 안내 헤딩 */}
               <div className="space-y-2">
-                <h2 className="text-xl font-black tracking-tight text-slate-900">Diveon 시작하기</h2>
-                <p className="text-xs text-slate-400 font-medium">구글 계정 연동을 통해 운영체제 바다 탐사를 시작합니다.</p>
+                <h2 className="text-xl font-black tracking-tight text-ink">Diveon 시작하기</h2>
+                <p className="text-xs text-ink-subtle font-medium">구글 계정 연동을 통해 운영체제 바다 탐사를 시작합니다.</p>
               </div>
 
               {/* 단독 구글 로그인 버튼 배치 */}
@@ -101,10 +102,10 @@ function LoginContent() {
                   type="button"
                   onClick={() => handleGooglePopupLogin()}
                   disabled={isLoading}
-                  className="w-full h-12 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-base rounded-xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                  className="w-full h-12 bg-panel border border-line hover:bg-raised/60 text-ink font-bold text-base rounded-xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-3"
                 >
                   {isLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                    <Loader2 className="h-5 w-5 animate-spin text-ink-subtle" />
                   ) : (
                     <>
                       {/* 구글 로고 대용 이모지 */}
@@ -117,7 +118,7 @@ function LoginContent() {
             </CardContent>
           </Card>
 
-          <p className="text-center text-[10px] text-slate-300 font-medium uppercase tracking-[0.2em]">
+          <p className="text-center text-[10px] text-ink-subtle font-medium uppercase tracking-[0.2em]">
             Secured by Diveon Protection System
           </p>
         </div>
@@ -131,8 +132,8 @@ export default function LoginPage() {
     <Suspense 
       key="secure-signin-suspense"
       fallback={
-        <div key="secure-signin-loading" className="min-h-screen flex items-center justify-center bg-white">
-          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+        <div key="secure-signin-loading" className="min-h-screen flex items-center justify-center bg-panel">
+          <Loader2 className="h-8 w-8 animate-spin text-ink-subtle" />
         </div>
       }
     >

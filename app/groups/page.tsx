@@ -27,9 +27,6 @@ function GroupListContent() {
     }
   }, [searchParams]);
   
-  // API 연동 스위치
-  const USE_API_REQUEST = false;
-
   // [STATE] 페이지 전체
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -262,7 +259,7 @@ function GroupListContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen bg-panel text-ink">
 
       <Header
         isLoggedIn={isLoggedIn}
@@ -293,7 +290,7 @@ function GroupListContent() {
         {/* [A] 좌측 사이드바 (2칸) */}
         <aside className="hidden md:block col-span-2 space-y-6">
           <div>
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Tag</h3>
+            <h3 className="text-sm font-bold text-ink-subtle uppercase tracking-widest mb-4 px-1">Tag</h3>
             <nav className="space-y-1">
               {["All", "Study", "Networking", "Mentoring", "Class", "Career"].map((tag) => (
                 <TagItem
@@ -308,7 +305,7 @@ function GroupListContent() {
           </div>
 
           <div className="pt-4 border-t">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Tier</h3>
+            <h3 className="text-sm font-bold text-ink-subtle uppercase tracking-widest mb-4 px-1">Tier</h3>
             <div className="flex flex-wrap gap-2">
               {["1", "2", "3", "4", "5", "6", "7"].map(tier => {
                 const tierNameMap: Record<string, string> = {
@@ -321,7 +318,7 @@ function GroupListContent() {
                   <Badge
                     key={tier}
                     variant={selectedTier === tier ? "default" : "outline"}
-                    className={`cursor-pointer px-3 py-1 transition-all capitalize ${selectedTier === tier ? "bg-slate-900 text-white" : "hover:bg-slate-100"
+                    className={`cursor-pointer px-3 py-1 transition-all capitalize ${selectedTier === tier ? "bg-raised border border-line-strong text-white" : "hover:bg-raised"
                       }`}
                     onClick={() => handleTierChange(tier)}
                   >
@@ -337,26 +334,27 @@ function GroupListContent() {
         <section className="col-span-12 md:col-span-8 space-y-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6">
             <div className="space-y-1">
-              <h1 className="text-3xl font-black tracking-tighter text-slate-950 uppercase">Groups</h1>
-              <p className="text-slate-500 font-medium">검색된 그룹: {totalGroups}개</p>
+              <p className="dv-hud text-primary">Crews</p>
+              <h1 className="text-[32px] leading-10 font-bold tracking-[-0.01em] text-ink">탐사대</h1>
+              <p className="text-sm text-ink-muted">찾은 탐사대 <span className="font-mono text-ink">{totalGroups}</span>개</p>
             </div>
 
             <div className="flex items-center gap-2">
               {/* 초대 코드 입력 및 가입 UI */}
-              <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl p-1">
+              <div className="flex items-center gap-1 bg-canvas border border-line rounded-xl p-1">
                 <Input
                   type="text"
                   placeholder="초대 코드 입력"
                   value={inviteInput}
                   onChange={(e) => setInviteInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleJoinWithCode()}
-                  className="h-8 w-36 text-xs bg-white border-none focus-visible:ring-1 focus-visible:ring-indigo-500 font-mono"
+                  className="h-8 w-36 text-xs bg-panel border-none focus-visible:ring-1 focus-visible:ring-primary font-mono"
                 />
                 <Button
                   size="sm"
                   onClick={handleJoinWithCode}
                   disabled={isJoiningWithCode || !inviteInput.trim()}
-                  className="h-8 px-3 text-xs bg-indigo-600 hover:bg-indigo-700 font-bold rounded-lg shrink-0"
+                  className="h-8 px-3 text-xs bg-primary hover:bg-primary-hover font-bold rounded-lg shrink-0"
                 >
                   {isJoiningWithCode ? "가입 중..." : "초대 가입"}
                 </Button>
@@ -365,7 +363,7 @@ function GroupListContent() {
               <Button
                 variant={showMyGroups ? "default" : "outline"}
                 size="sm"
-                className={`rounded-xl font-bold transition-all ${showMyGroups ? "bg-slate-900 text-white shadow-md" : "text-slate-600 hover:bg-slate-100"
+                className={`rounded-xl font-bold transition-all ${showMyGroups ? "bg-raised border border-line-strong text-white shadow-md" : "text-ink-muted hover:bg-raised"
                   }`}
                 onClick={() => setShowMyGroups(!showMyGroups)}
               >
@@ -374,7 +372,7 @@ function GroupListContent() {
 
               {/* 그룹 생성 버튼 */}
               <Link href="/groups/create">
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md shadow-indigo-200 transition-all">
+                <Button size="sm" className="bg-primary hover:bg-primary-hover text-primary-ink rounded-xl font-bold shadow-md shadow-black/40 transition-all">
                   <Plus className="w-4 h-4 mr-1.5" /> 그룹 생성하기
                 </Button>
               </Link>
@@ -385,7 +383,7 @@ function GroupListContent() {
           <div className="flex flex-col gap-3 min-h-[400px] relative">
             {isLoading ? (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
               </div>
             ) : groups.length > 0 ? (
               groups.map((grp) => (
@@ -394,39 +392,39 @@ function GroupListContent() {
                   onClick={(e) => handleGroupClick(e, grp)} // 🎯 상단 함수로 단순 연결
                   className="block group"
                 >
-                  <Card className="p-4 hover:shadow-md transition-all cursor-pointer border-slate-100 rounded-xl overflow-hidden group-hover:border-indigo-200 group-hover:bg-indigo-50/5">
+                  <Card className="p-4 hover:shadow-md transition-all cursor-pointer border-line rounded-xl overflow-hidden group-hover:border-primary/30 group-hover:bg-primary/6">
                     <div className="flex w-full flex-row items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors capitalize">
+                        <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-canvas border border-line flex items-center justify-center text-ink-subtle group-hover:bg-primary/10 group-hover:text-primary transition-colors capitalize">
                           {TagIcons[grp.tags[0]] || <Code2 size={20} />}
                         </div>
                         <div className="flex flex-col justify-center">
                           <div className="flex items-center gap-2 flex-wrap">
                             {/* 그룹명 */}
-                            <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                            <h3 className="font-bold text-ink group-hover:text-primary transition-colors">
                               {grp.title}
                             </h3>
 
                             {/* 비공개 상태 스캔 시 자물쇠 배지 UI 동적 장착 */}
                             {grp.isPrivate && (
-                              <Badge variant="outline" className="px-1.5 py-0 h-5 text-[10px] font-bold text-amber-600 border-amber-200 bg-amber-50/70 shrink-0 flex items-center gap-1.5 select-none rounded-md">
-                                <Lock size={10} className="text-amber-500 fill-amber-500/10" />
+                              <Badge variant="outline" className="px-1.5 py-0 h-5 text-[10px] font-bold text-warning border-warning/30 bg-warning/10 shrink-0 flex items-center gap-1.5 select-none rounded-md">
+                                <Lock size={10} className="text-warning fill-warning/10" />
                                 <span>비공개</span>
                               </Badge>
                             )}
 
                             {/* 가입 여부 체크 아이콘 */}
                             {grp.joined && (
-                              <CheckCircle2 className="h-4 w-4 text-emerald-500 fill-emerald-50 shrink-0" />
+                              <CheckCircle2 className="h-4 w-4 text-success fill-success/20 shrink-0" />
                             )}
                           </div>
 
                           {/* 그룹장, 태그, 칭호 정보 */}
                           <div className="flex items-center gap-2 mt-1">
-                            <p className="text-[13px] text-slate-400">
+                            <p className="text-[13px] text-ink-subtle">
                               그룹장: {grp.leader}
                             </p>
-                            <span className="text-slate-300 text-[10px]">|</span>
+                            <span className="text-ink-subtle text-[10px]">|</span>
 
                             {/* 태그 뱃지 */}
                             {grp.tags.length > 0 ? (
@@ -437,8 +435,8 @@ function GroupListContent() {
                                     key={t}
                                     variant="secondary"
                                     className={`px-2 py-0 h-5 text-[10px] font-black tracking-tight shrink-0 transition-all duration-300 ${isSelected
-                                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md scale-105"
-                                      : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                                      ? "bg-primary text-primary-ink border-primary shadow-md scale-105"
+                                      : "bg-primary/10 text-primary border-primary/20"
                                       }`}
                                   >
                                     {t}
@@ -446,7 +444,7 @@ function GroupListContent() {
                                 );
                               })
                             ) : (
-                              <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-black tracking-tight text-slate-400 bg-slate-50 border border-slate-100 shrink-0">
+                              <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-black tracking-tight text-ink-subtle bg-canvas border border-line shrink-0">
                                 태그 없음
                               </Badge>
                             )}
@@ -457,10 +455,10 @@ function GroupListContent() {
                       {/* 그룹 멤버 수 및 통계 패널 */}
                       <div className="flex items-center gap-8">
                         <div className="text-right min-w-[100px]">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          <p className="text-[10px] font-bold text-ink-subtle uppercase tracking-wider">
                             MEMBERS
                           </p>
-                          <p className="text-base font-bold text-slate-700">
+                          <p className="text-base font-bold text-ink">
                             {(grp.memberCount || 0).toLocaleString()}/{(grp.totalMembers || 0).toLocaleString()}
                           </p>
                         </div>
@@ -470,8 +468,8 @@ function GroupListContent() {
                 </div>
               ))
             ) : (
-              <div className="text-center py-24 text-slate-400 border-2 border-dashed border-slate-50 rounded-3xl h-full flex flex-col items-center justify-center">
-                <SearchCode className="mx-auto h-12 w-12 text-slate-200 mb-2" />
+              <div className="text-center py-24 text-ink-subtle border-2 border-dashed border-line rounded-3xl h-full flex flex-col items-center justify-center">
+                <SearchCode className="mx-auto h-12 w-12 text-ink mb-2" />
                 <p className="font-bold">조건에 맞는 그룹이 없습니다.</p>
               </div>
             )}
@@ -496,7 +494,7 @@ function GroupListContent() {
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(i + 1)}
-                  className={`rounded-lg ${currentPage === i + 1 ? 'bg-slate-950 text-white border-slate-950' : ''}`}
+                  className={`rounded-lg ${currentPage === i + 1 ? 'bg-deep text-white border-line' : ''}`}
                 >
                   {i + 1}
                 </Button>
@@ -520,12 +518,12 @@ function GroupListContent() {
           <div className="sticky top-24 space-y-4">
             {ads.length > 0 ? (
               ads.map((ad) => (
-                <a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-xl border border-slate-200 shadow-sm transition-transform hover:scale-105">
+                <a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-xl border border-line shadow-sm transition-transform hover:scale-105">
                   <img src={ad.image_url} alt={ad.alt_text} className="w-full object-cover" />
                 </a>
               ))
             ) : (
-              <div className="border border-slate-200 rounded-xl bg-slate-50 h-[600px] flex flex-col items-center justify-center text-slate-400 text-xs font-bold p-6 text-center leading-relaxed">
+              <div className="border border-line rounded-xl bg-canvas h-[600px] flex flex-col items-center justify-center text-ink-subtle text-xs font-bold p-6 text-center leading-relaxed">
                 <ShoppingBag className="mb-2 h-6 w-6 opacity-20" />
                 광고 영역입니다.
               </div>
@@ -544,11 +542,11 @@ function TagItem({ icon, label, active, onClick }: { icon: React.ReactNode; labe
     <div
       onClick={onClick}
       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${active
-        ? "bg-slate-900 text-white shadow-lg shadow-slate-200"
-        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+        ? "bg-raised border border-line-strong text-white shadow-lg shadow-black/40"
+        : "text-ink-muted hover:bg-raised hover:text-ink"
         }`}
     >
-      <span className={active ? "text-white" : "text-slate-400 group-hover:text-slate-950"}>{icon}</span>
+      <span className={active ? "text-white" : "text-ink-subtle group-hover:text-ink"}>{icon}</span>
       <span>{label}</span>
     </div>
   );
@@ -558,8 +556,8 @@ export default function GroupListPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-          <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        <div className="min-h-screen flex items-center justify-center bg-canvas">
+          <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
         </div>
       }
     >

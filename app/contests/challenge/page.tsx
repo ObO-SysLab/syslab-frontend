@@ -3,6 +3,7 @@ import { logout } from "@/lib/authSession";
 import { CodingRules } from '@/components/obo/simulation/CodingRules';
 
 import Link from "next/link";
+import { BrandMark } from "@/components/BrandMark";
 import { submissionVerdict } from "@/lib/submission-status";
 import { watchContestBoard, contestCodingLinks, type ContestSubmission } from "@/lib/contest-submissions";
 import { useState, useEffect, Suspense } from "react";
@@ -25,9 +26,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 function ProblemDetailContent() {
 	const router = useRouter();
-
-	// API 연동 스위치
-	const USE_API_REQUEST = true;
 
 	// URL에서 가져온 값 상태
 	const searchParams = useSearchParams();
@@ -169,7 +167,11 @@ function ProblemDetailContent() {
 
 		setIsSubmittingAnswer(true);
 		const token = localStorage.getItem("token");
-		const finalAnswer = JSON.stringify(selectedChoices);
+		// 명세: answer는 문자열. 단일 정답은 "2", 복수 정답은 JSON 배열 문자열 "[1,3]"
+		const sortedChoices = [...selectedChoices].sort((a, b) => a - b);
+		const finalAnswer = sortedChoices.length === 1
+			? String(sortedChoices[0])
+			: JSON.stringify(sortedChoices);
 
 		try {
 			const res = await fetch(`https://diveon.net/api/contests/${contestId}/problems/${contestProbId}/submit`, {
@@ -189,7 +191,7 @@ function ProblemDetailContent() {
 				alert(json.data.isCorrect === true ? "정답입니다." : json.data.isCorrect === false ? "오답입니다." : "결과를 확인해주세요.");
 				setActiveTab("grading");
 				fetchSubmissions();
-			} else if (res.status === 429) {
+			} else if (res.status === 409) { // conflict/contest-cooldown
 				alert("제출 쿨다운 제한 시간(30초)이 걸려있습니다. 잠시 후 다시 시도해 주세요.");
 			} else {
 				const err = await res.json();
@@ -227,16 +229,14 @@ function ProblemDetailContent() {
 	};
 
 	return (
-		<div className="min-h-screen bg-white text-slate-900 font-sans">
+		<div className="min-h-screen bg-panel text-ink font-sans">
 
 			{/* 1. 고정 헤더 (기존 디자인 유지) */}
-			<header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur px-6 h-16 flex items-center justify-between">
+			<header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
 				{ /* [A] Diveon 로고 영역 */}
 				<div className="flex items-center gap-8"> {/* gap을 넓혀서 메뉴 공간 확보 */}
-					<Menu className="h-6 w-6 text-slate-500 cursor-pointer lg:hidden" />
-					<Link href="/" className="text-2xl font-black tracking-tighter text-slate-900 mr-4">
-						Diveon
-					</Link>
+					<Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
+					<Link href="/" className="mr-4" aria-label="DiveOn 홈"><BrandMark /></Link>
 
 					{/* [B] 중앙 네비게이션 메뉴 영역 */}
 					<nav className="hidden lg:flex items-center gap-1">
@@ -251,8 +251,8 @@ function ProblemDetailContent() {
 				{/* [C] 검색창 영역 */}
 				<div className="flex-1 max-w-sm px-4">
 					<div className="relative">
-						<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-						<Input type="search" placeholder="검색..." className="pl-9 bg-slate-50 border-slate-200 rounded-full h-9 text-sm" />
+						<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-ink-muted" />
+						<Input type="search" placeholder="검색..." className="pl-9 bg-canvas border-line rounded-full h-9 text-sm" />
 					</div>
 				</div>
 
@@ -261,15 +261,15 @@ function ProblemDetailContent() {
 					{isLoggedIn ? (
 						/* --- 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
 						<>
-							<button className="p-2 hover:bg-slate-100 rounded-full transition-colors relative group">
-								<Bell className="h-5 w-5 text-slate-500 group-hover:text-slate-900" />
-								<span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+							<button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
+								<Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
+								<span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
 							</button>
 
 							<Link href="/settings">
-								<Avatar className="h-9 w-9 border border-slate-200 hover:ring-2 hover:ring-indigo-100 transition-all cursor-pointer">
+								<Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
 									<AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-									<AvatarFallback className="bg-transparent text-xs font-bold text-slate-600 rounded-full">
+									<AvatarFallback className="bg-transparent text-xs font-bold text-ink-muted rounded-full">
 										{/* 공백 상태 유지 */}
 									</AvatarFallback>
 								</Avatar>
@@ -277,7 +277,7 @@ function ProblemDetailContent() {
 
 							<button
 								onClick={() => { if (logout()) setIsLoggedIn(false); }}
-								className="p-2 hover:bg-red-50 rounded-full text-red-500 transition-colors group"
+								className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors group"
 							>
 								<LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
 							</button>
@@ -286,10 +286,10 @@ function ProblemDetailContent() {
 						/* --- 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
 						<div className="flex items-center gap-2">
 							<Link href="/signin">
-								<Button variant="ghost" className="text-sm font-bold text-slate-600">Sign In</Button>
+								<Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
 							</Link>
 							<Link href="/signup">
-								<Button className="bg-slate-900 text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-slate-200">
+								<Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
 									Get Started
 								</Button>
 							</Link>
@@ -305,17 +305,17 @@ function ProblemDetailContent() {
 				<aside className="col-span-12 md:col-span-2 space-y-4">
 					<Button
 						variant="outline"
-						className="w-full justify-start border-slate-200 text-slate-600 hover:bg-slate-50 font-bold h-11 rounded-xl"
+						className="w-full justify-start border-line text-ink-muted hover:bg-raised/60 font-bold h-11 rounded-xl"
 						onClick={() => router.push(`/contests/detail?id=${contestId}`)}
 					>
 						<ChevronLeft size={16} className="mr-2" /> 대회로 돌아가기
 					</Button>
 
 					{/* First Blood 패널 */}
-					<Card className="shadow-none border-slate-200 overflow-hidden">
-						<CardHeader className="pb-2 bg-slate-50/50">
-							<CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
-								<Flame className="h-4 w-4 text-red-500" /> First Blood
+					<Card className="shadow-none border-line overflow-hidden">
+						<CardHeader className="pb-2 bg-raised/50">
+							<CardTitle className="text-sm font-bold flex items-center gap-2 text-ink">
+								<Flame className="h-4 w-4 text-danger" /> First Blood
 							</CardTitle>
 						</CardHeader>
 						<CardContent className="pt-4">
@@ -323,36 +323,36 @@ function ProblemDetailContent() {
 								<div className="flex items-center justify-between">
 									<div className="flex items-center gap-3">
 										<div className="relative">
-											<div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-100">
-												<span className="text-xs font-bold text-slate-500">
+											<div className="h-10 w-10 rounded-full bg-line flex items-center justify-center overflow-hidden border border-line">
+												<span className="text-xs font-bold text-ink-muted">
 													{firstBlood.user?.[0]}
 												</span>
 											</div>
-											<div className="absolute -bottom-1 -right-1 bg-red-500 rounded-full p-0.5 border-2 border-white">
+											<div className="absolute -bottom-1 -right-1 bg-danger rounded-full p-0.5 border-2 border-panel">
 												<Flame className="h-2 w-2 text-white" />
 											</div>
 										</div>
-										<span className="font-semibold text-sm text-slate-900 leading-none mb-1">
+										<span className="font-semibold text-sm text-ink leading-none mb-1">
 											{firstBlood.user}
 										</span>
 									</div>
-									<span className="text-[11px] text-slate-400 font-medium tracking-tight">
+									<span className="text-[11px] text-ink-subtle font-medium tracking-tight">
 										{new Date(firstBlood.date).toLocaleDateString()}
 									</span>
 								</div>
 							) : (
 								<div className="py-4 text-center">
-									<p className="text-xs text-slate-400 italic">아직 문제를 해결한 유저가 없습니다.</p>
+									<p className="text-xs text-ink-subtle italic">아직 문제를 해결한 유저가 없습니다.</p>
 								</div>
 							)}
 						</CardContent>
 					</Card>
 
 					{/* 배점 표시 패널 */}
-					<Card className="shadow-none border-slate-200 rounded-xl">
+					<Card className="shadow-none border-line rounded-xl">
 						<CardContent className="p-4 flex justify-between items-center text-sm font-bold">
-							<span className="text-slate-500">배점</span>
-							<span className="text-indigo-600 text-lg font-black">{problemData?.points} pts</span>
+							<span className="text-ink-muted">배점</span>
+							<span className="text-primary text-lg font-black">{problemData?.points} pts</span>
 						</CardContent>
 					</Card>
 
@@ -364,7 +364,7 @@ function ProblemDetailContent() {
 
 					{/* 탭 컨트롤러 */}
 					<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-						<TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-lg sticky top-16 z-40">
+						<TabsList className="grid w-full grid-cols-2 bg-raised p-1 rounded-lg sticky top-16 z-40">
 							<TabsTrigger value="problem">문제</TabsTrigger>
 							<TabsTrigger value="grading">채점</TabsTrigger>
 						</TabsList>
@@ -372,19 +372,19 @@ function ProblemDetailContent() {
 						{/* 1. 문제 탭 */}
 						<TabsContent value="problem" className="mt-6 space-y-6 animate-in fade-in-50 duration-300">
 							<div className="flex gap-6 items-start">
-								<div className="w-24 h-24 bg-slate-100 rounded-2xl flex items-center justify-center shrink-0 border border-slate-200">
+								<div className="w-24 h-24 bg-raised rounded-2xl flex items-center justify-center shrink-0 border border-line">
 									<div className="grid grid-cols-2 gap-1 opacity-50">
-										<div className="w-3 h-3 bg-slate-400 rounded-full" />
-										<div className="w-3 h-3 bg-slate-400 rounded-sm" />
-										<div className="w-3 h-3 bg-slate-400 rounded-sm" />
-										<div className="w-3 h-3 bg-slate-400 rounded-full" />
+										<div className="w-3 h-3 bg-ink-subtle rounded-full" />
+										<div className="w-3 h-3 bg-ink-subtle rounded-sm" />
+										<div className="w-3 h-3 bg-ink-subtle rounded-sm" />
+										<div className="w-3 h-3 bg-ink-subtle rounded-full" />
 									</div>
 								</div>
 								<div className="space-y-2">
-									<h1 className="text-2xl font-bold text-slate-900">
+									<h1 className="text-2xl font-bold text-ink">
 										{isLoading ? "불러오는 중..." : problemData?.title}
 									</h1>
-									<p className="text-sm text-slate-500 leading-relaxed whitespace-pre-wrap">
+									<p className="text-sm text-ink-muted leading-relaxed whitespace-pre-wrap">
 										{isLoading ? "" : problemData?.summary || "문제 요약이 없습니다."}
 									</p>
 								</div>
@@ -396,13 +396,13 @@ function ProblemDetailContent() {
 									{/* 문제 유형에 따른 동작 버튼 변경 */}
 									{problemData?.type === "coding" ? (
 										<Link href={`/contests/editor?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}`}>
-											<Button className="bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200 font-bold">
+											<Button className="bg-primary hover:bg-primary-hover shadow-md shadow-black/40 font-bold">
 												코드 제출하기
 											</Button>
 										</Link>
 									) : problemData?.type === "objective" ? (
 										<Button
-											className="bg-slate-900 hover:bg-slate-800 font-bold disabled:opacity-50"
+											className="bg-raised border border-line-strong text-ink hover:bg-line font-bold disabled:opacity-50"
 											onClick={handleObjectiveSubmit}
 											disabled={isSubmittingAnswer || selectedChoices.length === 0} // 선택된 게 없으면 비활성화
 										>
@@ -410,12 +410,12 @@ function ProblemDetailContent() {
 										</Button>
 									) : problemData?.type === "practice" ? (
 										<Link href={`/contests/terminal?probId=${probId}&contestProblemId=${contestProbId}&contestId=${contestId}`}>
-											<Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md shadow-emerald-200">
+											<Button className="bg-success hover:bg-success/85 text-primary-ink font-bold shadow-md shadow-black/40">
 												실습 환경 켜기
 											</Button>
 										</Link>
 									) : (
-										<Button className="bg-slate-800 hover:bg-slate-700">답안 제출하기</Button> // Fallback
+										<Button className="bg-raised hover:bg-line">답안 제출하기</Button> // Fallback
 									)}
 									<Button variant="outline" size="icon">
 										<Share2 className="h-4 w-4" />
@@ -425,7 +425,7 @@ function ProblemDetailContent() {
 							<Separator />
 
 							<div className="prose prose-slate max-w-none">
-								<p className="text-slate-800 whitespace-pre-wrap">
+								<p className="text-ink whitespace-pre-wrap">
 									{problemData?.description}
 								</p>
 
@@ -440,14 +440,14 @@ function ProblemDetailContent() {
 													key={choice.index}
 													onClick={() => handleChoiceToggle(choice.index)}
 													className={`p-4 border-2 rounded-xl flex items-center gap-3 cursor-pointer transition-all ${isSelected
-														? "border-indigo-600 bg-indigo-50 shadow-sm" // 선택 시 스타일
-														: "border-slate-100 bg-slate-50 hover:border-slate-300 hover:bg-slate-100" // 기본 스타일
+														? "border-primary bg-primary/10 shadow-sm" // 선택 시 스타일
+														: "border-line bg-canvas hover:border-line-strong hover:bg-raised" // 기본 스타일
 														}`}
 												>
-													<span className={`font-black ${isSelected ? "text-indigo-600" : "text-slate-400"}`}>
+													<span className={`font-black ${isSelected ? "text-primary" : "text-ink-subtle"}`}>
 														{choice.index}.
 													</span>
-													<span className={`text-sm ${isSelected ? "text-indigo-900 font-bold" : "text-slate-700"}`}>
+													<span className={`text-sm ${isSelected ? "text-primary font-bold" : "text-ink"}`}>
 														{choice.content}
 													</span>
 												</div>
@@ -462,16 +462,16 @@ function ProblemDetailContent() {
 									<div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
 										{/* 입력 예시 */}
 										<div>
-											<span className="text-xs font-bold text-slate-500 mb-1 block">&lt;입력 예시&gt;</span>
-											<pre className="bg-slate-50 border border-slate-200 p-4 rounded-lg font-mono text-sm text-slate-800 leading-6 whitespace-pre-wrap min-h-[100px]">
+											<span className="text-xs font-bold text-ink-muted mb-1 block">&lt;입력 예시&gt;</span>
+											<pre className="bg-canvas border border-line p-4 rounded-lg font-mono text-sm text-ink leading-6 whitespace-pre-wrap min-h-[100px]">
 												{problemData.testcases[0].input.replace(/\\n/g, "\n")}
 											</pre>
 										</div>
 
 										{/* 출력 예시 */}
 										<div>
-											<span className="text-xs font-bold text-slate-500 mb-1 block">&lt;출력 예시&gt;</span>
-											<pre className="bg-slate-50 border border-slate-200 p-4 rounded-lg font-mono text-sm text-slate-800 leading-6 whitespace-pre-wrap min-h-[100px]">
+											<span className="text-xs font-bold text-ink-muted mb-1 block">&lt;출력 예시&gt;</span>
+											<pre className="bg-canvas border border-line p-4 rounded-lg font-mono text-sm text-ink leading-6 whitespace-pre-wrap min-h-[100px]">
 												{problemData.testcases[0].output.replace(/\\n/g, "\n")}
 											</pre>
 										</div>
@@ -481,27 +481,27 @@ function ProblemDetailContent() {
 
 							{/* 실습형(CTF) VM 환경 동적 렌더링 */}
 							{problemData?.type === "practice" && (
-								<div className="mt-8 p-6 bg-slate-900 rounded-2xl space-y-6 shadow-lg border border-slate-800">
+								<div className="mt-8 p-6 bg-deep rounded-2xl space-y-6 shadow-lg border border-line">
 
 									{/* 상단 헤더 및 OS 이미지 정보 */}
 									<div className="flex items-center justify-between">
 										<h3 className="text-sm font-black text-white flex items-center gap-2">
-											<Zap className="w-4 h-4 text-emerald-400 fill-emerald-400" /> VM 실습 환경
+											<Zap className="w-4 h-4 text-success fill-success" /> VM 실습 환경
 										</h3>
-										<Badge variant="outline" className="text-slate-300 border-slate-700 font-mono text-xs bg-slate-800">
+										<Badge variant="outline" className="text-ink-subtle border-line font-mono text-xs bg-raised">
 											OS: {problemData?.vm_info?.os_image || "ubuntu:latest"}
 										</Badge>
 									</div>
 
 									{/* 허용된 명령어 목록 (안전하게 배열 체크) */}
 									{Array.isArray(problemData?.vm_info?.allowed_commands) && problemData.vm_info.allowed_commands.length > 0 && (
-										<div className="bg-slate-950 border border-slate-800 p-4 rounded-xl">
-											<span className="text-[10px] font-bold text-slate-500 mb-2 block uppercase tracking-widest">
+										<div className="bg-deep border border-line p-4 rounded-xl">
+											<span className="text-[10px] font-bold text-ink-muted mb-2 block uppercase tracking-widest">
 												Allowed Commands
 											</span>
 											<div className="flex flex-wrap gap-2">
 												{problemData.vm_info.allowed_commands.map((cmd: string, idx: number) => (
-													<code key={idx} className="bg-slate-800 text-emerald-400 px-2 py-1 rounded text-xs font-mono border border-slate-700">
+													<code key={idx} className="bg-raised text-success px-2 py-1 rounded text-xs font-mono border border-line">
 														{`> ${cmd}`}
 													</code>
 												))}
@@ -516,20 +516,20 @@ function ProblemDetailContent() {
 						<TabsContent value="grading" className="mt-6 animate-in fade-in-50 duration-300">
 							<div className="flex items-center justify-between mb-4">
 								<h2 className="text-lg font-bold">내 제출 현황</h2>
-								<span>대회 총점: {totalScore ?? "-"}점</span>
+								<span className="text-ink-muted">대회 총점: {totalScore ?? "-"}점</span>
 								<Button variant="outline" size="sm" onClick={fetchSubmissions}>새로고침</Button>
 							</div>
-							{boardError && <p role="alert" className="mb-3 text-red-600">{boardError}</p>}
-							{boardLoading && <p role="status">제출 기록을 불러오는 중입니다.</p>}
+							{boardError && <p role="alert" className="mb-3 text-danger">{boardError}</p>}
+							{boardLoading && <p role="status" className="text-ink-muted">제출 기록을 불러오는 중입니다.</p>}
 							<div className="flex items-center gap-3 mb-3">
 								<Button variant="outline" size="sm" disabled={boardPage <= 1} onClick={() => setBoardPage(p => p - 1)}>이전</Button>
-								<span>{boardPage} / {Math.max(1, boardPages)}</span>
+								<span className="text-ink-muted">{boardPage} / {Math.max(1, boardPages)}</span>
 								<Button variant="outline" size="sm" disabled={boardPage >= boardPages} onClick={() => setBoardPage(p => p + 1)}>다음</Button>
 							</div>
 
 							<div className="border rounded-lg overflow-hidden">
 								<Table>
-									<TableHeader className="bg-slate-50">
+									<TableHeader className="bg-canvas">
 										<TableRow>
 											<TableHead className="w-[100px]">제출 번호</TableHead>
 											<TableHead>닉네임</TableHead>
@@ -571,17 +571,17 @@ function ProblemDetailContent() {
 													<TableRow
 														key={sub.submissionId}
 														// 행 전체 클릭(onClick) 제거 (버튼을 따로 둘 것이므로 오작동 방지)
-														className="hover:bg-slate-50 transition-colors"
+														className="hover:bg-raised/60 transition-colors"
 													>
 														<TableCell className="font-mono text-xs">{sub.submissionId}</TableCell>
-														<TableCell className="font-bold text-slate-700">{sub.nickname || "User"}</TableCell>
+														<TableCell className="font-bold text-ink">{sub.nickname || "User"}</TableCell>
 
 														{/* 결과 배지 컬럼 */}
 														<TableCell>
 															{isPending ? (
 																<div className="flex flex-col gap-1">
-																	<Badge variant="outline" className="text-indigo-600 border-indigo-200 bg-indigo-50 w-fit">
-																		<div className="w-3 h-3 mr-1 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+																	<Badge variant="outline" className="text-primary border-primary/30 bg-primary/10 w-fit">
+																		<div className="w-3 h-3 mr-1 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
 																		{resultText}
 																	</Badge>
 																</div>
@@ -589,12 +589,12 @@ function ProblemDetailContent() {
 																<div className="space-y-1">
 																	<Badge
 																		variant={isSuccess ? "default" : verdict.kind === "unknown" || verdict.kind === "error" ? "outline" : "destructive"}
-																		className={isSuccess ? "bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm shadow-indigo-100" : verdict.kind === "error" ? "font-bold border-amber-200 bg-amber-50 text-amber-800" : "font-bold"}
+																		className={isSuccess ? "bg-primary hover:bg-primary-hover text-primary-ink font-bold shadow-sm shadow-black/40" : verdict.kind === "error" ? "font-bold border-warning/30 bg-warning-soft text-warning" : "font-bold"}
 																	>
 																		{isSuccess ? <CheckCircle2 className="w-3 h-3 mr-1" /> : verdict.kind === "unknown" ? <Clock className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
 																		{resultText}
 																	</Badge>
-																	{verdict.hint && <p className="text-xs text-slate-500">{verdict.hint}</p>}
+																	{verdict.hint && <p className="text-xs text-ink-muted">{verdict.hint}</p>}
 																</div>
 															)}
 														</TableCell>
@@ -602,19 +602,19 @@ function ProblemDetailContent() {
 														{/* 코딩 문제 전용 데이터 */}
 														{isCoding && (
 															<>
-																<TableCell className="text-xs text-slate-500">{!isPending && sub.memoryUsage != null ? `${sub.memoryUsage} MB` : "-"}</TableCell>
-																<TableCell className="text-xs text-slate-500">{!isPending && sub.runtime != null ? `${sub.runtime} ms` : "-"}</TableCell>
-																<TableCell className="text-xs font-bold text-slate-600">{!isPending ? (sub.language || "-") : "-"}</TableCell>
+																<TableCell className="text-xs text-ink-muted">{!isPending && sub.memoryUsage != null ? `${sub.memoryUsage} MB` : "-"}</TableCell>
+																<TableCell className="text-xs text-ink-muted">{!isPending && sub.runtime != null ? `${sub.runtime} ms` : "-"}</TableCell>
+																<TableCell className="text-xs font-bold text-ink-muted">{!isPending ? (sub.language || "-") : "-"}</TableCell>
 															</>
 														)}
 
 														{/* 실습 문제 전용 데이터 */}
 														{problemData?.type === "practice" && (
-															<TableCell className="text-xs text-slate-300">-</TableCell>
+															<TableCell className="text-xs text-ink-subtle">-</TableCell>
 														)}
 
 														{/* 제출 시간 */}
-														<TableCell className="text-right text-xs text-slate-400">
+														<TableCell className="text-right text-xs text-ink-subtle">
 															{new Date(sub.submittedAt).toLocaleString()}
 														</TableCell>
 
@@ -624,10 +624,10 @@ function ProblemDetailContent() {
 															{/* 2. 코딩: 코드 보기 / OBO 보기 2가지 버튼 제공 */}
 															{detailLinks && (
 																<div className="flex justify-center gap-1.5">
-																	{detailLinks.code && <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold text-slate-600" asChild>
+																	{detailLinks.code && <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold text-ink-muted" asChild>
 																		<Link href={detailLinks.code}>코드</Link>
 																	</Button>}
-																	{detailLinks.obo && <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50" asChild>
+																	{detailLinks.obo && <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs font-bold border-primary/30 text-primary hover:bg-primary/10" asChild>
 																		<Link href={detailLinks.obo}>{problemData?.type === "objective" ? "결과 확인" : "OBO"}</Link>
 																	</Button>}
 																</div>
@@ -635,7 +635,7 @@ function ProblemDetailContent() {
 
 															{/* 3. 실습: 버튼 없음 (또는 채점 중일 때 대기 상태 표시) */}
 															{!detailLinks && (
-																<span className="text-xs text-slate-300">-</span>
+																<span className="text-xs text-ink-subtle">-</span>
 															)}
 														</TableCell>
 													</TableRow>
@@ -646,7 +646,7 @@ function ProblemDetailContent() {
 											<TableRow>
 												<TableCell
 													colSpan={problemData?.type === "coding" ? 8 : problemData?.type === "practice" ? 6 : 5}
-													className="text-center py-8 text-slate-400 text-sm italic"
+													className="text-center py-8 text-ink-subtle text-sm italic"
 												>
 													아직 제출된 답안이 없습니다.
 												</TableCell>
@@ -664,12 +664,12 @@ function ProblemDetailContent() {
 					<div className="sticky top-24 space-y-4">
 						{ads.length > 0 ? (
 							ads.map((ad) => (
-								<a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-xl border border-slate-200 shadow-sm transition-transform hover:scale-105">
+								<a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-xl border border-line shadow-sm transition-transform hover:scale-105">
 									<img src={ad.image_url} alt={ad.alt_text} className="w-full object-cover" />
 								</a>
 							))
 						) : (
-							<div className="border border-slate-200 rounded-xl bg-slate-50 h-[500px] flex flex-col items-center justify-center text-slate-400 text-sm font-medium">
+							<div className="border border-line rounded-xl bg-canvas h-[500px] flex flex-col items-center justify-center text-ink-subtle text-sm font-medium">
 								AD Area
 							</div>
 						)}
@@ -685,9 +685,9 @@ function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNod
 	return (
 		<Link
 			href={href}
-			className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all active:scale-95"
+			className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-ink-muted hover:text-ink hover:bg-raised/60 transition-all active:scale-95"
 		>
-			<span className="text-slate-400 group-hover:text-slate-900">{icon}</span>
+			<span className="text-ink-subtle group-hover:text-ink">{icon}</span>
 			{label}
 		</Link>
 	);
@@ -696,8 +696,8 @@ function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNod
 export default function ProblemDetailPage() {
 	return (
 		<Suspense fallback={
-			<div className="min-h-screen flex items-center justify-center bg-slate-50">
-				<div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+			<div className="min-h-screen flex items-center justify-center bg-canvas">
+				<div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
 			</div>
 		}>
 			<ProblemDetailContent />

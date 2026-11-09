@@ -102,66 +102,66 @@ function GroupInviteContent() {
   }, [code, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans">
-      <Card className="w-full max-w-md border-none shadow-2xl shadow-slate-200 bg-white rounded-3xl overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-canvas p-4 font-sans">
+      <Card className="w-full max-w-md border-none shadow-2xl shadow-black/40 bg-panel rounded-3xl overflow-hidden">
         <CardContent className="py-12 px-10 text-center space-y-6">
 
           {status === "loading" && (
             <div className="space-y-4 animate-in fade-in duration-300">
-              <Loader2 className="h-10 w-10 animate-spin text-indigo-600 mx-auto" />
+              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
               <div className="space-y-1">
-                <h2 className="text-xl font-black tracking-tight text-slate-900">보안 통로 확인 중</h2>
-                <p className="text-xs text-slate-400 font-medium">비공개 그룹 초대장을 검증하고 있습니다.</p>
+                <h2 className="text-xl font-black tracking-tight text-ink">보안 통로 확인 중</h2>
+                <p className="text-xs text-ink-subtle font-medium">비공개 그룹 초대장을 검증하고 있습니다.</p>
               </div>
             </div>
           )}
 
           {status === "success" && (
             <div className="space-y-4 animate-in zoom-in-95 duration-300">
-              <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto border border-emerald-200">
-                <ShieldCheck className="h-6 w-6 text-emerald-600" />
+              <div className="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center mx-auto border border-success/30">
+                <ShieldCheck className="h-6 w-6 text-success" />
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-emerald-600 font-bold uppercase tracking-wider">Join Completed</p>
-                <h2 className="text-xl font-black tracking-tight text-slate-900">
-                  <span className="text-indigo-600">[{groupInfo?.title}]</span><br />그룹 참여 완료!
+                <p className="text-xs text-success font-bold uppercase tracking-wider">Join Completed</p>
+                <h2 className="text-xl font-black tracking-tight text-ink">
+                  <span className="text-primary">[{groupInfo?.title}]</span><br />그룹 참여 완료!
                 </h2>
-                <p className="text-xs text-slate-400 font-medium pt-1">잠시 후 그룹 메인으로 이동합니다...</p>
+                <p className="text-xs text-ink-subtle font-medium pt-1">잠시 후 그룹 메인으로 이동합니다...</p>
               </div>
             </div>
           )}
 
           {status === "already" && (
             <div className="space-y-4 animate-in zoom-in-95 duration-300">
-              <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center mx-auto border border-indigo-200">
-                <Users className="h-6 w-6 text-indigo-600" />
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto border border-primary/30">
+                <Users className="h-6 w-6 text-primary" />
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider">Already a Member</p>
-                <h2 className="text-xl font-black tracking-tight text-slate-900">
+                <p className="text-xs text-primary font-bold uppercase tracking-wider">Already a Member</p>
+                <h2 className="text-xl font-black tracking-tight text-ink">
                   이미 가입된 대원입니다.
                 </h2>
-                <p className="text-xs text-slate-400 font-medium pt-1">해당 그룹 메인으로 즉시 이동합니다...</p>
+                <p className="text-xs text-ink-subtle font-medium pt-1">해당 그룹 메인으로 즉시 이동합니다...</p>
               </div>
             </div>
           )}
 
           {status === "error" && (
             <div className="space-y-4 animate-in duration-300">
-              <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center mx-auto border border-rose-200">
-                <XCircle className="h-6 w-6 text-rose-600" />
+              <div className="w-12 h-12 bg-danger/10 rounded-full flex items-center justify-center mx-auto border border-danger/30">
+                <XCircle className="h-6 w-6 text-danger" />
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-rose-600 font-bold uppercase tracking-wider">Access Denied</p>
-                <h2 className="text-xl font-black tracking-tight text-slate-900">초대 가입 실패</h2>
-                <p className="text-xs text-slate-500 font-medium pt-1 leading-relaxed max-w-xs mx-auto">
+                <p className="text-xs text-danger font-bold uppercase tracking-wider">Access Denied</p>
+                <h2 className="text-xl font-black tracking-tight text-ink">초대 가입 실패</h2>
+                <p className="text-xs text-ink-muted font-medium pt-1 leading-relaxed max-w-xs mx-auto">
                   {errorMessage}
                 </p>
               </div>
               <div className="pt-2">
                 <Button
                   onClick={() => router.push("/groups")}
-                  className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl"
+                  className="w-full h-11 bg-raised border border-line-strong hover:bg-line text-white font-bold text-sm rounded-xl"
                 >
                   그룹 목록으로 돌아가기
                 </Button>
@@ -179,8 +179,8 @@ function GroupInviteContent() {
 export default function GroupInvitePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
+      <div className="min-h-screen flex items-center justify-center bg-canvas">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </div>
     }>
       <GroupInviteContent />
