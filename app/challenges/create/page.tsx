@@ -7,8 +7,8 @@ import { logout } from "@/lib/authSession";
 import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import {
-  Menu, LogOut, CheckCircle2, Target, Zap, Code2, PlusCircle, Eye,
-  StickyNote, Bell, Trash2, Network
+  Menu, LogOut, CheckCircle2, Zap, PlusCircle, Eye,
+  Bell, Trash2, Network
 } from "lucide-react";
 import type { ProblemOboData } from "@/components/obo/types";
 import { OboEditorSection } from "@/components/obo/OboEditorSection";
@@ -17,7 +17,8 @@ import { CodingExampleControl } from '@/components/obo/simulation/CodingExampleC
 import { DiagramExampleControl } from '@/components/obo/DiagramExampleControl';
 import { CodingRules } from '@/components/obo/simulation/CodingRules';
 import { describeCodingContract } from '@/components/obo/guidance/codingContract';
-import { validateProblemObo } from "@/components/obo/lib/validateObo";
+import { AuthoringChecklist } from "@/components/problem/AuthoringChecklist";
+import { authoringChecklist, requiredFieldErrors, type AuthoringState } from "@/components/problem/authoringSteps";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -209,21 +210,25 @@ function ProblemCreateContent() {
     }
   };
 
+  // “만드는 순서” (2026-11-09): live state of what registration needs; rows jump to their field.
+  const [previewed,setPreviewed]=useState(false);
+  // A function: group/contest selections are declared further down this component.
+  const authoringState=():AuthoringState=>({title,category,description,isEditMode,visibility,selectedGroupId,selectedContestId,problemType,choices,selectedAnswers,
+    hasDockerfile:!!dockerfile,flag,oboEnabled,oboData,testcases,previewed});
+  const goTo=(target:string)=>{
+    if(target==='description')setDescriptionTab('desc');
+    setTimeout(()=>{const el=document.getElementById(target);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});
+      const focusable=el.matches('input,textarea,select,button')?el:el.querySelector<HTMLElement>('input:not([type=hidden]),textarea,[role=combobox],button');focusable?.focus({preventScroll:true});},0);
+  };
+
   // [API] 제출 핸들러
   const handleSubmit = async () => {
     if(saving.current)return;
     setSaveNotice('');setSaveIssue(null);setFieldErrors({});
     if(!editLoaded)return;
     draft.save();
-    const errors:Record<string,string>={};
-    if(!title.trim())errors.title='문제 제목을 입력해 주세요.';
-    if(!category)errors.category='카테고리를 선택해 주세요.';
-    if(!description.trim())errors.description='문제 설명을 입력해 주세요.';
-    if(!isEditMode&&visibility==='group'&&!selectedGroupId)errors.audience='공개할 그룹을 선택해 주세요.';
-    if(!isEditMode&&visibility==='contest'&&!selectedContestId)errors.audience='공개할 대회를 선택해 주세요.';
-    if(problemType==='objective'&&(choices.length<2||choices.some(c=>!c.content.trim())))errors.choices='보기를 2개 이상 입력하고 빈 보기의 내용을 채우거나 삭제해 주세요.';
-    if(!isEditMode&&problemType==='practice'&&!dockerfile)errors.dockerfile='Dockerfile zip 파일을 선택해 주세요.';
-    if(oboEnabled){const errorsObo=validateProblemObo(oboData,{choiceCount:choices.length});if(errorsObo.length)errors.obo=errorsObo.join(' · ');}
+    // Same checks the “만드는 순서” list shows (components/problem/authoringChecklist.ts, 2026-11-09).
+    const errors=requiredFieldErrors(authoringState());
     if(Object.keys(errors).length){setFieldErrors(errors);focusField(Object.keys(errors)[0]);return;}
     if(isEditMode&&problemType!=='practice'&&!editVersion){setSaveNotice('서버 버전을 확인하지 못했습니다. 초안을 파일로 보관하고 다시 열어 주세요.');return;}
     const token=problemToken();if(!token){setSaveIssue(httpIssue(401));return;}
@@ -595,18 +600,7 @@ function ProblemCreateContent() {
 
         {/* [A] 좌측 출제 가이드 */}
         <aside className="col-span-12 md:col-span-3 space-y-4 md:sticky md:top-24 h-fit">
-          <Card className="border-indigo-100 bg-white shadow-sm overflow-hidden rounded-2xl">
-            <div className="bg-indigo-600 p-6">
-              <StickyNote className="w-10 h-10 text-white fill-current" />
-              <p className="text-xl font-black text-white mt-2">출제 양식</p>
-              <p className="text-xs text-indigo-200 mt-1">문제 양식에 맞춰 정보를 입력하세요.</p>
-            </div>
-            <CardContent className="p-5 text-sm text-slate-600 space-y-3 font-medium">
-              <div className="flex gap-2.5 items-center"><Target className="w-4 h-4 text-indigo-500" /> 제목은 명확하게</div>
-              <div className="flex gap-2.5 items-center"><Code2 className="w-4 h-4 text-indigo-500" /> 설명은 Markdown 지원</div>
-              <div className="flex gap-2.5 items-center"><CheckCircle2 className="w-4 h-4 text-indigo-500" /> 정확한 테스트케이스 필수</div>
-            </CardContent>
-          </Card>
+          <AuthoringChecklist steps={authoringChecklist(authoringState())} onGo={goTo} />
           <Button variant="outline" className="w-full text-slate-500" asChild>
             <Link href="/challenges">출제 취소</Link>
           </Button>
@@ -627,7 +621,7 @@ function ProblemCreateContent() {
             </div>
             <div className="flex gap-2">
               <Button variant="secondary" className="px-6" onClick={draft.save}>브라우저에 보관</Button>
-              <Button variant="outline" onClick={()=>{setDescriptionTab('prev');document.getElementById(problemType==='coding'?'learner-preview':'problem-description')?.scrollIntoView({behavior:'smooth',block:'start'});}} className="px-6 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group">
+              <Button variant="outline" onClick={()=>{setPreviewed(true);setDescriptionTab('prev');document.getElementById(problemType==='coding'?'learner-preview':'problem-description')?.scrollIntoView({behavior:'smooth',block:'start'});}} className="px-6 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group">
                 <Eye size={16} className="mr-2 text-slate-400 group-hover:text-indigo-500 transition-colors" />{problemType==='coding'?'학습자 미리보기':'문제 미리보기'}
               </Button>
               {/* 제출 버튼에 onClick 연결 */}
@@ -667,7 +661,7 @@ function ProblemCreateContent() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
-                <div className="space-y-2">
+                <div id="category-field" className="space-y-2 scroll-mt-24">
                   <Label>카테고리 <span className="text-red-500">*</span></Label>
                   {fieldError('category')}
                   <Select value={category} onValueChange={setCategory}>
@@ -739,7 +733,7 @@ function ProblemCreateContent() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div id="audience-field" className="space-y-2 scroll-mt-24">
                   <Label>공개범위</Label>{fieldError('audience')}
                   <Select value={visibility} onValueChange={setVisibility} disabled={isEditMode}>
                     <SelectTrigger><SelectValue placeholder="공개범위 선택" /></SelectTrigger>
@@ -993,7 +987,7 @@ function ProblemCreateContent() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-4 pt-2">
+                  <div id="testcases-field" className="space-y-4 pt-2 scroll-mt-24">
                     <div className="flex justify-between items-center">
                       <Label className="font-bold flex items-center gap-2">
                         테스트케이스 설정 <span className="text-[10px] text-slate-400 font-normal">(최소 1개 필수)</span>
@@ -1128,7 +1122,7 @@ function ProblemCreateContent() {
                     </div>
                   </div> */}
 
-                  <div className="space-y-2.5 pt-2">
+                  <div id="dockerfile-field" className="space-y-2.5 pt-2 scroll-mt-24">
                     {fieldError('dockerfile')}
                     <Label>Dockerfile 업로드 (.zip) <span className="text-red-500">*</span></Label>
                     <p className="text-xs text-slate-500">등록 후 실습 환경을 제작합니다. 상세 화면에서 제작 중·완료·실패 상태를 확인할 수 있으며, 제작 완료 후 실습을 시작할 수 있습니다.</p>
@@ -1179,7 +1173,7 @@ function ProblemCreateContent() {
                     />
                   </div>}
 
-                  <div className="space-y-4 pt-1">
+                  <div id="choices-field" className="space-y-4 pt-1 scroll-mt-24">
                     <Label className="flex justify-between items-center">
                       <span>보기 설정 및 정답 선택 <span className="text-red-500">*</span></span>
                       <span className="text-[10px] text-slate-400">
@@ -1252,7 +1246,7 @@ function ProblemCreateContent() {
 
           {fieldError('obo')}
           {/* 4. OBO 시각화 섹션 - 코딩/객관식만 표시 */}
-          {(problemType === "coding" || problemType === "objective") && <Card className="border-slate-100 shadow-sm rounded-2xl">
+          {(problemType === "coding" || problemType === "objective") && <Card id="obo-field" className="border-slate-100 shadow-sm rounded-2xl scroll-mt-24">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
