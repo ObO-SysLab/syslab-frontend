@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { registry, run } from './index.mjs';
+import { registry, run, type Json } from './index.mjs';
 import { createDocument, validateDocument } from './document.mjs';
 import { gradeText, inputToText, parseTextInput, textHelp, textReference } from './textFormats.mjs';
 
@@ -40,8 +40,9 @@ describe('Baekjoon-style text input/output for every rule model (text-v1, 2026-1
   it('explains input mistakes by line and refuses inputs that only JSON can express', () => {
     expect(() => textReference('P2', '3 3 FIFO\n7 0')).toThrow(/2번째 줄/);
     expect(() => textReference('G2', '2 RR\nP1 0 3\nP2 1 2')).toThrow(/정책/);
-    expect(() => inputToText('IPC', { ...defaults('IPC'), initial: [1] })).toThrow(/JSON/);
-    expect(() => inputToText('DP', { ...defaults('DP'), mode: 'findSchedule' })).toThrow(/JSON/);
+    // Still JSON only (2026-11-09): values with spaces, and strings that would read back as numbers.
+    expect(() => inputToText('IPC', { ...defaults('IPC'), operations: [{ actor: 'P', op: 'send', value: 'a b' }] })).toThrow(/JSON/);
+    expect(() => inputToText('PT', { ...defaults('PT'), spaces: { P: { x: '7' } } })).toThrow(/JSON/);
     expect(gradeText('P2', inputToText('P2', defaults('P2')), 'x'.repeat(10)).correct).toBe(false);
   });
 
@@ -50,5 +51,45 @@ describe('Baekjoon-style text input/output for every rule model (text-v1, 2026-1
     doc.question = { ...doc.question, judgeProfile: 'obo-v1', assessmentMode: 'result', gradingInstanceId: doc.instances[0].id, ioFormat: 'text-v1' };
     expect(() => validateDocument(doc)).not.toThrow();
     expect(() => validateDocument({ ...doc, question: { ...doc.question, assessmentMode: 'process' } })).toThrow(/텍스트/);
+  });
+
+  describe('inputs that needed JSON before (2026-11-09)', () => {
+    const dp = { actors: ['A', 'B', 'C'], policy: 'ordered', mode: 'findSchedule', goalMeals: { A: 1, B: 1, C: 1 }, thinkTicks: { A: 0, B: 0, C: 0 }, eatTicks: { A: 1, B: 1, C: 1 },
+      order: Array.from({ length: 60 }, (_, i) => ['A', 'B', 'C'][i % 3]) };
+    const cases: [string, Record<string, Json>][] = [
+      ['CS', { pcbs: { P: { pc: 1, sp: 4 }, Q: { pc: 2, sp: 9 } }, initialId: 'P', order: ['Q', 'P'] }],
+      ['K-SYSCALL', { ...defaults('K-SYSCALL'), contexts: { P: { pc: 42, ax: 1 }, Q: { pc: 8 } } }],
+      ['K-INTERRUPT', { ...defaults('K-INTERRUPT'), contexts: { P: { pc: 42, flags: 3 }, Q: { pc: 8 } } }],
+      ['TLB', { ...defaults('TLB'), addresses: [1, 5], table: [3, 7], initialTlb: [{ page: 0, frame: 3 }] }],
+      ['MF', { total: 64, initial: [{ start: 0, size: 16, owner: 'X' }, { start: 16, size: 48, owner: null }], operations: [{ op: 'alloc', id: 'A', size: 10 }, { op: 'free', id: 'X' }, { op: 'alloc', id: 'B', size: 20 }], policy: 'first' }],
+      ['S3', { actors: ['P1', 'P2'], resources: ['R1', 'R2'], available: [0, 1], allocated: [[1, 0], [0, 0]], requests: [[0, 0], [0, 0]], actions: [{ op: 'request', actor: 'P2', values: [1, 0] }, { op: 'request', actor: 'P1', values: [0, 1] }] }],
+      ['PC', { ...defaults('PC'), capacity: 2, initial: ['A'], actors: [{ id: 'P', role: 'producer' }, { id: 'C', role: 'consumer' }], order: ['C', 'C', 'C', 'C', 'P'] }],
+      ['PT', { ...defaults('PT'), threads: { T: { process: 'P', registers: { r: 0 }, stack: [1, 2] } } }],
+      ['IPC', { ...defaults('IPC'), capacity: 2, initial: [5], operations: [{ actor: 'P', op: 'receive' }] }],
+      ['IPC', { actors: ['P'], mode: 'shared', capacity: 1, initial: [], shared: { x: 3 }, operations: [{ actor: 'P', op: 'read', key: 'x' }] }],
+      ['DP', dp],
+    ];
+    it.each(cases)('%s: written as text, read back the same, graded right and wrong', (id, input) => {
+      const text = inputToText(id, input);
+      expect(run(id, parseTextInput(id, text)).result).toEqual(run(id, input).result);
+      const { expected } = textReference(id, text);
+      expect(gradeText(id, text, expected).correct).toBe(true);
+      const lines = expected.split('\n'), tokens = lines[0].split(' ');
+      tokens[tokens.length - 1] += 'x';
+      expect(gradeText(id, text, [tokens.join(' '), ...lines.slice(1)].join('\n')).correct).toBe(false);
+    });
+    it('DP order finding accepts any order that reaches every goal at its last action', () => {
+      const text = inputToText('DP', dp), reference = textReference('DP', text).expected.split(' ');
+      const other = run('DP', { ...dp, order: Array.from({ length: 60 }, (_, i) => ['C', 'B', 'A'][i % 3]) }).events.map(e => e.actor);
+      expect(other.join(' ')).not.toBe(reference.join(' '));
+      expect(gradeText('DP', text, other.join(' ')).correct).toBe(true);
+      expect(gradeText('DP', text, reference.slice(0, -1).join(' ')).correct).toBe(false);
+      expect(gradeText('DP', text, [...reference, 'A'].join(' ')).correct).toBe(false);
+      expect(text.split('\n')[4]).toBe('goal 1 1 1');
+      const doc = createDocument('DP'); doc.instances[0].input = dp;
+      doc.question = { ...doc.question, judgeProfile: 'obo-v1', assessmentMode: 'result', gradingInstanceId: doc.instances[0].id, ioFormat: 'text-v1' };
+      expect(() => validateDocument(doc)).not.toThrow();
+      expect(() => validateDocument({ ...doc, question: { ...doc.question, ioFormat: 'json-v1' } })).toThrow(/과정형/);
+    });
   });
 });
