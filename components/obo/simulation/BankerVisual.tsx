@@ -123,7 +123,7 @@ export function BankerExplanation({ instance, execution, cursor, onChange, onAdd
   return <section aria-label="BK 하단 설명" className={styles.explanation} data-banker-explanation>
     <p className={styles.summary} aria-live="polite">{summary}</p>
     {onChange ? <div className={styles.notes}>{notes.map((view, i) => <label key={view.id} className={styles.note}>
-      <span className={styles.noteHeading}><span>{notes.length === 1 ? '설명' : `설명 ${i + 1}`}</span><small>{view.hidden ? '숨김' : view.when.kind || view.when.actor ? `${eventNames[view.when.kind ?? ''] ?? view.when.kind ?? '모든 사건'} · ${view.when.actor ? (Object.hasOwn(instance.labels, view.when.actor) ? instance.labels[view.when.actor] : view.when.actor) : '모든 프로세스'}` : '항상 표시'}</small></span>
+      <span className={styles.noteHeading}><span>{notes.length === 1 ? '설명' : `설명 ${i + 1}`}</span><small>{view.hidden ? '숨김' : view.when.kind || view.when.actor ? `${eventNames[view.when.kind ?? ''] ?? view.when.kind ?? '모든 장면'} · ${view.when.actor ? (Object.hasOwn(instance.labels, view.when.actor) ? instance.labels[view.when.actor] : view.when.actor) : '모든 프로세스'}` : '항상 표시'}</small></span>
       <textarea aria-label={`BK 설명 ${i + 1}`} rows={3} maxLength={4000} value={view.text} onChange={event => onChange(view.id, event.target.value)} placeholder="이 장면의 비교 기준과 결과를 적으세요." />
     </label>)}{onAdd && <button type="button" onClick={onAdd}>+ 설명 추가</button>}</div> : visible.map(view => <p key={view.id} className={styles.authoredNote}>{view.text}</p>)}
   </section>;
