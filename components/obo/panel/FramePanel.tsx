@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Plus, X, Copy, ArrowUp, ArrowDown } from 'lucide-react';
 import type { Node, Edge } from '@xyflow/react';
-import type { Frame } from '../types';
+import type { Frame, SimpleOutputFormat } from '../types';
+import { LinesToScenesDialog } from './LinesToScenesDialog';
 import { MANUAL_OVERRIDE_TYPES, sceneConflicts } from '../authoring/model';
 import { NodeOverrideEditor } from './overrides/NodeOverrideEditor';
 
@@ -26,6 +27,13 @@ interface FramePanelProps {
   onUpdateFrameCursorTime: (frameId: string, cursorTime: number | undefined) => void;
   nodes: Node[];
   edges: Edge[];
+  /** Coding problems built from scenes: each scene can be left out of the learner's output (start/finish explanations). */
+  codingOutput?: boolean;
+  onUpdateFrameExclude?: (frameId: string, exclude: boolean) => void;
+  /** Lines → scenes (2026-11-09): replaces the scene list in one step. */
+  onReplaceFrames?: (frames: Frame[], selectId: string | null) => void;
+  /** Coding problems: the learner's line format, used as the dialog's starting choice. */
+  lineFormat?: SimpleOutputFormat | null;
 }
 
 function nodeLabel(nodes: Node[], id: string): string {
@@ -46,8 +54,9 @@ export function FramePanel({
   onDuplicateFrame, onMoveFrame,
   onRemoveHighlightNode, onRemoveHighlightEdge,
   onAddNodeOverride, onRemoveNodeOverride, onSetOverrideField, onClearOverrideField, onUpdateFrameCursorTime,
-  nodes, edges,
+  nodes, edges, codingOutput = false, onUpdateFrameExclude, onReplaceFrames, lineFormat = null,
 }: FramePanelProps) {
+  const [linesOpen, setLinesOpen] = useState(false);
   const selectedFrame = frames.find(f => f.id === selectedFrameId) ?? null;
   const selectedFrameIndex = selectedFrame ? frames.findIndex(f => f.id === selectedFrame.id) : -1;
   const [pickerNodeId, setPickerNodeId] = useState('');
@@ -66,18 +75,24 @@ export function FramePanel({
   return (
     <div className="p-3 space-y-3">
 
-      {/* 추가 버튼 */}
+      {/* 추가 버튼 · 줄로 장면 만들기 */}
+      <div className={`grid gap-1 ${onReplaceFrames ? 'grid-cols-2' : ''}`}>
       <button
         onClick={onAddFrame}
         className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded border border-dashed border-slate-300 text-xs text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors"
       >
-        <Plus size={12} /> 프레임 추가
+        <Plus size={12} /> 장면 추가
       </button>
+      {onReplaceFrames && <button type="button" onClick={() => setLinesOpen(true)}
+        className="w-full rounded border border-indigo-200 bg-indigo-50 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">줄로 장면 만들기</button>}
+      </div>
+      {linesOpen && onReplaceFrames && <LinesToScenesDialog nodes={nodes} edges={edges} frames={frames} selectedFrameId={selectedFrameId}
+        initialFormat={lineFormat} onApply={onReplaceFrames} onClose={() => setLinesOpen(false)} />}
 
-      {/* 프레임 목록 */}
+      {/* 장면 목록 */}
       {frames.length === 0 ? (
         <p className="text-[11px] text-slate-400 text-center py-3 leading-relaxed">
-          프레임이 없습니다.<br />추가 후 캔버스 클릭으로<br />노드·엣지를 지정하세요.
+          장면이 없습니다.<br />추가한 뒤 그림에서<br />요소·연결선을 누르세요.
         </p>
       ) : (
         <div className="space-y-0.5">
@@ -100,6 +115,7 @@ export function FramePanel({
               >
                 <span className="text-slate-400 font-mono w-4 shrink-0">{i + 1}</span>
                 <span className="flex-1 truncate">{frame.label || '(제목 없음)'}</span>
+                {codingOutput && frame.excludeFromOutput && <span className="shrink-0 rounded bg-slate-100 px-1 text-[10px] text-slate-500" title="학생 출력에 포함하지 않는 설명용 장면">설명용</span>}
               </button>
               <button
                 type="button"
@@ -142,6 +158,13 @@ export function FramePanel({
             )}
           </div>
 
+          {codingOutput && onUpdateFrameExclude && (
+            <label className="flex items-start gap-2 rounded-lg border border-indigo-100 bg-indigo-50/50 p-2 text-xs text-slate-700">
+              <input type="checkbox" aria-label="학생 출력에 포함" checked={!selectedFrame.excludeFromOutput} onChange={e => onUpdateFrameExclude(selectedFrame.id, !e.target.checked)} />
+              <span>학생 출력에 포함<br /><span className="text-[11px] text-slate-500">끄면 시작·마무리 같은 설명용 장면이 되어 정답 출력 줄이 생기지 않습니다.</span></span>
+            </label>
+          )}
+
           {/* 설명 */}
           <div className="space-y-1">
             <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">설명</label>
@@ -156,9 +179,9 @@ export function FramePanel({
 
           {/* 강조 노드 */}
           <div className="space-y-1">
-            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">강조 노드</label>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">강조할 요소</label>
             {selectedFrame.highlightNodes.length === 0 ? (
-              <p className="text-[10px] text-slate-400 italic">캔버스에서 노드 클릭 시 추가</p>
+              <p className="text-[10px] text-slate-400 italic">그림에서 요소를 누르면 추가</p>
             ) : (
               <div className="space-y-0.5">
                 {selectedFrame.highlightNodes.map(nid => (
@@ -178,9 +201,9 @@ export function FramePanel({
 
           {/* 강조 엣지 */}
           <div className="space-y-1">
-            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">강조 엣지</label>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">강조할 연결선</label>
             {selectedFrame.highlightEdges.length === 0 ? (
-              <p className="text-[10px] text-slate-400 italic">캔버스에서 엣지 클릭 시 추가</p>
+              <p className="text-[10px] text-slate-400 italic">그림에서 연결선을 누르면 추가</p>
             ) : (
               <div className="space-y-0.5">
                 {selectedFrame.highlightEdges.map(eid => (
@@ -199,7 +222,7 @@ export function FramePanel({
           </div>
 
           <p className="text-[10px] text-slate-400 bg-slate-50 rounded px-2 py-1.5 leading-relaxed">
-            캔버스에서 노드/엣지를 클릭하면 이 프레임에 추가됩니다
+            그림에서 요소나 연결선을 누르면 이 장면의 강조에 추가됩니다
           </p>
 
           <section className="space-y-2 rounded-lg border border-slate-200 p-2" aria-label="장면 연결선 표시">

@@ -1,17 +1,29 @@
 'use client';
 import {useMemo,useState} from 'react';
 import type {OboCodingSchema} from './types';
-import {parseDiagramTrace} from './runtime/freeDiagram.mjs';
+import {parseDiagramTrace,parseSimpleOutput} from './runtime/freeDiagram.mjs';
 import {generateFramesFromTrace} from './lib/trace';
 import {OboPlayer} from './OboPlayer';
-export interface DiagramOutputRecord {kind:'diagram';caseIndex:number;stdout?:string;omitted?:string}
+import {Button} from '@/components/ui/button';
+export interface DiagramOutputRecord {kind:'diagram';caseIndex:number;stdout?:string;omitted?:string;
+ /** 2026-11-09 learner-playback: whether this example was right and, when not, the first wrong output line (one line = one scene). */
+ correct?:boolean;firstWrong?:number|null}
+
+/** Free-mode coding result: my public example output as scenes; a wrong one stops and is marked at its first wrong scene. */
 export function DiagramOutputPlayer({schema,records}:{schema:OboCodingSchema;records:DiagramOutputRecord[]}){
  const [index,setIndex]=useState(0);const record=records[index]??records[0];
- const parsed=useMemo(()=>parseDiagramTrace(record?.stdout??'',schema.nodes,schema.edges),[record,schema]);
- return <section className="space-y-3" aria-label="실행 출력 재생">
-  <h2 className="font-bold">내 코드의 공개 테스트 출력</h2>
-  <p className="text-sm text-slate-600">실제 실행에서 나온 기록을 재생합니다. 그림의 차이로 정답을 판정하지 않으며 채점 결과는 서버 판정을 따릅니다.</p>
-  <div className="flex flex-wrap gap-2">{records.map((r,i)=><button key={r.caseIndex} onClick={()=>setIndex(i)} aria-pressed={i===index} className="rounded-lg border px-3 py-2 text-sm">공개 테스트 {r.caseIndex}</button>)}</div>
-  {record?.omitted?<p role="alert">{record.omitted}</p>:parsed.errors.length?<div role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{parsed.errors.map((e,i)=><p key={i}>{e.message}</p>)}<p>출력 기록을 재생할 수 없습니다. 이 안내는 채점 결과를 바꾸지 않습니다.</p></div>:parsed.trace.length?<div className="h-[560px] rounded-xl border bg-white"><OboPlayer key={record.caseIndex} blob={{nodes:schema.nodes,edges:schema.edges,frames:generateFramesFromTrace(parsed.trace,schema.edges)}}/></div>:<p>재생할 출력 장면이 없습니다.</p>}
+ // Plain (Baekjoon-style) output is read with the author's line rule; JSON records keep the existing parser (2026-11-08).
+ const parsed=useMemo(()=>schema.outputFormat?parseSimpleOutput(record?.stdout??'',schema.nodes,schema.edges,schema.outputFormat):parseDiagramTrace(record?.stdout??'',schema.nodes,schema.edges),[record,schema]);
+ const frames=useMemo(()=>generateFramesFromTrace(parsed.trace,schema.edges),[parsed,schema]);
+ const wrong=record?.correct===false,at=wrong&&Number.isInteger(record?.firstWrong)?record!.firstWrong!:null;
+ const wrongFrame=at!==null&&at<frames.length?at:undefined;
+ const headline=record?.correct===true?'정답입니다.':!wrong?null:at===null?'오답입니다.'
+  :at>=frames.length?`오답 · 출력이 ${frames.length}줄에서 끝났습니다. 줄이 더 있어야 합니다.`:`오답 · ${at+1}번째 줄(장면)부터 정답과 다릅니다.`;
+ return <section className="space-y-3" aria-label="내 출력 재생">
+  <h2 className="font-bold">공개 예제의 내 출력</h2>
+  <div className="flex flex-wrap gap-2">{records.map((r,i)=><Button key={r.caseIndex} variant={i===index?'default':'outline'} onClick={()=>setIndex(i)} aria-pressed={i===index}>예제 {r.caseIndex}</Button>)}</div>
+  {headline&&<p data-verdict className={`rounded-lg p-3 text-sm font-semibold ${wrong?'bg-rose-50 text-rose-800':'bg-indigo-50 text-indigo-800'}`}>{headline}</p>}
+  {record?.omitted?<p role="alert">{record.omitted}</p>:parsed.errors.length?<div role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{parsed.errors.map((e,i)=><p key={i}>{e.message}</p>)}<p>출력을 장면으로 바꿀 수 없습니다.</p></div>
+   :frames.length?<div className="h-[560px] rounded-xl border bg-white"><OboPlayer key={record.caseIndex} blob={{nodes:schema.nodes,edges:schema.edges,frames}} maxFrameIndex={wrongFrame} wrongFrameIndex={wrongFrame}/></div>:<p>재생할 출력 장면이 없습니다.</p>}
  </section>;
 }

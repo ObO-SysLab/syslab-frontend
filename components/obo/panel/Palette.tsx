@@ -101,7 +101,7 @@ export function Palette({ activeEdgeType, onEdgeTypeChange }: PaletteProps) {
                 <ConnectionPreview type={type} />
                 <span className="min-w-0 flex-1">
                   <span className="block text-xs font-semibold">{label}</span>
-                  {type === 'allocation' && <span className="block mt-0.5 text-[10px] text-slate-500">할당 / 요청</span>}
+                  {type === 'allocation' && <span className="block mt-0.5 text-[10px] text-slate-500">요청 관계</span>}
                 </span>
                 <span className="w-3 shrink-0">{selected && <Check size={13} aria-hidden="true" />}</span>
               </button>

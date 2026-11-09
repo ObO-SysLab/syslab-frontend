@@ -4,6 +4,7 @@ import type { Edge } from '@xyflow/react';
 import { TextField } from './fields/Text';
 import { SegField } from './fields/Seg';
 import { ToggleField } from './fields/Toggle';
+import { ColorField } from './fields/Color';
 
 interface OboEdgeData {
   label?: string;
@@ -11,7 +12,11 @@ interface OboEdgeData {
   style?: 'solid' | 'dashed';
   role?: 'transition' | 'request' | 'allocation';
   emphasize?: boolean;
+  /** Optional stroke colour; omitted means the default grey (OboEdge). */
+  color?: string;
 }
+
+const DEFAULT_EDGE_COLOR = '#94a3b8';
 
 interface EdgeEditorProps {
   edge: Edge;
@@ -23,7 +28,7 @@ export function EdgeEditor({ edge, onUpdate }: EdgeEditorProps) {
 
   return (
     <div className="space-y-2.5">
-      <TextField label="라벨" value={d.label ?? ''} onChange={v => onUpdate({ label: v })} />
+      <TextField label="이름" value={d.label ?? ''} onChange={v => onUpdate({ label: v })} />
       <SegField
         label="방향"
         value={d.direction ?? 'forward'}
@@ -47,6 +52,11 @@ export function EdgeEditor({ edge, onUpdate }: EdgeEditorProps) {
         onChange={v => onUpdate({ role: v as OboEdgeData['role'] })}
       />
       <ToggleField label="강조" value={d.emphasize ?? false} onChange={v => onUpdate({ emphasize: v })} />
+      <ColorField label="선 색" value={d.color ?? DEFAULT_EDGE_COLOR} onChange={v => onUpdate({ color: v })} />
+      {d.color && (
+        <button type="button" onClick={() => onUpdate({ color: undefined })}
+          className="text-xs text-indigo-600 underline">기본색으로</button>
+      )}
     </div>
   );
 }

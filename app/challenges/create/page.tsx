@@ -8,16 +8,18 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import Link from "next/link";
 import {
-  Menu, LogOut, CheckCircle2, Target, Zap, Code2, PlusCircle, Eye,
-  StickyNote, Bell, Trash2, Network
+  Menu, LogOut, CheckCircle2, Zap, PlusCircle, Eye,
+  Bell, Trash2, Network
 } from "lucide-react";
 import type { ProblemOboData } from "@/components/obo/types";
 import { OboEditorSection } from "@/components/obo/OboEditorSection";
 import { freshId } from '@/components/obo/runtime/document.mjs';
 import { CodingExampleControl } from '@/components/obo/simulation/CodingExampleControl';
+import { DiagramExampleControl } from '@/components/obo/DiagramExampleControl';
 import { CodingRules } from '@/components/obo/simulation/CodingRules';
 import { describeCodingContract } from '@/components/obo/guidance/codingContract';
-import { validateProblemObo } from "@/components/obo/lib/validateObo";
+import { AuthoringChecklist } from "@/components/problem/AuthoringChecklist";
+import { authoringChecklist, requiredFieldErrors, type AuthoringState } from "@/components/problem/authoringSteps";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -210,21 +212,25 @@ function ProblemCreateContent() {
     }
   };
 
+  // “만드는 순서” (2026-11-09): live state of what registration needs; rows jump to their field.
+  const [previewed,setPreviewed]=useState(false);
+  // A function: group/contest selections are declared further down this component.
+  const authoringState=():AuthoringState=>({title,category,description,isEditMode,visibility,selectedGroupId,selectedContestId,problemType,choices,selectedAnswers,
+    hasDockerfile:!!dockerfile,flag,oboEnabled,oboData,testcases,previewed});
+  const goTo=(target:string)=>{
+    if(target==='description')setDescriptionTab('desc');
+    setTimeout(()=>{const el=document.getElementById(target);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});
+      const focusable=el.matches('input,textarea,select,button')?el:el.querySelector<HTMLElement>('input:not([type=hidden]),textarea,[role=combobox],button');focusable?.focus({preventScroll:true});},0);
+  };
+
   // [API] 제출 핸들러
   const handleSubmit = async () => {
     if(saving.current)return;
     setSaveNotice('');setSaveIssue(null);setFieldErrors({});
     if(!editLoaded)return;
     draft.save();
-    const errors:Record<string,string>={};
-    if(!title.trim())errors.title='문제 제목을 입력해 주세요.';
-    if(!category)errors.category='카테고리를 선택해 주세요.';
-    if(!description.trim())errors.description='문제 설명을 입력해 주세요.';
-    if(!isEditMode&&visibility==='group'&&!selectedGroupId)errors.audience='공개할 그룹을 선택해 주세요.';
-    if(!isEditMode&&visibility==='contest'&&!selectedContestId)errors.audience='공개할 대회를 선택해 주세요.';
-    if(problemType==='objective'&&(choices.length<2||choices.some(c=>!c.content.trim())))errors.choices='보기를 2개 이상 입력하고 빈 보기의 내용을 채우거나 삭제해 주세요.';
-    if(!isEditMode&&problemType==='practice'&&!dockerfile)errors.dockerfile='Dockerfile zip 파일을 선택해 주세요.';
-    if(oboEnabled){const errorsObo=validateProblemObo(oboData,{choiceCount:choices.length});if(errorsObo.length)errors.obo=errorsObo.join(' · ');}
+    // Same checks the “만드는 순서” list shows (components/problem/authoringChecklist.ts, 2026-11-09).
+    const errors=requiredFieldErrors(authoringState());
     if(Object.keys(errors).length){setFieldErrors(errors);focusField(Object.keys(errors)[0]);return;}
     if(isEditMode&&problemType!=='practice'&&!editVersion){setSaveNotice('서버 버전을 확인하지 못했습니다. 초안을 파일로 보관하고 다시 열어 주세요.');return;}
     const token=problemToken();if(!token){setSaveIssue(httpIssue(401));return;}
@@ -597,18 +603,7 @@ function ProblemCreateContent() {
 
         {/* [A] 좌측 출제 가이드 */}
         <aside className="col-span-12 md:col-span-3 space-y-4 md:sticky md:top-24 h-fit">
-          <Card className="border-primary/20 bg-panel shadow-sm overflow-hidden rounded-2xl">
-            <div className="bg-deep border-b border-line p-6">
-              <StickyNote className="w-8 h-8 text-primary" />
-              <p className="text-xl font-bold text-ink mt-2">출제 양식</p>
-              <p className="text-xs text-ink-muted mt-1">문제 양식에 맞춰 정보를 입력하세요.</p>
-            </div>
-            <CardContent className="p-5 text-sm text-ink-muted space-y-3 font-medium">
-              <div className="flex gap-2.5 items-center"><Target className="w-4 h-4 text-primary" /> 제목은 명확하게</div>
-              <div className="flex gap-2.5 items-center"><Code2 className="w-4 h-4 text-primary" /> 설명은 Markdown 지원</div>
-              <div className="flex gap-2.5 items-center"><CheckCircle2 className="w-4 h-4 text-primary" /> 정확한 테스트케이스 필수</div>
-            </CardContent>
-          </Card>
+          <AuthoringChecklist steps={authoringChecklist(authoringState())} onGo={goTo} />
           <Button variant="outline" className="w-full text-ink-muted" asChild>
             <Link href="/challenges">출제 취소</Link>
           </Button>
@@ -629,22 +624,22 @@ function ProblemCreateContent() {
             </div>
             <div className="flex gap-2">
               <Button variant="secondary" className="px-6" onClick={draft.save}>브라우저에 보관</Button>
-              <Button variant="outline" onClick={()=>{setDescriptionTab('prev');document.getElementById(problemType==='coding'?'learner-preview':'problem-description')?.scrollIntoView({behavior:'smooth',block:'start'});}} className="px-6 border-line text-ink-muted hover:bg-raised/60 hover:text-ink transition-all group">
+              <Button variant="outline" onClick={()=>{setPreviewed(true);setDescriptionTab('prev');document.getElementById(problemType==='coding'?'learner-preview':'problem-description')?.scrollIntoView({behavior:'smooth',block:'start'});}} className="px-6 border-line text-ink-muted hover:bg-raised/60 hover:text-ink transition-all group">
                 <Eye size={16} className="mr-2 text-ink-subtle group-hover:text-primary transition-colors" />{problemType==='coding'?'학습자 미리보기':'문제 미리보기'}
               </Button>
               {/* 제출 버튼에 onClick 연결 */}
-              {editError&&<p role="alert" className="text-sm text-red-600">{editError}</p>}
+              {editError&&<p role="alert" className="text-sm text-danger">{editError}</p>}
               <Button onClick={handleSubmit} disabled={isSubmitting||!editLoaded}>
                 <Zap size={16} className="mr-2" />
                 {isSubmitting ? "처리 중..." : (isEditMode ? "수정 완료" : "문제 등록")}
               </Button>
             </div>
           </div>
-          {problemType!=='practice'&&<div className="space-y-2 rounded-xl border border-indigo-100 bg-white p-4 text-sm" aria-label="작성 자료 보관">
+          {problemType!=='practice'&&<div className="space-y-2 rounded-xl border border-line bg-panel p-4 text-sm" aria-label="작성 자료 보관">
             <p role="status">{draft.status}</p>
-            <p className="text-xs text-slate-500">이 기기·브라우저에 보관됩니다. 서버 저장은 문제 등록/수정 완료 버튼으로 진행합니다.</p>
+            <p className="text-xs text-ink-muted">이 기기·브라우저에 보관됩니다. 서버 저장은 문제 등록/수정 완료 버튼으로 진행합니다.</p>
             <Button variant="outline" size="sm" onClick={draft.exportFile}>초안 파일로 보관</Button>
-            <p className="text-xs text-slate-500">초안은 암호화 없이 이 브라우저에 남습니다. 공용 기기에서는 사용 후 보관본을 삭제하세요.</p>
+            <p className="text-xs text-ink-muted">초안은 암호화 없이 이 브라우저에 남습니다. 공용 기기에서는 사용 후 보관본을 삭제하세요.</p>
             <Button variant="outline" size="sm" onClick={()=>{if(confirm('이 계정의 현재 문서 보관본을 모든 탭에 걸쳐 삭제할까요? 화면의 작성 내용은 유지됩니다.'))draft.deleteSaved();}}>이 문서의 보관본 삭제</Button>
             {draft.candidates.map(record=><div key={record.id} className="flex flex-wrap items-center gap-2"><span>{new Date(record.savedAt).toLocaleString('ko-KR')} · {record.value.title||'제목 없는 초안'}</span><Button variant="outline" size="sm" onClick={()=>{if(window.confirm('현재 작성 내용을 먼저 보관하고 선택한 초안을 불러올까요?')){if(draft.save())draft.recover(record);}}}>초안 복구</Button></div>)}
 
@@ -669,7 +664,7 @@ function ProblemCreateContent() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
-                <div className="space-y-2">
+                <div id="category-field" className="space-y-2 scroll-mt-24">
                   <Label>카테고리 <span className="text-danger">*</span></Label>
                   {fieldError('category')}
                   <Select value={category} onValueChange={setCategory}>
@@ -742,7 +737,7 @@ function ProblemCreateContent() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div id="audience-field" className="space-y-2 scroll-mt-24">
                   <Label>공개범위</Label>{fieldError('audience')}
                   <Select value={visibility} onValueChange={setVisibility} disabled={isEditMode}>
                     <SelectTrigger><SelectValue placeholder="공개범위 선택" /></SelectTrigger>
@@ -753,7 +748,7 @@ function ProblemCreateContent() {
                       <SelectItem value="private" className="text-warning font-bold">비공개</SelectItem>
                     </SelectContent>
                   </Select>
-                  {isEditMode && <p className="text-xs text-slate-500">현재 공개 범위입니다. 이 수정 화면에서는 변경할 수 없습니다.</p>}
+                  {isEditMode && <p className="text-xs text-ink-muted">현재 공개 범위입니다. 이 수정 화면에서는 변경할 수 없습니다.</p>}
                 </div>
               </div>
 
@@ -939,12 +934,12 @@ function ProblemCreateContent() {
                     <div className="space-y-1.5">
                       <Label>시간 제한 (sec)</Label>
                       <Input type="number" min={1} max={30} step={1} value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value))} className="font-mono" />
-                      <p className="text-xs text-slate-500">1~30초, 정수 단위</p>
+                      <p className="text-xs text-ink-muted">1~30초, 정수 단위</p>
                     </div>
                     <div className="space-y-1.5">
                       <Label>메모리 제한 (MB)</Label>
                       <Input type="number" min={16} max={1024} step={1} value={memoryLimit} onChange={(e) => setMemoryLimit(Number(e.target.value))} className="font-mono" />
-                      <p className="text-xs text-slate-500">16~1024 MiB</p>
+                      <p className="text-xs text-ink-muted">16~1024 MiB</p>
                     </div>
                   </div>
 
@@ -996,7 +991,7 @@ function ProblemCreateContent() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-4 pt-2">
+                  <div id="testcases-field" className="space-y-4 pt-2 scroll-mt-24">
                     <div className="flex justify-between items-center">
                       <Label className="font-bold flex items-center gap-2">
                         테스트케이스 설정 <span className="text-[10px] text-ink-subtle font-normal">(최소 1개 필수)</span>
@@ -1131,7 +1126,7 @@ function ProblemCreateContent() {
                     </div>
                   </div> */}
 
-                  <div className="space-y-2.5 pt-2">
+                  <div id="dockerfile-field" className="space-y-2.5 pt-2 scroll-mt-24">
                     {fieldError('dockerfile')}
                     <Label>Dockerfile 업로드 (.zip) <span className="text-danger">*</span></Label>
                     <p className="text-xs text-ink-muted">등록 후 실습 환경을 제작합니다. 상세 화면에서 제작 중·완료·실패 상태를 확인할 수 있으며, 제작 완료 후 실습을 시작할 수 있습니다.</p>
@@ -1182,7 +1177,7 @@ function ProblemCreateContent() {
                     />
                   </div>}
 
-                  <div className="space-y-4 pt-1">
+                  <div id="choices-field" className="space-y-4 pt-1 scroll-mt-24">
                     <Label className="flex justify-between items-center">
                       <span>보기 설정 및 정답 선택 <span className="text-danger">*</span></span>
                       <span className="text-[10px] text-ink-subtle">
@@ -1255,7 +1250,7 @@ function ProblemCreateContent() {
 
           {fieldError('obo')}
           {/* 4. OBO 시각화 섹션 - 코딩/객관식만 표시 */}
-          {(problemType === "coding" || problemType === "objective") && <Card className="border-line shadow-sm rounded-2xl">
+          {(problemType === "coding" || problemType === "objective") && <Card id="obo-field" className="border-line shadow-sm rounded-2xl scroll-mt-24">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -1285,30 +1280,34 @@ function ProblemCreateContent() {
 
             {oboEnabled && (
               <CardContent className="pt-0">
-                {problemType==='coding'&&oboData.mode==='simulation'&&oboData.simulation?.question.judgeProfile==='obo-v1'&&<CodingExampleControl document={oboData.simulation} onAdd={(input,output)=>{
+                {problemType==='coding'&&oboData.mode==='simulation'&&oboData.simulation?.question.judgeProfile==='obo-v1'&&<CodingExampleControl document={oboData.simulation} existing={testcases.map(tc=>tc.input)} onAdd={(input,output,sample)=>{
                   setTestcases(previous=>{
                     const kept=previous.filter(tc=>tc.input.trim()||tc.output.trim());
-                    return [...kept,{index:kept.length+1,input,output,is_sample:true}];
+                    return [...kept,{index:kept.length+1,input,output,is_sample:sample}];
                   });
                 }}/>}
+                {problemType==='coding'&&oboData.mode==='coding_diff'&&oboData.codingDiff?.outputFormat&&<DiagramExampleControl schema={oboData.codingDiff} testcases={testcases}
+                  onAdd={(output,sample)=>setTestcases(previous=>{const kept=previous.filter(tc=>tc.input.trim()||tc.output.trim());return [...kept,{index:kept.length+1,input:'',output,is_sample:sample}];})}
+                  onFill={(index,output)=>setTestcases(previous=>previous.map(tc=>tc.index===index?{...tc,output}:tc))}/>}
                 <div className="flex items-center justify-between p-4 bg-canvas border border-line rounded-xl">
                   <p className="text-sm text-ink-muted">
                     {oboData.mode === 'simulation' ? (
-                      <>규칙 기반 시뮬레이션 · {oboData.simulation?.instances.length ?? 0}개 독립 실행</>
+                      <>간편 모드 · 모델 {oboData.simulation?.instances.length ?? 0}개</>
                     ) : oboData.mode === 'per_choice' ? (
-                      <>보기별 모드 &nbsp;·&nbsp; 보기 <span className="font-bold text-ink">{Object.keys(oboData.perChoice ?? {}).length}</span>개 설정됨</>
+                      <>자유 모드 &nbsp;·&nbsp; 보기별 그림 &nbsp;·&nbsp; 보기 <span className="font-bold text-ink">{Object.keys(oboData.perChoice ?? {}).length}</span>개 설정됨</>
                     ) : oboData.mode === 'coding_diff' ? (
                       <>
-                        출력 기록 재생 &nbsp;·&nbsp;
-                        노드 <span className="font-bold text-ink">{oboData.codingDiff?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
-                        엣지 <span className="font-bold text-ink">{oboData.codingDiff?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
-                        트레이스 <span className="font-bold text-ink">{oboData.codingDiff?.referenceTrace.length ?? 0}</span>스텝
+                        자유 모드 &nbsp;·&nbsp; 출력 기록 재생 &nbsp;·&nbsp;
+                        요소 <span className="font-bold text-ink">{oboData.codingDiff?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        연결선 <span className="font-bold text-ink">{oboData.codingDiff?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        출력 기록 <span className="font-bold text-ink">{oboData.codingDiff?.referenceTrace.length ?? 0}</span>장면
                       </>
                     ) : (
                       <>
-                        노드 <span className="font-bold text-ink">{oboData.single?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
-                        엣지 <span className="font-bold text-ink">{oboData.single?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
-                        프레임 <span className="font-bold text-ink">{oboData.single?.frames.length ?? 0}</span>개
+                        자유 모드 &nbsp;·&nbsp;
+                        요소 <span className="font-bold text-ink">{oboData.single?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        연결선 <span className="font-bold text-ink">{oboData.single?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
+                        장면 <span className="font-bold text-ink">{oboData.single?.frames.length ?? 0}</span>개
                       </>
                     )}
                   </p>
@@ -1321,7 +1320,7 @@ function ProblemCreateContent() {
             )}
           </Card>}
 
-          {problemType==='coding'&&<section id="learner-preview" className="scroll-mt-20 rounded-2xl border bg-white p-5">
+          {problemType==='coding'&&<section id="learner-preview" className="obo-scope scroll-mt-20 rounded-2xl border bg-white p-5">
             <h2 className="font-semibold">학습자 제출 안내 미리보기</h2>
             <p className="mt-2 text-sm text-slate-600">저장 전 현재 작성 내용으로 확인합니다. 공개 예제만 표시하며, 실제 저장은 문제 등록·수정 버튼을 눌러야 합니다.</p>
             <div className="my-4 border-b pb-4"><h3 className="font-semibold">{title||'문제 제목'}</h3><p className="mt-2 whitespace-pre-wrap break-words text-sm">{description||'문제 설명을 작성하세요.'}</p></div>

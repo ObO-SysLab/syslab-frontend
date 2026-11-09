@@ -1,12 +1,14 @@
 'use client';
 import { useState } from 'react';
 import type { Json } from '../runtime/index.mjs';
+import { BulkArrayField } from './BulkArrayField';
+import { bulkKind } from './bulkInput';
 
 export type FieldSchema = {
   type?: string; properties?: Record<string, FieldSchema>; required?: string[];
   additionalProperties?: boolean | FieldSchema; items?: FieldSchema; enum?: Json[]; const?: Json;
   anyOf?: FieldSchema[]; oneOf?: FieldSchema[]; minimum?: number; maximum?: number;
-  minItems?: number; maxItems?: number; maxLength?: number;
+  minItems?: number; maxItems?: number; maxLength?: number; pattern?: string;
 };
 const labels: Record<string, string> = {
   jobs:'프로세스', id:'식별 이름', arrival:'도착 시각', bursts:'CPU / I/O 실행량', priority:'우선순위', policy:'규칙', quantum:'시간 할당량',
@@ -80,7 +82,7 @@ export function InputForm({schema,value,onChange,label='입력',path='input'}:{s
   }
   if (schema.type==='array') {
     const items=Array.isArray(value)?value:[];
-    return <fieldset className="min-w-0 space-y-2 rounded-lg border border-slate-200 p-3"><legend className="px-1 text-xs font-bold text-slate-700">{label} · {items.length}</legend>
+    const body=<>
       {items.slice(page*20,page*20+20).map((item,offset)=>{const index=page*20+offset;return <div key={`${path}-${index}`} className="space-y-1 border-b border-slate-100 pb-2">
         <InputForm schema={schema.items??{}} value={item} onChange={v=>onChange(items.map((x,i)=>i===index?v:x))} label={`${label} ${index+1}`} path={`${path}[${index}]`}/>
         <div className="flex gap-3 text-xs"><button type="button" disabled={items.length<=(schema.minItems??0)} className="text-rose-600 disabled:opacity-30" onClick={()=>onChange(items.filter((_,i)=>i!==index))}>삭제</button>
@@ -88,7 +90,10 @@ export function InputForm({schema,value,onChange,label='입력',path='input'}:{s
       </div>;})}
       {items.length>20&&<div className="flex gap-2 text-xs"><button type="button" disabled={page===0} onClick={()=>setPage(p=>p-1)}>이전</button><span>{page+1}/{Math.ceil(items.length/20)}</span><button type="button" disabled={(page+1)*20>=items.length} onClick={()=>setPage(p=>p+1)}>다음</button></div>}
       <button type="button" className="rounded-md bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 disabled:opacity-40" disabled={items.length>=(schema.maxItems??10000)} onClick={()=>onChange([...items,seed(schema.items??{})])}>항목 추가</button>
-    </fieldset>;
+    </>;
+    // Lists, matrices and record lists get one-line / table entry; the per-field form stays one click away (2026-11-08).
+    if(bulkKind(schema))return <BulkArrayField schema={schema} value={value} onChange={onChange} label={label} labelOf={key=>Object.hasOwn(labels,key)?labels[key]:key} seedItem={()=>seed(schema.items??{})} classic={<div className="space-y-2">{body}</div>}/>;
+    return <fieldset className="min-w-0 space-y-2 rounded-lg border border-slate-200 p-3"><legend className="px-1 text-xs font-bold text-slate-700">{label} · {items.length}</legend>{body}</fieldset>;
   }
   if (schema.type==='null') return <p className="text-xs text-slate-500">{label}: 없음</p>;
   if (schema.type==='boolean') return <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={value===true} onChange={e=>onChange(e.target.checked)}/>{label}</label>;

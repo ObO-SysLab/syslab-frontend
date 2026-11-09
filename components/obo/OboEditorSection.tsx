@@ -6,7 +6,7 @@ import type { Node, Edge } from '@xyflow/react';
 import { CheckCircle2, X, Undo2, Redo2 } from 'lucide-react';
 import { useGraphHistory } from './lib/useGraphHistory';
 import { type OBOTemplate, type EdgeType } from './templates';
-import type { Frame, OboBlob, OboMode, ProblemOboData } from './types';
+import type { Frame, OboBlob, OboMode, ProblemOboData, SimpleOutputFormat } from './types';
 import { TemplateSidebar } from './TemplateSidebar';
 import { OBOEditorCanvas } from './OBOEditorCanvas';
 import { PropertyPanel } from './panel/PropertyPanel';
@@ -19,10 +19,11 @@ import { parseTraceText, stringifyTrace } from './lib/traceParser';
 import { traceTokenFor, makeUniqueLabel, collectLabels } from './lib/label';
 import { exampleStateValue } from './lib/overrideFields';
 import { SimulationEditor } from './simulation/SimulationEditor';
-import {parseDiagramTrace} from './runtime/freeDiagram.mjs';
+import {parseDiagramTrace, framesToTrace, validateOutputFormat} from './runtime/freeDiagram.mjs';
 import { createDocument } from './runtime/document.mjs';
 import { resizeSlotFrames } from './slots/model';
 import { pruneFrameReferences } from './authoring/model';
+import { OBO_TOPICS, ruleModelName, freeTemplateName } from './topicMap';
 
 export interface OboChoice { id: string; text: string; }
 
@@ -40,10 +41,10 @@ const EMPTY_BLOB: OboBlob = { nodes: [], edges: [], frames: [] };
 
 // 모드는 저작자가 고르지 않고 문제 유형에서 자동 결정된다. 상단 바에는 선택 대신 이 라벨을 표시만 한다.
 const MODE_LABEL: Record<OboMode, string> = {
-  single: '단일 다이어그램',
-  per_choice: '보기별',
-  coding_diff: '출력 기록 재생',
-  simulation: '규칙 기반 시뮬레이션',
+  single: '그림 하나',
+  per_choice: '보기별 그림',
+  coding_diff: '학생 출력 재생',
+  simulation: '간편 모드',
 };
 
 export const OboEditorSection = React.memo(function OboEditorSection(props: Props) {
@@ -55,11 +56,38 @@ export const OboEditorSection = React.memo(function OboEditorSection(props: Prop
     props.onAlternativesChange?.({...(legacy.current?{legacy:legacy.current}:{}),...(simulation.current?{simulation:simulation.current}:{})});
     props.onChange(next);
   };
+  const [topicId, setTopicId] = useState('');
+  const topic = OBO_TOPICS.find(t => t.id === topicId) ?? null;
+  const coding = !!props.allowCodingDiff;
+  const choose = (rule: boolean) => rule
+    ? update(simulation.current ?? {schemaVersion: 2, mode: 'simulation', simulation: createDocument()})
+    : update(legacy.current ?? {mode: 'single', single: EMPTY_BLOB});
+  const card = (rule: boolean, title: string, body: string) => {
+    const active = rule === modern;
+    return <button type="button" aria-pressed={active} onClick={() => choose(rule)}
+      className={`min-w-0 rounded-xl border px-3 py-2 text-left transition-colors ${active ? 'border-indigo-500 bg-white ring-1 ring-indigo-500' : 'border-slate-200 bg-white/60 hover:border-slate-300 hover:bg-white'}`}>
+      <span className={`block text-sm font-semibold ${active ? 'text-indigo-700' : 'text-slate-800'}`}>{title}</span>
+      <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">{body}</span>
+    </button>;
+  };
   return <div className="flex h-full min-h-0 flex-col">
-    <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-slate-50 px-4 py-2">
-      <Button type="button" size="sm" variant={modern ? 'default' : 'outline'} onClick={() => update(simulation.current ?? {schemaVersion: 2, mode: 'simulation', simulation: createDocument()})}>규칙 기반 시뮬레이션</Button>
-      <Button type="button" size="sm" variant={modern ? 'outline' : 'default'} onClick={() => update(legacy.current ?? {mode: 'single', single: EMPTY_BLOB})}>자유 그림</Button>
-      <span className="text-xs text-slate-500">규칙 계산과 직접 만든 그림은 독립적입니다. {props.onAlternativesChange?'두 구성은 작성 초안에 함께 보관됩니다.':'전환한 구성은 이 창을 닫기 전까지 보관됩니다.'}</span>
+    <div className="shrink-0 space-y-2 border-b bg-slate-50 px-4 py-2" aria-label="만드는 방식">
+      <div className="grid gap-2 md:grid-cols-[1fr_1fr_minmax(200px,0.8fr)]">
+        {/* Plain mode names chosen by the user (2026-11-08): 간편 모드 = rule-based simulation, 자유 모드 = free drawing. */}
+        {card(true, '간편 모드', coding ? '값만 넣으면 그림·정답·숨김 테스트를 자동으로 만들어요. 운영체제 개념 21개를 지원해요.' : '값만 넣으면 과정과 그림을 자동으로 만들어요. 운영체제 개념 21개를 지원해요.')}
+        {card(false, '자유 모드', coding ? '그림과 정답 장면을 직접 만들어요. 학생 출력(한 줄에 한 장면)을 같은 그림으로 재생해 채점해요. 어떤 개념이든 표현할 수 있어요.' : '그림과 장면을 직접 만들어요. 어떤 개념이든 설명에 맞춰 마음대로 꾸밀 수 있어요.')}
+        <label className="block text-xs text-slate-600">주제로 추천 받기
+          <select aria-label="주제로 추천 받기" value={topicId} onChange={e => setTopicId(e.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm">
+            <option value="">주제를 고르세요</option>
+            {OBO_TOPICS.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </label>
+      </div>
+      {topic && <p role="status" className="rounded-lg bg-white px-3 py-2 text-xs leading-relaxed text-slate-600">
+        <b className="text-slate-800">{topic.name}</b> · 값만 넣고 {coding ? '자동 채점' : '자동 재생'}까지 하려면 <b>간편 모드</b>에서 {topic.rule.map(ruleModelName).map(n => `‘${n}’`).join(', ')} 모델을 고르세요.{' '}
+        {topic.free.length ? <>그림을 직접 꾸미려면 <b>자유 모드</b>에서 {topic.free.map(freeTemplateName).map(n => `‘${n}’`).join(', ')} 템플릿으로 시작하세요.</> : <>이 주제는 자유 모드 시작 템플릿이 없어 빈 그림에서 만들어야 합니다.</>}
+      </p>}
+      <p className="text-xs text-slate-500">두 모드는 서로 독립적입니다. {props.onAlternativesChange?'두 구성은 작성 초안에 함께 보관됩니다.':'전환한 구성은 이 창을 닫기 전까지 보관됩니다.'}</p>
     </div>
     {modern && props.value?.simulation ? <div className="min-h-0 flex-1 overflow-auto bg-slate-50 p-4">
       <SimulationEditor value={props.value.simulation} onChange={document => update({schemaVersion: 2, mode: 'simulation', simulation: document})} choices={props.choices} allowCoding={props.allowCodingDiff}/>
@@ -99,7 +127,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
     if (m === 'single') return value?.single ?? EMPTY_BLOB;
     if (m === 'coding_diff') {
       const schema = value?.codingDiff;
-      return schema ? { nodes: schema.nodes, edges: schema.edges, frames: [] } : EMPTY_BLOB;
+      return schema ? { nodes: schema.nodes, edges: schema.edges, frames: schema.frames ?? [] } : EMPTY_BLOB;
     }
     return id ? (value?.perChoice?.[id] ?? EMPTY_BLOB) : EMPTY_BLOB;
   };
@@ -113,13 +141,23 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
   const [traceText, setTraceText] = useState<string>(() =>
     value?.codingDiff ? value.codingDiff.sourceTraceText??stringifyTrace(value.codingDiff.referenceTrace, value.codingDiff.nodes as Node[]) : ''
   );
+  // 2026-11-08: coding problems are built from scenes by default (records derived), or written as records (advanced).
+  // Documents saved before keep their records and open in the record mode.
+  const [codingSource, setCodingSource] = useState<'scenes' | 'text'>(() => {
+    const schema = value?.codingDiff;
+    return schema && !schema.frames && (schema.sourceTraceText?.trim() || schema.referenceTrace.length) ? 'text' : 'scenes';
+  });
+  const [outputFormat, setOutputFormat] = useState<SimpleOutputFormat | null>(value?.codingDiff?.outputFormat ?? null);
 
   // ── React Flow 상태 ───────────────────────────────────
   const init = getBlob(initMode, initChoiceId);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(init.nodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(init.edges as Edge[]);
   const [frames, setFrames] = useState<Frame[]>(init.frames);
-  const referenceTrace = useMemo(() => parseDiagramTrace(traceText, nodes,edges).trace, [traceText, nodes,edges]);
+  const sceneMode = mode === 'coding_diff' && codingSource === 'scenes';
+  const referenceTrace = useMemo(() => sceneMode ? framesToTrace(nodes, frames) : parseDiagramTrace(traceText, nodes,edges).trace, [sceneMode, frames, traceText, nodes,edges]);
+  // A format whose element was deleted is not saved; the panel asks the author to choose again.
+  const savedFormat = useMemo(() => { if (!outputFormat) return null; try { validateOutputFormat(outputFormat, nodes); return outputFormat; } catch { return null; } }, [outputFormat, nodes]);
 
   // ── 되돌리기 / 다시하기 ────────────────────────────────
   const { undo, redo, canUndo, canRedo } = useGraphHistory({
@@ -163,17 +201,19 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
     if (mode === 'single') {
       onChangeRef.current({ mode: 'single', single: serialize(nodes, edges, frames) });
     } else if (mode === 'coding_diff') {
-      const blob = serialize(nodes, edges, []);
+      const blob = serialize(nodes, edges, sceneMode ? frames : []);
       onChangeRef.current({
         mode: 'coding_diff',
-        codingDiff: { nodes: blob.nodes, edges: blob.edges, referenceTrace,sourceTraceText:traceText },
+        codingDiff: { nodes: blob.nodes, edges: blob.edges, referenceTrace,
+          ...(sceneMode ? { frames: blob.frames } : { sourceTraceText: traceText }),
+          ...(savedFormat ? { outputFormat: savedFormat } : {}) },
       });
     } else if (activeChoiceId) {
       const blob = serialize(nodes, edges, frames);
       perChoiceMapRef.current = { ...perChoiceMapRef.current, [activeChoiceId]: blob };
       onChangeRef.current({ mode: 'per_choice', perChoice: { ...perChoiceMapRef.current } });
     }
-  }, [nodes, edges, frames, mode, activeChoiceId, referenceTrace]);
+  }, [nodes, edges, frames, mode, activeChoiceId, referenceTrace, sceneMode, traceText, savedFormat]);
 
   // ── 보기 탭 전환 ──────────────────────────────────────
   const handleChoiceSelect = useCallback((choiceId: string) => {
@@ -292,6 +332,12 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
     setSelectedFrameId(id);
   }, [frames]);
 
+  // Lines → scenes (2026-11-09): the dialog returns the whole scene list.
+  const replaceFrames = useCallback((next: Frame[], selectId: string | null) => {
+    setFrames(next);
+    setSelectedFrameId(selectId);
+  }, []);
+
   const removeFrame = useCallback((id: string) => {
     setFrames(fs => fs.filter(f => f.id !== id));
     setSelectedFrameId(prev => prev === id ? null : prev);
@@ -405,6 +451,18 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
     );
   }, [nodes]);
 
+  // Switching keeps the work: records become scenes (empty captions) and scenes become JSON record lines.
+  const switchCodingSource = useCallback((next: 'scenes' | 'text') => {
+    if (next === codingSource) return;
+    if (next === 'scenes') {
+      if (!frames.length && referenceTrace.length) setFrames(generateFramesFromTrace(referenceTrace, edges).map(f => ({ ...f, label: '' })));
+    } else setTraceText(framesToTrace(nodes, frames).map(step => JSON.stringify({ v: 1, ...step })).join('\n'));
+    setCodingSource(next);
+  }, [codingSource, frames, referenceTrace, edges, nodes]);
+  const updateFrameExclude = useCallback((id: string, exclude: boolean) => {
+    setFrames(fs => fs.map(f => { if (f.id !== id) return f; const { excludeFromOutput: _old, ...rest } = f; return exclude ? { ...rest, excludeFromOutput: true } : rest; }));
+  }, []);
+
   const previewFrame = activeTab === 'frame' && selectedFrameId
     ? (frames.find(f => f.id === selectedFrameId) ?? null)
     : null;
@@ -413,7 +471,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
 
   const previewBlob: OboBlob = mode === 'per_choice'
     ? (activeChoiceId ? (perChoiceMapRef.current[activeChoiceId] ?? EMPTY_BLOB) : EMPTY_BLOB)
-    : mode === 'coding_diff'
+    : mode === 'coding_diff' && !sceneMode
       ? (() => { const b = serialize(nodes, edges, []); return { ...b, frames: generateFramesFromTrace(referenceTrace, b.edges) }; })()
       : serialize(nodes, edges, frames);
 
@@ -422,7 +480,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
       {/* 상단 바 — 모드는 문제 유형에서 자동 결정되므로 선택 UI 대신 현재 모드를 표시만 한다 */}
       <div className="h-10 border-b flex items-center justify-between px-4 bg-slate-50 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-slate-400 font-medium">시각화 방식</span>
+          <span className="text-[11px] text-slate-400 font-medium">보기 방식</span>
           <span className="px-2.5 py-1 text-[11px] font-bold rounded-md bg-white shadow-sm text-slate-900 border border-slate-200">
             {MODE_LABEL[mode]}
           </span>
@@ -438,12 +496,12 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
           <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)} disabled={previewBlob.nodes.length === 0}>
             미리보기
           </Button>
-          <Button variant="outline" size="sm" onClick={() => {
+          <Button variant="ghost" size="sm" className="text-slate-500" title="고급: 저장되는 자료를 JSON으로 봅니다" onClick={() => {
             const next = !jsonVisible;
             setJsonVisible(next);
             if (next) setActiveTab('property');
           }}>
-            {jsonVisible ? '닫기' : 'JSON 보기'}
+            {jsonVisible ? '자료 닫기' : '고급 · 자료 보기'}
           </Button>
         </div>
       </div>
@@ -529,14 +587,14 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
           setFrames={setFrames}
           onFrameNodeClick={handleFrameNodeClick}
           onFrameEdgeClick={handleFrameEdgeClick}
-          traceMode={mode === 'coding_diff'}
+          traceMode={mode === 'coding_diff' && !sceneMode}
           onTraceNodeClick={handleTraceNodeClick}
           onDuplicateNode={duplicateNode}
           onDeleteNode={deleteNodeById}
           onDeleteEdge={deleteEdgeById}
         />
         {/* Every manually authored scene (not the coding output comparison) can write its lower caption here (2026-11-08). */}
-        {mode!=='coding_diff'&&<section aria-label="장면 설명 작성" className="shrink-0 border-t bg-white px-4 py-3">
+        {(mode!=='coding_diff'||sceneMode)&&<section aria-label="장면 설명 작성" className="shrink-0 border-t bg-white px-4 py-3">
           <div className="mb-2 flex items-center gap-3">
             <label className="text-sm font-semibold text-slate-700">장면
               <select aria-label="설명할 장면" className="ml-2 max-w-48 rounded border px-2 py-1 text-sm" value={selectedFrameId??''} onChange={e=>{setSelectedFrameId(e.target.value||null);setActiveTab('frame');}}>
@@ -570,6 +628,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
           selectedFrameId={selectedFrameId}
           onSelectFrame={setSelectedFrameId}
           onAddFrame={addFrame}
+          onReplaceFrames={replaceFrames}
           onDuplicateFrame={handleDuplicateFrame}
           onMoveFrame={handleMoveFrame}
           onRemoveFrame={removeFrame}
@@ -585,6 +644,12 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
           traceText={traceText}
           onTraceTextChange={setTraceText}
           testcaseOutputs={testcaseOutputs}
+          codingSource={codingSource}
+          onCodingSourceChange={switchCodingSource}
+          outputFormat={outputFormat}
+          onOutputFormatChange={setOutputFormat}
+          formatFrames={sceneMode ? frames : generateFramesFromTrace(referenceTrace, edges)}
+          onUpdateFrameExclude={updateFrameExclude}
         />
       </div>
 

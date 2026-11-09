@@ -33,7 +33,7 @@ export function TracePanel({ nodes, edges, value, onChange, testcaseOutputs }: T
     if (!pickedIndex) return;
     const tc = testcaseOutputs?.find(t => String(t.index) === pickedIndex);
     if (!tc) return;
-    if (value.trim() && !window.confirm('현재 작성된 트레이스를 테스트케이스 출력으로 덮어쓸까요?')) return;
+    if (value.trim() && !window.confirm('지금 쓴 출력 기록을 테스트케이스 출력으로 바꿀까요?')) return;
     onChange(tc.output);
     setPickedIndex('');
   };
@@ -56,16 +56,16 @@ export function TracePanel({ nodes, edges, value, onChange, testcaseOutputs }: T
     <div className="p-3 space-y-3">
       <p className="text-[10px] text-slate-400 bg-slate-50 rounded px-2 py-1.5 leading-relaxed">
         출력 기록 재생은 한 줄 = 한 장면입니다. 정답 여부는 서버의 문제별 채점 규칙이 결정합니다.
-        <br />줄 안에서 <b>노드 이름(라벨)</b>을 적으면 그 스텝에서 강조되고(연결된 엣지도 자동 강조),
-        노드 이름이 아닌 값은 바로 앞 노드의 필드값으로 들어갑니다.
-        <br />예: <code>new ready</code> (두 노드 강조) / <code>frames [7,null,null]</code> (frames 노드의 값 지정)
+        <br />줄 안에서 <b>요소 이름</b>을 적으면 그 장면에서 강조되고(이어진 연결선도 함께 강조),
+        요소 이름이 아닌 값은 바로 앞 요소의 값으로 들어갑니다.
+        <br />예: <code>new ready</code> (두 요소 강조) / <code>frames [7,null,null]</code> (frames 요소의 값 지정)
         <br />새 요소·여러 필드·공백 있는 값은 JSON 한 줄로 작성하세요. 아래 요소 버튼으로 예시를 넣을 수 있습니다.
       </p>
 
       <div className="space-y-1">
-        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">노드 참조</label>
+        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">요소 넣기</label>
         {nodes.length === 0 ? (
-          <p className="text-[10px] text-slate-400 italic">캔버스에 노드를 먼저 추가하세요</p>
+          <p className="text-[10px] text-slate-400 italic">그림에 요소를 먼저 추가하세요</p>
         ) : (
           <div className="grid grid-cols-2 gap-1">
             {nodes.map(n => {
@@ -120,7 +120,7 @@ export function TracePanel({ nodes, edges, value, onChange, testcaseOutputs }: T
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">참고 출력 기록</label>
           <span className="text-[10px] text-slate-400">
-            {stepCount}스텝 인식됨
+            {stepCount}장면 인식됨
             {errorCount > 0 && <span className="ml-1.5 text-rose-500 font-bold">· 오류 {errorCount}</span>}
           </span>
         </div>
