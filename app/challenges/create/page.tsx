@@ -1294,18 +1294,19 @@ function ProblemCreateContent() {
                 <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl">
                   <p className="text-sm text-slate-500">
                     {oboData.mode === 'simulation' ? (
-                      <>규칙 기반 시뮬레이션 · {oboData.simulation?.instances.length ?? 0}개 독립 실행</>
+                      <>간편 모드 · 모델 {oboData.simulation?.instances.length ?? 0}개</>
                     ) : oboData.mode === 'per_choice' ? (
-                      <>보기별 모드 &nbsp;·&nbsp; 보기 <span className="font-bold text-slate-800">{Object.keys(oboData.perChoice ?? {}).length}</span>개 설정됨</>
+                      <>자유 모드 &nbsp;·&nbsp; 보기별 그림 &nbsp;·&nbsp; 보기 <span className="font-bold text-slate-800">{Object.keys(oboData.perChoice ?? {}).length}</span>개 설정됨</>
                     ) : oboData.mode === 'coding_diff' ? (
                       <>
-                        출력 기록 재생 &nbsp;·&nbsp;
+                        자유 모드 &nbsp;·&nbsp; 출력 기록 재생 &nbsp;·&nbsp;
                         요소 <span className="font-bold text-slate-800">{oboData.codingDiff?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
                         연결선 <span className="font-bold text-slate-800">{oboData.codingDiff?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
                         출력 기록 <span className="font-bold text-slate-800">{oboData.codingDiff?.referenceTrace.length ?? 0}</span>장면
                       </>
                     ) : (
                       <>
+                        자유 모드 &nbsp;·&nbsp;
                         요소 <span className="font-bold text-slate-800">{oboData.single?.nodes.length ?? 0}</span>개 &nbsp;·&nbsp;
                         연결선 <span className="font-bold text-slate-800">{oboData.single?.edges.length ?? 0}</span>개 &nbsp;·&nbsp;
                         장면 <span className="font-bold text-slate-800">{oboData.single?.frames.length ?? 0}</span>개

@@ -44,7 +44,7 @@ const MODE_LABEL: Record<OboMode, string> = {
   single: '그림 하나',
   per_choice: '보기별 그림',
   coding_diff: '학생 출력 재생',
-  simulation: '규칙 기반 시뮬레이션',
+  simulation: '간편 모드',
 };
 
 export const OboEditorSection = React.memo(function OboEditorSection(props: Props) {
@@ -73,8 +73,9 @@ export const OboEditorSection = React.memo(function OboEditorSection(props: Prop
   return <div className="flex h-full min-h-0 flex-col">
     <div className="shrink-0 space-y-2 border-b bg-slate-50 px-4 py-2" aria-label="만드는 방식">
       <div className="grid gap-2 md:grid-cols-[1fr_1fr_minmax(200px,0.8fr)]">
-        {card(true, '규칙 기반 시뮬레이션', coding ? '입력만 정하면 엔진이 과정을 계산해 그립니다. 학생 코드의 결과를 엔진 정답과 비교해 채점할 수 있어요.' : '입력만 정하면 엔진이 과정을 계산해 그립니다. 값을 바꿔도 그림이 자동으로 맞춰져요.')}
-        {card(false, '자유 그림', coding ? '요소를 직접 놓고 장면을 만듭니다. 학생 출력(한 줄에 한 장면)을 같은 그림으로 재생해요.' : '요소를 직접 놓고 장면을 만듭니다. 설명에 맞춰 그림을 마음대로 꾸밀 수 있어요.')}
+        {/* Plain mode names chosen by the user (2026-11-08): 간편 모드 = rule-based simulation, 자유 모드 = free drawing. */}
+        {card(true, '간편 모드', coding ? '값만 넣으면 그림·정답·숨김 테스트를 자동으로 만들어요. 운영체제 개념 21개를 지원해요.' : '값만 넣으면 과정과 그림을 자동으로 만들어요. 운영체제 개념 21개를 지원해요.')}
+        {card(false, '자유 모드', coding ? '그림과 정답 장면을 직접 만들어요. 학생 출력(한 줄에 한 장면)을 같은 그림으로 재생해 채점해요. 어떤 개념이든 표현할 수 있어요.' : '그림과 장면을 직접 만들어요. 어떤 개념이든 설명에 맞춰 마음대로 꾸밀 수 있어요.')}
         <label className="block text-xs text-slate-600">주제로 추천 받기
           <select aria-label="주제로 추천 받기" value={topicId} onChange={e => setTopicId(e.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm">
             <option value="">주제를 고르세요</option>
@@ -83,10 +84,10 @@ export const OboEditorSection = React.memo(function OboEditorSection(props: Prop
         </label>
       </div>
       {topic && <p role="status" className="rounded-lg bg-white px-3 py-2 text-xs leading-relaxed text-slate-600">
-        <b className="text-slate-800">{topic.name}</b> · 계산과 {coding ? '의미 채점' : '자동 재생'}이 필요하면 <b>규칙 기반</b>의 {topic.rule.map(ruleModelName).map(n => `‘${n}’`).join(', ')} 모델을 고르세요.{' '}
-        {topic.free.length ? <>설명용 그림을 직접 꾸미려면 <b>자유 그림</b>의 {topic.free.map(freeTemplateName).map(n => `‘${n}’`).join(', ')} 템플릿에서 시작하세요.</> : <>이 주제는 자유 그림 시작 템플릿이 없어 빈 그림에서 만들어야 합니다.</>}
+        <b className="text-slate-800">{topic.name}</b> · 값만 넣고 {coding ? '자동 채점' : '자동 재생'}까지 하려면 <b>간편 모드</b>에서 {topic.rule.map(ruleModelName).map(n => `‘${n}’`).join(', ')} 모델을 고르세요.{' '}
+        {topic.free.length ? <>그림을 직접 꾸미려면 <b>자유 모드</b>에서 {topic.free.map(freeTemplateName).map(n => `‘${n}’`).join(', ')} 템플릿으로 시작하세요.</> : <>이 주제는 자유 모드 시작 템플릿이 없어 빈 그림에서 만들어야 합니다.</>}
       </p>}
-      <p className="text-xs text-slate-500">두 방식은 서로 독립적입니다. {props.onAlternativesChange?'두 구성은 작성 초안에 함께 보관됩니다.':'전환한 구성은 이 창을 닫기 전까지 보관됩니다.'}</p>
+      <p className="text-xs text-slate-500">두 모드는 서로 독립적입니다. {props.onAlternativesChange?'두 구성은 작성 초안에 함께 보관됩니다.':'전환한 구성은 이 창을 닫기 전까지 보관됩니다.'}</p>
     </div>
     {modern && props.value?.simulation ? <div className="min-h-0 flex-1 overflow-auto bg-slate-50 p-4">
       <SimulationEditor value={props.value.simulation} onChange={document => update({schemaVersion: 2, mode: 'simulation', simulation: document})} choices={props.choices} allowCoding={props.allowCodingDiff}/>

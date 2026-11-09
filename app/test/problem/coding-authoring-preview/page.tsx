@@ -27,7 +27,7 @@ export default function CodingAuthoringPreview() {
   const contract = useMemo(() => describeCodingContract(oboData), [oboData]);
   const schema = oboData.codingDiff;
   return <main className="min-h-screen space-y-4 bg-slate-50 p-4 text-slate-900 md:p-5"><div className="mx-auto max-w-[1600px] space-y-4">
-    <header><p className="text-xs font-semibold text-indigo-600">OBO · 코딩형 자유 그림 미리보기</p><h1 className="mt-1 text-2xl font-bold">장면으로 정답을 만들고, 학생 출력으로 다시 그려 보세요</h1>
+    <header><p className="text-xs font-semibold text-indigo-600">OBO · 코딩형 문제 만들기 미리보기</p><h1 className="mt-1 text-2xl font-bold">장면으로 정답을 만들고, 학생 출력으로 다시 그려 보세요</h1>
       <p className="mt-1 text-sm text-slate-500">문제 등록 화면과 같은 편집기입니다. 저장되지 않습니다.</p></header>
     <div className="h-[max(620px,calc(100dvh-260px))] overflow-hidden rounded-2xl border border-slate-200 bg-white" data-testid="coding-editor">
       {ready && <OboEditorSection value={oboData} onChange={setOboData} allowCodingDiff testcaseOutputs={testcases.filter(tc => tc.is_sample).map(tc => ({ index: tc.index, output: tc.output }))} />}
