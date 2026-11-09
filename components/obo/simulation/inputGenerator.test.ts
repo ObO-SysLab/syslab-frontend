@@ -19,7 +19,7 @@ describe('random hidden tests (2026-11-08)', () => {
         else expect(JSON.parse(c.output).result).toEqual(run(id, JSON.parse(c.input)).result);
       }
     }
-  });
+  }, 30000); // 10 seeds × 2 formats; took 8 s for P3 when the whole suite ran in parallel (2026-11-08).
 
   it('repeats with the same seed, changes with another, and skips answers that existing tests already have', () => {
     const one = generateHiddenCases('P2', base('P2'), { count: 5, seed: 42, format: 'text-v1' });
