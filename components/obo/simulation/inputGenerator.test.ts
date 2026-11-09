@@ -39,7 +39,8 @@ describe('random hidden tests (2026-11-08)', () => {
   });
 
   it('explains why nothing could be made when the model input cannot be written as text', () => {
-    const g = generateHiddenCases('DP', { ...base('DP'), mode: 'findSchedule' }, { count: 3, seed: 1, format: 'text-v1' });
+    // A context value with a space still needs JSON (DP order finding became text-expressible on 2026-11-09).
+    const g = generateHiddenCases('K-SYSCALL', { ...base('K-SYSCALL'), contexts: { P: { pc: 42, note: 'a b' }, Q: { pc: 8 } } }, { count: 3, seed: 1, format: 'text-v1' });
     expect(g.cases).toHaveLength(0);
     expect(g.lastError).toMatch(/JSON/);
   });
