@@ -139,7 +139,6 @@ export function PropertyPanel({
                     className={`rounded-lg px-1 py-1.5 text-xs font-semibold ${codingSource === value ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{label}</button>
                 ))}
               </div>
-              <p className="text-[11px] leading-relaxed text-slate-500">{codingScenes ? '일반 그림처럼 장면을 만들면 정답 재생 기록이 자동으로 만들어집니다.' : '고급: 재생 기록을 줄마다 직접 씁니다.'}</p>
               {onOutputFormatChange && <OutputFormatPanel nodes={nodes} frames={formatFrames} format={outputFormat} onChange={onOutputFormatChange} />}
             </div>
           )}
