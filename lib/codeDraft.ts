@@ -21,13 +21,14 @@ export class CodeDraftSession {
   warning = '';
   candidates: CodeRecord[] = [];
   private buffers = new Map<string, BufferValue>();
+  private starter: (language: string) => string = language => CODE_SNIPPETS[language];
   constructor(context: CodeContext, private storage: () => Storage, private uuid: () => string = () => crypto.randomUUID()) {
     this.scope = codeScope(context);
   }
   private buffer(language = this.language): BufferValue {
     let buffer = this.buffers.get(language);
     if (!buffer) {
-      buffer = { code: CODE_SNIPPETS[language], key: `${this.scope}${language}:${this.uuid()}`, dirty: false, savedAt: null, version: this.version };
+      buffer = { code: this.starter(language), key: `${this.scope}${language}:${this.uuid()}`, dirty: false, savedAt: null, version: this.version };
       this.buffers.set(language, buffer);
     }
     return buffer;
@@ -45,6 +46,13 @@ export class CodeDraftSession {
     this.flush();
     this.language = language;
     this.scan();
+  }
+  /** The problem's first code (2026-11-10). Buffers never edited or kept switch to it; written code stays. */
+  setStarter(starter: (language: string) => string) {
+    const previous = this.starter;
+    this.starter = starter;
+    for (const [language, buffer] of this.buffers)
+      if (!buffer.dirty && buffer.savedAt === null && buffer.code === previous(language)) buffer.code = starter(language);
   }
   setVersion(version: string | null) {
     this.version = version;
@@ -104,7 +112,7 @@ export class CodeDraftSession {
       if (!this.flush()) return false;
       buffer.key = `${this.scope}${this.language}:${this.uuid()}`;
     }
-    buffer.code = CODE_SNIPPETS[this.language]; buffer.version = this.version; buffer.dirty = false; buffer.savedAt = null;
+    buffer.code = this.starter(this.language); buffer.version = this.version; buffer.dirty = false; buffer.savedAt = null;
     this.scan(); return true;
   }
   deleteSaved(): boolean {

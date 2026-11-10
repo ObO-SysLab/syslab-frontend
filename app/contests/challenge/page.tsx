@@ -1,6 +1,9 @@
 "use client";
 import { logout } from "@/lib/authSession";
 import { CodingRules } from '@/components/obo/simulation/CodingRules';
+import { ProblemTags } from "@/components/problem/ProblemTags";
+import { ChoiceList } from "@/components/problem/ChoiceList";
+import { SampleCases } from "@/components/problem/SampleCases";
 
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
@@ -168,7 +171,8 @@ function ProblemDetailContent() {
 		setIsSubmittingAnswer(true);
 		const token = localStorage.getItem("token");
 		// 명세: answer는 문자열. 단일 정답은 "2", 복수 정답은 JSON 배열 문자열 "[1,3]"
-		const sortedChoices = [...selectedChoices].sort((a, b) => a - b);
+		// 순서 일치 문제는 누른 순서 그대로 보낸다(서버가 순서까지 비교).
+		const sortedChoices = problemData?.isSeqeuntialAnswer ? [...selectedChoices] : [...selectedChoices].sort((a, b) => a - b);
 		const finalAnswer = sortedChoices.length === 1
 			? String(sortedChoices[0])
 			: JSON.stringify(sortedChoices);
@@ -209,7 +213,8 @@ function ProblemDetailContent() {
 	const handleChoiceToggle = (index: number) => {
 		if(problemData?.selectionMode==='single'){setSelectedChoices([index]);return;}
 		setSelectedChoices(prev =>
-			prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
+			prev.includes(index) ? prev.filter(i => i !== index)
+				: problemData?.isSeqeuntialAnswer ? [...prev, index] : [...prev, index].sort((a, b) => a - b)
 		);
 	};
 
@@ -380,7 +385,8 @@ function ProblemDetailContent() {
 										<div className="w-3 h-3 bg-ink-subtle rounded-full" />
 									</div>
 								</div>
-								<div className="space-y-2">
+								<div className="space-y-2 min-w-0">
+									<ProblemTags difficulty={problemData?.difficulty} type={problemData?.type} category={problemData?.category} />
 									<h1 className="text-2xl font-bold text-ink">
 										{isLoading ? "불러오는 중..." : problemData?.title}
 									</h1>
@@ -431,52 +437,12 @@ function ProblemDetailContent() {
 
 								{/* 객관식 보기 동적 렌더링 */}
 								{problemData?.type === "objective" && problemData?.choices && (
-									<div className="mt-6 space-y-2">
-										{problemData.choices.map((choice: any) => {
-											// 선택되었는지 확인
-											const isSelected = selectedChoices.includes(choice.index);
-											return (
-												<div
-													key={choice.index}
-													onClick={() => handleChoiceToggle(choice.index)}
-													className={`p-4 border-2 rounded-xl flex items-center gap-3 cursor-pointer transition-all ${isSelected
-														? "border-primary bg-primary/10 shadow-sm" // 선택 시 스타일
-														: "border-line bg-canvas hover:border-line-strong hover:bg-raised" // 기본 스타일
-														}`}
-												>
-													<span className={`font-black ${isSelected ? "text-primary" : "text-ink-subtle"}`}>
-														{choice.index}.
-													</span>
-													<span className={`text-sm ${isSelected ? "text-primary font-bold" : "text-ink"}`}>
-														{choice.content}
-													</span>
-												</div>
-											);
-										})}
-									</div>
+									<ChoiceList choices={problemData.choices} selected={selectedChoices} ordered={!!problemData?.isSeqeuntialAnswer} onToggle={handleChoiceToggle} />
 								)}
 
 								{/* 코딩형 입출력 예시 동적 렌더링 */}
 								{problemData?.type==='coding'&&<CodingRules contract={problemData.oboContract} inputDescription={problemData.inputDescription} outputDescription={problemData.outputDescription} allowedLanguages={problemData.constraints?.allowedLanguages}/>}
-								{problemData?.type === "coding" && problemData?.testcases && problemData.testcases.length > 0 && (
-									<div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-										{/* 입력 예시 */}
-										<div>
-											<span className="text-xs font-bold text-ink-muted mb-1 block">&lt;입력 예시&gt;</span>
-											<pre className="bg-canvas border border-line p-4 rounded-lg font-mono text-sm text-ink leading-6 whitespace-pre-wrap min-h-[100px]">
-												{problemData.testcases[0].input.replace(/\\n/g, "\n")}
-											</pre>
-										</div>
-
-										{/* 출력 예시 */}
-										<div>
-											<span className="text-xs font-bold text-ink-muted mb-1 block">&lt;출력 예시&gt;</span>
-											<pre className="bg-canvas border border-line p-4 rounded-lg font-mono text-sm text-ink leading-6 whitespace-pre-wrap min-h-[100px]">
-												{problemData.testcases[0].output.replace(/\\n/g, "\n")}
-											</pre>
-										</div>
-									</div>
-								)}
+								{problemData?.type === "coding" && <SampleCases cases={problemData?.testcases ?? []} />}
 							</div>
 
 							{/* 실습형(CTF) VM 환경 동적 렌더링 */}

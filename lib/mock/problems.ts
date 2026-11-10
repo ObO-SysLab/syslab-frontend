@@ -319,8 +319,9 @@ export const mockProblemComments: (Comment & { probId: number; parentId: number 
   { commentId: 8, probId: 5, parentId: null, authorNickname: "포렌식경장", content: "$DATA가 Non-resident가 되는 기준을 같이 찾아보세요.", isPrivate: false, createdAt: "2026-10-20T11:00:00", updatedAt: "2026-10-20T11:00:00" },
 ];
 
-const strip = ({ commentId, authorNickname, content, isPrivate, createdAt, updatedAt }: Comment): Comment => ({
-  commentId, authorNickname, content, isPrivate, createdAt, updatedAt,
+// 응답에는 작성자 프로필 사진 주소(없으면 null)가 함께 온다 (2026-11-10 백엔드와 같은 형태)
+const strip = ({ commentId, authorNickname, content, isPrivate, createdAt, updatedAt }: Comment) => ({
+  commentId, authorNickname, authorProfileImgUrl: authorNickname === ME.nickname ? ME.profileImgUrl : null, content, isPrivate, createdAt, updatedAt,
 });
 
 // GET /api/problems/{probId}/comments — 최상위 댓글만, 최신순

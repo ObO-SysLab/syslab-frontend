@@ -31,7 +31,9 @@ describe('public submission guidance',()=>{
   });
   it('shows descriptions even without OBO and escapes authored text',()=>{
     const html=renderToStaticMarkup(createElement(CodingRules,{inputDescription:'<script>private</script>',outputDescription:'한 줄에 정수',allowedLanguages:['cpp']}));
-    expect(html).toContain('&lt;script&gt;');expect(html).not.toContain('<script>');expect(html).toContain('한 줄에 정수');expect(html).toContain('기존 출력 비교');expect(html).toContain('C++');
+    expect(html).toContain('&lt;script&gt;');expect(html).not.toContain('<script>');expect(html).toContain('한 줄에 정수');expect(html).toContain('기존 출력 비교');
+    // 2026-11-10: the starter moved into the submission editor (it opens with it), so the guide has no picker.
+    expect(html).not.toContain('언어별 시작 코드');
   });
   it('does not mistake JSONL playback for semantic grading',()=>{
     const html=renderToStaticMarkup(createElement(CodingRules,{contract:describeCodingContract(document)}));
