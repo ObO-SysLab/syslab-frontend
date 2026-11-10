@@ -152,10 +152,6 @@ export function FramePanel({
                 <ArrowDown size={14} />
               </button>
             </div>
-            <p className="text-[11px] leading-relaxed text-slate-500">복제하면 바로 다음에 추가됩니다. 화살표로 재생 순서를 바꿔보세요.</p>
-            {frames.some(frame => Object.keys(frame.nodeDataOverrides ?? {}).length > 0) && (
-              <p className="text-[11px] leading-relaxed text-slate-500">순서를 바꾸면 앞 장면에서 이어받는 값도 달라질 수 있습니다.</p>
-            )}
           </div>
 
           {codingOutput && onUpdateFrameExclude && (
@@ -221,10 +217,6 @@ export function FramePanel({
             )}
           </div>
 
-          <p className="text-[10px] text-slate-400 bg-slate-50 rounded px-2 py-1.5 leading-relaxed">
-            그림에서 요소나 연결선을 누르면 이 장면의 강조에 추가됩니다
-          </p>
-
           <section className="space-y-2 rounded-lg border border-slate-200 p-2" aria-label="장면 연결선 표시">
             <h4 className="text-xs font-semibold text-slate-700">이 장면의 연결선</h4>
             <label className="flex gap-2 text-xs"><input type="checkbox" aria-label="표시할 연결선 직접 선택" checked={Array.isArray(selectedFrame.visibleEdges)} onChange={e => onUpdateFrameVisibleEdges(selectedFrame.id, e.target.checked ? edges.map(edge => edge.id) : undefined)} />표시할 연결선 직접 선택</label>
@@ -232,7 +224,7 @@ export function FramePanel({
               <div className="flex gap-2"><button type="button" className="text-xs text-indigo-600" onClick={() => onUpdateFrameVisibleEdges(selectedFrame.id, edges.map(e => e.id))}>모두 표시</button><button type="button" className="text-xs text-slate-600" onClick={() => onUpdateFrameVisibleEdges(selectedFrame.id, [])}>모두 숨김</button></div>
               {edges.map(edge => <label key={edge.id} className="flex items-start gap-2 text-xs text-slate-600"><input type="checkbox" aria-label={`연결선 ${edge.id} 표시`} checked={selectedFrame.visibleEdges!.includes(edge.id)} onChange={e => onUpdateFrameVisibleEdges(selectedFrame.id, e.target.checked ? [...selectedFrame.visibleEdges!, edge.id] : selectedFrame.visibleEdges!.filter(id => id !== edge.id))}/><span>{nodeLabel(nodes, edge.source)} → {nodeLabel(nodes, edge.target)} · {edgeLabel(edges, edge.id)}</span></label>)}
               {!edges.length && <p className="text-xs text-slate-500">기본 그림에서 연결선을 먼저 만드세요.</p>}
-            </> : <p className="text-xs text-slate-500">기본 그림의 모든 연결선을 표시합니다.</p>}
+            </> : null}
           </section>
 
           {/* 수동 장면 값: 코딩 출력 필드 목록과 분리 */}
