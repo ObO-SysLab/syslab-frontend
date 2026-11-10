@@ -87,6 +87,8 @@ function ProblemDetailContent() {
   // Servers before 2026-11-10 send no author picture; my own comments can still use my profile picture.
   const commentAvatar = (comment: { authorNickname?: string; authorProfileImgUrl?: string | null }) =>
     comment.authorProfileImgUrl ?? (myNickname && comment.authorNickname === myNickname && userImgUrl !== "/avatar.png" ? userImgUrl : null);
+  // The server refuses edits to other people's comments; only show the buttons on my own (2026-11-10).
+  const isMyComment = (comment: { authorNickname?: string }) => !!myNickname && comment.authorNickname === myNickname;
 
   // API 연동용 상태
   const [problemData, setProblemData] = useState<any>(null);
@@ -719,10 +721,10 @@ function ProblemDetailContent() {
                 </div>
               </div>
 
-              {problemData?.type === 'practice' && <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4" aria-label="실습 환경 제작 상태">
+              {problemData?.type === 'practice' && <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-line dark:bg-panel dark:text-ink" aria-label="실습 환경 제작 상태">
                 <p className="font-bold text-sm" role="status" aria-live="polite">{practiceStatus.label}</p>
-                <p className="mt-1 text-sm text-slate-600">{practiceStatus.message}</p>
-                {practiceStatusError && <p className="mt-2 text-sm text-amber-700" role="alert">{practiceStatusError}</p>}
+                <p className="mt-1 text-sm text-slate-600 dark:text-ink-muted">{practiceStatus.message}</p>
+                {practiceStatusError && <p className="mt-2 text-sm text-amber-700 dark:text-warning" role="alert">{practiceStatusError}</p>}
                 {(practiceStatusError || practiceBuild.status === 'FAILED' || practiceBuild.status === 'UNAVAILABLE') &&
                   <Button variant="outline" size="sm" className="mt-3" onClick={() => setPracticeStatusRetry(value => value + 1)}>다시 확인</Button>}
               </div>}
@@ -1145,20 +1147,21 @@ function ProblemDetailContent() {
                               <span className="text-xs text-ink-subtle flex items-center gap-1">
                                 <Clock className="w-3 h-3" /> {formatTime(comment.createdAt, false)}
                               </span>
-                              {/* 수정 버튼 */}
-                              <button
+                              {/* 수정·삭제 버튼: 내 댓글에만 (닉네임은 서버에서 중복 불가) */}
+                              {isMyComment(comment) && <>
+                              <button aria-label="댓글 수정"
                                 onClick={(e) => { e.stopPropagation(); setEditingCommentId(comment.commentId); setEditContent(comment.content); }}
                                 className="text-ink-subtle hover:text-primary transition-colors"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
-                              {/* 삭제 버튼 */}
-                              <button
+                              <button aria-label="댓글 삭제"
                                 onClick={(e) => handleDeleteComment(e, comment.commentId)}
                                 className="text-ink-subtle hover:text-danger transition-colors"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
+                              </>}
                             </div>
                           </div>
 
@@ -1250,20 +1253,21 @@ function ProblemDetailContent() {
                               <span className="text-[10px] text-ink-subtle">
                                 {formatTime(reply.createdAt, false)}
                               </span>
-                              {/* 대댓글 수정 버튼 */}
-                              <button
+                              {/* 대댓글 수정·삭제 버튼: 내 답글에만 */}
+                              {isMyComment(reply) && <>
+                              <button aria-label="답글 수정"
                                 onClick={() => { setEditingCommentId(reply.commentId); setEditContent(reply.content); }}
                                 className="text-ink-subtle hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
                               >
                                 <Edit2 className="w-3 h-3" />
                               </button>
-                              {/* 대댓글 삭제 버튼 */}
-                              <button
+                              <button aria-label="답글 삭제"
                                 onClick={(e) => handleDeleteComment(e, reply.commentId, true)}
                                 className="text-ink-subtle hover:text-danger transition-colors opacity-0 group-hover:opacity-100"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </button>
+                              </>}
                             </div>
                           </div>
 
