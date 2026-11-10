@@ -22,7 +22,8 @@ export function requiredFieldErrors(s: AuthoringState): Record<string, string> {
   if (!s.isEditMode && s.visibility === 'contest' && !s.selectedContestId) errors.audience = '공개할 대회를 선택해 주세요.';
   if (s.problemType === 'objective' && (s.choices.length < 2 || s.choices.some(c => !c.content.trim()))) errors.choices = '보기를 2개 이상 입력하고 빈 보기의 내용을 채우거나 삭제해 주세요.';
   if (!s.isEditMode && s.problemType === 'practice' && !s.hasDockerfile) errors.dockerfile = 'Dockerfile zip 파일을 선택해 주세요.';
-  if (s.oboEnabled) { const obo = validateProblemObo(s.oboData, { choiceCount: s.choices.length }); if (obo.length) errors.obo = obo.join(' · '); }
+  // Practice problems carry no OBO; a drawing left from another type stays in memory but is not checked or sent.
+  if (s.oboEnabled && s.problemType !== 'practice') { const obo = validateProblemObo(s.oboData, { choiceCount: s.choices.length }); if (obo.length) errors.obo = obo.join(' · '); }
   return errors;
 }
 

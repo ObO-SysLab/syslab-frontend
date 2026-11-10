@@ -1,7 +1,8 @@
 // Diveon 디자인 시스템 React 래퍼 (스타일은 app/globals.css 의 dv- 클래스)
 // 참고: theme/diveon-design-system/components/*.md
 
-import { cn, getDepthZone, getLevelLabel, getTierKey, getTierLabel } from "@/lib/utils";
+import { Activity, Code2, Cpu, Database, FileCode2, GitBranch } from "lucide-react";
+import { categoryLabel, cn, getDepthZone, getLevelLabel, getTierKey, getTierLabel, toApiCategory } from "@/lib/utils";
 
 /* ---------------- DepthBadge: 난이도 = 수심. 색 + 7칸 눈금 ---------------- */
 export function DepthBadge({
@@ -113,6 +114,19 @@ export function TypeChip({ type, className }: { type: string; className?: string
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="1.5" y="2" width="9" height="8" rx="1.5" /><path d="m3.5 5 1.5 1.2L3.5 7.4M6.5 7.5h2" /></svg>
       )}
       {label}
+    </span>
+  );
+}
+
+/* ---------------- CategoryChip: 문제 카테고리 (TypeChip과 같은 모양) ---------------- */
+const CATEGORY_ICON: Record<string, typeof Cpu> = { Kernel: Cpu, Process: Activity, Thread: GitBranch, Memory: Database, FileSystem: FileCode2 };
+
+export function CategoryChip({ category, className }: { category: string; className?: string }) {
+  const Icon = CATEGORY_ICON[toApiCategory(category)] ?? Code2;
+  return (
+    <span className={cn("inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-raised text-ink-muted text-xs font-medium whitespace-nowrap", className)}>
+      <Icon size={12} aria-hidden="true" />
+      {categoryLabel(category)}
     </span>
   );
 }

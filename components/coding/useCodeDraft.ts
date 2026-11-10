@@ -3,8 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 import { AUTH_CHANGED, BEFORE_LOGOUT, clearPendingSubmissions, draftAccount } from '@/lib/authSession';
 import { problemToken } from '@/lib/problemApi';
 import { CodeDraftSession, type CodeContext } from '@/lib/codeDraft';
+import type { CodingContract } from '@/components/obo/guidance/codingContract';
+import { editorStarterCode } from './starterCode';
 
-export function useCodeDraft(context: Omit<CodeContext, 'account'>, version: string | null) {
+/** contract: the problem's public input/output contract once loaded (undefined while loading). */
+export function useCodeDraft(context: Omit<CodeContext, 'account'>, version: string | null, contract?: CodingContract | null) {
   const [, update] = useState(0);
   const redraw = () => update(value => value + 1);
   const session = useRef<CodeDraftSession | null>(null);
@@ -79,6 +82,12 @@ export function useCodeDraft(context: Omit<CodeContext, 'account'>, version: str
     };
   }, [identity]);
   useEffect(() => { session.current?.setVersion(version); redraw(); }, [version, generation]);
+  const starterKey = contract === undefined ? null : JSON.stringify(contract);
+  useEffect(() => {
+    if (starterKey === null) return;
+    const loaded = JSON.parse(starterKey) as CodingContract | null;
+    session.current?.setStarter(language => editorStarterCode(language, loaded)); redraw();
+  }, [starterKey, generation]);
   const draft = session.current;
   const code = draft?.code ?? '';
   useEffect(() => {

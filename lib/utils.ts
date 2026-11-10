@@ -24,6 +24,12 @@ export const toApiCategory = (value: string) => {
   return PROBLEM_CATEGORIES.find((c) => c.toLowerCase() === key) ?? value;
 };
 
+// 화면에 보이는 카테고리 이름 (명세 값 FileSystem → "File System")
+export const categoryLabel = (value: string) => {
+  const api = toApiCategory(value);
+  return api === "FileSystem" ? "File System" : api;
+};
+
 // 숫자 난이도를 문자열로 매핑하는 변환기
 export const getLevelLabel = (lvl: string | number) => {
   const tierStr = String(lvl);
