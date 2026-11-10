@@ -65,7 +65,6 @@ export function Palette({ activeEdgeType, onEdgeTypeChange }: PaletteProps) {
   return (
     <div className="p-3 space-y-5" data-obo-palette>
       <section aria-label="추가할 요소" className="space-y-2">
-        <p className="text-xs leading-relaxed text-slate-500">원하는 모양을 그림 위로 끌어 놓으세요.</p>
         <div className="grid grid-cols-2 gap-2">
           {PALETTE_ITEMS.map(item => {
             const label = item.type === 'state-node' ? '상태' : item.type === 'text-label' ? '설명 글' : item.type === 'gantt-lane' ? '간트 줄' : item.type === 'slot-grid' ? '칸 묶음' : item.label;
@@ -108,7 +107,7 @@ export function Palette({ activeEdgeType, onEdgeTypeChange }: PaletteProps) {
             );
           })}
         </div>
-        <p className="rounded-lg bg-slate-50 px-2.5 py-2 text-[11px] leading-relaxed text-slate-600">종류를 고른 뒤, 동그라미 가장자리의 점에서 다른 점까지 끌어 연결하세요.</p>
+        <p className="text-xs text-slate-500">점에서 점으로 끌어 연결</p>
       </section>
     </div>
   );

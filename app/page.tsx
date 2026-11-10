@@ -263,12 +263,13 @@ export default function HomePage() {
                   </Link>
                 </div>
 
-                {/* 글로벌 통계 — HUD 수치 */}
+                {/* HUD 수치 — 서비스가 실제로 제공하는 것 (2026-11-10: 예시 숫자 대신). 간편 모드 모델은
+                    components/obo/runtime/contracts.mjs, 자유 모드 템플릿은 templates.ts의 ACTIVE_TEMPLATE_IDS, 언어는 Python·C·C++. */}
                 <dl className="grid grid-cols-3 gap-6 pt-8 max-w-xl">
                   {[
-                    { k: "TOTAL DIVES", v: "142,503" },
-                    { k: "DIVERS", v: "342" },
-                    { k: "SANDBOXES", v: "84,912" },
+                    { k: "SIM MODELS", v: "21" },
+                    { k: "TEMPLATES", v: "11" },
+                    { k: "LANGUAGES", v: "3" },
                   ].map((s) => (
                     <div key={s.k} className="space-y-1">
                       <dt className="dv-hud text-ink-subtle">{s.k}</dt>

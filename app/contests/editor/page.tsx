@@ -7,6 +7,7 @@ import { logout } from "@/lib/authSession";
 
 import { useCodeDraft } from "@/components/coding/useCodeDraft";
 import { CodeDraftPanel } from "@/components/coding/CodeDraftPanel";
+import { editorLanguages, LANGUAGE_LABEL } from "@/components/coding/starterCode";
 import { useState, useRef, useEffect, Suspense } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import Link from "next/link";
@@ -34,7 +35,14 @@ function MonacoSubmitContent() {
   const contestId = searchParams.get('contestId');
   const [problemTitle, setProblemTitle] = useState("문제 정보 불러오는 중...");
   const [problemVersion, setProblemVersion] = useState<string | null>(null);
-  const codeDraft = useCodeDraft({ kind: 'contest', problem: probId ?? '', contest: contestId ?? '', contestProblem: contestProbId ?? '' }, problemVersion);
+  const titleQuery = useRemoteData(probId, async signal => {
+    const json = await requestJson(problemApi(`/api/problems/${probId}`), {signal, headers:authHeaders()});
+    return json.data;
+  });
+  // Undefined while loading so the editor does not flash the bare main before the problem's first code.
+  const contract = titleQuery.loading ? undefined : (titleQuery.data?.oboContract ?? null);
+  const codeDraft = useCodeDraft({ kind: 'contest', problem: probId ?? '', contest: contestId ?? '', contestProblem: contestProbId ?? '' }, problemVersion, contract);
+  const languages = editorLanguages(titleQuery.data?.constraints?.allowedLanguages);
   const { code, language, edit: setCode, select: handleLanguageChange } = codeDraft;
   const [submitNotice, setSubmitNotice] = useState('');
   const [submitIssue, setSubmitIssue] = useState<RequestIssue | null>(null);
@@ -86,14 +94,15 @@ function MonacoSubmitContent() {
     return () => { active = false; };
   }, [codeDraft.account]);
 
-  const titleQuery = useRemoteData(probId, async signal => {
-    const json = await requestJson(problemApi(`/api/problems/${probId}`), {signal, headers:authHeaders()});
-    return json.data;
-  });
   useEffect(() => {
     setProblemTitle(titleQuery.data?.title ?? (titleQuery.loading ? '문제 정보 불러오는 중…' : '문제 정보 조회 실패'));
     setProblemVersion(titleQuery.data?.revisionId ?? titleQuery.data?.editVersion ?? null);
   }, [titleQuery.data, titleQuery.loading]);
+  // Open in a language the problem accepts (editor order: C, C++, Python).
+  const languageKey = languages.join(',');
+  useEffect(() => {
+    if (codeDraft.draft && !languageKey.split(',').includes(codeDraft.language)) handleLanguageChange(languageKey.split(',')[0]);
+  }, [languageKey, codeDraft.generation, codeDraft.draft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 에디터 마운트 시 설정
   function handleEditorDidMount(editor: any) {
@@ -207,9 +216,7 @@ function MonacoSubmitContent() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="c" className="font-mono">C</SelectItem>
-                  <SelectItem value="cpp" className="font-mono">C++</SelectItem>
-                  <SelectItem value="python" className="font-mono">python</SelectItem> {/* value 수정 */}
+                  {languages.map(value => <SelectItem key={value} value={value} className="font-mono">{LANGUAGE_LABEL[value]}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -237,7 +244,7 @@ function MonacoSubmitContent() {
         {/* [B] Monaco 에디터 영역 */}
         <div className="flex-1 min-h-0">
           <div className="h-full w-full rounded-2xl overflow-hidden border border-line shadow-sm bg-deep">
-            <Editor
+            {contract === undefined ? <p role="status" className="p-6 text-sm text-ink-muted">코드 편집기 준비 중…</p> : <Editor
               key={codeDraft.generation}
               loading={<textarea aria-label="코드 입력 (편집기 로딩 중)" className="h-full w-full resize-none bg-[#1e1e1e] p-6 font-mono text-sm text-white outline-none" spellCheck={false} value={code} onChange={event=>setCode(event.target.value)} />}
               height="100%"
@@ -257,7 +264,7 @@ function MonacoSubmitContent() {
                 automaticLayout: true,
                 padding: { top: 24, bottom: 24 },
               }}
-            />
+            />}
           </div>
         </div>
       </main>

@@ -61,3 +61,11 @@ describe('create page steps (2026-11-09)', () => {
     expect(status(state({ problemType: 'practice', title: 'T', description: 'D', hasDockerfile: true, flag: 'DK{x}' }))).toEqual({ basic: 'done', description: 'done', dockerfile: 'done', flag: 'done' });
   });
 });
+
+describe('type switch keeps the drawing without blocking practice (2026-11-10)', () => {
+  it('checks OBO only for coding and objective problems', () => {
+    const drawing = { oboEnabled: true, title: 'T', description: 'D' };
+    expect(requiredFieldErrors(state({ ...drawing, problemType: 'coding' })).obo).toBeTruthy();
+    expect(requiredFieldErrors(state({ ...drawing, problemType: 'practice', hasDockerfile: true }))).toEqual({});
+  });
+});

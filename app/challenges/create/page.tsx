@@ -35,6 +35,10 @@ import { toApiCategory } from "@/lib/utils";
 import {problemApi,problemToken} from '@/lib/problemApi';
 import {useBrowserDraft} from '@/components/obo/authoring/useBrowserDraft';
 import {isProblemDraft,type ProblemDraft} from '@/components/obo/authoring/problemDraft';
+import {StarterCodePreview} from '@/components/coding/StarterCodePreview';
+import {SampleCases} from '@/components/problem/SampleCases';
+import {ChoiceList} from '@/components/problem/ChoiceList';
+import {ProblemTags} from '@/components/problem/ProblemTags';
 
 function ProblemCreateContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -217,7 +221,11 @@ function ProblemCreateContent() {
   // A function: group/contest selections are declared further down this component.
   const authoringState=():AuthoringState=>({title,category,description,isEditMode,visibility,selectedGroupId,selectedContestId,problemType,choices,selectedAnswers,
     hasDockerfile:!!dockerfile,flag,oboEnabled,oboData,testcases,previewed});
+  const previewTarget=problemType==='coding'?'learner-preview':'problem-description';
+  const openPreview=()=>{setPreviewed(true);if(problemType!=='coding')setDescriptionTab('prev');
+    setTimeout(()=>document.getElementById(previewTarget)?.scrollIntoView({behavior:'smooth',block:'start'}),0);};
   const goTo=(target:string)=>{
+    if(target===previewTarget){openPreview();return;}
     if(target==='description')setDescriptionTab('desc');
     setTimeout(()=>{const el=document.getElementById(target);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});
       const focusable=el.matches('input,textarea,select,button')?el:el.querySelector<HTMLElement>('input:not([type=hidden]),textarea,[role=combobox],button');focusable?.focus({preventScroll:true});},0);
@@ -228,12 +236,13 @@ function ProblemCreateContent() {
     if(saving.current)return;
     setSaveNotice('');setSaveIssue(null);setFieldErrors({});
     if(!editLoaded)return;
-    draft.save();
     // Same checks the “만드는 순서” list shows (components/problem/authoringChecklist.ts, 2026-11-09).
     const errors=requiredFieldErrors(authoringState());
     if(Object.keys(errors).length){setFieldErrors(errors);focusField(Object.keys(errors)[0]);return;}
     if(isEditMode&&problemType!=='practice'&&!editVersion){setSaveNotice('서버 버전을 확인하지 못했습니다. 초안을 파일로 보관하고 다시 열어 주세요.');return;}
     const token=problemToken();if(!token){setSaveIssue(httpIssue(401));return;}
+    // Kept in this browser in case the request fails; removed again by markSaved once the server has it.
+    draft.save();
     saving.current=true;setIsSubmitting(true);
 
     // 상태 변수 정의
@@ -260,7 +269,7 @@ function ProblemCreateContent() {
           difficulty: difficulty,
           oboAction: oboEnabled ? 'replace' : 'remove',
           oboJson: oboEnabled ? oboData : null,
-          ...(problemType==='objective'?{choices,answer:selectedAnswers}:{}),
+          ...(problemType==='objective'?{choices,answer:selectedAnswers,isSeqeuntialAnswer:orderedSelection}:{}),
           ...(problemType==='coding'?{
             constraints:{timeLimitMs:timeLimit*1000,memoryLimitMb:memoryLimit,allowedLanguages},
             inputDescription:inputDesc,outputDescription:outputDesc,
@@ -367,6 +376,7 @@ function ProblemCreateContent() {
               ...payload,
               choices: validChoices,
               answer: selectedAnswers,
+              isSeqeuntialAnswer: orderedSelection,
               obo: { enabled: false, steps: [] },
               oboJson: oboEnabled ? oboData : null,
             };
@@ -624,7 +634,7 @@ function ProblemCreateContent() {
             </div>
             <div className="flex gap-2">
               <Button variant="secondary" className="px-6" onClick={draft.save}>브라우저에 보관</Button>
-              <Button variant="outline" onClick={()=>{setPreviewed(true);setDescriptionTab('prev');document.getElementById(problemType==='coding'?'learner-preview':'problem-description')?.scrollIntoView({behavior:'smooth',block:'start'});}} className="px-6 border-line text-ink-muted hover:bg-raised/60 hover:text-ink transition-all group">
+              <Button variant="outline" onClick={openPreview} className="px-6 border-line text-ink-muted hover:bg-raised/60 hover:text-ink transition-all group">
                 <Eye size={16} className="mr-2 text-ink-subtle group-hover:text-primary transition-colors" />{problemType==='coding'?'학습자 미리보기':'문제 미리보기'}
               </Button>
               {/* 제출 버튼에 onClick 연결 */}
@@ -637,11 +647,10 @@ function ProblemCreateContent() {
           </div>
           {problemType!=='practice'&&<div className="space-y-2 rounded-xl border border-line bg-panel p-4 text-sm" aria-label="작성 자료 보관">
             <p role="status">{draft.status}</p>
-            <p className="text-xs text-ink-muted">이 기기·브라우저에 보관됩니다. 서버 저장은 문제 등록/수정 완료 버튼으로 진행합니다.</p>
             <Button variant="outline" size="sm" onClick={draft.exportFile}>초안 파일로 보관</Button>
-            <p className="text-xs text-ink-muted">초안은 암호화 없이 이 브라우저에 남습니다. 공용 기기에서는 사용 후 보관본을 삭제하세요.</p>
+            <p className="text-xs text-ink-muted">이 브라우저에만 암호화 없이 보관됩니다. 공용 기기라면 사용 후 삭제하세요.</p>
             <Button variant="outline" size="sm" onClick={()=>{if(confirm('이 계정의 현재 문서 보관본을 모든 탭에 걸쳐 삭제할까요? 화면의 작성 내용은 유지됩니다.'))draft.deleteSaved();}}>이 문서의 보관본 삭제</Button>
-            {draft.candidates.map(record=><div key={record.id} className="flex flex-wrap items-center gap-2"><span>{new Date(record.savedAt).toLocaleString('ko-KR')} · {record.value.title||'제목 없는 초안'}</span><Button variant="outline" size="sm" onClick={()=>{if(window.confirm('현재 작성 내용을 먼저 보관하고 선택한 초안을 불러올까요?')){if(draft.save())draft.recover(record);}}}>초안 복구</Button></div>)}
+            {draft.candidates.map(record=><div key={record.id} className="flex flex-wrap items-center gap-2"><span>{new Date(record.savedAt).toLocaleString('ko-KR')} · {record.value.title||'제목 없는 초안'}</span><Button variant="outline" size="sm" onClick={()=>draft.recover(record)}>초안 복구</Button></div>)}
 
           </div>}
           <Separator />
@@ -875,7 +884,7 @@ function ProblemCreateContent() {
 
           {/* 2. 문제 본문 카드 */}
           <Card id="problem-description" className="scroll-mt-20 border-line shadow-sm rounded-2xl overflow-hidden">
-            <Tabs value={descriptionTab} onValueChange={setDescriptionTab}>
+            <Tabs value={descriptionTab} onValueChange={tab=>{setDescriptionTab(tab);if(tab==='prev')setPreviewed(true);}}>
               <CardHeader className="bg-raised/50 pb-0 border-b">
                 <TabsList className="bg-raised p-0.5 h-auto">
                   <TabsTrigger value="desc" className="px-5 py-2.5 text-xs">문제 설명 (Markdown) <span className="text-danger">*</span></TabsTrigger>
@@ -893,8 +902,13 @@ function ProblemCreateContent() {
                   />
                 </TabsContent>
                 <TabsContent value="prev" className="space-y-2 mt-0">
-                  <div className="min-h-[300px] p-4 bg-canvas border rounded-lg prose prose-sm max-w-none whitespace-pre-wrap">
-                    {description || "작성된 설명이 없습니다."}
+                  {/* The learner's problem page: same tags, choices and order notice (2026-11-10). */}
+                  <div className="min-h-[300px] space-y-3 rounded-lg border border-line bg-canvas p-5" data-problem-preview>
+                    <ProblemTags difficulty={difficulty} type={problemType} category={category} />
+                    <h3 className="text-2xl font-bold text-ink">{title || '문제 제목'}</h3>
+                    {summary.trim() && <p className="text-sm text-ink-muted leading-relaxed whitespace-pre-wrap">{summary}</p>}
+                    <p className="text-ink whitespace-pre-wrap break-words">{description || "작성된 설명이 없습니다."}</p>
+                    {problemType === 'objective' && <ChoiceList choices={choices.map((c, i) => ({ index: i + 1, content: c.content || `보기 ${i + 1}` }))} ordered={orderedSelection} />}
                   </div>
                 </TabsContent>
               </CardContent>
@@ -911,11 +925,7 @@ function ProblemCreateContent() {
                   <CardDescription>문제 유형에 따라 정답 판별 방식을 정의합니다.</CardDescription>
                 </div>
                 {/* 문제 유형 API에 맞게 value 세팅 */}
-                <Select value={problemType} onValueChange={(v) => {
-                  if(problemType!=='practice'&&!draft.checkpoint())return;
-                  setProblemType(v);
-                  if (v === "practice") { setOboEnabled(false); setOboData({ mode: 'single', single: { nodes: [], edges: [], frames: [] } }); }
-                }}>
+                <Select value={problemType} onValueChange={setProblemType}>
                   <SelectTrigger className="w-[140px] bg-raised"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="coding">코딩 문제</SelectItem>
@@ -1320,15 +1330,32 @@ function ProblemCreateContent() {
             )}
           </Card>}
 
-          {problemType==='coding'&&<section id="learner-preview" className="obo-scope scroll-mt-20 rounded-2xl border bg-white p-5">
-            <h2 className="font-semibold">학습자 제출 안내 미리보기</h2>
-            <p className="mt-2 text-sm text-slate-600">저장 전 현재 작성 내용으로 확인합니다. 공개 예제만 표시하며, 실제 저장은 문제 등록·수정 버튼을 눌러야 합니다.</p>
-            <div className="my-4 border-b pb-4"><h3 className="font-semibold">{title||'문제 제목'}</h3><p className="mt-2 whitespace-pre-wrap break-words text-sm">{description||'문제 설명을 작성하세요.'}</p></div>
-            {oboEnabled&&oboData.mode==='coding_diff'&&<p className="mt-2 text-sm text-indigo-700">아래 요소 ID·종류·허용 필드·연결선 ID는 제출 전 공개됩니다. ID에 정답을 넣지 마세요. 기본값·라벨·배치·연결 관계·참고 출력은 공개하지 않습니다. 풀이에 필요한 초기 조건과 칸 수는 위 입력·출력 설명에 작성하세요.</p>}
-            <CodingRules contract={describeCodingContract(oboEnabled?oboData:null)} inputDescription={inputDesc} outputDescription={outputDesc} allowedLanguages={allowedLanguages}/>
-            <h3 className="font-medium">공개 입출력 예제</h3>
-            {testcases.filter(tc=>tc.is_sample).length?testcases.filter(tc=>tc.is_sample).map((tc,i)=><div key={tc.index} className="mt-3 grid gap-3 md:grid-cols-2"><div><p className="text-xs font-semibold">입력 예제 {i+1}</p><pre className="overflow-auto rounded bg-slate-50 p-3 text-xs">{tc.input}</pre></div><div><p className="text-xs font-semibold">출력 예제 {i+1}</p><pre className="overflow-auto rounded bg-slate-50 p-3 text-xs">{tc.output}</pre></div></div>):<p className="mt-2 text-sm text-amber-700">공개 예제가 없습니다. 학습자가 형식을 확인할 수 있도록 테스트케이스에서 공개 예제를 지정하세요.</p>}
-          </section>}
+          {/* Learner preview (2026-11-10 QA #5–#7): heading in the page theme; inside, the problem page and the
+              submission editor's first code exactly as learners get them. */}
+          {problemType==='coding'&&<Card id="learner-preview" className="scroll-mt-20 border-line shadow-sm rounded-2xl">
+            <CardHeader>
+              <CardTitle className="text-lg">학습자 미리보기</CardTitle>
+              <CardDescription>학습자가 보는 문제 화면과 코드 제출 화면입니다.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {oboEnabled&&oboData.mode==='coding_diff'&&<p className="text-sm text-warning">요소 ID·종류·허용 필드·연결선 ID는 학생에게 공개됩니다. ID에 정답을 넣지 마세요.</p>}
+              <section aria-label="문제 화면 미리보기" className="space-y-2">
+                <p className="text-xs font-bold text-ink-muted">문제 화면</p>
+                <div className="space-y-3 rounded-xl border border-line bg-canvas p-5">
+                  <ProblemTags difficulty={difficulty} type={problemType} category={category} />
+                  <h3 className="text-2xl font-bold text-ink">{title||'문제 제목'}</h3>
+                  {summary.trim()&&<p className="text-sm text-ink-muted leading-relaxed whitespace-pre-wrap">{summary}</p>}
+                  <p className="whitespace-pre-wrap break-words text-ink">{description||'문제 설명을 작성하세요.'}</p>
+                  <CodingRules contract={describeCodingContract(oboEnabled?oboData:null)} inputDescription={inputDesc} outputDescription={outputDesc} allowedLanguages={allowedLanguages}/>
+                  {testcases.some(tc=>tc.is_sample)?<SampleCases cases={testcases.filter(tc=>tc.is_sample)}/>:<p className="text-sm text-warning">공개 예제가 없습니다.</p>}
+                </div>
+              </section>
+              <section aria-label="코드 제출 화면 미리보기" className="space-y-2">
+                <p className="text-xs font-bold text-ink-muted">코드 제출 화면 · 처음 코드</p>
+                <StarterCodePreview contract={describeCodingContract(oboEnabled?oboData:null)} allowedLanguages={allowedLanguages}/>
+              </section>
+            </CardContent>
+          </Card>}
 
           {/* OBO 전체화면 모달 */}
           {oboModalOpen && (

@@ -295,7 +295,7 @@ function CanvasInner({
 
         {editNotice && <p role="alert" className="absolute left-3 top-3 z-20 max-w-sm rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700 shadow">{editNotice}</p>}
         {canEdit && nodes.length > 0 && <p className="pointer-events-none absolute right-3 top-2 z-10 rounded bg-white/90 px-2 py-1 text-[11px] text-slate-500">
-          {editScene !== null ? `장면 ${editScene + 1}` : '기본 그림'} · 칸·셀·항목은 눌러서, 이름·숫자는 두 번 눌러서 고칩니다
+          {editScene !== null ? `장면 ${editScene + 1}` : '기본 그림'}
         </p>}
         {dialog && dialogNode && <NodeValueDialog key={`${dialog.id}-${JSON.stringify(dialog.target)}-${editScene}`} node={dialogNode}
           data={effectiveData(nodes, frames, dialog.id, editScene)} target={dialog.target} editLabel={editLabel}

@@ -84,10 +84,9 @@ export const OboEditorSection = React.memo(function OboEditorSection(props: Prop
         </label>
       </div>
       {topic && <p role="status" className="rounded-lg bg-white px-3 py-2 text-xs leading-relaxed text-slate-600">
-        <b className="text-slate-800">{topic.name}</b> · 값만 넣고 {coding ? '자동 채점' : '자동 재생'}까지 하려면 <b>간편 모드</b>에서 {topic.rule.map(ruleModelName).map(n => `‘${n}’`).join(', ')} 모델을 고르세요.{' '}
-        {topic.free.length ? <>그림을 직접 꾸미려면 <b>자유 모드</b>에서 {topic.free.map(freeTemplateName).map(n => `‘${n}’`).join(', ')} 템플릿으로 시작하세요.</> : <>이 주제는 자유 모드 시작 템플릿이 없어 빈 그림에서 만들어야 합니다.</>}
+        <b className="text-slate-800">{topic.name}</b> · 간편 모드 {topic.rule.map(ruleModelName).map(n => `‘${n}’`).join(', ')}
+        {topic.free.length ? <> · 자유 모드 {topic.free.map(freeTemplateName).map(n => `‘${n}’`).join(', ')}</> : null}
       </p>}
-      <p className="text-xs text-slate-500">두 모드는 서로 독립적입니다. {props.onAlternativesChange?'두 구성은 작성 초안에 함께 보관됩니다.':'전환한 구성은 이 창을 닫기 전까지 보관됩니다.'}</p>
     </div>
     {modern && props.value?.simulation ? <div className="min-h-0 flex-1 overflow-auto bg-slate-50 p-4">
       <SimulationEditor value={props.value.simulation} onChange={document => update({schemaVersion: 2, mode: 'simulation', simulation: document})} choices={props.choices} allowCoding={props.allowCodingDiff}/>
@@ -603,7 +602,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
             </label>
             <button type="button" className="text-sm text-teal-700" onClick={()=>{addFrame();setActiveTab('frame');}}>+ 장면 추가</button>
           </div>
-          {selectedFrameId&&frames.some(f=>f.id===selectedFrameId)?<textarea aria-label="장면 하단 설명" rows={2} value={frames.find(f=>f.id===selectedFrameId)?.label??''} onChange={e=>updateFrameLabel(selectedFrameId,e.target.value)} className="w-full resize-y rounded-lg border border-slate-200 p-2 text-sm leading-relaxed" placeholder="이 장면에서 전달할 내용을 적으세요."/>:<p className="text-sm text-slate-400">장면을 선택하면 그림 아래에 설명을 작성할 수 있습니다.</p>}
+          {selectedFrameId&&frames.some(f=>f.id===selectedFrameId)?<textarea aria-label="장면 하단 설명" rows={2} value={frames.find(f=>f.id===selectedFrameId)?.label??''} onChange={e=>updateFrameLabel(selectedFrameId,e.target.value)} className="w-full resize-y rounded-lg border border-slate-200 p-2 text-sm leading-relaxed" placeholder="이 장면에서 전달할 내용을 적으세요."/>:null}
         </section>}
         </div>
 

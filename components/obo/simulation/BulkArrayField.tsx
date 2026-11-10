@@ -69,7 +69,7 @@ function RecordTable({ schema, value, onChange, label, labelOf, seedItem }: { sc
     </div>
     <div className="flex items-center gap-2">
       <button type="button" disabled={grid.length >= max} className="shrink-0 whitespace-nowrap rounded-md bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 disabled:opacity-40" onClick={() => commit([...grid, nextRow(grid, columns, seedRow())])}>행 추가</button>
-      <p className={`text-[11px] ${errors.length ? 'text-rose-600' : 'text-slate-400'}`} role={errors.length ? 'alert' : undefined}>{errors.length ? `${errors[0].row + 1}행 ${labelOf(columns[errors[0].col].key)}: ${errors[0].message}` : `엑셀에서 여러 줄을 복사해 칸에 붙여넣을 수 있습니다.${columns.some(c => c.list) ? ` ${columns.filter(c => c.list).map(c => labelOf(c.key)).join('·')} 칸은 값을 공백으로 구분합니다.` : ''}`}</p>
+      <p className={`text-[11px] ${errors.length ? 'text-rose-600' : 'text-slate-400'}`} role={errors.length ? 'alert' : undefined}>{errors.length ? `${errors[0].row + 1}행 ${labelOf(columns[errors[0].col].key)}: ${errors[0].message}` : (columns.some(c => c.list) ? `${columns.filter(c => c.list).map(c => labelOf(c.key)).join('·')} 칸은 값을 공백으로 구분합니다.` : '')}</p>
     </div>
   </div>;
 }

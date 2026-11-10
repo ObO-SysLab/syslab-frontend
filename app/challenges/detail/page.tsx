@@ -12,7 +12,7 @@ import { readPracticeBuild, practiceBuildPresentation, watchPracticeBuild } from
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Search, Settings, LogOut, User, Menu, MessageSquare, Bell, Share2,
+  Search, Settings, LogOut, Menu, MessageSquare, Bell, Share2,
   CheckCircle2, XCircle, Clock, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag, Trash2,
   ChevronLeft, MessageCircle, Edit2, Flame, Zap, Flag, Activity
 } from "lucide-react";
@@ -29,7 +29,10 @@ import { OboPlayer } from "@/components/obo/OboPlayer";
 import { CodingRules } from '@/components/obo/simulation/CodingRules';
 import { resolveOboBlob, type OboBlob, type ProblemOboData } from "@/components/obo/types";
 import { Header } from "@/components/Header";
-import { TierBadge, DepthBadge } from "@/components/dv";
+import { TierBadge } from "@/components/dv";
+import { ProblemTags } from "@/components/problem/ProblemTags";
+import { ChoiceList } from "@/components/problem/ChoiceList";
+import { SampleCases } from "@/components/problem/SampleCases";
 
 function OboPlayerSection({ oboData, selectedChoiceIndex }: {
   oboData: ProblemOboData | OboBlob;
@@ -52,6 +55,16 @@ function OboPlayerSection({ oboData, selectedChoiceIndex }: {
   );
 }
 
+/** Comment author picture; the first letter of the nickname when there is none (2026-11-10 QA #10). */
+function AuthorAvatar({ nickname, src, className }: { nickname?: string; src?: string | null; className?: string }) {
+  return (
+    <Avatar className={`shrink-0 border border-line ${className ?? ''}`}>
+      {src && <AvatarImage src={src} alt="" className="object-cover" />}
+      <AvatarFallback className="bg-raised text-xs font-bold text-ink-muted">{nickname?.[0] ?? ''}</AvatarFallback>
+    </Avatar>
+  );
+}
+
 function ProblemDetailContent() {
   // URL에서 가져온 값 상태
   const searchParams = useSearchParams();
@@ -70,6 +83,10 @@ function ProblemDetailContent() {
   const [isOwner, setIsOwner] = useState(false);
   const [showMySubmissions, setShowMySubmissions] = useState(false);
   const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [myNickname, setMyNickname] = useState("");
+  // Servers before 2026-11-10 send no author picture; my own comments can still use my profile picture.
+  const commentAvatar = (comment: { authorNickname?: string; authorProfileImgUrl?: string | null }) =>
+    comment.authorProfileImgUrl ?? (myNickname && comment.authorNickname === myNickname && userImgUrl !== "/avatar.png" ? userImgUrl : null);
 
   // API 연동용 상태
   const [problemData, setProblemData] = useState<any>(null);
@@ -135,6 +152,7 @@ function ProblemDetailContent() {
           if (userInfo?.profileImgUrl) {
             setUserImgUrl(userInfo.profileImgUrl);
           }
+          if (userInfo?.nickname) setMyNickname(userInfo.nickname);
         }
       } catch (error) {
         console.error("홈페이지 초기 데이터 로드 실패:", error);
@@ -387,7 +405,7 @@ function ProblemDetailContent() {
         return prev.filter((i) => i !== index);
       } else {
         if (problemData?.selectionMode === 'single') return [index];
-        if (problemData?.isOrderedAnswer) {
+        if (problemData?.isSeqeuntialAnswer) {
           return [...prev, index];
         }
         // 순서 상관없는 일반 중복 마킹이라면 번호 순서대로 오름차순 정렬 킵
@@ -691,9 +709,7 @@ function ProblemDetailContent() {
                   <img src="/images/divo.webp" alt="" className="w-16 h-auto" />
                 </div>
                 <div className="space-y-2 min-w-0">
-                  {(problemData as any)?.difficulty && (
-                    <DepthBadge level={(problemData as any).difficulty} showZone />
-                  )}
+                  <ProblemTags difficulty={problemData?.difficulty} type={problemData?.type} category={problemData?.category} />
                   <h1 className="text-2xl font-bold text-ink">
                     {isLoading ? "불러오는 중..." : problemData?.title}
                   </h1>
@@ -786,68 +802,14 @@ function ProblemDetailContent() {
                   {problemData?.description}
                 </p>
 
-                {/* 객관식 보기 동적 렌더링 */}
+                {/* 객관식 보기 동적 렌더링 (순서 일치 문제는 누른 순서 번호를 보여 준다) */}
                 {problemData?.type === "objective" && problemData?.choices && (
-                  <div className="mt-6 space-y-2">
-                    {/* 서버 상태(isOrderedAnswer)가 활성화되어 있다면 순서 저격 경고 배지 출력 */}
-                    {problemData?.isOrderedAnswer && (
-                      <div className="mb-3 p-3 bg-warning/10 border border-warning/20 rounded-xl text-xs text-warning font-bold flex items-center gap-2 animate-pulse">
-                        이 문제는 정답을 선택하는 <span className="underline decoration-2">정확한 순서</span>까지 일치해야 정답 처리됩니다.
-                      </div>
-                    )}
-
-                    {problemData.choices.map((choice: any) => {
-                      // 배열 내에서 유저가 몇 번째 순서로 클릭했는지 추출 (-1이면 미선택)
-                      const orderIndex = selectedChoices.indexOf(choice.index);
-                      const isSelected = orderIndex !== -1;
-
-                      return (
-                        <button type="button" aria-pressed={isSelected}
-                          key={choice.index}
-                          onClick={() => handleChoiceToggle(choice.index)}
-                          className={`w-full text-left p-4 border-2 rounded-xl flex items-center gap-4 cursor-pointer transition-all ${isSelected
-                            ? "border-primary bg-primary/10 shadow-sm"
-                            : "border-line bg-canvas hover:border-line-strong hover:bg-raised"
-                            }`}
-                        >
-                          {/* 서버 옵션이 순서 모드(isOrderedAnswer)라면 동글 내부에 누른 순서 숫자(1, 2..)를 띄우고, 일반 모드라면 기존 기호 유지 */}
-                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-black transition-all ${isSelected
-                            ? "bg-primary text-primary-ink border-primary shadow-inner"
-                            : "border-line-strong bg-panel text-ink-subtle"
-                            }`}>
-                            {isSelected && problemData?.isOrderedAnswer ? orderIndex + 1 : choice.index}
-                          </div>
-
-                          <span className={`text-sm ${isSelected ? "text-primary font-bold" : "text-ink"}`}>
-                            {choice.content}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <ChoiceList choices={problemData.choices} selected={selectedChoices} ordered={!!problemData?.isSeqeuntialAnswer} onToggle={handleChoiceToggle} />
                 )}
 
                 {/* 코딩형 입출력 예시 동적 렌더링 */}
                 {problemData?.type==='coding'&&<CodingRules contract={problemData.oboContract} inputDescription={problemData.inputDescription} outputDescription={problemData.outputDescription} allowedLanguages={problemData.constraints?.allowedLanguages}/>}
-                {problemData?.type === "coding" && problemData?.testcases && problemData.testcases.length > 0 && (
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* 입력 예시 */}
-                    <div>
-                      <span className="text-xs font-bold text-ink-muted mb-1 block">&lt;입력 예시&gt;</span>
-                      <pre className="bg-canvas border border-line p-4 rounded-lg font-mono text-sm text-ink leading-6 whitespace-pre-wrap min-h-[100px]">
-                        {problemData.testcases[0].input.replace(/\\n/g, "\n")}
-                      </pre>
-                    </div>
-
-                    {/* 출력 예시 */}
-                    <div>
-                      <span className="text-xs font-bold text-ink-muted mb-1 block">&lt;출력 예시&gt;</span>
-                      <pre className="bg-canvas border border-line p-4 rounded-lg font-mono text-sm text-ink leading-6 whitespace-pre-wrap min-h-[100px]">
-                        {problemData.testcases[0].output.replace(/\\n/g, "\n")}
-                      </pre>
-                    </div>
-                  </div>
-                )}
+                {problemData?.type === "coding" && <SampleCases cases={problemData?.testcases ?? []} />}
               </div>
 
               {/* OBO 시각화 플레이어 */}
@@ -1175,9 +1137,7 @@ function ProblemDetailContent() {
                         onClick={() => { if (editingCommentId !== comment.commentId) handleSelectComment(comment); }}
                         className="flex gap-4 p-4 border rounded-xl bg-panel hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group"
                       >
-                        <div className="h-10 w-10 rounded-full bg-raised flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
-                          <User className="h-5 w-5 text-ink-subtle group-hover:text-primary" />
-                        </div>
+                        <AuthorAvatar nickname={comment.authorNickname} src={commentAvatar(comment)} className="h-10 w-10" />
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-sm text-ink">{comment.authorNickname}</span>
@@ -1248,9 +1208,7 @@ function ProblemDetailContent() {
 
                   {/* 선택된 메인 댓글 (크게 표시) */}
                   <div className="flex gap-4 p-6 border-2 border-primary/20 rounded-2xl bg-primary/6 shadow-sm">
-                    <div className="h-12 w-12 rounded-full bg-panel border border-primary/20 flex items-center justify-center shrink-0">
-                      <User className="h-6 w-6 text-primary" />
-                    </div>
+                    <AuthorAvatar nickname={selectedComment.authorNickname} src={commentAvatar(selectedComment)} className="h-12 w-12" />
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="font-black text-base text-ink">{selectedComment.authorNickname}</span>
@@ -1284,9 +1242,7 @@ function ProblemDetailContent() {
                   <div className="space-y-3 pl-6 border-l-2 border-line ml-6">
                     {selectedComment.replies && selectedComment.replies.map((reply: any) => (
                       <div key={reply.commentId} className="flex gap-3 p-4 border rounded-xl bg-panel group">
-                        <div className="h-8 w-8 rounded-full bg-raised flex items-center justify-center shrink-0">
-                          <User className="h-4 w-4 text-ink-subtle" />
-                        </div>
+                        <AuthorAvatar nickname={reply.authorNickname} src={commentAvatar(reply)} className="h-8 w-8" />
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-sm text-ink">{reply.authorNickname}</span>
