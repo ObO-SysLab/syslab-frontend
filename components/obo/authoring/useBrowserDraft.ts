@@ -22,7 +22,8 @@ export function leavesPage(event:MouseEvent,here:Location):boolean {
 /**
  * Browser drafts for the problem authoring page.
  * 2026-11-10 (user QA): nothing is stored in the background. Records are written only when the author
- * presses 브라우저에 보관 or 문제 등록, or recovers another draft (the current content, even empty, is kept first).
+ * presses 브라우저에 보관 or 문제 등록, or recovers another draft (changed content is kept first; a blank or
+ * already-kept screen is not copied again, team QA the same evening).
  * Leaving with edits that were never kept asks first instead of storing them silently.
  */
 export function useBrowserDraft<T>({documentId,value,restore,enabled,valid}:{documentId:string;value:T;restore:(v:T)=>void;enabled:boolean;valid:(v:unknown)=>v is T}){
@@ -105,7 +106,20 @@ export function useBrowserDraft<T>({documentId,value,restore,enabled,valid}:{doc
  },[]);
  return {status,ready,locked,candidates,save,checkpoint,dirty,
   deleteSaved:()=>{const c=context.current;if(!c||suspended.current)return;try{for(let i=localStorage.length-1;i>=0;i--){const key=localStorage.key(i)!;if(key.startsWith(c.scope))localStorage.removeItem(key);}c.baseline=c.initial;setCandidates([]);setStatus('이 문서의 브라우저 보관본을 삭제했습니다.');}catch{setStatus('보관본 삭제 실패. 브라우저 저장소 접근 권한을 확인하세요.');}},
-  recover:(record:RecordValue<T>)=>{if(!checkpoint())return;restoreRef.current(record.value);setRestored(n=>n+1);setStatus('현재 내용을 보관하고 선택한 초안을 불러왔습니다. 서버 저장 전입니다.');},
+  recover:(record:RecordValue<T>)=>{
+   const c=context.current;if(!c||suspended.current)return;
+   // Team QA 2026-11-10: a screen still as opened (a blank new problem) or identical to what is already kept
+   // is not copied again; anything else is kept first so recovery never loses work.
+   const now=JSON.stringify(current.current),keep=now!==c.baseline&&now!==c.initial;
+   if(keep){if(!checkpoint())return;}
+   else{
+    // A copy saved earlier under this visit's key stays listed, and later saves must not overwrite it.
+    try{const kept=localStorage.getItem(c.key);if(kept){const r=JSON.parse(kept) as RecordValue<T>;setCandidates(previous=>[r,...previous.filter(x=>x.id!==r.id)]);}}catch{}
+    c.key=c.scope+crypto.randomUUID();
+   }
+   restoreRef.current(record.value);setRestored(n=>n+1);
+   setStatus(`${keep?'현재 내용을 보관하고 ':''}선택한 초안을 불러왔습니다. 서버 저장 전입니다.`);
+  },
   exportFile:()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(current.current,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='obo-problem-draft.json';a.click();URL.revokeObjectURL(url);},
   markSaved:()=>{const c=context.current;if(c){suspended.current=true;c.baseline=JSON.stringify(current.current);try{localStorage.removeItem(c.key);}catch{setStatus('서버 저장 완료 · 이전 브라우저 보관본은 남아 있습니다.');return;}}setStatus('서버 저장 완료');},
  };
