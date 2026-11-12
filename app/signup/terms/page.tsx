@@ -50,7 +50,7 @@ export default function TermsPage() {
             <section className="space-y-2">
               <h3 className="text-base font-black text-ink">제 1 조 (목적)</h3>
               <p>
-                본 약관은 교육 및 실습 플랫폼인 <strong>Diveon</strong>(이하 "서비스")이 제공하는 웹사이트, 문제 보드, 가상 머신(VM) 실습 인프라 및 기타 제반 서비스의 이용과 관련하여, 운영진과 이용자(이하 "회원") 간의 권리, 의무 및 책임 사항을 규정함을 목적으로 합니다.
+                본 약관은 교육 및 실습 플랫폼인 <strong>DiveOn</strong>(이하 "서비스")이 제공하는 웹사이트, 문제 보드, 가상 머신(VM) 실습 인프라 및 기타 제반 서비스의 이용과 관련하여, 운영진과 이용자(이하 "회원") 간의 권리, 의무 및 책임 사항을 규정함을 목적으로 합니다.
               </p>
             </section>
 
@@ -58,7 +58,7 @@ export default function TermsPage() {
             <section className="space-y-2">
               <h3 className="text-base font-black text-ink">제 2 조 (용어의 정의)</h3>
               <ul className="list-disc pl-5 space-y-1">
-                <li><strong>회원:</strong> 본 약관에 동의하고 서비스에 가입하여 Diveon의 인프라를 이용하는 주체입니다.</li>
+                <li><strong>회원:</strong> 본 약관에 동의하고 서비스에 가입하여 DiveOn의 인프라를 이용하는 주체입니다.</li>
                 <li><strong>챌린지/대회:</strong> 플랫폼 내에서 운영체제, 포렌식, 리버싱 등의 역량을 겨루기 위해 제공되는 정답 검증 체계입니다.</li>
                 <li><strong>VM 인프라:</strong> 실습을 위해 독점적 혹은 공유 형태로 임시 할당되는 가상 컴퓨팅 리소스입니다.</li>
               </ul>
@@ -83,7 +83,7 @@ export default function TermsPage() {
               </p>
               <ul className="list-disc pl-5 space-y-1.5 text-ink-muted">
                 <li><strong>어뷰징 및 답안 공유:</strong> 진행 중인 대회나 챌린지의 플래그(Flag), 소스코드, 정답 데이터를 타인과 공유하거나 대리 제출하는 행위</li>
-                <li><strong>인프라 공격:</strong> 제공된 가상 머신(VM)을 우회하여 Diveon 호스트 서버 자체를 공격하거나, 시스템 내부망 취약점을 의도적으로 타겟팅하여 서비스 마비를 야기하는 행위</li>
+                <li><strong>인프라 공격:</strong> 제공된 가상 머신(VM)을 우회하여 DiveOn 호스트 서버 자체를 공격하거나, 시스템 내부망 취약점을 의도적으로 타겟팅하여 서비스 마비를 야기하는 행위</li>
                 <li><strong>우회 및 부정 사용:</strong> 허용된 가상 머신 명령어 커널 스펙 외에 백도어, 악성 스크립트 등을 임의로 업로드 및 실행하여 자원을 남용하는 행위</li>
               </ul>
             </section>

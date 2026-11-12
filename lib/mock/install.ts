@@ -55,7 +55,10 @@ export const installMockFetch = () => {
   const originalFetch = window.fetch.bind(window);
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    const rawUrl = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    let rawUrl = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    // lib/problemApi.ts는 localhost에서 상대 경로(/api/...)를 쓴다 — 목 모드에서는 같은 라우터로 보낸다
+    if (rawUrl.startsWith("/api/")) rawUrl = `${MOCK_API_ORIGIN}${rawUrl}`;
+    else if (rawUrl.startsWith(`${window.location.origin}/api/`)) rawUrl = `${MOCK_API_ORIGIN}${rawUrl.slice(window.location.origin.length)}`;
     if (!rawUrl.startsWith(`${MOCK_API_ORIGIN}/api`)) return originalFetch(input, init);
 
     const url = new URL(rawUrl);

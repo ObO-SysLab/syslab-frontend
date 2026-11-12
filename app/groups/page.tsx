@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Header } from "@/components/Header";
+import { AdSlot } from "@/components/AdSlot";
 
 
 function GroupListContent() {
@@ -285,7 +286,7 @@ function GroupListContent() {
       {/* =========================================
           2. 메인 컨텐츠 영역 (Grid 레이아웃)
       ========================================= */}
-      <main className="container mx-auto max-w-[1500px] pt-8 grid grid-cols-1 md:grid-cols-12 gap-8 px-4 pb-12">
+      <main className="dv-shell dv-shell--wide pt-8 grid grid-cols-1 md:grid-cols-12 gap-8 pb-12">
 
         {/* [A] 좌측 사이드바 (2칸) */}
         <aside className="hidden md:block col-span-2 space-y-6">
@@ -331,7 +332,7 @@ function GroupListContent() {
         </aside>
 
         {/* [B] 중앙 콘텐츠 영역 (8칸) */}
-        <section className="col-span-12 md:col-span-8 space-y-4">
+        <section className="col-span-12 md:col-span-10 xl:col-span-8 space-y-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6">
             <div className="space-y-1">
               <p className="dv-hud text-primary">Crews</p>
@@ -407,7 +408,7 @@ function GroupListContent() {
 
                             {/* 비공개 상태 스캔 시 자물쇠 배지 UI 동적 장착 */}
                             {grp.isPrivate && (
-                              <Badge variant="outline" className="px-1.5 py-0 h-5 text-[10px] font-bold text-warning border-warning/30 bg-warning/10 shrink-0 flex items-center gap-1.5 select-none rounded-md">
+                              <Badge variant="outline" className="px-1.5 py-0 h-5 text-xs font-bold text-warning border-warning/30 bg-warning/10 shrink-0 flex items-center gap-1.5 select-none rounded-md">
                                 <Lock size={10} className="text-warning fill-warning/10" />
                                 <span>비공개</span>
                               </Badge>
@@ -424,7 +425,7 @@ function GroupListContent() {
                             <p className="text-[13px] text-ink-subtle">
                               그룹장: {grp.leader}
                             </p>
-                            <span className="text-ink-subtle text-[10px]">|</span>
+                            <span className="text-ink-subtle text-xs">|</span>
 
                             {/* 태그 뱃지 */}
                             {grp.tags.length > 0 ? (
@@ -434,7 +435,7 @@ function GroupListContent() {
                                   <Badge
                                     key={t}
                                     variant="secondary"
-                                    className={`px-2 py-0 h-5 text-[10px] font-black tracking-tight shrink-0 transition-all duration-300 ${isSelected
+                                    className={`px-2 py-0 h-5 text-xs font-black tracking-tight shrink-0 transition-all duration-300 ${isSelected
                                       ? "bg-primary text-primary-ink border-primary shadow-md scale-105"
                                       : "bg-primary/10 text-primary border-primary/20"
                                       }`}
@@ -444,7 +445,7 @@ function GroupListContent() {
                                 );
                               })
                             ) : (
-                              <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-black tracking-tight text-ink-subtle bg-canvas border border-line shrink-0">
+                              <Badge variant="secondary" className="px-2 py-0 h-5 text-xs font-black tracking-tight text-ink-subtle bg-canvas border border-line shrink-0">
                                 태그 없음
                               </Badge>
                             )}
@@ -455,7 +456,7 @@ function GroupListContent() {
                       {/* 그룹 멤버 수 및 통계 패널 */}
                       <div className="flex items-center gap-8">
                         <div className="text-right min-w-[100px]">
-                          <p className="text-[10px] font-bold text-ink-subtle uppercase tracking-wider">
+                          <p className="text-xs font-bold text-ink-subtle uppercase tracking-wider">
                             MEMBERS
                           </p>
                           <p className="text-base font-bold text-ink">
@@ -513,22 +514,9 @@ function GroupListContent() {
           )}
         </section>
 
-        {/* [C] 우측 광고 패널 (2칸) */}
-        <aside className="hidden md:block col-span-2">
-          <div className="sticky top-24 space-y-4">
-            {ads.length > 0 ? (
-              ads.map((ad) => (
-                <a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-xl border border-line shadow-sm transition-transform hover:scale-105">
-                  <img src={ad.image_url} alt={ad.alt_text} className="w-full object-cover" />
-                </a>
-              ))
-            ) : (
-              <div className="border border-line rounded-xl bg-canvas h-[600px] flex flex-col items-center justify-center text-ink-subtle text-xs font-bold p-6 text-center leading-relaxed">
-                <ShoppingBag className="mb-2 h-6 w-6 opacity-20" />
-                광고 영역입니다.
-              </div>
-            )}
-          </div>
+        {/* [C] 우측 광고 칸 — 광고가 있을 때만 그림 (1280px 이상) */}
+        <aside className="hidden xl:block xl:col-span-2">
+          <AdSlot ads={ads} />
         </aside>
 
       </main>

@@ -2,13 +2,9 @@
 import { logout } from "@/lib/authSession";
 
 import { useEffect, useState, useRef } from "react";
-import { BrandMark } from "@/components/BrandMark";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  Menu, LogOut, User, Users, ShieldCheck, CheckCircle2,
-  Globe, Lock, Image as ImageIcon, Bell, Info, Check
-} from "lucide-react";
+import { User, Users, ShieldCheck, CheckCircle2, Globe, Lock, Image as ImageIcon, Info, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Header } from "@/components/Header";
 
 const TAGS = [
   { value: "Study", label: "스터디" },
@@ -234,56 +231,15 @@ export default function GroupCreatePage() {
   return (
     <div className="min-h-screen bg-canvas text-ink font-sans">
 
-      {/* 1. 고정 헤더 */}
-      <header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-        {/* [A] Diveon 로고 영역 */}
-        <div className="flex items-center gap-4">
-          <Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
-          <Link href="/" className="flex items-center gap-2" aria-label="DiveOn 홈">
-            <BrandMark size="sm" />
-            <span className="dv-hud text-primary">Studio</span>
-          </Link>
-        </div>
-
-        {/* [B] 우측 사용자 영역 */}
-        <div className="flex items-center gap-3">
-          {isLoggedIn ? (
-            /* --- 로그인된 상태: 알림 + 프로필 + 로그아웃 --- */
-            <>
-              <button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
-              </button>
-              <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
-                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-ink-muted rounded-full">
-                    {/* 공백 상태 유지 */}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-              <button onClick={handleLogout} className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors">
-                <LogOut className="h-5 w-5" />
-              </button>
-            </>
-          ) : (
-            /* --- 로그아웃된 상태 (보통 리다이렉트 되지만 렌더링 방어용) --- */
-            <div className="flex items-center gap-2">
-              <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
-              </Link>
-              <Link href="/signup">
-                <Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header
+        isLoggedIn={isLoggedIn}
+        userImgUrl={userImgUrl}
+        activeMenu="group"
+        onLogout={handleLogout}
+      />
 
       {/* 2. 메인 레이아웃 */}
-      <main className="container mx-auto max-w-[1200px] pt-10 grid grid-cols-1 md:grid-cols-12 gap-10 px-6 pb-20">
+      <main className="dv-shell pt-10 grid grid-cols-1 md:grid-cols-12 gap-10 pb-20">
 
         {/* [A] 좌측 안내 섹션 (4칸) */}
         <aside className="col-span-12 md:col-span-4 space-y-6">

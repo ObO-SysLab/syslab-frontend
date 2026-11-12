@@ -239,7 +239,7 @@ export default function FindAccountPage() {
                 <TabsContent value="id" className="p-8 pt-6 space-y-6 animate-in fade-in duration-500">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-[11px] font-black uppercase tracking-widest text-ink-subtle ml-1">이메일</label>
+                      <label className="text-xs font-black uppercase tracking-widest text-ink-subtle ml-1">이메일</label>
                       <div className="relative">
                         <Mail className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                         <Input
@@ -268,7 +268,7 @@ export default function FindAccountPage() {
                   {!isResetMode && (
                     <div className="space-y-6">
                       <div className="space-y-2">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-ink-subtle ml-1">이메일</label>
+                        <label className="text-xs font-black uppercase tracking-widest text-ink-subtle ml-1">이메일</label>
                         <div className="relative">
                           <Mail className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                           <Input
@@ -299,7 +299,7 @@ export default function FindAccountPage() {
                       <div className="space-y-2">
                         {/* 라벨 영역에 타이머 정보 우측 정렬 배치 */}
                         <div className="flex justify-between items-center ml-1">
-                          <label className="text-[11px] font-black uppercase tracking-widest text-ink-subtle">인증 코드 (6자리)</label>
+                          <label className="text-xs font-black uppercase tracking-widest text-ink-subtle">인증 코드 (6자리)</label>
                           {timeLeft > 0 ? (
                             <span className="text-xs font-bold text-danger font-mono">
                               남은 시간 {formatTime(timeLeft)}
@@ -358,7 +358,7 @@ export default function FindAccountPage() {
 
                       {/* 새로운 비밀번호 입력 */}
                       <div className="space-y-2">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-ink-subtle ml-1">새로운 비밀번호 입력</label>
+                        <label className="text-xs font-black uppercase tracking-widest text-ink-subtle ml-1">새로운 비밀번호 입력</label>
                         <div className="relative">
                           <Lock className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                           <Input
@@ -372,7 +372,7 @@ export default function FindAccountPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-ink-subtle ml-1">새로운 비밀번호 확인</label>
+                        <label className="text-xs font-black uppercase tracking-widest text-ink-subtle ml-1">새로운 비밀번호 확인</label>
                         <div className="relative">
                           <Lock className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
                           <Input
@@ -416,8 +416,8 @@ export default function FindAccountPage() {
       </main>
 
       <footer className="py-8 text-center">
-        <p className="text-[10px] text-ink-subtle font-bold uppercase tracking-widest">
-          Diveon Identity Management System
+        <p className="text-xs text-ink-subtle font-bold uppercase tracking-widest">
+          DiveOn 계정 찾기
         </p>
       </footer>
     </div>

@@ -14,6 +14,35 @@ export const toApiLocalDateTime = (value: string) => {
   return base.length === 16 ? `${base}:00` : base;
 };
 
+// 기간 표시: 같은 날이면 "11월 11일(수) 07:17 – 15:17", 다른 날이면 "11월 11일(수) 07:17 – 11월 13일(금) 15:17".
+// 연도가 올해가 아니면 앞에 "2025년 "을 붙인다. 값이 잘못되면 빈 문자열.
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const formatDay = (d: Date, now: Date) =>
+  `${d.getFullYear() !== now.getFullYear() ? `${d.getFullYear()}년 ` : ""}${d.getMonth() + 1}월 ${d.getDate()}일(${WEEKDAYS[d.getDay()]})`;
+const formatClock = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+
+export const formatDateTime = (value: string | number | Date | null | undefined, now = new Date()) => {
+  if (value == null || value === "") return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${formatDay(d, now)} ${formatClock(d)}`;
+};
+
+export const formatPeriod = (
+  start: string | number | Date | null | undefined,
+  end: string | number | Date | null | undefined,
+  now = new Date()
+) => {
+  const from = formatDateTime(start, now);
+  const to = formatDateTime(end, now);
+  if (!from || !to) return from || to;
+  const s = new Date(start as string);
+  const e = new Date(end as string);
+  const sameDay = s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth() && s.getDate() === e.getDate();
+  return sameDay ? `${from} – ${formatClock(e)}` : `${from} – ${to}`;
+};
+
 // 문제 카테고리 명세 값: Process, Memory, Kernel, Thread, FileSystem
 // 화면 라벨("File System")이나 예전에 소문자로 저장된 값("file system")을 명세 값으로 맞춘다.
 export const PROBLEM_CATEGORIES = ["Kernel", "Process", "Thread", "Memory", "FileSystem"] as const;

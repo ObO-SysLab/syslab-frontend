@@ -2,12 +2,8 @@
 import { logout } from "@/lib/authSession";
 
 import { useEffect, useState } from "react";
-import { BrandMark } from "@/components/BrandMark";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Menu, Trophy, Settings, LogOut, Calendar, Clock, ShieldAlert, Award, Info, Plus, Bell,
-} from "lucide-react";
+import { Trophy, Settings, Calendar, Clock, ShieldAlert, Award, Info, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toApiLocalDateTime } from "@/lib/utils";
@@ -17,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Header } from "@/components/Header";
 
 export default function ContestCreatePage() {
   const router = useRouter();
@@ -197,56 +193,15 @@ export default function ContestCreatePage() {
   return (
     <div className="min-h-screen bg-canvas text-ink font-sans">
 
-      {/* 1. 고정 헤더 */}
-      <header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-        {/* [A] Diveon 로고 영역 */}
-        <div className="flex items-center gap-4">
-          <Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
-          <Link href="/" className="flex items-center gap-2" aria-label="DiveOn 홈">
-            <BrandMark size="sm" />
-            <span className="dv-hud text-primary">Studio</span>
-          </Link>
-        </div>
-
-        {/* [B] 우측 사용자 영역 */}
-        <div className="flex items-center gap-3">
-          {isLoggedIn ? (
-            /* --- 로그인된 상태: 알림 + 프로필 + 로그아웃 --- */
-            <>
-              <button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
-              </button>
-              <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
-                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-ink-muted rounded-full">
-                    {/* 공백 상태 유지 */}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-              <button onClick={handleLogout} className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors">
-                <LogOut className="h-5 w-5" />
-              </button>
-            </>
-          ) : (
-            /* --- 로그아웃된 상태 (보통 리다이렉트 되지만 렌더링 방어용) --- */
-            <div className="flex items-center gap-2">
-              <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
-              </Link>
-              <Link href="/signup">
-                <Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header
+        isLoggedIn={isLoggedIn}
+        userImgUrl={userImgUrl}
+        activeMenu="contest"
+        onLogout={handleLogout}
+      />
 
       {/* 2. 메인 레이아웃 */}
-      <main className="container mx-auto max-w-[1400px] pt-8 grid grid-cols-1 md:grid-cols-12 gap-8 px-6 pb-20">
+      <main className="dv-shell dv-shell--wide pt-8 grid grid-cols-1 md:grid-cols-12 gap-8 pb-20">
 
         {/* [A] 좌측 안내 섹션 (3칸) */}
         <aside className="col-span-12 md:col-span-3 space-y-4">
@@ -276,7 +231,7 @@ export default function ContestCreatePage() {
             <h4 className="text-xs font-bold text-ink-subtle uppercase tracking-widest flex items-center gap-2">
               <Info size={14} /> 운영 팁
             </h4>
-            <p className="text-[11px] text-ink-muted leading-relaxed">
+            <p className="text-xs text-ink-muted leading-relaxed">
               대회 시작 전 '예정' 상태로 노출하여 참가자들을 미리 모집하는 것이 좋습니다. 포렌식 대회라면 데이터셋 용량을 미리 확인하세요.
             </p>
           </div>
@@ -499,7 +454,7 @@ export default function ContestCreatePage() {
 // [보조 컴포넌트] Badge (UI 라이브러리에 따라 다를 수 있음)
 function Badge({ children, className }: { children: React.ReactNode, className?: string }) {
   return (
-    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${className}`}>
+    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${className}`}>
       {children}
     </span>
   );

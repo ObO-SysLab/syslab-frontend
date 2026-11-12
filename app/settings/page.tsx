@@ -2,13 +2,9 @@
 import { logout } from "@/lib/authSession";
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import { BrandMark } from "@/components/BrandMark";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import {
-  Search, LogOut, User, Menu, Lock, Bell, Paintbrush, Trash2, X, ShieldCheck,
-  Laptop, Moon, Sun, Flag, Trophy, Users, BarChart3, ShoppingBag, Camera
-} from "lucide-react";
+import { User, Lock, Bell, Paintbrush, Trash2, X, ShieldCheck, Laptop, Moon, Sun, BarChart3, Camera } from "lucide-react";
 import { BarChart, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge"
 import { getLevelLabel } from "@/lib/utils";
+import { Header } from "@/components/Header";
 
 
 function SettingsContent() {
@@ -29,7 +26,7 @@ function SettingsContent() {
   const tabParam = searchParams.get("tab");
 
   // 현재 로그인 상태를 관리 (나중에는 실제 토큰 유무로 판단)
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   // [상태 관리] 현재 활성화된 탭 (profile, security, notifications, appearance)
   const [activeTab, setActiveTab] = useState(tabParam || "profile");
 
@@ -113,78 +110,19 @@ function SettingsContent() {
   return (
     <div className="min-h-screen bg-panel text-ink font-sans">
 
-      {/* 1. 고정 헤더 (기존 디자인 유지) */}
-      <header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-8"> {/* gap을 넓혀서 메뉴 공간 확보 */}
-          <Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
-          <Link href="/" className="mr-4" aria-label="DiveOn 홈"><BrandMark /></Link>
+      <Header
+        isLoggedIn={isLoggedIn}
+        userImgUrl={userImgUrl}
+        activeMenu="none"
+        onLogout={() => { if (logout()) setIsLoggedIn(false); }}
+      />
 
-          {/* 중앙 네비게이션 메뉴 */}
-          <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
-            <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
-            <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
-            <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
-            <NavMenuLink href="/store" icon={<ShoppingBag size={18} />} label="스토어" />
-          </nav>
-        </div>
-
-        {/* 검색창 영역 */}
-        <div className="flex-1 max-w-sm px-4">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-ink-muted" />
-            <Input type="search" placeholder="검색..." className="pl-9 bg-canvas border-line rounded-full h-9 text-sm" />
-          </div>
-        </div>
-
-        {/* 우측 사용자 영역 (로그인 상태에 따라 가변적) */}
-        <div className="flex items-center gap-3">
-          {isLoggedIn ? (
-            /* --- [A] 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
-            <>
-              <button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
-              </button>
-
-              <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
-                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-ink-muted rounded-full">
-                    {/* 공백 상태 유지 */}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-
-              <button
-                onClick={() => { if (logout()) setIsLoggedIn(false); }}
-                className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors group"
-              >
-                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
-              </button>
-            </>
-          ) : (
-            /* --- [B] 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
-            <div className="flex items-center gap-2">
-              <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
-              </Link>
-              <Link href="/signup">
-                <Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-      </header>
-
-      <main className="container mx-auto max-w-[1200px] pt-10 grid grid-cols-1 md:grid-cols-12 gap-10 px-6 pb-20">
+      <main className="dv-shell pt-10 grid grid-cols-1 md:grid-cols-12 gap-10 pb-20">
 
         {/* [A] 좌측 사이드바 메뉴 (4칸) */}
         <aside className="col-span-12 md:col-span-3 space-y-2">
           <div className="px-3 mb-4">
-            <h2 className="text-2xl font-black tracking-tighter">Settings</h2>
+            <h1 className="text-2xl font-bold tracking-[-0.02em]">설정</h1>
           </div>
           <nav className="space-y-1">
             <SettingsNavItem
@@ -474,7 +412,7 @@ function ProfileSection({
                 삭제
               </Button>
             </div>
-            <p className="text-[11px] text-ink-subtle font-medium">* 1MB 이하의 JPG, PNG, WEBP 파일만 허용됩니다.</p>
+            <p className="text-xs text-ink-subtle font-medium">* 1MB 이하의 JPG, PNG, WEBP 파일만 허용됩니다.</p>
           </div>
         </div>
 
@@ -517,7 +455,7 @@ function ProfileSection({
               <span className="text-ink text-sm font-bold">
                 {getTierLabel(info?.tier)} Tier
               </span>
-              <Badge variant="outline" className={`font-black text-[10px] uppercase tracking-tight py-0.5 px-2 rounded-full ${getTierBadgeStyle(info?.tier || "4")}`}>
+              <Badge variant="outline" className={`font-black text-xs uppercase tracking-tight py-0.5 px-2 rounded-full ${getTierBadgeStyle(info?.tier || "4")}`}>
                 Active
               </Badge>
             </div>
@@ -935,7 +873,7 @@ function ChartSection({ data }: { data: any }) {
     // 난이도는 Lvl 1~7 (lib/utils.ts getLevelLabel 기준). 6·7은 5와 같은 최심부 스타일로 표시.
     const diff = String(rawDiff ?? "");
     return (
-      <Badge variant="outline" className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-black border
+      <Badge variant="outline" className={`rounded-full px-2 py-0.5 text-xs font-mono font-black border
         ${diff === "1" ? "bg-success/10 text-success border-success/30" : ""}
         ${diff === "2" ? "bg-warning/10 text-warning border-warning/30" : ""}
         ${diff === "3" ? "bg-danger/10 text-danger border-danger/20" : ""}
@@ -972,7 +910,7 @@ function ChartSection({ data }: { data: any }) {
                   <PolarGrid stroke="#1e293b" />
                   <PolarAngleAxis dataKey="subject" stroke="#94a3b8" fontSize={11} fontWeight="bold" />
                   {/* dynamicMax 대신 여백이 반영된 chartDomainMax를 바인딩합니다. */}
-                  <PolarRadiusAxis angle={30} domain={[0, chartDomainMax]} tick={{ fill: '#475569', fontSize: 10 }} />
+                  <PolarRadiusAxis angle={30} domain={[0, chartDomainMax]} tick={{ fill: '#6B819C', fontSize: 12 }} />
                   <Radar name="최고 탐사 수심" dataKey="depth" stroke="#00D1FF" fill="#0055FF" fillOpacity={0.15} />
                 </RadarChart>
               </ResponsiveContainer>
@@ -980,7 +918,7 @@ function ChartSection({ data }: { data: any }) {
 
             {/* 카테고리별 상세 리포트 스태츠 패널 */}
             <div className="col-span-12 lg:col-span-5 space-y-3">
-              <Label className="text-xs font-bold text-ink-subtle uppercase tracking-wider ml-1">Live Score Details</Label>
+              <Label className="text-xs font-bold text-ink-subtle uppercase tracking-wider ml-1">점수 상세</Label>
               {formattedChartData.map((item) => (
                 <div key={item.subject} className="p-3 bg-canvas border border-line rounded-xl flex items-center justify-between">
                   <span className="text-sm font-bold text-ink">{item.subject}</span>
@@ -1047,9 +985,9 @@ function ChartSection({ data }: { data: any }) {
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-mono font-bold text-ink-subtle group-hover:text-primary transition-colors">#{item.probId}</span>
-                            <Badge variant="secondary" className="text-[10px] font-semibold bg-raised text-ink-muted rounded-md py-0 px-1.5">{item.category}</Badge>
+                            <Badge variant="secondary" className="text-xs font-semibold bg-raised text-ink-muted rounded-md py-0 px-1.5">{item.category}</Badge>
                             {subTab === "authored" && (
-                              <Badge className={`text-[9px] font-black rounded border-none shadow-none px-1.5 ${item.isSolved ? "bg-success/10 text-success" : "bg-raised text-ink-muted"}`}>
+                              <Badge className={`text-xs font-black rounded border-none shadow-none px-1.5 ${item.isSolved ? "bg-success/10 text-success" : "bg-raised text-ink-muted"}`}>
                                 {item.isSolved ? "내가 풂" : "미풀이"}
                               </Badge>
                             )}
@@ -1058,7 +996,7 @@ function ChartSection({ data }: { data: any }) {
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           {renderDepthBadge(item.difficulty)}
-                          <span className="text-[11px] text-ink-subtle font-mono hidden sm:inline">{item.author}</span>
+                          <span className="text-xs text-ink-subtle font-mono hidden sm:inline">{item.author}</span>
                         </div>
                       </Link>
                     );
@@ -1079,12 +1017,12 @@ function ChartSection({ data }: { data: any }) {
                           <div className="space-y-0.5 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-bold text-ink line-clamp-1 group-hover:underline">{item.title}</p>
-                              <Badge className={`text-[9px] font-black border-none rounded px-1.5 ${item.role === "LEADER" ? "bg-warning/10 text-warning" : "bg-raised text-ink-muted"}`}>{item.role}</Badge>
+                              <Badge className={`text-xs font-black border-none rounded px-1.5 ${item.role === "LEADER" ? "bg-warning/10 text-warning" : "bg-raised text-ink-muted"}`}>{item.role}</Badge>
                             </div>
-                            <p className="text-[11px] text-ink-subtle font-medium">대원 수 {item.memberCount}명</p>
+                            <p className="text-xs text-ink-subtle font-medium">대원 수 {item.memberCount}명</p>
                           </div>
                         </div>
-                        <Badge variant="outline" className="text-[10px] rounded-full font-bold px-2 py-0.5 border-line text-ink-subtle">
+                        <Badge variant="outline" className="text-xs rounded-full font-bold px-2 py-0.5 border-line text-ink-subtle">
                           {item.isPrivate ? "🔒 비공개" : "🌐 공개"}
                         </Badge>
                       </Link>
@@ -1102,16 +1040,16 @@ function ChartSection({ data }: { data: any }) {
                       >
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <Badge className={`text-[9px] font-black border-none shadow-none rounded px-1.5 ${isOngoing ? "bg-primary/10 text-primary animate-pulse" :
+                            <Badge className={`text-xs font-black border-none shadow-none rounded px-1.5 ${isOngoing ? "bg-primary/10 text-primary animate-pulse" :
                               isUpcoming ? "bg-warning/10 text-warning" : "bg-raised text-ink-subtle"
                               }`}>
                               {item.status === "ENDED" ? "종료됨" : isOngoing ? "진행중" : "대기중"}
                             </Badge>
-                            <Badge variant="outline" className="text-[9px] font-medium border-line text-ink-subtle uppercase">{item.role}</Badge>
+                            <Badge variant="outline" className="text-xs font-medium border-line text-ink-subtle uppercase">{item.role}</Badge>
                           </div>
                           <p className="text-sm font-bold text-ink line-clamp-1 group-hover:underline">{item.title}</p>
                         </div>
-                        <div className="text-right shrink-0 font-mono text-[10px] text-ink-subtle space-y-0.5 hidden sm:block">
+                        <div className="text-right shrink-0 font-mono text-xs text-ink-subtle space-y-0.5 hidden sm:block">
                           <p>시작: {new Date(item.startTime).toLocaleDateString("ko-KR")} {new Date(item.startTime).toLocaleTimeString("ko-KR", { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
                           <p>종료: {new Date(item.endTime).toLocaleDateString("ko-KR")} {new Date(item.endTime).toLocaleTimeString("ko-KR", { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
                         </div>
@@ -1171,24 +1109,12 @@ function ThemeCard({ value, label, icon }: { value: string, label: string, icon:
         className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-panel p-4 hover:bg-raised/60 peer-data-[state=checked]:border-line peer-data-[state=checked]:bg-canvas cursor-pointer"
       >
         {icon}
-        <span className="mt-2 text-[10px] font-bold uppercase tracking-wider">{label}</span>
+        <span className="mt-2 text-xs font-bold uppercase tracking-wider">{label}</span>
       </Label>
     </div>
   );
 }
 
-// 2. 헤더 메뉴 전용 보조 컴포넌트 [추가]
-function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-ink-muted hover:text-ink hover:bg-raised/60 transition-all active:scale-95"
-    >
-      <span className="text-ink-subtle group-hover:text-ink">{icon}</span>
-      {label}
-    </Link>
-  );
-}
 
 export default function SettingsPage() {
   return (

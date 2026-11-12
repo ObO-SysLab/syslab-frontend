@@ -5,12 +5,8 @@ import { useRemoteData } from "@/components/feedback/useRemoteData";
 import { logout } from "@/lib/authSession";
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import { BrandMark } from "@/components/BrandMark";
 import Link from "next/link";
-import {
-  Menu, LogOut, CheckCircle2, Zap, PlusCircle, Eye,
-  Bell, Trash2, Network
-} from "lucide-react";
+import { CheckCircle2, Zap, PlusCircle, Eye, Trash2, Network } from "lucide-react";
 import type { ProblemOboData } from "@/components/obo/types";
 import { OboEditorSection } from "@/components/obo/OboEditorSection";
 import { freshId } from '@/components/obo/runtime/document.mjs';
@@ -28,7 +24,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { toApiCategory } from "@/lib/utils";
@@ -39,6 +34,7 @@ import {StarterCodePreview} from '@/components/coding/StarterCodePreview';
 import {SampleCases} from '@/components/problem/SampleCases';
 import {ChoiceList} from '@/components/problem/ChoiceList';
 import {ProblemTags} from '@/components/problem/ProblemTags';
+import { Header } from "@/components/Header";
 
 function ProblemCreateContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -560,56 +556,16 @@ function ProblemCreateContent() {
 
   return (
     <div className="min-h-screen bg-canvas text-ink font-sans">
-      {/* 1. 고정 헤더 */}
-      <header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-        {/* [A] Diveon 로고 영역 */}
-        <div className="flex items-center gap-4">
-          <Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
-          <Link href="/" className="flex items-center gap-2" aria-label="DiveOn 홈">
-            <BrandMark size="sm" />
-            <span className="dv-hud text-primary">Studio</span>
-          </Link>
-        </div>
-
-        {/* [B] 우측 사용자 영역 */}
-        <div className="flex items-center gap-3">
-          {isLoggedIn ? (
-            /* --- 로그인된 상태: 알림 + 프로필 + 로그아웃 --- */
-            <>
-              <button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
-              </button>
-              <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
-                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-ink-muted rounded-full">
-                    {/* 공백 상태 유지 */}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-              <button onClick={handleLogout} className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors">
-                <LogOut className="h-5 w-5" />
-              </button>
-            </>
-          ) : (
-            /* --- 로그아웃된 상태 (보통 리다이렉트 되지만 렌더링 방어용) --- */
-            <div className="flex items-center gap-2">
-              <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
-              </Link>
-              <Link href="/signup">
-                <Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header
+        isLoggedIn={isLoggedIn}
+        userImgUrl={userImgUrl}
+        activeMenu="none"
+        variant="studio"
+        onLogout={handleLogout}
+      />
 
       {/* 2. 메인 레이아웃 */}
-      <main className="container mx-auto max-w-[1400px] pt-8 grid grid-cols-1 md:grid-cols-12 gap-10 px-6 pb-20">
+      <main className="dv-shell dv-shell--wide pt-8 grid grid-cols-1 md:grid-cols-12 gap-10 pb-20">
 
         {/* [A] 좌측 출제 가이드 */}
         <aside className="col-span-12 md:col-span-3 space-y-4 md:sticky md:top-24 h-fit">
@@ -669,7 +625,7 @@ function ProblemCreateContent() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="summary">스토리 (요약)</Label>
-                <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="스토리를 작성해주세요." className="min-h-[100px] resize-none focus-visible:ring-primary/50 font-mono text-sm leading-relaxed" />
+                <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="스토리를 작성해주세요." className="min-h-[100px] resize-none focus-visible:ring-primary/50 text-sm leading-relaxed" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
@@ -691,7 +647,7 @@ function ProblemCreateContent() {
                 <div className="space-y-2">
                   <Label>난이도</Label>
                   <Select value={difficulty} onValueChange={setDifficulty}>
-                    <SelectTrigger className="w-full font-mono">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="탐사 수심 선택" />
                     </SelectTrigger>
                     <SelectContent>
@@ -767,7 +723,7 @@ function ProblemCreateContent() {
                   { /* [임시] */}
                   {/* <Label className="font-bold flex items-center gap-2">
                     공개할 그룹 선택 <span className="text-danger">*</span>
-                    <span className="text-[10px] text-ink-subtle font-normal">여러 그룹을 선택할 수 있습니다.</span>
+                    <span className="text-xs text-ink-subtle font-normal">여러 그룹을 선택할 수 있습니다.</span>
                   </Label>
 
                   {isFetchingGroups ? (
@@ -806,7 +762,7 @@ function ProblemCreateContent() {
 
                   <Label className="font-bold flex items-center gap-2">
                     공개할 그룹 선택 <span className="text-danger">*</span>
-                    <span className="text-[10px] text-ink-subtle font-normal">문제를 공개할 1개의 그룹을 선택해주세요.</span>
+                    <span className="text-xs text-ink-subtle font-normal">문제를 공개할 1개의 그룹을 선택해주세요.</span>
                   </Label>
 
                   {isFetchingGroups ? (
@@ -845,7 +801,7 @@ function ProblemCreateContent() {
                 <div className="p-4 bg-canvas border border-line rounded-xl space-y-3 animate-in fade-in duration-300 mt-4">
                   <Label className="font-bold flex items-center gap-2">
                     공개할 대회 선택 <span className="text-danger">*</span>
-                    <span className="text-[10px] text-ink-subtle font-normal">문제를 공개할 1개의 대회를 선택해주세요.</span>
+                    <span className="text-xs text-ink-subtle font-normal">문제를 공개할 1개의 대회를 선택해주세요.</span>
                   </Label>
 
                   {isFetchingContests ? (
@@ -898,7 +854,7 @@ function ProblemCreateContent() {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="문제를 해결하기 위한 설명, 목표를 Markdown 형식으로 상세히 기술하세요."
-                    className="min-h-[300px] resize-none focus-visible:ring-primary/50 font-mono text-sm leading-relaxed"
+                    className="min-h-[300px] resize-none focus-visible:ring-primary/50 text-sm leading-relaxed"
                   />
                 </TabsContent>
                 <TabsContent value="prev" className="space-y-2 mt-0">
@@ -955,7 +911,7 @@ function ProblemCreateContent() {
 
                   {/* 허용 언어 선택 영역 */}
                   <div className="space-y-3 p-4 bg-canvas rounded-xl border border-line">
-                    <Label className="text-xs font-bold text-ink-muted uppercase">Allowed Languages</Label>
+                    <Label className="text-xs font-bold text-ink-muted">허용 언어</Label>
                     <div className="flex flex-wrap gap-4">
                       {["c", "cpp", "python"].map((lang) => (
                         <div key={lang} className="flex items-center space-x-2">
@@ -988,7 +944,7 @@ function ProblemCreateContent() {
                         value={inputDesc}
                         onChange={(e) => setInputDesc(e.target.value)}
                         placeholder="예) 첫째 줄에 N(1 ≤ N ≤ 100)이 주어진다."
-                        className="min-h-[100px] resize-none font-mono text-sm"
+                        className="min-h-[100px] resize-none text-sm"
                       />
                     </div>
                     <div className="space-y-2">
@@ -997,14 +953,14 @@ function ProblemCreateContent() {
                         value={outputDesc}
                         onChange={(e) => setOutputDesc(e.target.value)}
                         placeholder="예) 우선순위가 높은 순으로 한 줄에 하나씩 출력한다."
-                        className="min-h-[100px] resize-none font-mono text-sm"
+                        className="min-h-[100px] resize-none text-sm"
                       />
                     </div>
                   </div>
                   <div id="testcases-field" className="space-y-4 pt-2 scroll-mt-24">
                     <div className="flex justify-between items-center">
                       <Label className="font-bold flex items-center gap-2">
-                        테스트케이스 설정 <span className="text-[10px] text-ink-subtle font-normal">(최소 1개 필수)</span>
+                        테스트케이스 설정 <span className="text-xs text-ink-subtle font-normal">(최소 1개 필수)</span>
                       </Label>
                       <Button
                         variant="outline"
@@ -1022,7 +978,7 @@ function ProblemCreateContent() {
                           {/* 상단 헤더: 번호 및 삭제 버튼 */}
                           <div className="flex justify-between items-center border-b border-line pb-3">
                             <div className="flex items-center gap-2">
-                              <span className="flex items-center justify-center w-6 h-6 bg-raised border border-line-strong text-white text-[10px] font-black rounded-md shadow-sm">
+                              <span className="flex items-center justify-center w-6 h-6 bg-raised border border-line-strong text-white text-xs font-black rounded-md shadow-sm">
                                 #{idx + 1}
                               </span>
                               <span className="text-sm font-bold text-ink">Testcase</span>
@@ -1039,7 +995,7 @@ function ProblemCreateContent() {
                                   }}
                                   className="w-3.5 h-3.5 rounded border-line-strong text-primary focus:ring-primary"
                                 />
-                                <span className="text-[11px] font-medium text-ink-muted">예제로 공개</span>
+                                <span className="text-xs font-medium text-ink-muted">예제로 공개</span>
                               </label>
                             </div>
 
@@ -1058,7 +1014,7 @@ function ProblemCreateContent() {
                             <div className="space-y-2">
                               <div className="flex items-center gap-1.5 ml-1">
                                 <div className="w-1 h-3 bg-primary rounded-full" />
-                                <Label className="text-[11px] font-black uppercase tracking-tight text-ink-subtle">Standard Input</Label>
+                                <Label className="text-xs font-bold text-ink-subtle">표준 입력</Label>
                               </div>
                               <Textarea
                                 value={tc.input}
@@ -1071,7 +1027,7 @@ function ProblemCreateContent() {
                             <div className="space-y-2">
                               <div className="flex items-center gap-1.5 ml-1">
                                 <div className="w-1 h-3 bg-success rounded-full" />
-                                <Label className="text-[11px] font-black uppercase tracking-tight text-ink-subtle">Expected Output</Label>
+                                <Label className="text-xs font-bold text-ink-subtle">기대 출력</Label>
                               </div>
                               <Textarea
                                 value={tc.output}
@@ -1090,7 +1046,7 @@ function ProblemCreateContent() {
                     <Label>첨부 파일 업로드</Label>
                     <div className="p-5 border-2 border-dashed border-line rounded-2xl text-center bg-canvas hover:bg-raised/50 cursor-pointer transition-colors">
                       <Zap className="h-6 w-6 text-ink-subtle mx-auto fill-current" />
-                      <span className="text-xs font-medium text-ink-muted mt-1 block">Click or Drag & Drop to upload binary/pcap/image</span>
+                      <span className="text-xs font-medium text-ink-muted mt-1 block">끌어다 놓거나 눌러서 선택 (바이너리·pcap·이미지)</span>
                     </div>
                   </div>
                 </div>
@@ -1106,7 +1062,7 @@ function ProblemCreateContent() {
 
                   {/* [추가] VM 환경 설정 입력란 */}
                   {/* <div className="p-4 bg-canvas border border-line rounded-xl space-y-4 mt-2">
-                    <h4 className="text-xs font-bold text-ink-muted uppercase tracking-wider mb-2">VM Environment Config</h4>
+                    <h4 className="text-xs font-bold text-ink-muted mb-2">VM 환경 설정</h4>
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
@@ -1153,7 +1109,7 @@ function ProblemCreateContent() {
                       />
                       <Zap className="h-6 w-6 text-ink-subtle mx-auto fill-current" />
                       <span className="text-xs font-medium text-ink-muted mt-1 block">
-                        {dockerfile ? dockerfile.name : "Click or Drag & Drop to upload dockerfile.zip"}
+                        {dockerfile ? dockerfile.name : "끌어다 놓거나 눌러서 선택 (dockerfile.zip)"}
                       </span>
                     </div>
                   </div>
@@ -1170,7 +1126,7 @@ function ProblemCreateContent() {
                       <Label className="text-sm font-bold text-ink cursor-pointer" htmlFor="toggle-order">
                         정답 선택 순서 일치 옵션 활성화
                       </Label>
-                      <p className="text-[11px] text-ink-muted">체크하면 문제를 푸는 학생도 출제자가 선택한 순서대로 입력해야 정답 처리됩니다.</p>
+                      <p className="text-xs text-ink-muted">체크하면 문제를 푸는 학생도 출제자가 선택한 순서대로 입력해야 정답 처리됩니다.</p>
                     </div>
                     <input
                       type="checkbox"
@@ -1190,7 +1146,7 @@ function ProblemCreateContent() {
                   <div id="choices-field" className="space-y-4 pt-1 scroll-mt-24">
                     <Label className="flex justify-between items-center">
                       <span>보기 설정 및 정답 선택 <span className="text-danger">*</span></span>
-                      <span className="text-[10px] text-ink-subtle">
+                      <span className="text-xs text-ink-subtle">
                         {orderedSelection ? "번호를 누른 순서가 정답 순서가 됩니다." : modernObjective&&oboData.simulation?.question.selectionMode==='single'?'정답 하나를 선택하세요.':"정답 보기를 모두 선택하세요."}
                       </span>
                     </Label>

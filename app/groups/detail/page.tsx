@@ -964,7 +964,7 @@ function GroupDetailPage() {
       />
 
       {/* 2. 메인 레이아웃 */}
-      <main className="container mx-auto max-w-[1600px] pt-6 grid grid-cols-1 md:grid-cols-12 gap-6 px-4 pb-12">
+      <main className="dv-shell dv-shell--wide pt-6 grid grid-cols-1 md:grid-cols-12 gap-6 pb-12">
 
         {/* [A] 좌측 정보 패널 (2칸) */}
         <aside className="col-span-12 md:col-span-2 space-y-4">
@@ -997,11 +997,11 @@ function GroupDetailPage() {
             <CardContent className="pt-4 space-y-4">
               {posts.slice(0, 5).map((post) => (
                 <div key={post.postId} className="border-l-2 border-primary/30 pl-3 py-1 cursor-pointer hover:bg-raised/60">
-                  <p className="text-[11px] font-bold text-ink flex items-center justify-between">
+                  <p className="text-xs font-bold text-ink flex items-center justify-between">
                     {post.author}
-                    {post.type === "notice" && <Badge className="text-[8px] h-4 px-1 py-0 bg-coral/15 text-coral">공지</Badge>}
+                    {post.type === "notice" && <Badge className="text-xs h-5 px-1.5 py-0 bg-coral/15 text-coral">공지</Badge>}
                   </p>
-                  <p className="text-[10px] text-ink-muted line-clamp-1 mt-0.5">{post.title}</p>
+                  <p className="text-xs text-ink-muted line-clamp-1 mt-0.5">{post.title}</p>
                 </div>
               ))}
             </CardContent>
@@ -1009,7 +1009,7 @@ function GroupDetailPage() {
         </aside>
 
         {/* [B] 중앙 콘텐츠 영역 */}
-        <section className="col-span-12 md:col-span-8 space-y-6">
+        <section className="col-span-12 md:col-span-10 xl:col-span-8 space-y-6">
 
           {/* 🔒 [핵심] 비공개 그룹 접근 차단 락 스크린 (그룹장/멤버가 아닌 경우) */}
           {isPrivate && !isGroupLeader && myStatus !== "member" ? (
@@ -1204,9 +1204,9 @@ function GroupDetailPage() {
                                 <div className="flex items-center gap-2">
                                   <h3 className="font-bold text-ink">{prob.title}</h3>
                                   {prob.visibility === "group" ? (
-                                    <Badge className="bg-danger/15 text-danger h-5 px-1.5 text-[10px]">GROUP</Badge>
+                                    <Badge className="bg-danger/15 text-danger h-5 px-1.5 text-xs">GROUP</Badge>
                                   ) : prob.visibility === "public" ? (
-                                    <Badge className="bg-primary/15 text-primary h-5 px-1.5 text-[10px]">PUBLIC</Badge>
+                                    <Badge className="bg-primary/15 text-primary h-5 px-1.5 text-xs">PUBLIC</Badge>
                                   ) : null}
                                 </div>
                                 <p className="text-xs text-ink-muted mt-1">작성자: {prob.author} · 해결 {prob.solvedCount}명</p>
@@ -1344,7 +1344,7 @@ function GroupDetailPage() {
                               <TableCell>
                                 <div className="flex items-center gap-2">
                                   {/* 그룹장 프로필 사진에 금색 테두리 부여 */}
-                                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${isLeader
+                                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${isLeader
                                     ? "bg-warning/15 text-warning border-2 border-warning/50 shadow-sm"
                                     : "bg-line text-ink-muted"
                                     }`}>
@@ -1363,7 +1363,7 @@ function GroupDetailPage() {
                                     그룹장
                                   </Badge>
                                 ) : (
-                                  <Badge variant="secondary" className="font-normal text-[10px]">
+                                  <Badge variant="secondary" className="font-normal text-xs">
                                     {member.role}
                                   </Badge>
                                 )}
@@ -1470,7 +1470,7 @@ function GroupDetailPage() {
                                       {isLeader ? <Crown className="w-4 h-4 text-warning mx-auto" /> : member.rank}
                                     </TableCell>
                                     <TableCell className="font-semibold text-ink">{member.nickname}</TableCell>
-                                    <TableCell><Badge variant="secondary" className="text-[10px]">{member.role}</Badge></TableCell>
+                                    <TableCell><Badge variant="secondary" className="text-xs">{member.role}</Badge></TableCell>
                                     <TableCell><span className="text-xs font-bold text-ink-muted">{member.tier}</span></TableCell>
 
                                     {isGroupLeader && (
@@ -1520,7 +1520,7 @@ function GroupDetailPage() {
                         {/* 구석에 박힌 미니 공지 토글 */}
                         {isGroupLeader && (
                           <div className="flex justify-end items-center gap-2 mb-1">
-                            <label htmlFor="notice-mode" className={`text-[11px] font-black uppercase tracking-wider cursor-pointer transition-colors ${newPostType === "notice" ? "text-coral" : "text-ink-subtle"}`}>
+                            <label htmlFor="notice-mode" className={`text-xs font-black uppercase tracking-wider cursor-pointer transition-colors ${newPostType === "notice" ? "text-coral" : "text-ink-subtle"}`}>
                               {newPostType === "notice" ? "Notice Mode On" : "Set as Notice"}
                             </label>
                             <button type="button" role="switch" id="notice-mode" onClick={() => setNewPostType(newPostType === "notice" ? "general" : "notice")} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none ${newPostType === "notice" ? "bg-coral" : "bg-line"}`}>
@@ -1626,7 +1626,7 @@ function GroupDetailPage() {
                                       </div>
                                     ) : (
                                       <div>
-                                        <p className="text-xs font-bold text-ink">{comment.author} <span className="text-[10px] text-ink-subtle font-normal ml-2">{comment.createdAt}</span></p>
+                                        <p className="text-xs font-bold text-ink">{comment.author} <span className="text-xs text-ink-subtle font-normal ml-2">{comment.createdAt}</span></p>
                                         <p className="text-sm text-ink mt-1.5">{comment.content}</p>
                                       </div>
                                     )}
@@ -1709,12 +1709,12 @@ function GroupDetailPage() {
                             >
                               <TableCell className="pl-4">
                                 <div className="flex items-center gap-2">
-                                  {post.type === "notice" && <Badge className="bg-coral/15 text-coral h-5 px-1.5 text-[10px]">공지</Badge>}
+                                  {post.type === "notice" && <Badge className="bg-coral/15 text-coral h-5 px-1.5 text-xs">공지</Badge>}
                                   <span className={`font-medium ${post.type === "notice" ? "text-coral font-bold" : "text-ink"}`}>
                                     {post.title}
                                   </span>
                                   {/* {post.comments?.length > 0 && (
-                                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 rounded-full">
+                                  <span className="text-xs font-bold text-primary bg-primary/10 px-1.5 rounded-full">
                                     {post.comments.length}
                                   </span>
                                 )} */}
@@ -1773,7 +1773,7 @@ function GroupDetailPage() {
                               variant="outline"
                               onClick={() => groupFileInputRef.current?.click()}
                               disabled={isGroupImgUploading}
-                              className="h-7 text-[10px] px-2.5 rounded-lg font-bold"
+                              className="h-7 text-xs px-2.5 rounded-lg font-bold"
                             >
                               파일 선택
                             </Button>
@@ -1861,7 +1861,7 @@ function GroupDetailPage() {
                         <div className="p-4 bg-deep border border-line rounded-xl space-y-3 text-white shadow-inner animate-in">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-black text-primary uppercase tracking-widest">Secret Invitation Link</span>
-                            <span className="text-[10px] text-ink-subtle font-medium">만료일: {inviteExpiresAt?.replace("T", " ")}</span>
+                            <span className="text-xs text-ink-subtle font-medium">만료일: {inviteExpiresAt?.replace("T", " ")}</span>
                           </div>
 
                           <div className="flex gap-2">
@@ -1889,7 +1889,7 @@ function GroupDetailPage() {
                             type="button"
                             variant="outline"
                             onClick={handleRegenerateInviteCode}
-                            className="w-full text-[11px] font-bold text-ink-subtle border-white/5 bg-white/5 hover:bg-white/10 hover:text-white h-8 rounded-lg"
+                            className="w-full text-xs font-bold text-ink-subtle border-white/5 bg-white/5 hover:bg-white/10 hover:text-white h-8 rounded-lg"
                           >
                             🔄 초대 링크 재발급 (기존 링크 폐기)
                           </Button>
@@ -1899,7 +1899,7 @@ function GroupDetailPage() {
                       {/* 자동 승인이 OFF(!isAutoApprove)일 때만 대기열 버튼 노출 */}
                       {!isAutoApprove && (
                         <div className="pt-2">
-                          <p className="text-[11px] font-bold text-primary mb-2 uppercase">Pending Requests</p>
+                          <p className="text-xs font-bold text-primary mb-2 uppercase">Pending Requests</p>
                           <Button
                             variant="outline"
                             className="w-full justify-between group"
@@ -1961,7 +1961,7 @@ function GroupDetailPage() {
                               pendingMembers.map((m) => (
                                 <TableRow key={m.userId}>
                                   <TableCell className="font-bold text-ink pl-6">{m.nickname}</TableCell>
-                                  <TableCell><Badge variant="outline" className="text-[10px]">{m.tier ? m.tier : "Diamond"}</Badge></TableCell>
+                                  <TableCell><Badge variant="outline" className="text-xs">{m.tier ? m.tier : "Diamond"}</Badge></TableCell>
                                   <TableCell className="text-xs text-ink-subtle font-mono">{m.appliedAt?.split("T")[0]}</TableCell>
                                   <TableCell className="text-right pr-6 space-x-2">
                                     <Button
@@ -1995,12 +1995,8 @@ function GroupDetailPage() {
           )}
         </section>
 
-        {/* [C] 우측 광고 패널 */}
-        <aside className="col-span-12 md:col-span-2">
-          <div className="border border-line rounded-2xl bg-canvas h-[500px] flex flex-col items-center justify-center sticky top-24 group transition-all hover:bg-raised hover:border-line">
-            <div className="text-ink-subtle text-sm font-black tracking-widest uppercase">Ad Space</div>
-          </div>
-        </aside>
+        {/* [C] 우측 광고 칸 — 광고가 있을 때만 그림 (1280px 이상) */}
+        <aside className="hidden xl:block xl:col-span-2" />
 
       </main>
     </div>

@@ -4,13 +4,46 @@ import { logout } from "@/lib/authSession";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  Target, Flame, Cpu, Layers, HardDrive, Lock, Users, Trophy, Anchor, Crown,
+  Target, Cpu, Layers, HardDrive, Lock, Users, Trophy, Anchor, Crown,
   ArrowRight, Eye, ShieldCheck, Gauge, ChevronRight,
 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { mockUser, mockFeaturedProblems } from "@/lib/mockData";
 import { Header } from "@/components/Header";
 import { DepthBadge, DivoBubble, TierBadge, TypeChip, StatusIcon, Bubbles } from "@/components/dv";
+import { problemApi } from "@/lib/problemApi";
+import { formatPeriod } from "@/lib/utils";
+
+type HomeProblem = {
+  probId: number;
+  type?: string;
+  title: string;
+  author?: string;
+  category: string;
+  difficulty: string | number;
+  solvedCount?: number;
+  isSolved?: boolean;
+};
+
+type HomeContest = {
+  contestId: number;
+  title: string;
+  startTime: string;
+  endTime: string;
+  type?: string;
+  status: string;
+};
+
+// 대원 기록: 받아 온 값만 보여 준다 (못 받은 값은 null → 화면에서 숨김)
+type DiverStats = { solved: number | null; rank: number | null; score: number | null };
+
+const getJson = async (url: string, token?: string | null) => {
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (!res.ok) return null;
+  return res.json().catch(() => null);
+};
+
+const asNumber = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
 // 카테고리 아이콘 (Kernel/Process/Thread/Memory/File System)
 const CATEGORY_ICON: Record<string, React.ReactNode> = {
@@ -56,17 +89,38 @@ export default function HomePage() {
 
   const [recommendData, setRecommendData] = useState<{
     reason: string;
-    problems: Array<{
-      probId: number;
-      type: string;
-      title: string;
-      author: string;
-      category: "Process" | "Memory" | "Kernel" | "Thread" | "File System" | string;
-      difficulty: string;
-      solvedCount: number;
-      isSolved: boolean;
-    }>;
+    problems: HomeProblem[];
   } | null>(null);
+  const [recommendLoaded, setRecommendLoaded] = useState(false);
+  const [latestProblems, setLatestProblems] = useState<HomeProblem[]>([]);
+  const [stats, setStats] = useState<DiverStats>({ solved: null, rank: null, score: null });
+  const [liveContests, setLiveContests] = useState<HomeContest[]>([]);
+
+  // 추천이 비었거나(게스트 포함) 못 받았을 때: 실제 공개 문제 목록 앞의 3개
+  useEffect(() => {
+    if (!recommendLoaded || (recommendData?.problems?.length ?? 0) > 0) return;
+    let cancelled = false;
+    getJson(problemApi("/api/problems?page=1&size=3"), localStorage.getItem("token"))
+      .then((json) => {
+        const list = json?.data?.problems;
+        if (!cancelled && Array.isArray(list)) setLatestProblems(list.slice(0, 3));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [recommendLoaded, recommendData]);
+
+  // 진행 중인 원정(대회) 2개
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams({ keyword: "", status: "ongoing", onlyJoined: "false", page: "1", size: "2" });
+    getJson(`https://diveon.net/api/contests?${params.toString()}`, localStorage.getItem("token"))
+      .then((json) => {
+        const list = json?.data?.contests;
+        if (!cancelled && Array.isArray(list)) setLiveContests(list.slice(0, 2));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const silentRefreshAndFetchProfile = async () => {
@@ -92,9 +146,23 @@ export default function HomePage() {
         const newAccessToken = localStorage.getItem("token"); // 임시
         if (!newAccessToken) {
           setIsLoggedIn(false);
+          setRecommendLoaded(true);
           return;
         }
         setIsLoggedIn(true);
+
+        // 대원 기록: 해결 수(내 해결 목록 total) · 순위/점수(유저 랭킹의 myRanking)
+        Promise.all([
+          getJson("https://diveon.net/api/profile/problems/solved?page=1", newAccessToken).catch(() => null),
+          getJson("https://diveon.net/api/users/ranking?page=1", newAccessToken).catch(() => null),
+        ]).then(([solvedJson, rankingJson]) => {
+          const mine = rankingJson?.data?.myRanking;
+          setStats({
+            solved: asNumber(solvedJson?.data?.total),
+            rank: asNumber(mine?.rank),
+            score: asNumber(mine?.score),
+          });
+        });
 
         // 새로 발급받은 AccessToken을 들고 프로필 상세 Fetch 개시
         const profileRes = await fetch("https://diveon.net/api/profile/show", {
@@ -152,18 +220,21 @@ export default function HomePage() {
           }
         } catch (err) {
           console.error("개인 맞춤형 추천 챌린지 로드 실패:", err);
+        } finally {
+          setRecommendLoaded(true);
         }
 
       } catch (error) {
         console.error("보안 세션 수립 중 시스템 장애:", error);
+        setRecommendLoaded(true);
       }
     };
 
     silentRefreshAndFetchProfile();
   }, []);
 
-  const problems =
-    recommendData?.problems && recommendData.problems.length > 0 ? recommendData.problems : mockFeaturedProblems;
+  const hasRecommend = (recommendData?.problems?.length ?? 0) > 0;
+  const problems: HomeProblem[] = hasRecommend ? recommendData!.problems : latestProblems;
 
   return (
     <div className="min-h-screen bg-canvas text-ink font-sans">
@@ -188,7 +259,7 @@ export default function HomePage() {
       {/* ============ [A] 히어로: 심해 일러스트 + 디보 + Dive CTA ============ */}
       <section className="dv-hero relative overflow-hidden">
         <Bubbles />
-        <div className="relative mx-auto max-w-[1280px] px-6 pt-20 pb-24 md:pt-28 md:pb-32 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-end">
+        <div className="relative dv-shell pt-20 pb-24 md:pt-28 md:pb-32 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-end">
           {isLoggedIn ? (
             /* ---------- CASE 1. 로그인 대원 ---------- */
             <>
@@ -198,10 +269,21 @@ export default function HomePage() {
                   반가워요, <span className="text-primary">{nickname}</span> 대원님.<br />
                   오늘은 어디까지 내려가 볼까요?
                 </h1>
-                <p className="text-ink-muted text-[17px] leading-7 max-w-[60ch]">
-                  지금까지 <b className="text-ink font-mono">{mockUser.solved}개</b>의 다이브 포인트에 도달했고,
-                  탐사 랭킹 <b className="text-ink font-mono">{mockUser.ranking}위</b>예요. 다음 수층이 머지않았어요.
-                </p>
+                {(stats.solved !== null || stats.rank !== null) && (
+                  <p className="text-ink-muted text-[17px] leading-7 max-w-[60ch]">
+                    {stats.solved !== null && (
+                      <>
+                        지금까지 <b className="text-ink"><span className="font-mono">{stats.solved.toLocaleString()}</span>개</b>의 다이브 포인트에 도달했
+                        {stats.rank !== null ? "고, " : "어요."}
+                      </>
+                    )}
+                    {stats.rank !== null && (
+                      <>
+                        탐사 랭킹 <b className="text-ink"><span className="font-mono">{stats.rank.toLocaleString()}</span>위</b>예요.
+                      </>
+                    )}
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-3 pt-2">
                   <Link href="/challenges" className="dv-btn-dive">
                     다이브 시작 <ArrowRight size={18} />
@@ -221,21 +303,30 @@ export default function HomePage() {
                   <span className="dv-hud text-ink-muted">DIVER STATUS</span>
                   <TierBadge tier={tier} size="sm" showRank={false} />
                 </div>
-                <div className="flex items-end gap-4">
+                <div className="flex items-center gap-4">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/images/divo.webp" alt="" className="w-20 h-auto" />
-                  <div>
-                    <p className="dv-hud text-ink-subtle">MAX DEPTH</p>
-                    <p className="dv-readout text-ink">{Number(mockUser.score).toLocaleString()}m</p>
-                  </div>
+                  <img src="/images/divo.webp" alt="" className="w-16 h-auto shrink-0" />
+                  <p className="text-lg font-bold text-ink truncate">{nickname || "대원"}</p>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between dv-hud text-ink-muted">
-                    <span>NEXT ZONE</span>
-                    <span className="text-signal">{mockUser.progress}%</span>
-                  </div>
-                  <Progress value={mockUser.progress} className="h-2 bg-raised" indicatorClassName="bg-signal" />
-                </div>
+                {(stats.solved !== null || stats.rank !== null || stats.score !== null) && (
+                  <dl className="flex divide-x divide-line rounded-2xl border border-line bg-canvas/60">
+                    {[
+                      { k: "도달", v: stats.solved, unit: "개" },
+                      { k: "순위", v: stats.rank, unit: "위" },
+                      { k: "점수", v: stats.score, unit: "" },
+                    ]
+                      .filter((s) => s.v !== null)
+                      .map((s) => (
+                        <div key={s.k} className="flex-1 min-w-0 px-4 py-3 space-y-1">
+                          <dt className="text-xs font-medium text-ink-subtle">{s.k}</dt>
+                          <dd className="font-mono text-xl font-semibold text-ink">
+                            {s.v!.toLocaleString()}
+                            {s.unit && <span className="ml-0.5 text-sm text-ink-muted">{s.unit}</span>}
+                          </dd>
+                        </div>
+                      ))}
+                  </dl>
+                )}
               </div>
             </>
           ) : (
@@ -289,7 +380,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <main className="mx-auto w-full max-w-[1280px] px-6 pb-20 space-y-12 -mt-6 relative">
+      <main className="dv-shell pb-20 space-y-12 -mt-6 relative">
         {/* ============ 게스트: 핵심 가치 3개 (수심 층처럼 내려가며) ============ */}
         {!isLoggedIn && (
           <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -297,8 +388,8 @@ export default function HomePage() {
               { icon: <Eye size={20} />, lv: 1, title: "시각적 체험", desc: "Context Switch, Page Fault가 일어나는 순간을 노드 그래프로 한 단계씩 재생해요." },
               { icon: <ShieldCheck size={20} />, lv: 3, title: "안전한 격리 실행", desc: "gVisor·seccomp로 격리된 VM에서 커널 실습을 마음껏 해 볼 수 있어요." },
               { icon: <Gauge size={20} />, lv: 5, title: "즉시 피드백", desc: "제출하면 바로 채점하고, 무엇이 달랐는지 테스트 단위로 알려 줘요." },
-            ].map((v, i) => (
-              <div key={v.title} className="rounded-2xl border border-line bg-panel p-6 space-y-3" style={{ marginTop: `${i * 16}px` }}>
+            ].map((v) => (
+              <div key={v.title} className="rounded-2xl border border-line bg-panel p-6 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="grid place-items-center w-10 h-10 rounded-xl bg-primary-soft text-primary">{v.icon}</span>
                   <DepthBadge level={v.lv} size="sm" />
@@ -349,136 +440,93 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* ============ 추천 다이브 포인트 ============ */}
-        <section className="space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-            <div className="space-y-1.5">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <Target className="w-5 h-5 text-primary" /> 대원 맞춤 다이브 포인트
-              </h2>
-              <p className="text-sm text-ink-muted">{recommendData?.reason || "많은 대원이 도달한 문제를 추천해 드려요."}</p>
+        {/* ============ 다이브 포인트: 맞춤 추천, 없으면 실제 공개 문제 ============ */}
+        {problems.length > 0 && (
+          <section className="space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+              <div className="space-y-1.5">
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" /> {hasRecommend ? "대원 맞춤 다이브 포인트" : "다이브 포인트"}
+                </h2>
+                {hasRecommend && recommendData?.reason && <p className="text-sm text-ink-muted">{recommendData.reason}</p>}
+              </div>
+              <Link href="/challenges" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-hover">
+                전체 다이브 포인트 <ArrowRight size={14} />
+              </Link>
             </div>
-            <Link href="/challenges" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-hover">
-              전체 다이브 포인트 <ArrowRight size={14} />
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {problems.map((prob: any) => {
-              const currentId = prob.probId || prob.id;
-              const category = prob.category || "Process";
-              const solvedCount = prob.solvedCount ?? 0;
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {problems.map((prob) => {
+                const category = prob.category || "Process";
+                const solvedCount = prob.solvedCount ?? 0;
 
-              return (
-                <Link
-                  href={`/challenges/detail?id=${currentId}`}
-                  key={String(currentId)}
-                  className="group flex h-full flex-col justify-between gap-6 rounded-2xl border border-line bg-panel p-5 hover:border-primary/50 hover:bg-raised/40 transition-colors"
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-raised text-ink-muted text-xs font-medium">
-                        {CATEGORY_ICON[category]} {category}
-                      </span>
-                      <DepthBadge level={toLevel(prob.difficulty)} size="sm" />
+                return (
+                  <Link
+                    href={`/challenges/detail?id=${prob.probId}`}
+                    key={String(prob.probId)}
+                    className="group flex h-full flex-col justify-between gap-6 rounded-2xl border border-line bg-panel p-5 hover:border-primary/50 hover:bg-raised/40 transition-colors"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-raised text-ink-muted text-xs font-medium">
+                          {CATEGORY_ICON[category]} {category}
+                        </span>
+                        <DepthBadge level={toLevel(prob.difficulty)} size="sm" />
+                      </div>
+                      <h3 className="text-base font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                        {prob.title}
+                      </h3>
                     </div>
-                    <h3 className="text-base font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-                      {prob.title}
-                    </h3>
+                    <div className="flex items-center justify-between pt-3 border-t border-line text-xs text-ink-muted">
+                      <span className="font-mono">#{prob.probId}</span>
+                      <span className="flex items-center gap-1">
+                        <Anchor size={12} /> <span className="font-mono text-ink">{solvedCount.toLocaleString()}</span>명 도달
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ============ 진행 중인 원정: 실제 대회 목록 ============ */}
+        {liveContests.length > 0 && (
+          <section className="space-y-5">
+            <div className="flex items-end justify-between gap-3">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-coral" /> 진행 중인 원정
+              </h2>
+              <Link href="/contests" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-hover shrink-0">
+                전체 원정 <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {liveContests.map((c) => (
+                <Link
+                  href={`/contests/detail?id=${c.contestId}`}
+                  key={c.contestId}
+                  className="group flex items-center justify-between gap-4 rounded-2xl border border-line bg-panel p-5 hover:border-coral/50 transition-colors"
+                >
+                  <div className="min-w-0 space-y-1.5">
+                    <p className="font-semibold truncate group-hover:text-coral transition-colors">{c.title}</p>
+                    <p className="text-sm text-ink-muted">{formatPeriod(c.startTime, c.endTime)}</p>
                   </div>
-                  <div className="flex items-center justify-between pt-3 border-t border-line text-xs text-ink-muted">
-                    <span className="font-mono">#{currentId}</span>
-                    <span className="flex items-center gap-1">
-                      <Anchor size={12} /> <span className="font-mono text-ink">{solvedCount.toLocaleString()}</span>명 도달
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-coral-soft text-coral text-xs font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-coral animate-pulse" />
+                      {c.status}
                     </span>
+                    {c.type && (
+                      <span className="inline-flex items-center h-[22px] px-2 rounded-md bg-raised text-ink-muted text-xs">{c.type}</span>
+                    )}
                   </div>
                 </Link>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ============ 실시간 로그 + 원정 ============ */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 실시간 탐사 로그 — 터미널 틀 */}
-          <div className="rounded-2xl border border-line bg-panel p-6 space-y-4">
-            <div className="space-y-1">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <Flame className="w-5 h-5 text-warning" /> 실시간 탐사 로그
-              </h2>
-              <p className="text-sm text-ink-muted">지금 심해를 탐사 중인 대원들의 샌드박스 이벤트예요.</p>
+              ))}
             </div>
-            <div className="overflow-hidden rounded-xl border border-line bg-term font-mono text-[12px] leading-5">
-              <div className="flex items-center gap-2 h-9 px-3 bg-panel border-b border-line text-ink-muted text-xs">
-                <span className="flex-1 truncate">diveon@abyss:~/events</span>
-                <span className="dv-term__guard">
-                  <ShieldCheck /> GVISOR
-                </span>
-              </div>
-              <div className="p-4 space-y-2 text-[#D7E6F5]">
-                <p>
-                  <span className="text-[#8DA3BA]">00:34:12</span> <span className="text-success font-semibold">AC</span>{" "}
-                  <b>DanKook</b> · 가상 메모리 108 <span className="text-[#8DA3BA]">페이지 교체 최적화</span>
-                </p>
-                <p>
-                  <span className="text-[#8DA3BA]">00:31:05</span> <span className="text-primary font-semibold">INFO</span>{" "}
-                  <b>Newbie</b> · 세마포어 시각화 <span className="text-[#8DA3BA]">분석 노트 작성</span>
-                </p>
-                <p>
-                  <span className="text-[#8DA3BA]">00:28:49</span> <span className="text-danger font-semibold">WA</span>{" "}
-                  <b>Security</b> · 스레드 동기화 <span className="text-[#8DA3BA]">Deadlock 판정</span>
-                </p>
-                <p className="text-signal">
-                  diveon@abyss:~$ <span className="inline-block w-2 h-4 align-[-3px] bg-signal animate-pulse" />
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 추천 원정 — coral 강조 */}
-          <div className="rounded-2xl border border-line bg-panel p-6 space-y-4">
-            <div className="flex items-end justify-between gap-3">
-              <div className="space-y-1">
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-coral" /> 추천 원정
-                </h2>
-                <p className="text-sm text-ink-muted">대원님 수심에 맞는 원정(대회)이에요.</p>
-              </div>
-              <Link href="/contests" className="text-sm font-semibold text-primary hover:text-primary-hover shrink-0">
-                전체 보기
-              </Link>
-            </div>
-
-            {[
-              { title: "제1회 챌린저스 커널 동기화 레이스", meta: "O₂ 2일 14시간 남음", state: "진행중", mode: "개인전", live: true },
-              { title: "심해 구조 대항전 (Memory Rescue)", meta: "접수 ~ 07/15", state: "접수중", mode: "팀전", live: false },
-            ].map((c) => (
-              <Link
-                href="/contests"
-                key={c.title}
-                className="group flex items-center justify-between gap-3 rounded-xl border border-line bg-canvas p-4 hover:border-coral/50 transition-colors"
-              >
-                <div className="min-w-0 space-y-1">
-                  <p className="font-semibold text-sm truncate group-hover:text-coral transition-colors">{c.title}</p>
-                  <p className="text-xs font-mono text-ink-muted">{c.meta}</p>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span
-                    className={
-                      c.live
-                        ? "inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-coral-soft text-coral text-xs font-semibold"
-                        : "inline-flex items-center h-[22px] px-2 rounded-md bg-warning-soft text-warning text-xs font-semibold"
-                    }
-                  >
-                    {c.live && <span className="w-1.5 h-1.5 rounded-full bg-coral animate-pulse" />}
-                    {c.state}
-                  </span>
-                  <span className="inline-flex items-center h-[22px] px-2 rounded-md bg-raised text-ink-muted text-xs">{c.mode}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+          </section>
+        )}
       </main>
     </div>
   );
