@@ -43,6 +43,10 @@ export const formatPeriod = (
   return sameDay ? `${from} – ${formatClock(e)}` : `${from} – ${to}`;
 };
 
+// 비공개 그룹 초대 링크. 여는 즉시 가입하는 화면(app/groups/invite)으로 보낸다.
+// 예전 링크(/groups?code=)는 그룹 목록이 이 주소로 넘겨 준다.
+export const groupInvitePath = (code: string) => `/groups/invite?code=${encodeURIComponent(code)}`;
+
 // 문제 카테고리 명세 값: Process, Memory, Kernel, Thread, FileSystem
 // 화면 라벨("File System")이나 예전에 소문자로 저장된 값("file system")을 명세 값으로 맞춘다.
 export const PROBLEM_CATEGORIES = ["Kernel", "Process", "Thread", "Memory", "FileSystem"] as const;
