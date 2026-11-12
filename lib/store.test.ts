@@ -25,5 +25,6 @@ describe("store helpers", () => {
   it("labels history rows", () => {
     expect(historyLabel({ amount: 10, reason: "SOLVE", refId: 112, label: "FIFO", createdAt: "" })).toBe("#112 FIFO");
     expect(historyLabel({ amount: -50, reason: "PURCHASE", refId: 5, label: "Binary Hunter", createdAt: "" })).toBe("Binary Hunter");
+    expect(historyLabel({ amount: 50, reason: "DAILY", refId: 20261112, label: "FIFO", createdAt: "" })).toBe("오늘의 다이브 포인트 11/12 · FIFO");
   });
 });

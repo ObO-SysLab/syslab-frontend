@@ -11,8 +11,9 @@ export type StoreItem = {
   equipped: boolean;
 };
 
-export type PointHistory = { amount: number; reason: "SOLVE" | "PURCHASE" | string; refId: number; label: string | null; createdAt: string };
-export type StoreMe = { balance: number; earned: number; spent: number; history: PointHistory[] };
+export type PointHistory = { amount: number; reason: "SOLVE" | "DAILY" | "PURCHASE" | string; refId: number; label: string | null; createdAt: string };
+// 하루(서울 날짜) 획득 한도 dailyCap, 오늘의 다이브 포인트 보너스 dailyBonus
+export type StoreMe = { balance: number; earned: number; spent: number; todayEarned: number; dailyCap: number; dailyBonus: number; history: PointHistory[] };
 
 export const STORE_API = "https://diveon.net/api/store";
 
@@ -35,5 +36,10 @@ export function itemAction(item: StoreItem, loggedIn: boolean, balance: number |
 
 export function historyLabel(h: PointHistory): string {
   if (h.reason === "SOLVE") return `#${h.refId} ${h.label ?? "문제"}`;
+  if (h.reason === "DAILY") {
+    const d = String(h.refId);
+    const date = d.length === 8 ? `${d.slice(4, 6)}/${d.slice(6, 8)}` : "";
+    return `오늘의 다이브 포인트${date ? ` ${date}` : ""}${h.label ? ` · ${h.label}` : ""}`;
+  }
   return h.label ?? "상품";
 }

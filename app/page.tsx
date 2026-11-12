@@ -424,6 +424,8 @@ export default function HomePage() {
               <div className="space-y-3 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="dv-hud text-primary">DAILY</span>
+                  {/* 그날 맞히면 상점 포인트 +50P (하루 한도 100P 안에서) */}
+                  <span className="inline-flex items-center h-[22px] px-2 rounded-md bg-warning-soft text-warning text-xs font-bold font-mono">+50P</span>
                   <span className="inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-raised text-ink-muted text-xs font-medium">
                     {CATEGORY_ICON[todayProblem.category]} {todayProblem.category}
                   </span>

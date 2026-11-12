@@ -135,7 +135,9 @@ export default function StorePage() {
         <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-[-0.02em]">스토어</h1>
-            <p className="text-ink-muted text-sm">문제를 처음 맞히면 난이도 × 10P를 받아요. 본인이 낸 문제와 그룹·대회 문제는 제외돼요.</p>
+            <p className="text-ink-muted text-sm">
+              문제를 처음 맞히면 난이도 × 10P, 오늘의 다이브 포인트를 맞히면 +{me?.dailyBonus ?? 50}P. 하루 최대 {me?.dailyCap ?? 100}P까지 모을 수 있어요.
+            </p>
           </div>
           {isLoggedIn && me && (
             <div className="flex items-center gap-6 rounded-2xl border border-line bg-panel px-6 py-4">
@@ -143,9 +145,13 @@ export default function StorePage() {
                 <p className="text-xs text-ink-subtle">보유 포인트</p>
                 <p className="flex items-center gap-1.5 text-2xl font-black font-mono"><Coins className="w-5 h-5 text-warning" />{me.balance.toLocaleString()}P</p>
               </div>
-              <div className="text-xs text-ink-muted space-y-1 font-mono">
-                <p>획득 {me.earned.toLocaleString()}P</p>
-                <p>사용 {me.spent.toLocaleString()}P</p>
+              <div className="text-xs text-ink-muted space-y-1.5 font-mono min-w-[120px]">
+                <p className="flex justify-between gap-3"><span>오늘</span><b className="text-ink">{me.todayEarned} / {me.dailyCap}P</b></p>
+                <div className="h-1.5 rounded-full bg-raised overflow-hidden" aria-hidden>
+                  <div className="h-full bg-signal" style={{ width: `${Math.min(100, (me.todayEarned / Math.max(1, me.dailyCap)) * 100)}%` }} />
+                </div>
+                <p className="flex justify-between gap-3"><span>획득</span><span>{me.earned.toLocaleString()}P</span></p>
+                <p className="flex justify-between gap-3"><span>사용</span><span>{me.spent.toLocaleString()}P</span></p>
               </div>
             </div>
           )}

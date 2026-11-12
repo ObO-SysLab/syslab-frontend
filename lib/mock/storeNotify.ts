@@ -5,22 +5,23 @@ type Item = { itemId: number; category: string; name: string; description: strin
 
 export const STORE_ITEMS: Item[] = [
   { itemId: 1, category: "avatar", name: "기본 요원", description: "기본 아바타 테두리", price: 0, rarity: "Common", assetKey: "frame-default" },
-  { itemId: 2, category: "avatar", name: "네온 해커", description: "분홍 네온 아바타 테두리", price: 120, rarity: "Rare", assetKey: "frame-neon" },
-  { itemId: 3, category: "avatar", name: "어셈블리 장인", description: "호박색 아바타 테두리", price: 150, rarity: "Rare", assetKey: "frame-asm" },
-  { itemId: 4, category: "avatar", name: "사이버 수사대", description: "청록빛 이중 아바타 테두리", price: 200, rarity: "Epic", assetKey: "frame-cyber" },
-  { itemId: 5, category: "title", name: "Binary Hunter", description: "닉네임 옆에 붙는 칭호", price: 50, rarity: "Common", assetKey: "title-binary-hunter" },
-  { itemId: 6, category: "title", name: "Root Access", description: "모든 권한을 가진 자의 칭호", price: 500, rarity: "Legendary", assetKey: "title-root-access" },
-  { itemId: 7, category: "theme", name: "오션 드라이브", description: "푸른 물결 프로필 카드 배경", price: 100, rarity: "Rare", assetKey: "theme-ocean-drive" },
-  { itemId: 8, category: "theme", name: "다크 커널", description: "터미널 격자 프로필 카드 배경", price: 300, rarity: "Legendary", assetKey: "theme-dark-kernel" },
+  { itemId: 2, category: "avatar", name: "네온 해커", description: "분홍 네온 아바타 테두리", price: 1200, rarity: "Rare", assetKey: "frame-neon" },
+  { itemId: 3, category: "avatar", name: "어셈블리 장인", description: "호박색 아바타 테두리", price: 1500, rarity: "Rare", assetKey: "frame-asm" },
+  { itemId: 4, category: "avatar", name: "사이버 수사대", description: "청록빛 이중 아바타 테두리", price: 2500, rarity: "Epic", assetKey: "frame-cyber" },
+  { itemId: 5, category: "title", name: "Binary Hunter", description: "닉네임 옆에 붙는 칭호", price: 300, rarity: "Common", assetKey: "title-binary-hunter" },
+  { itemId: 6, category: "title", name: "Root Access", description: "모든 권한을 가진 자의 칭호", price: 5000, rarity: "Legendary", assetKey: "title-root-access" },
+  { itemId: 7, category: "theme", name: "오션 드라이브", description: "푸른 물결 프로필 카드 배경", price: 800, rarity: "Rare", assetKey: "theme-ocean-drive" },
+  { itemId: 8, category: "theme", name: "다크 커널", description: "터미널 격자 프로필 카드 배경", price: 3500, rarity: "Legendary", assetKey: "theme-dark-kernel" },
 ];
 
 const state = {
-  earned: 340,
+  earned: 1240,
   owned: new Map<number, boolean>([[5, true], [7, false]]), // itemId → equipped
   history: [
+    { amount: 50, reason: "DAILY", refId: 20261112, label: "식사하는 철학자 문제", createdAt: fromNow(-1) },
     { amount: 30, reason: "SOLVE", refId: 7, label: "식사하는 철학자 문제", createdAt: fromNow(-2) },
-    { amount: -50, reason: "PURCHASE", refId: 5, label: "Binary Hunter", createdAt: fromNow(-5) },
-    { amount: -100, reason: "PURCHASE", refId: 7, label: "오션 드라이브", createdAt: fromNow(-6) },
+    { amount: -300, reason: "PURCHASE", refId: 5, label: "Binary Hunter", createdAt: fromNow(-50) },
+    { amount: -800, reason: "PURCHASE", refId: 7, label: "오션 드라이브", createdAt: fromNow(-60) },
   ] as { amount: number; reason: string; refId: number; label: string; createdAt: string }[],
   notifications: [
     { id: 3, type: "SOLVE_CORRECT", title: "정답", body: "#7 식사하는 철학자 문제 문제를 맞혔어요.", link: "/challenges/detail?id=7", read: false, createdAt: fromNow(-0.05) },
@@ -37,7 +38,8 @@ const fail = (status: number, detail: string) => ({ status, body: { status, titl
 export const storeItems = () =>
   ok(STORE_ITEMS.map((i) => ({ ...i, owned: state.owned.has(i.itemId), equipped: state.owned.get(i.itemId) === true })), "상품 목록 조회 성공");
 
-export const storeMe = () => ok({ balance: balance(), earned: state.earned, spent: spent(), history: state.history }, "포인트 조회 성공");
+export const storeMe = () =>
+  ok({ balance: balance(), earned: state.earned, spent: spent(), todayEarned: 80, dailyCap: 100, dailyBonus: 50, history: state.history }, "포인트 조회 성공");
 
 export function purchase(itemId: number) {
   const item = STORE_ITEMS.find((i) => i.itemId === itemId);
