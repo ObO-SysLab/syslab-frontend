@@ -255,7 +255,7 @@ export default function FindAccountPage() {
                   <Button
                     onClick={handleFindId}
                     disabled={isLoading}
-                    className="w-full h-12 bg-raised border border-line-strong hover:bg-line text-white font-bold rounded-xl shadow-lg shadow-black/40 transition-all active:scale-[0.98]"
+                    className="w-full h-12 bg-raised border border-line-strong hover:bg-line text-ink font-bold rounded-xl shadow-lg shadow-black/40 transition-all active:scale-[0.98]"
                   >
                     {isLoading ? "조회 중..." : "아이디 찾기"}
                   </Button>
@@ -341,7 +341,7 @@ export default function FindAccountPage() {
                           onClick={handleVerifyResetCode}
                           // [수정] 시간 만료 시 확인 버튼도 비활성화
                           disabled={isLoading || timeLeft <= 0}
-                          className="flex-1 h-12 bg-raised border border-line-strong hover:bg-line text-white font-bold rounded-xl shadow-lg transition-all active:scale-[0.98]"
+                          className="flex-1 h-12 bg-raised border border-line-strong hover:bg-line text-ink font-bold rounded-xl shadow-lg transition-all active:scale-[0.98]"
                         >
                           {isLoading ? "확인 중..." : "코드 확인"}
                         </Button>

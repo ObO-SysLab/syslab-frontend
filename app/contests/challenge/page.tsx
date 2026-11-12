@@ -386,7 +386,7 @@ function ProblemDetailContent() {
 
 									{/* 상단 헤더 및 OS 이미지 정보 */}
 									<div className="flex items-center justify-between">
-										<h3 className="text-sm font-black text-white flex items-center gap-2">
+										<h3 className="text-sm font-black text-ink flex items-center gap-2">
 											<Zap className="w-4 h-4 text-success fill-success" /> VM 실습 환경
 										</h3>
 										<Badge variant="outline" className="text-ink-subtle border-line font-mono text-xs bg-raised">

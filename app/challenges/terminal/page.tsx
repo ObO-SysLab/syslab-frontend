@@ -237,7 +237,7 @@ function PracticeContent() {
   }, [probId, containerId]);
 
   return (
-    <div className="h-screen flex flex-col bg-canvas overflow-hidden w-full font-sans text-ink">
+    <div className="dv-dark-scope h-screen flex flex-col bg-canvas overflow-hidden w-full font-sans text-ink">
 
       {/* 1. 고정 헤더 */}
       <header className="shrink-0 h-16 border-b bg-panel px-6 flex items-center justify-between z-50">
@@ -342,7 +342,7 @@ function PracticeContent() {
           <div className="h-20 shrink-0 bg-deep border border-line rounded-2xl px-6 flex items-center gap-6 shadow-2xl">
             <div className="flex items-center gap-3 shrink-0">
               <Zap className="h-5 w-5 text-warning fill-warning" />
-              <span className="text-sm font-black text-white uppercase tracking-widest">FLAG</span>
+              <span className="text-sm font-black text-ink uppercase tracking-widest">FLAG</span>
             </div>
             <div className="flex-1 flex gap-2">
               <Input

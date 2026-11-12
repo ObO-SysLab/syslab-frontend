@@ -14,10 +14,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge"
 import { getLevelLabel } from "@/lib/utils";
 import { Header } from "@/components/Header";
+import { readPref, savePref, type ThemePref } from "@/lib/theme";
+import { mergeCategoryScores } from "@/lib/categoryScores";
 import { NotificationPrefsSection } from "@/components/settings/NotificationPrefsSection";
 import { WithdrawDialog } from "@/components/settings/WithdrawDialog";
 
@@ -687,35 +688,30 @@ function SecuritySection() {
 /* 4. 테마 및 외관 섹션 */
 /* -------------------------------------------------------------------------- */
 function AppearanceSection() {
+  // 기기마다 저장한다. 고르면 바로 적용된다(ThemeScope가 html 속성을 맞춘다).
+  const [pref, setPref] = useState<ThemePref>("dark");
+  useEffect(() => { setPref(readPref()); }, []);
+  const choose = (value: string) => {
+    const next = value as ThemePref;
+    setPref(next);
+    savePref(next);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in-50 duration-300">
       <div className="space-y-1">
         <h3 className="text-xl font-bold">테마 및 외관</h3>
-        <p className="text-sm text-ink-muted">사용자 환경에 맞는 테마를 설정합니다.</p>
+        <p className="text-sm text-ink-muted">이 기기에서 쓸 화면 테마를 고릅니다.</p>
       </div>
       <Separator />
 
       <div className="space-y-4">
-        <Label>애플리케이션 테마</Label>
-        <RadioGroup defaultValue="system" className="grid grid-cols-3 gap-4">
-          <ThemeCard value="light" label="라이트 모드" icon={<Sun size={20} />} />
-          <ThemeCard value="dark" label="다크 모드" icon={<Moon size={20} />} />
+        <Label>화면 테마</Label>
+        <RadioGroup value={pref} onValueChange={choose} className="grid grid-cols-3 gap-4">
+          <ThemeCard value="light" label="라이트" icon={<Sun size={20} />} />
+          <ThemeCard value="dark" label="다크" icon={<Moon size={20} />} />
           <ThemeCard value="system" label="시스템 설정" icon={<Laptop size={20} />} />
         </RadioGroup>
-      </div>
-
-      <div className="space-y-4 pt-4">
-        <Label>언어 설정 (Language)</Label>
-        <Select defaultValue="ko">
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="언어 선택" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ko">한국어 (Korean)</SelectItem>
-            <SelectItem value="en">English</SelectItem>
-            <SelectItem value="jp">日本語 (Japanese)</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
     </div>
   );
@@ -768,11 +764,8 @@ function ChartSection({ data }: { data: any }) {
           const rawScores = json?.data?.categoryScores;
 
           if (rawScores) {
-            // [핵심] API 응답 객체의 모든 키값을 소문자로 일괄 정규화하여 대소문자 차이 흡수
-            const normalizedScores: Record<string, number> = {};
-            Object.keys(rawScores).forEach((key) => {
-              normalizedScores[key.toLowerCase()] = Number(rawScores[key]) || 0;
-            });
+            // 같은 분야를 표기만 다르게 받으면 합친다(lib/categoryScores.ts)
+            const normalizedScores = mergeCategoryScores(rawScores);
 
             setCategoryStats(normalizedScores);
           }
@@ -839,11 +832,11 @@ function ChartSection({ data }: { data: any }) {
   }, [subTab, visibility, token]);
 
   // 카테고리 점수 안전 가출출 (소문자/대문자/공백 키 안전 매핑)
-  const processScore = categoryStats.process ?? categoryStats.Process ?? 0;
-  const memoryScore = categoryStats.memory ?? categoryStats.Memory ?? 0;
-  const kernelScore = categoryStats.kernel ?? categoryStats.Kernel ?? 0;
-  const threadScore = categoryStats.thread ?? categoryStats.Thread ?? 0;
-  const fileSystemScore = categoryStats.filesystem ?? categoryStats.FileSystem ?? categoryStats["file system"] ?? 0;
+  const processScore = categoryStats.process ?? 0;
+  const memoryScore = categoryStats.memory ?? 0;
+  const kernelScore = categoryStats.kernel ?? 0;
+  const threadScore = categoryStats.thread ?? 0;
+  const fileSystemScore = categoryStats.filesystem ?? 0;
 
   // 동적 MAX 값 계산 (실제 최댓값의 125%로 틀을 더 크게 잡아서 꽉 차는 답답함 해소)
   const scoreValues = [processScore, memoryScore, kernelScore, threadScore, fileSystemScore];
@@ -870,7 +863,7 @@ function ChartSection({ data }: { data: any }) {
         ${diff === "2" ? "bg-warning/10 text-warning border-warning/30" : ""}
         ${diff === "3" ? "bg-danger/10 text-danger border-danger/20" : ""}
         ${diff === "4" ? "bg-coral/10 text-coral border-coral/30" : ""}
-        ${["5", "6", "7"].includes(diff) ? "bg-raised text-white border-line shadow-sm" : ""}
+        ${["5", "6", "7"].includes(diff) ? "bg-raised text-ink border-line shadow-sm" : ""}
       `}>
         {getLevelLabel(diff)}
       </Badge>
@@ -895,15 +888,16 @@ function ChartSection({ data }: { data: any }) {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
             {/* 오각형 차트 그래픽 패널 */}
-            <Card className="col-span-12 lg:col-span-7 bg-deep border-line shadow-xl overflow-hidden rounded-2xl h-[400px] flex items-center justify-center p-4">
+            <Card className="dv-radar col-span-12 lg:col-span-7 bg-deep border-line shadow-xl overflow-hidden rounded-2xl h-[400px] flex items-center justify-center p-4">
               <ResponsiveContainer width="100%" height="100%">
                 {/* outerRadius를 60% 정도로 지정하고 domain에 여유를 두어 꼭짓점 여백을 확보합니다. */}
                 <RadarChart cx="50%" cy="50%" outerRadius="60%" data={formattedChartData}>
-                  <PolarGrid stroke="#1e293b" />
-                  <PolarAngleAxis dataKey="subject" stroke="#94a3b8" fontSize={11} fontWeight="bold" />
-                  {/* dynamicMax 대신 여백이 반영된 chartDomainMax를 바인딩합니다. */}
-                  <PolarRadiusAxis angle={30} domain={[0, chartDomainMax]} tick={{ fill: '#6B819C', fontSize: 12 }} />
-                  <Radar name="최고 탐사 수심" dataKey="depth" stroke="#00D1FF" fill="#0055FF" fillOpacity={0.15} />
+                  {/* 색은 app/globals.css .dv-radar에서 테마 토큰으로 칠한다(라이트·다크 공통). */}
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="subject" fontSize={11} fontWeight="bold" />
+                  {/* 범위만 정하고 축은 그리지 않는다: 30° 사선과 기울어진 눈금 숫자가 뜻 없는 선처럼 보였다. 점수는 오른쪽 목록에 있다. */}
+                  <PolarRadiusAxis domain={[0, chartDomainMax]} tick={false} axisLine={false} />
+                  <Radar name="최고 탐사 수심" dataKey="depth" />
                 </RadarChart>
               </ResponsiveContainer>
             </Card>
@@ -927,11 +921,11 @@ function ChartSection({ data }: { data: any }) {
       {/* [하단 대시보드 통합 허브] 문제/그룹/대회 5단 스위처 팩 */}
       <div className="space-y-6">
         <div className="flex flex-wrap gap-1 bg-raised p-1.5 rounded-xl border border-line/50">
-          <button onClick={() => { setSubTab("solved"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "solved" ? "bg-raised border border-line-strong text-white shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>🌊 푼 문제</button>
-          <button onClick={() => { setSubTab("failed"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "failed" ? "bg-raised border border-line-strong text-white shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>❌ 못 푼 문제</button>
-          <button onClick={() => { setSubTab("authored"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "authored" ? "bg-raised border border-line-strong text-white shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>🛠️ 출제한 문제</button>
-          <button onClick={() => { setSubTab("groups"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "groups" ? "bg-raised border border-line-strong text-white shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>👥 속한 그룹</button>
-          <button onClick={() => { setSubTab("contests"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "contests" ? "bg-raised border border-line-strong text-white shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>🏆 참여 대회</button>
+          <button onClick={() => { setSubTab("solved"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "solved" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>🌊 푼 문제</button>
+          <button onClick={() => { setSubTab("failed"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "failed" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>❌ 못 푼 문제</button>
+          <button onClick={() => { setSubTab("authored"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "authored" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>🛠️ 출제한 문제</button>
+          <button onClick={() => { setSubTab("groups"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "groups" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>👥 속한 그룹</button>
+          <button onClick={() => { setSubTab("contests"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "contests" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>🏆 참여 대회</button>
         </div>
 
         {["solved", "failed", "authored"].includes(subTab) && (
@@ -1070,7 +1064,7 @@ function SettingsNavItem({ icon, label, active, onClick }: { icon: any, label: s
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-bold transition-all ${active ? "bg-raised border border-line-strong text-white shadow-md" : "text-ink-muted hover:bg-raised hover:text-ink"
+      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-bold transition-all ${active ? "bg-raised border border-line-strong text-ink shadow-md" : "text-ink-muted hover:bg-raised hover:text-ink"
         }`}
     >
       {icon} <span>{label}</span>
@@ -1085,7 +1079,7 @@ function ThemeCard({ value, label, icon }: { value: string, label: string, icon:
       <RadioGroupItem value={value} id={value} className="peer sr-only" />
       <Label
         htmlFor={value}
-        className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-panel p-4 hover:bg-raised/60 peer-data-[state=checked]:border-line peer-data-[state=checked]:bg-canvas cursor-pointer"
+        className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-panel p-4 hover:bg-raised/60 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary-soft peer-data-[state=checked]:text-primary cursor-pointer"
       >
         {icon}
         <span className="mt-2 text-xs font-bold uppercase tracking-wider">{label}</span>
