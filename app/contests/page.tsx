@@ -24,7 +24,7 @@ export default function ContestListPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
 
   // [STATE] 필터
   const [keyword, setKeyword] = useState("");

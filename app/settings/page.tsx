@@ -33,7 +33,7 @@ function SettingsContent() {
   // 프로필 데이터를 저장할 상태
   const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
 
   useEffect(() => {
@@ -210,15 +210,17 @@ function ProfileSection({
   const [nickname, setNickname] = useState(info?.nickname || "");
   const [bio, setBio] = useState(info?.selfComment || "");
   const [org, setOrg] = useState(info?.belong || "");
-  const [profileImgUrl, setProfileImgUrl] = useState(info?.profileImgUrl || "/avatar.png");
+  const [profileImgUrl, setProfileImgUrl] = useState(info?.profileImgUrl || "");
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [interests, setInterests] = useState<string[]>(
     Array.isArray(info?.interest)
-      ? info.interest
+      ? info.interest.map((s: string) => String(s).trim()).filter(Boolean)
       : info?.interest && typeof info.interest === "string"
         ? info.interest.split(",").map((s: string) => s.trim()).filter(Boolean)
-        : ["Digital Forensics", "Cyber Investigation"] // 기본 예시 데이터 대체
+        : []
   );
+  // 삭제를 누르면 저장할 때 서버의 사진도 지운다(새 사진을 고르면 취소).
+  const [removeImage, setRemoveImage] = useState(false);
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [tagInput, setTagInput] = useState("");
@@ -261,6 +263,7 @@ function ProfileSection({
 
     // 핵심: 파일 객체는 주머니(pendingImageFile)에 보관하고, 화면 마크업만 임시 전환
     setPendingImageFile(file);
+    setRemoveImage(false);
     setProfileImgUrl(URL.createObjectURL(file));
   };
 
@@ -313,7 +316,8 @@ function ProfileSection({
       });
 
       if (res.ok) {
-        // 2단계: 텍스트 수정 성공 직후, 주머니에 대기 중인 임시 프로필 사진이 있다면 연속 업로드 개시!
+        // 2단계: 텍스트 수정 성공 직후, 새 사진은 올리고 삭제를 눌렀다면 서버의 사진을 지운다.
+        let imageError = "";
         if (pendingImageFile) {
           const formDataPayload = new FormData();
           formDataPayload.append("image", pendingImageFile); // 명세서 매핑 키: image
@@ -325,14 +329,18 @@ function ProfileSection({
             },
             body: formDataPayload
           });
-
-          if (!imgRes.ok) {
-            alert("텍스트 정보는 반영되었으나, 프로필 이미지 업로드 중 서버 에러가 발생했습니다.");
-          }
+          if (!imgRes.ok) imageError = "프로필 정보는 저장했지만 사진을 올리지 못했습니다.";
+        } else if (removeImage) {
+          const delRes = await fetch("https://diveon.net/api/users/me/profile-image", {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+          });
+          if (!delRes.ok) imageError = "프로필 정보는 저장했지만 사진을 지우지 못했습니다.";
         }
 
-        alert("모든 프로필 변경사항 및 이미지가 안전하게 저장되었습니다!");
+        alert(imageError || "프로필을 저장했습니다.");
         setPendingImageFile(null); // 전송 완료 후 주머니 비우기
+        setRemoveImage(false);
 
         // 3단계: 헤더 및 메인 레이아웃에 캐시 잔상 없이 굳히기 위해 쿼리스트링 리로드 동기화
         window.location.href = `/settings?v=${Date.now()}`;
@@ -375,9 +383,9 @@ function ProfileSection({
           >
             <Avatar className="w-24 h-24 border-4 border-panel shadow-xl transition-transform active:scale-95">
               {/* 기 가공된 profileImgUrl 상태 소스 연결 */}
-              <AvatarImage src={profileImgUrl} />
+              {profileImgUrl && <AvatarImage src={profileImgUrl} />}
               <AvatarFallback className="bg-primary/15 text-primary font-black text-xl">
-                {isImageUploading ? "..." : "DY"}
+                {isImageUploading ? "..." : (nickname.trim().charAt(0).toUpperCase() || <User size={32} aria-hidden />)}
               </AvatarFallback>
             </Avatar>
             <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -404,9 +412,11 @@ function ProfileSection({
                 variant="ghost"
                 onClick={() => {
                   setPendingImageFile(null);   // 킵해둔 파일 아웃 처리
-                  setProfileImgUrl("/avatar.png"); // 기본 프레임 스킨 복원
+                  setProfileImgUrl(""); // 기본 모양으로 표시
+                  setRemoveImage(true); // 저장할 때 서버의 사진도 지운다
+                  if (fileInputRef.current) fileInputRef.current.value = "";
                 }}
-                disabled={isImageUploading}
+                disabled={isImageUploading || !profileImgUrl}
                 className="text-danger hover:bg-danger/10 font-bold"
               >
                 삭제
@@ -455,7 +465,7 @@ function ProfileSection({
               <span className="text-ink text-sm font-bold">
                 {getTierLabel(info?.tier)} Tier
               </span>
-              <Badge variant="outline" className={`font-black text-xs uppercase tracking-tight py-0.5 px-2 rounded-full ${getTierBadgeStyle(info?.tier || "4")}`}>
+              <Badge variant="outline" className={`font-black text-xs uppercase tracking-tight py-0.5 px-2 rounded-full ${getTierBadgeStyle(info?.tier ?? "")}`}>
                 Active
               </Badge>
             </div>

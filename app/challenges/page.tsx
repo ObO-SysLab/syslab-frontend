@@ -43,7 +43,7 @@ export default function ProblemListPage() {
 
   const [myRank, setMyRank] = useState<any>(null);
   const [ads, setAds] = useState<any[]>([]);
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
 
   // 오늘의 랜덤 추천 문제용 상태 및 로딩 상태
 
@@ -77,7 +77,7 @@ export default function ProblemListPage() {
     const json=await requestJson(problemApi('/api/profile/show'),{signal,headers:authHeaders()});
     return json?.data?.userInfo??null;
   });
-  useEffect(()=>{setUserImgUrl(profileQuery.data?.profileImgUrl??'/avatar.png');setIsLoggedIn(!!problemToken());},[profileQuery.data]);
+  useEffect(()=>{setUserImgUrl(profileQuery.data?.profileImgUrl??'');setIsLoggedIn(!!problemToken());},[profileQuery.data]);
   const params = new URLSearchParams({page:String(currentPage),size:'10'});
   if(searchTerm.trim())params.set('title',searchTerm.trim());
   if(selectedType!=='All')params.set('type',selectedType);

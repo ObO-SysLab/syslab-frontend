@@ -27,6 +27,7 @@ export const mockLogoutResponse = ok(null, "로그아웃되었습니다.");
 export const mockProfileResponse = ok(
   {
     userInfo: {
+      userId: ME.userId,
       nickname: ME.nickname,
       profileImgUrl: ME.profileImgUrl,
       selfComment: "커널 공부 중인 심해 다이버입니다.",
@@ -34,6 +35,8 @@ export const mockProfileResponse = ok(
       email: "dy.park@dankook.ac.kr",
       belong: "단국대학교 소프트웨어학과",
       interest: ["Digital Forensics", "Cyber Investigation"],
+      tier: ME.tier,
+      score: ME.score,
     },
   },
   "성공"

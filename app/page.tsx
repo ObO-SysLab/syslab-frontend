@@ -8,6 +8,7 @@ import {
   ArrowRight, Eye, ShieldCheck, Gauge, ChevronRight,
 } from "lucide-react";
 import { Header } from "@/components/Header";
+import { ActivityLog } from "@/components/home/ActivityLog";
 import { DepthBadge, DivoBubble, TierBadge, TypeChip, StatusIcon, Bubbles } from "@/components/dv";
 import { problemApi } from "@/lib/problemApi";
 import { formatPeriod } from "@/lib/utils";
@@ -73,7 +74,7 @@ export default function HomePage() {
   // [STATE] 유저 프로필
   const [nickname, setNickname] = useState("");
   const [tier, setTier] = useState("");
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
 
   // [STATE] 챌린지, 대회, 그룹
   const [todayProblem, setTodayProblem] = useState<{
@@ -489,6 +490,9 @@ export default function HomePage() {
             </div>
           </section>
         )}
+
+        {/* ============ 실시간 탐사 로그: 공개 문제의 최근 채점 결과 ============ */}
+        <ActivityLog />
 
         {/* ============ 진행 중인 원정: 실제 대회 목록 ============ */}
         {liveContests.length > 0 && (

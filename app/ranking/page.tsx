@@ -40,7 +40,7 @@ export default function GlobalRankingPage() {
   const [userPage, setUserPage] = useState(1);
   const [groupPage, setGroupPage] = useState(1);
 
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   // 상단 헤더 프로필 이미지 동기화
