@@ -43,6 +43,16 @@ export const formatPeriod = (
   return sameDay ? `${from} – ${formatClock(e)}` : `${from} – ${to}`;
 };
 
+// 날짜·시간 입력란 아무 곳이나 눌러도 브라우저 선택기를 연다(작은 달력 아이콘만 누르는 것보다 찾기 쉽다).
+// showPicker를 지원하지 않거나 막힌 환경에서는 원래대로 직접 입력한다.
+export const openNativePicker = (event: { currentTarget: HTMLInputElement }) => {
+  try {
+    event.currentTarget.showPicker?.();
+  } catch {
+    // 기본 동작 유지
+  }
+};
+
 // 문제 카테고리 명세 값: Process, Memory, Kernel, Thread, FileSystem
 // 화면 라벨("File System")이나 예전에 소문자로 저장된 값("file system")을 명세 값으로 맞춘다.
 export const PROBLEM_CATEGORIES = ["Kernel", "Process", "Thread", "Memory", "FileSystem"] as const;
