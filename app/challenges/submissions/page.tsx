@@ -109,7 +109,7 @@ function SubmissionDetailContent() {
         isLoggedIn={isLoggedIn}
         userImgUrl={userImgUrl}
         activeMenu="challenge"
-        onLogout={() => { if (logout()) setIsLoggedIn(false); }}
+        onLogout={() => { if (logout()) window.location.replace("/"); }}
       />
 
       <main className="dv-shell pt-8 pb-24 space-y-6">

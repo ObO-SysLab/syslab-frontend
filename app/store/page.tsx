@@ -128,7 +128,7 @@ export default function StorePage() {
         isLoggedIn={isLoggedIn}
         userImgUrl={userImgUrl}
         activeMenu="store"
-        onLogout={() => { if (logout()) setIsLoggedIn(false); }}
+        onLogout={() => { if (logout()) window.location.replace("/"); }}
       />
 
       <main className="dv-shell pt-10 pb-20 space-y-8">

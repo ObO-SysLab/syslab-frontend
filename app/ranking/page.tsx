@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { CosmeticFrame, UserTitle } from "@/components/Cosmetics";
 import { themeClass, useCosmetics } from "@/lib/cosmetics";
 import { TierBadge } from "@/components/dv";
+import { getGroupTier } from "@/lib/utils";
 import {
   Search, BarChart3, Crown, ChevronLeft, ChevronRight
 } from "lucide-react";
@@ -171,38 +172,11 @@ export default function GlobalRankingPage() {
     }
   }, [rankType, userPage, groupPage]);
 
-  // 그룹 점수대별 가상 티어 자동 계산 가드 (명세서 보완)
-  const calculateGroupTier = (score: number) => {
-    if (score >= 1000) return "Challenger";
-    if (score >= 500) return "Master";
-    if (score >= 300) return "Diamond";
-    if (score >= 150) return "Platinum";
-    if (score >= 80) return "Gold";
-    return "Silver";
-  };
-
-  // 기존 getTierColor 함수 내부에 들어오는 티어 변환 가드 주입
-  const getTierColor = (tier: string) => {
-
-
-    if (tier === "7") tier = "Challenger";
-    else if (tier === "6") tier = "Master";
-    else if (tier === "5") tier = "Diamond";
-    else if (tier === "4") tier = "Platinum";
-    else if (tier === "3") tier = "Gold";
-    else if (tier === "2") tier = "Silver";
-    else if (tier === "1") tier = "Bronze";
-
-    switch (tier) {
-      case 'Challenger': return 'bg-danger/15 text-danger border-danger/30';
-      case 'Master': return 'bg-coral/10 text-coral border-coral/30';
-      case 'Diamond': return 'bg-primary/10 text-primary border-primary/30';
-      case 'Platinum': return 'bg-success/10 text-success border-success/30';
-      case 'Gold': return 'bg-warning/10 text-warning border-warning/30';
-      case 'Silver': return 'bg-raised text-ink-muted border-line';
-      default: return 'bg-canvas text-ink-muted border-line';
-    }
-  };
+  // 사용자는 서버가 준 사진 주소만 쓴다(지운 사진·구글 사진도 서버 값 그대로). 그룹은 대표 이미지 주소를 쓴다.
+  const avatarSrc = (entry: any): string | undefined =>
+    rankType === "user"
+      ? entry?.profileImgUrl || undefined
+      : entry?.image || `https://d3ghudecvdi62z.cloudfront.net/profiles/groups/${entry?.groupId}?v=${cacheBuster}`;
 
   const currentTop3 = rankType === "user" ? userTop3 : groupTop3;
   const currentRankings = rankType === "user" ? userRankings : groupRankings;
@@ -219,7 +193,7 @@ export default function GlobalRankingPage() {
         isLoggedIn={isLoggedIn}
         userImgUrl={userImgUrl}
         activeMenu="ranking"
-        onLogout={() => { if (logout()) setIsLoggedIn(false); }}
+        onLogout={() => { if (logout()) window.location.replace("/"); }}
       />
 
       {/* 2. 메인 컨텐츠 영역 */}
@@ -267,7 +241,6 @@ export default function GlobalRankingPage() {
         </div>
 
         {/* Top 3 시각화 Podium 패널 */}
-        {/* Top 3 시각화 Podium 패널 */}
         {searchQuery === "" && currentTop3 && currentTop3.length >= 3 && (
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto pt-4 pb-8 items-end">
 
@@ -282,7 +255,7 @@ export default function GlobalRankingPage() {
                 <CosmeticFrame frame={podiumCosmetics(1)?.avatar} className="mb-3">
                   <Avatar className="h-18 w-18 border-4 border-line shadow-sm">
                     {/* Date.now()를 cacheBuster 변수로 치환하여 Hydration 붕괴를 원천 차단합니다. */}
-                    <AvatarImage src={rankType === "group" && currentTop3[1].image ? currentTop3[1].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[1].userId : currentTop3[1].groupId}?v=${cacheBuster}`} className="object-cover" />
+                    {avatarSrc(currentTop3[1]) && <AvatarImage src={avatarSrc(currentTop3[1])} className="object-cover" />}
                     <AvatarFallback className="bg-line text-ink-muted font-bold text-lg">{currentTop3[1].avatar}</AvatarFallback>
                   </Avatar>
                 </CosmeticFrame>
@@ -308,7 +281,7 @@ export default function GlobalRankingPage() {
                 <div className="absolute top-4 left-4 h-8 w-8 bg-warning/15 text-warning rounded-full flex items-center justify-center font-black">1</div>
                 <CosmeticFrame frame={podiumCosmetics(0)?.avatar} className="mb-3">
                   <Avatar className="h-22 w-24 border-4 border-panel shadow-md">
-                    <AvatarImage src={rankType === "group" && currentTop3[0].image ? currentTop3[0].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[0].userId : currentTop3[0].groupId}?v=${cacheBuster}`} className="object-cover" />
+                    {avatarSrc(currentTop3[0]) && <AvatarImage src={avatarSrc(currentTop3[0])} className="object-cover" />}
                     <AvatarFallback className="bg-warning/25 text-warning font-black text-xl">{currentTop3[0].avatar}</AvatarFallback>
                   </Avatar>
                 </CosmeticFrame>
@@ -331,7 +304,7 @@ export default function GlobalRankingPage() {
                 <div className="absolute top-4 left-4 h-8 w-8 bg-warning/10 rounded-full flex items-center justify-center font-black text-warning">3</div>
                 <CosmeticFrame frame={podiumCosmetics(2)?.avatar} className="mb-3">
                   <Avatar className="h-16 w-16 border-4 border-warning/20 shadow-sm">
-                    <AvatarImage src={rankType === "group" && currentTop3[2].image ? currentTop3[2].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[2].userId : currentTop3[2].groupId}?v=${cacheBuster}`} className="object-cover" />
+                    {avatarSrc(currentTop3[2]) && <AvatarImage src={avatarSrc(currentTop3[2])} className="object-cover" />}
                     <AvatarFallback className="bg-warning/15 text-warning font-bold text-base">{currentTop3[2].avatar}</AvatarFallback>
                   </Avatar>
                 </CosmeticFrame>
@@ -371,7 +344,7 @@ export default function GlobalRankingPage() {
                 .map((item) => {
                   const displayName = rankType === "user" ? item.nickname : item.title;
                   const displayId = rankType === "user" ? item.userId : item.groupId;
-                  const displayTier = rankType === "user" ? item.tier : calculateGroupTier(item.score);
+                  const displayTier = rankType === "user" ? item.tier : getGroupTier(item.score);
 
                   return (
                     <TableRow key={`table-row-${rankType}-${displayId}`} className="hover:bg-raised/50 transition-colors group">
@@ -380,7 +353,7 @@ export default function GlobalRankingPage() {
                         <div className="flex items-center gap-3">
                           <CosmeticFrame frame={rankType === "user" ? cosmeticsOf(item.userId)?.avatar : null}>
                           <Avatar className="h-8 w-8 border border-line">
-                            <AvatarImage src={rankType === "group" && item.image ? item.image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${displayId}?v=${cacheBuster}`} className="object-cover" />
+                            {avatarSrc(item) && <AvatarImage src={avatarSrc(item)} className="object-cover" />}
                             <AvatarFallback className={rankType === "user" ? "bg-primary/10 text-primary text-xs font-bold" : "bg-coral/10 text-coral text-xs font-bold"}>
                               {displayName ? displayName.substring(0, 1).toUpperCase() : ""}
                             </AvatarFallback>
