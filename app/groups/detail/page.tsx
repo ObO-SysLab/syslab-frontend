@@ -21,6 +21,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { hallOfFame, memberRanks } from "@/lib/groupMembers";
 import { TierBadge } from "@/components/dv";
+import { UserTitle } from "@/components/Cosmetics";
+import { useCosmetics } from "@/lib/cosmetics";
 import { Header } from "@/components/Header";
 
 
@@ -57,6 +59,7 @@ function GroupDetailPage() {
   // 명예의 전당·멤버 순위: 멤버의 사이트 전체 점수 기준
   const topMembers = hallOfFame(members);
   const memberRankById = memberRanks(members);
+  const cosmeticsOf = useCosmetics(members.map((m) => m.userId));
   const [selectedMemberId, setSelectedMemberId] = useState(0);
 
   // [STATE] 게시판 탭
@@ -1359,6 +1362,7 @@ function GroupDetailPage() {
                                   <span className={`font-semibold ${isLeader ? "text-warning" : "text-ink"}`}>
                                     {member.nickname}
                                   </span>
+                                  <UserTitle title={cosmeticsOf(member.userId)?.title} name={cosmeticsOf(member.userId)?.titleName} />
                                 </div>
                               </TableCell>
 
@@ -1473,7 +1477,7 @@ function GroupDetailPage() {
                                     <TableCell className="text-center font-bold text-ink-subtle pl-4">
                                       {isLeader ? <Crown className="w-4 h-4 text-warning mx-auto" /> : memberRankById.get(member.userId)}
                                     </TableCell>
-                                    <TableCell className="font-semibold text-ink">{member.nickname}</TableCell>
+                                    <TableCell className="font-semibold text-ink"><span className="flex items-center gap-1.5">{member.nickname}<UserTitle title={cosmeticsOf(member.userId)?.title} name={cosmeticsOf(member.userId)?.titleName} /></span></TableCell>
                                     <TableCell><Badge variant="secondary" className="text-xs">{member.role}</Badge></TableCell>
                                     <TableCell>{member.tier ? <TierBadge tier={member.tier} size="sm" showRank={false} /> : <span className="text-xs text-ink-subtle">-</span>}</TableCell>
 

@@ -3,6 +3,8 @@ import { logout } from "@/lib/authSession";
 
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
+import { CosmeticFrame, UserTitle } from "@/components/Cosmetics";
+import { themeClass, useCosmetics } from "@/lib/cosmetics";
 import { TierBadge } from "@/components/dv";
 import {
   Search, BarChart3, Crown, ChevronLeft, ChevronRight
@@ -206,6 +208,9 @@ export default function GlobalRankingPage() {
   const currentRankings = rankType === "user" ? userRankings : groupRankings;
   const currentPage = rankType === "user" ? userPage : groupPage;
   const totalElements = rankType === "user" ? userTotalElements : groupTotalElements;
+  // 상점 꾸미기(테두리·칭호·카드 배경)는 유저 랭킹에만
+  const cosmeticsOf = useCosmetics(rankType === "user" ? [...currentTop3, ...currentRankings].map((u: any) => u?.userId) : []);
+  const podiumCosmetics = (i: number) => (rankType === "user" ? cosmeticsOf(currentTop3[i]?.userId) : null);
 
   return (
     <div className="min-h-screen bg-canvas text-ink font-sans">
@@ -271,15 +276,18 @@ export default function GlobalRankingPage() {
               key={`podium-silver-${rankType}-${currentTop3[1].userId || currentTop3[1].groupId}`}
               className="order-2 md:order-1 transform transition-transform hover:-translate-y-2"
             >
-              <Card className="border-line bg-panel shadow-md relative overflow-hidden h-[230px] flex flex-col items-center justify-center pt-8">
+              <Card className={`border-line bg-panel shadow-md relative overflow-hidden h-[230px] flex flex-col items-center justify-center pt-8 ${themeClass(podiumCosmetics(1)?.theme)}`}>
                 <div className="absolute top-0 left-0 w-full h-2 bg-line-strong"></div>
                 <div className="absolute top-4 left-4 h-8 w-8 bg-raised rounded-full flex items-center justify-center font-black text-ink-muted">2</div>
-                <Avatar className="h-18 w-18 border-4 border-line shadow-sm mb-3">
-                  {/* Date.now()를 cacheBuster 변수로 치환하여 Hydration 붕괴를 원천 차단합니다. */}
-                  <AvatarImage src={rankType === "group" && currentTop3[1].image ? currentTop3[1].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[1].userId : currentTop3[1].groupId}?v=${cacheBuster}`} className="object-cover" />
-                  <AvatarFallback className="bg-line text-ink-muted font-bold text-lg">{currentTop3[1].avatar}</AvatarFallback>
-                </Avatar>
+                <CosmeticFrame frame={podiumCosmetics(1)?.avatar} className="mb-3">
+                  <Avatar className="h-18 w-18 border-4 border-line shadow-sm">
+                    {/* Date.now()를 cacheBuster 변수로 치환하여 Hydration 붕괴를 원천 차단합니다. */}
+                    <AvatarImage src={rankType === "group" && currentTop3[1].image ? currentTop3[1].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[1].userId : currentTop3[1].groupId}?v=${cacheBuster}`} className="object-cover" />
+                    <AvatarFallback className="bg-line text-ink-muted font-bold text-lg">{currentTop3[1].avatar}</AvatarFallback>
+                  </Avatar>
+                </CosmeticFrame>
                 <h3 className="shrink-0 font-black text-base leading-6 text-ink text-center px-2 line-clamp-1">{currentTop3[1].nickname}</h3>
+                {rankType === "user" && <UserTitle title={podiumCosmetics(1)?.title} name={podiumCosmetics(1)?.titleName} className="mt-1" />}
                 <p className="text-sm font-bold text-ink-muted mt-1">{currentTop3[1].score.toLocaleString()}점</p>
                 {"memberCount" in currentTop3[1] && (
                   <p className="text-xs text-ink-subtle font-medium">멤버 {currentTop3[1].memberCount}명</p>
@@ -295,14 +303,17 @@ export default function GlobalRankingPage() {
               <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20 animate-bounce">
                 <Crown className="h-8 w-8 text-warning fill-warning" />
               </div>
-              <Card className="border-warning/30 bg-gradient-to-b from-warning/10 to-panel shadow-xl relative overflow-hidden h-[270px] flex flex-col items-center justify-center pt-6 border-2">
+              <Card className={`border-warning/30 bg-gradient-to-b from-warning/10 to-panel shadow-xl relative overflow-hidden h-[270px] flex flex-col items-center justify-center pt-6 border-2 ${themeClass(podiumCosmetics(0)?.theme)}`}>
                 <div className="absolute top-0 left-0 w-full h-2 bg-warning"></div>
                 <div className="absolute top-4 left-4 h-8 w-8 bg-warning/15 text-warning rounded-full flex items-center justify-center font-black">1</div>
-                <Avatar className="h-22 w-24 border-4 border-panel shadow-md mb-3">
-                  <AvatarImage src={rankType === "group" && currentTop3[0].image ? currentTop3[0].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[0].userId : currentTop3[0].groupId}?v=${cacheBuster}`} className="object-cover" />
-                  <AvatarFallback className="bg-warning/25 text-warning font-black text-xl">{currentTop3[0].avatar}</AvatarFallback>
-                </Avatar>
+                <CosmeticFrame frame={podiumCosmetics(0)?.avatar} className="mb-3">
+                  <Avatar className="h-22 w-24 border-4 border-panel shadow-md">
+                    <AvatarImage src={rankType === "group" && currentTop3[0].image ? currentTop3[0].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[0].userId : currentTop3[0].groupId}?v=${cacheBuster}`} className="object-cover" />
+                    <AvatarFallback className="bg-warning/25 text-warning font-black text-xl">{currentTop3[0].avatar}</AvatarFallback>
+                  </Avatar>
+                </CosmeticFrame>
                 <h3 className="shrink-0 font-black text-lg leading-7 text-ink text-center px-2 line-clamp-1">{currentTop3[0].nickname}</h3>
+                {rankType === "user" && <UserTitle title={podiumCosmetics(0)?.title} name={podiumCosmetics(0)?.titleName} className="mt-1" />}
                 <p className="text-sm font-black text-warning bg-warning/15 px-3 py-0.5 rounded-full mt-1.5">{currentTop3[0].score.toLocaleString()}점</p>
                 {"memberCount" in currentTop3[0] && (
                   <p className="text-xs text-ink-subtle font-medium mt-1">멤버 {currentTop3[0].memberCount}명</p>
@@ -315,14 +326,17 @@ export default function GlobalRankingPage() {
               key={`podium-bronze-${rankType}-${currentTop3[2].userId || currentTop3[2].groupId}`}
               className="order-3 md:order-3 transform transition-transform hover:-translate-y-2"
             >
-              <Card className="border-warning/20 bg-panel shadow-md relative overflow-hidden h-[210px] flex flex-col items-center justify-center pt-8">
+              <Card className={`border-warning/20 bg-panel shadow-md relative overflow-hidden h-[210px] flex flex-col items-center justify-center pt-8 ${themeClass(podiumCosmetics(2)?.theme)}`}>
                 <div className="absolute top-0 left-0 w-full h-2 bg-warning/60"></div>
                 <div className="absolute top-4 left-4 h-8 w-8 bg-warning/10 rounded-full flex items-center justify-center font-black text-warning">3</div>
-                <Avatar className="h-16 w-16 border-4 border-warning/20 shadow-sm mb-3">
-                  <AvatarImage src={rankType === "group" && currentTop3[2].image ? currentTop3[2].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[2].userId : currentTop3[2].groupId}?v=${cacheBuster}`} className="object-cover" />
-                  <AvatarFallback className="bg-warning/15 text-warning font-bold text-base">{currentTop3[2].avatar}</AvatarFallback>
-                </Avatar>
+                <CosmeticFrame frame={podiumCosmetics(2)?.avatar} className="mb-3">
+                  <Avatar className="h-16 w-16 border-4 border-warning/20 shadow-sm">
+                    <AvatarImage src={rankType === "group" && currentTop3[2].image ? currentTop3[2].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[2].userId : currentTop3[2].groupId}?v=${cacheBuster}`} className="object-cover" />
+                    <AvatarFallback className="bg-warning/15 text-warning font-bold text-base">{currentTop3[2].avatar}</AvatarFallback>
+                  </Avatar>
+                </CosmeticFrame>
                 <h3 className="shrink-0 font-black text-base leading-6 text-ink text-center px-2 line-clamp-1">{currentTop3[2].nickname}</h3>
+                {rankType === "user" && <UserTitle title={podiumCosmetics(2)?.title} name={podiumCosmetics(2)?.titleName} className="mt-1" />}
                 <p className="text-sm font-bold text-ink-muted mt-1">{currentTop3[2].score.toLocaleString()}점</p>
                 {"memberCount" in currentTop3[2] && (
                   <p className="text-xs text-ink-subtle font-medium">멤버 {currentTop3[2].memberCount}명</p>
@@ -364,15 +378,18 @@ export default function GlobalRankingPage() {
                       <TableCell className="text-center font-black text-ink-muted">{item.rank}위</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
+                          <CosmeticFrame frame={rankType === "user" ? cosmeticsOf(item.userId)?.avatar : null}>
                           <Avatar className="h-8 w-8 border border-line">
                             <AvatarImage src={rankType === "group" && item.image ? item.image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${displayId}?v=${cacheBuster}`} className="object-cover" />
                             <AvatarFallback className={rankType === "user" ? "bg-primary/10 text-primary text-xs font-bold" : "bg-coral/10 text-coral text-xs font-bold"}>
                               {displayName ? displayName.substring(0, 1).toUpperCase() : ""}
                             </AvatarFallback>
                           </Avatar>
+                          </CosmeticFrame>
                           <span className="font-bold text-ink group-hover:text-primary transition-colors cursor-pointer">
                             {displayName}
                           </span>
+                          {rankType === "user" && <UserTitle title={cosmeticsOf(item.userId)?.title} name={cosmeticsOf(item.userId)?.titleName} />}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">

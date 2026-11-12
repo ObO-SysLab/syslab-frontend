@@ -8,6 +8,7 @@ import * as rank from "./rankings";
 import * as groups from "./groups";
 import * as contests from "./contests";
 import * as vmAd from "./vmAd";
+import * as storeNotify from "./storeNotify";
 
 export const MOCK_API_ORIGIN = "https://diveon.net";
 
@@ -144,6 +145,25 @@ const routes: Route[] = [
   { method: "PATCH", pattern: /^\/api\/profile\/password$/, handler: () => json(profile.mockPasswordUpdateResponse) },
   { method: "POST", pattern: /^\/api\/users\/me\/profile-image$/, handler: () => json(profile.mockProfileImageResponse) },
   { method: "DELETE", pattern: /^\/api\/users\/me\/profile-image$/, handler: () => json(ok(null, "프로필 이미지 삭제 성공")) },
+  // ----- 계정 탈퇴 · 상점 · 알림 (2026-11-12) -----
+  { method: "POST", pattern: /^\/api\/users\/me\/withdraw$/, handler: (req) => storeNotify.withdraw(req.body) },
+  { method: "GET", pattern: /^\/api\/store\/items$/, public: true, handler: () => json(storeNotify.storeItems()) },
+  { method: "GET", pattern: /^\/api\/store\/me$/, handler: () => json(storeNotify.storeMe()) },
+  { method: "POST", pattern: /^\/api\/store\/items\/(\d+)\/purchase$/, handler: (_req, [id]) => storeNotify.purchase(Number(id)) },
+  { method: "PATCH", pattern: /^\/api\/store\/items\/(\d+)\/equip$/, handler: (_req, [id]) => storeNotify.equip(Number(id)) },
+  { method: "DELETE", pattern: /^\/api\/store\/equipped\/(avatar|title|theme)$/, handler: (_req, [category]) => storeNotify.unequip(category) },
+  {
+    method: "GET",
+    pattern: /^\/api\/store\/equipped$/,
+    public: true,
+    handler: (req) => json(storeNotify.equipped((req.url.searchParams.get("userIds") ?? "").split(",").map(Number).filter((n) => n > 0))),
+  },
+  { method: "GET", pattern: /^\/api\/notifications$/, handler: () => json(storeNotify.notificationList()) },
+  { method: "GET", pattern: /^\/api\/notifications\/unread-count$/, handler: () => json(storeNotify.unreadCount()) },
+  { method: "PATCH", pattern: /^\/api\/notifications\/read-all$/, handler: () => json(storeNotify.markAllRead()) },
+  { method: "PATCH", pattern: /^\/api\/notifications\/(\d+)\/read$/, handler: (_req, [id]) => storeNotify.markRead(Number(id)) },
+  { method: "GET", pattern: /^\/api\/notifications\/settings$/, handler: () => json(storeNotify.getPrefs()) },
+  { method: "PUT", pattern: /^\/api\/notifications\/settings$/, handler: (req) => json(storeNotify.putPrefs(req.body)) },
   {
     method: "GET",
     pattern: /^\/api\/activity\/recent$/,
