@@ -36,6 +36,9 @@ import { SampleCases } from "@/components/problem/SampleCases";
 import { CosmeticFrame, UserTitle } from "@/components/Cosmetics";
 import { useCosmetics } from "@/lib/cosmetics";
 
+// 코딩 채점은 운영에서 1분 반 안팎 걸린다(채점 작업 기동 포함). 2분이면 조금만 늦어도 멈춰서 5분까지 기다린다.
+const GRADING_POLL_LIMIT_MS = 5 * 60 * 1000;
+
 function OboPlayerSection({ oboData, selectedChoiceIndex }: {
   oboData: ProblemOboData | OboBlob;
   selectedChoiceIndex?: number | null;
@@ -238,7 +241,7 @@ function ProblemDetailContent() {
     const pending=submissions.filter(sub=>sub._isPending);
     if(!pending.length||pollStopped||boardQuery.loading||boardQuery.error)return;
     if(!pollStarted.current)pollStarted.current=Date.now();
-    if(Date.now()-pollStarted.current>=120000){setPollStopped(true);setPollError({kind:'timeout',message:'채점이 아직 끝나지 않아 자동 확인을 멈췄습니다. 잠시 후 다시 불러와 주세요.',retryable:true});return;}
+    if(Date.now()-pollStarted.current>=GRADING_POLL_LIMIT_MS){setPollStopped(true);setPollError({kind:'timeout',message:'채점이 아직 끝나지 않아 자동 확인을 멈췄습니다. 잠시 후 다시 불러와 주세요.',retryable:true});return;}
     let active=true;const controller=new AbortController();
     const timer=setTimeout(async()=>{
       try{
