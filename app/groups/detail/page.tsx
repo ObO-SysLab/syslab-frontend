@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { hallOfFame, memberRanks } from "@/lib/groupMembers";
+import { groupInvitePath } from "@/lib/utils";
 import { TierBadge } from "@/components/dv";
 import { UserTitle } from "@/components/Cosmetics";
 import { useCosmetics } from "@/lib/cosmetics";
@@ -1875,7 +1876,7 @@ function GroupDetailPage() {
                           <div className="flex gap-2">
                             <Input
                               readOnly
-                              value={`${typeof window !== "undefined" ? window.location.origin : ""}/groups?code=${inviteCode}`}
+                              value={`${typeof window !== "undefined" ? window.location.origin : ""}${groupInvitePath(inviteCode)}`}
                               className="bg-deep border-line text-xs font-mono text-success select-all h-9"
                             />
                             <Button
@@ -1883,7 +1884,7 @@ function GroupDetailPage() {
                               type="button"
                               className="bg-primary hover:bg-primary-hover text-xs font-bold shrink-0 h-9 rounded-xl"
                               onClick={() => {
-                                const shareUrl = `${window.location.origin}/groups?code=${inviteCode}`;
+                                const shareUrl = `${window.location.origin}${groupInvitePath(inviteCode)}`;
                                 navigator.clipboard.writeText(shareUrl);
                                 alert("초대 가입 링크가 클립보드에 복사되었습니다!");
                               }}

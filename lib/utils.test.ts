@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDateTime, formatPeriod, getGroupTier, getTierKey } from './utils';
+import { formatDateTime, formatPeriod, getGroupTier, getTierKey, groupInvitePath } from './utils';
 
 const now = new Date(2026, 10, 11, 12, 0);
 
@@ -34,5 +34,12 @@ describe('getGroupTier', () => {
       expect(getGroupTier(score)).toBe(tier);
       expect(getTierKey(getGroupTier(score))).toBe(tier.toLowerCase());
     }
+  });
+});
+
+describe('groupInvitePath', () => {
+  it('초대 링크는 바로 가입 화면으로 간다(코드는 주소에 안전하게 넣는다)', () => {
+    expect(groupInvitePath('3f2c9a1e-7b4d')).toBe('/groups/invite?code=3f2c9a1e-7b4d');
+    expect(groupInvitePath('a b&c')).toBe('/groups/invite?code=a%20b%26c');
   });
 });
