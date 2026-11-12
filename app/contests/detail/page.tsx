@@ -1010,7 +1010,7 @@ function DashboardTab({ contestInfo, notices = [], allChallenges = [], fullRanki
         </Card>
 
         {/* 4. 내 상태(My Status) 동적 연동 */}
-        <Card className="bg-deep text-white border-none overflow-hidden p-6 space-y-4 relative">
+        <Card className="bg-deep text-ink border-none overflow-hidden p-6 space-y-4 relative">
           <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-primary/20 rounded-full blur-3xl" />
           <p className="text-xs font-bold text-primary uppercase tracking-widest relative z-10">My Status</p>
           <div className="flex justify-between items-end relative z-10">
@@ -1356,7 +1356,7 @@ function ScoreboardTab({ myRank, fullRankings, scoreBoardTotalPages, scoreBoardC
                       key={p}
                       variant={scoreBoardCurrentPage === p ? "default" : "outline"}
                       size="sm"
-                      className={`w-8 h-8 p-0 rounded-lg ${scoreBoardCurrentPage === p ? "bg-raised border border-line-strong text-white" : ""}`}
+                      className={`w-8 h-8 p-0 rounded-lg ${scoreBoardCurrentPage === p ? "bg-raised border border-line-strong text-ink" : ""}`}
                       onClick={() => setScoreBoardCurrentPage(p)}
                     >
                       {p}

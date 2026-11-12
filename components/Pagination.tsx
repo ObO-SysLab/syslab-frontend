@@ -75,7 +75,7 @@ export default function PaginationUI({
             size="icon"
             className={`h-9 w-9 rounded-xl text-sm font-bold transition-all ${
               isActive
-                ? "bg-deep text-white border-line shadow-md shadow-black/40 hover:bg-raised"
+                ? "bg-deep text-ink border-line shadow-md shadow-black/40 hover:bg-raised"
                 : "border-line text-ink-muted hover:bg-raised/60 hover:text-ink"
             }`}
             onClick={() => onPageChange(page)}

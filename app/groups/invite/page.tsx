@@ -161,7 +161,7 @@ function GroupInviteContent() {
               <div className="pt-2">
                 <Button
                   onClick={() => router.push("/groups")}
-                  className="w-full h-11 bg-raised border border-line-strong hover:bg-line text-white font-bold text-sm rounded-xl"
+                  className="w-full h-11 bg-raised border border-line-strong hover:bg-line text-ink font-bold text-sm rounded-xl"
                 >
                   그룹 목록으로 돌아가기
                 </Button>

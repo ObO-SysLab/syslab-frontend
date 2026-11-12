@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import MockApi from "@/components/MockApi";
 import ThemeScope from "@/components/ThemeScope";
+import { themeBootScript } from "@/lib/theme";
 
 // HUD·코드·터미널용 mono. 한글 UI는 Pretendard(아래 <link>)
 const jetbrainsMono = JetBrains_Mono({
@@ -17,9 +18,7 @@ export const metadata: Metadata = {
   description: "OS 학습·문제풀이 플랫폼 DiveOn",
 };
 
-// OBO 전용 화면(다른 팀원 담당)은 Abyss 테마를 적용하지 않는다.
-// 첫 페인트 전에 실행되도록 인라인 스크립트로 처리 (클라이언트 이동은 ThemeScope가 처리)
-const themeBootScript = `(function(){try{var p=location.pathname;if(p.indexOf('/test')===0||p.indexOf('/challenges/obo')===0){document.documentElement.removeAttribute('data-theme');}}catch(e){}})();`;
+// 첫 페인트 전에 테마를 맞춘다(OBO 화면은 라이트 그대로, 나머지는 저장된 테마). 클라이언트 이동은 ThemeScope가 처리
 
 export default function RootLayout({
   children,

@@ -194,7 +194,7 @@ export default function ContestListPage() {
               <Button
                 variant={showEntered ? "default" : "outline"}
                 size="sm"
-                className={`rounded-xl font-bold transition-all ${showEntered ? "bg-raised border border-line-strong text-white shadow-md" : "text-ink-muted hover:bg-raised"
+                className={`rounded-xl font-bold transition-all ${showEntered ? "bg-raised border border-line-strong text-ink shadow-md" : "text-ink-muted hover:bg-raised"
                   }`}
                 onClick={() => setShowEntered(!showEntered)}
               >
@@ -289,7 +289,7 @@ export default function ContestListPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(i + 1)}
-                  className={`rounded-lg ${currentPage === i + 1 ? 'bg-deep text-white border-line' : ''}`}
+                  className={`rounded-lg ${currentPage === i + 1 ? 'bg-deep text-ink border-line' : ''}`}
                 >
                   {i + 1}
                 </Button>

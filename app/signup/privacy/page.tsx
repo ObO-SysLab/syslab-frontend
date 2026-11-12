@@ -27,7 +27,7 @@ export default function PrivacyPage() {
         
         <Link href="/" className="flex items-center gap-2">
           <div className="bg-raised border border-line-strong text-ink p-1.5 rounded-lg shadow-md">
-            <Shield className="w-5 h-5 text-white" />
+            <Shield className="w-5 h-5 text-ink" />
           </div>
           <BrandMark size="sm" />
         </Link>
