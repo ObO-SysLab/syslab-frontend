@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Trophy, Settings, Calendar, Clock, ShieldAlert, Award, Info, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toApiLocalDateTime } from "@/lib/utils";
+import { openNativePicker, toApiLocalDateTime } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
@@ -247,8 +247,8 @@ export default function ContestCreatePage() {
               <p className="text-ink-muted font-medium">대회의 일정, 보상, 규칙을 상세히 설정합니다.</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="px-6 rounded-xl">취소</Button>
-              <Button className="bg-deep hover:bg-line px-8 rounded-xl shadow-lg" onClick={handleCreateContest}>대회 생성</Button>
+              <Button variant="outline" className="px-6 rounded-xl" onClick={() => router.push("/contests")}>취소</Button>
+              <Button className="px-8 rounded-xl shadow-lg font-bold" onClick={handleCreateContest}>대회 생성</Button>
             </div>
           </div>
 
@@ -348,7 +348,8 @@ export default function ContestCreatePage() {
                   <Input
                     type="datetime-local"
                     value={startTime}
-                    className="h-11 font-mono"
+                    className="h-11 font-mono cursor-pointer"
+                    onClick={openNativePicker}
                     onChange={(e) => handleStartTimeChange(e.target.value)} // 개별 핸들러 적용
                   />
                 </div>
@@ -358,7 +359,8 @@ export default function ContestCreatePage() {
                   <Input
                     type="datetime-local"
                     value={endTime}
-                    className="h-11 font-mono"
+                    className="h-11 font-mono cursor-pointer"
+                    onClick={openNativePicker}
                     onChange={(e) => handleEndTimeChange(e.target.value)} // 개별 핸들러 적용
                   />
                 </div>

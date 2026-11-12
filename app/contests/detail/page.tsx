@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toApiLocalDateTime, formatPeriod } from "@/lib/utils";
+import { openNativePicker, toApiLocalDateTime, formatPeriod } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -1801,6 +1801,8 @@ function ContestSettingsTab({ contestInfo, handleEditSettings, handleDeleteConte
               <Input
                 type="datetime-local"
                 value={editStartTime?.substring(0, 16)}
+                className="cursor-pointer"
+                onClick={openNativePicker}
                 onChange={(e) => setEditStartTime(e.target.value)}
               />
             </div>
@@ -1809,6 +1811,8 @@ function ContestSettingsTab({ contestInfo, handleEditSettings, handleDeleteConte
               <Input
                 type="datetime-local"
                 value={editEndTime?.substring(0, 16)}
+                className="cursor-pointer"
+                onClick={openNativePicker}
                 onChange={(e) => setEditEndTime(e.target.value)}
               />
             </div>
