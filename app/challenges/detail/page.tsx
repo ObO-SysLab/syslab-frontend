@@ -34,6 +34,8 @@ import { TierBadge } from "@/components/dv";
 import { ProblemTags } from "@/components/problem/ProblemTags";
 import { ChoiceList } from "@/components/problem/ChoiceList";
 import { SampleCases } from "@/components/problem/SampleCases";
+import { CosmeticFrame, UserTitle } from "@/components/Cosmetics";
+import { useCosmetics } from "@/lib/cosmetics";
 
 function OboPlayerSection({ oboData, selectedChoiceIndex }: {
   oboData: ProblemOboData | OboBlob;
@@ -120,6 +122,12 @@ function ProblemDetailContent() {
 
   // 댓글 관련 상태
   const [selectedComment, setSelectedComment] = useState<any | null>(null);
+  // 상점 꾸미기: 순위·댓글·답글 작성자
+  const cosmeticsOf = useCosmetics([
+    ...rankings.map((r) => r.userId),
+    ...comments.flatMap((c) => [c.authorId, ...((c.replies ?? []) as any[]).map((r) => r.authorId)]),
+    ...(selectedComment ? [selectedComment.authorId, ...((selectedComment.replies ?? []) as any[]).map((r: any) => r.authorId)] : []),
+  ]);
   const [commentInput, setCommentInput] = useState("");
   const [replyInput, setReplyInput] = useState("");
 
@@ -1058,6 +1066,7 @@ function ProblemDetailContent() {
                         <TableCell className="text-center font-black text-ink-subtle">{rank.rank}위</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
+                            <CosmeticFrame frame={cosmeticsOf(rank.userId)?.avatar}>
                             <Avatar className="h-7 w-7 border border-line">
                               {/* 백엔드 규칙에 맞게 확장자 떼고 쿼리스트링 매핑 우회 적용 */}
                               <AvatarImage
@@ -1068,7 +1077,9 @@ function ProblemDetailContent() {
                                 {rank.nickname[0]}
                               </AvatarFallback>
                             </Avatar>
+                            </CosmeticFrame>
                             <span className="font-bold text-ink">{rank.nickname}</span>
+                            <UserTitle title={cosmeticsOf(rank.userId)?.title} name={cosmeticsOf(rank.userId)?.titleName} />
                           </div>
                         </TableCell>
 
@@ -1151,10 +1162,10 @@ function ProblemDetailContent() {
                         onClick={() => { if (editingCommentId !== comment.commentId) handleSelectComment(comment); }}
                         className="flex gap-4 p-4 border rounded-xl bg-panel hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group"
                       >
-                        <AuthorAvatar nickname={comment.authorNickname} src={commentAvatar(comment)} className="h-10 w-10" />
+                        <CosmeticFrame frame={cosmeticsOf(comment.authorId)?.avatar} className="self-start"><AuthorAvatar nickname={comment.authorNickname} src={commentAvatar(comment)} className="h-10 w-10" /></CosmeticFrame>
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-sm text-ink">{comment.authorNickname}</span>
+                            <span className="flex items-center gap-1.5"><span className="font-bold text-sm text-ink">{comment.authorNickname}</span><UserTitle title={cosmeticsOf(comment.authorId)?.title} name={cosmeticsOf(comment.authorId)?.titleName} /></span>
                             <div className="flex items-center gap-3">
                               <span className="text-xs text-ink-subtle flex items-center gap-1">
                                 <Clock className="w-3 h-3" /> {formatTime(comment.createdAt, false)}
@@ -1223,10 +1234,10 @@ function ProblemDetailContent() {
 
                   {/* 선택된 메인 댓글 (크게 표시) */}
                   <div className="flex gap-4 p-6 border-2 border-primary/20 rounded-2xl bg-primary/6 shadow-sm">
-                    <AuthorAvatar nickname={selectedComment.authorNickname} src={commentAvatar(selectedComment)} className="h-12 w-12" />
+                    <CosmeticFrame frame={cosmeticsOf(selectedComment.authorId)?.avatar} className="self-start"><AuthorAvatar nickname={selectedComment.authorNickname} src={commentAvatar(selectedComment)} className="h-12 w-12" /></CosmeticFrame>
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="font-black text-base text-ink">{selectedComment.authorNickname}</span>
+                        <span className="flex items-center gap-1.5"><span className="font-black text-base text-ink">{selectedComment.authorNickname}</span><UserTitle title={cosmeticsOf(selectedComment.authorId)?.title} name={cosmeticsOf(selectedComment.authorId)?.titleName} /></span>
                         <span className="text-xs font-medium text-ink-subtle">
                           {formatTime(selectedComment.createdAt, false)}
                         </span>
@@ -1257,10 +1268,10 @@ function ProblemDetailContent() {
                   <div className="space-y-3 pl-6 border-l-2 border-line ml-6">
                     {selectedComment.replies && selectedComment.replies.map((reply: any) => (
                       <div key={reply.commentId} className="flex gap-3 p-4 border rounded-xl bg-panel group">
-                        <AuthorAvatar nickname={reply.authorNickname} src={commentAvatar(reply)} className="h-8 w-8" />
+                        <CosmeticFrame frame={cosmeticsOf(reply.authorId)?.avatar} className="self-start"><AuthorAvatar nickname={reply.authorNickname} src={commentAvatar(reply)} className="h-8 w-8" /></CosmeticFrame>
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-sm text-ink">{reply.authorNickname}</span>
+                            <span className="flex items-center gap-1.5"><span className="font-bold text-sm text-ink">{reply.authorNickname}</span><UserTitle title={cosmeticsOf(reply.authorId)?.title} name={cosmeticsOf(reply.authorId)?.titleName} /></span>
                             <div className="flex items-center gap-3">
                               <span className="text-xs text-ink-subtle">
                                 {formatTime(reply.createdAt, false)}

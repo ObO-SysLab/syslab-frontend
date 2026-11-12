@@ -431,6 +431,7 @@
   .dv-term__guard { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 6px; border-radius: 6px; background: var(--dv-bg-300); font: 600 10px/1 var(--font-mono); letter-spacing: 0.06em; color: var(--dv-ink-muted); }
   .dv-term__guard svg { width: 10px; height: 10px; color: var(--dv-accent); }
 
+
   /* 랜딩 히어로 */
   .dv-hero {
     background:
@@ -473,3 +474,13 @@
     stroke-dashoffset: -16;
   }
 }
+
+/* 상점 꾸미기 (store_item.asset_key). 레이어 밖에 두어 bg-*, shadow-* 유틸리티보다 우선한다. */
+/* 아바타 테두리 */
+.dv-frame-default { box-shadow: 0 0 0 2px var(--dv-line-200); }
+.dv-frame-neon { box-shadow: 0 0 0 2px #FF6BD5, 0 0 12px rgba(255, 107, 213, 0.55); }
+.dv-frame-asm { box-shadow: 0 0 0 2px var(--dv-warning), 0 0 10px rgba(255, 181, 71, 0.45); }
+.dv-frame-cyber { box-shadow: 0 0 0 2px var(--dv-primary), 0 0 0 4px var(--dv-bg-100), 0 0 0 6px var(--dv-accent), 0 0 16px rgba(0, 209, 255, 0.5); }
+/* 프로필 카드 배경 */
+.dv-theme-ocean-drive { background: linear-gradient(135deg, rgba(0, 209, 255, 0.2), transparent 55%), linear-gradient(315deg, rgba(0, 255, 163, 0.14), transparent 60%), var(--dv-bg-200); }
+.dv-theme-dark-kernel { background-color: #05080C; background-image: linear-gradient(rgba(0, 255, 163, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 163, 0.07) 1px, transparent 1px); background-size: 16px 16px; }

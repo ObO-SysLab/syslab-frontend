@@ -12,13 +12,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge"
 import { getLevelLabel } from "@/lib/utils";
 import { Header } from "@/components/Header";
+import { NotificationPrefsSection } from "@/components/settings/NotificationPrefsSection";
+import { WithdrawDialog } from "@/components/settings/WithdrawDialog";
 
 
 function SettingsContent() {
@@ -35,6 +36,7 @@ function SettingsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [userImgUrl, setUserImgUrl] = useState("");
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   useEffect(() => {
     if (tabParam) {
@@ -158,7 +160,12 @@ function SettingsContent() {
           </nav>
           <Separator className="my-6" />
           <div className="px-3">
-            <button className="flex items-center gap-3 text-sm font-bold text-danger hover:text-danger transition-colors">
+            <button
+              type="button"
+              onClick={() => setWithdrawOpen(true)}
+              disabled={!profileData?.data?.userInfo?.nickname}
+              className="flex items-center gap-3 text-sm font-bold text-danger hover:text-danger transition-colors disabled:opacity-40"
+            >
               <Trash2 size={18} /> 계정 탈퇴
             </button>
           </div>
@@ -180,12 +187,18 @@ function SettingsContent() {
             )
           )}
           {activeTab === "security" && <SecuritySection />}
-          {activeTab === "notifications" && <NotificationSection />}
+          {activeTab === "notifications" && <NotificationPrefsSection />}
           {activeTab === "appearance" && <AppearanceSection />}
           {activeTab === "chart" && <ChartSection data={profileData} />}
         </section>
 
       </main>
+
+      <WithdrawDialog
+        open={withdrawOpen}
+        onOpenChange={setWithdrawOpen}
+        nickname={profileData?.data?.userInfo?.nickname ?? ""}
+      />
     </div>
   );
 }
@@ -666,37 +679,6 @@ function SecuritySection() {
         </CardContent>
       </Card>
 
-      <div className="p-4 border rounded-xl flex items-center justify-between">
-        <div className="space-y-1">
-          <p className="text-sm font-bold flex items-center gap-2">
-            <ShieldCheck className="text-success w-4 h-4" /> 2단계 인증 (2FA)
-          </p>
-          <p className="text-xs text-ink-muted">로그인 시 OTP 번호를 추가로 확인합니다.</p>
-        </div>
-        <Switch />
-      </div>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* 3. 알림 설정 섹션 */
-/* -------------------------------------------------------------------------- */
-function NotificationSection() {
-  return (
-    <div className="space-y-6 animate-in fade-in-50 duration-300">
-      <div className="space-y-1">
-        <h3 className="text-xl font-bold">알림 설정</h3>
-        <p className="text-sm text-ink-muted">플랫폼 활동에 대한 알림 수신 방식을 선택합니다.</p>
-      </div>
-      <Separator />
-
-      <div className="space-y-4">
-        <NotificationToggle title="내 풀이 성공 알림" desc="제출한 코드가 정답일 때 알림을 받습니다." defaultChecked />
-        <NotificationToggle title="새로운 댓글 알림" desc="내 글이나 풀이에 댓글이 달리면 알려줍니다." defaultChecked />
-        <NotificationToggle title="대회 시작 알림" desc="신청한 대회가 시작되기 1시간 전에 알림을 보냅니다." />
-        <NotificationToggle title="마케팅 정보 수신" desc="새로운 이벤트와 기능 소식을 이메일로 받습니다." />
-      </div>
     </div>
   );
 }
@@ -1093,19 +1075,6 @@ function SettingsNavItem({ icon, label, active, onClick }: { icon: any, label: s
     >
       {icon} <span>{label}</span>
     </button>
-  );
-}
-
-// 알림 토글 행
-function NotificationToggle({ title, desc, defaultChecked = false }: { title: string, desc: string, defaultChecked?: boolean }) {
-  return (
-    <div className="flex items-center justify-between p-4 border rounded-xl hover:bg-raised/60 transition-colors">
-      <div className="space-y-0.5">
-        <p className="text-sm font-bold text-ink">{title}</p>
-        <p className="text-xs text-ink-muted">{desc}</p>
-      </div>
-      <Switch defaultChecked={defaultChecked} />
-    </div>
   );
 }
 

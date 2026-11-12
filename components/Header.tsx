@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { LogOut, Menu, Trophy, Users, BarChart3, ShoppingBag, Flag, Search, UserRound, X } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { BrandMark } from "@/components/BrandMark";
+import { NotificationBell } from "@/components/NotificationBell";
+import { CosmeticFrame } from "@/components/Cosmetics";
+import { useCosmetics } from "@/lib/cosmetics";
+import { draftAccount } from "@/lib/authSession";
 
 type MenuKey = "home" | "challenge" | "contest" | "group" | "ranking" | "store" | "none";
 
@@ -43,6 +47,12 @@ export function Header({
 }: HeaderProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isStudio = variant === "studio";
+  // 내 아바타 테두리(상점에서 착용한 것). 토큰은 브라우저에서만 읽는다.
+  const [myId, setMyId] = useState<number | null>(null);
+  useEffect(() => {
+    try { setMyId(isLoggedIn ? Number(draftAccount(localStorage.getItem("token"))) || null : null); } catch { setMyId(null); }
+  }, [isLoggedIn]);
+  const cosmeticsOf = useCosmetics([myId]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-line bg-canvas/80 backdrop-blur-md h-16">
@@ -95,13 +105,16 @@ export function Header({
         <div className="flex items-center gap-1.5 shrink-0">
           {isLoggedIn ? (
             <>
+              <NotificationBell />
               <Link href="/settings" aria-label="내 프로필" className="rounded-full">
-                <Avatar className="h-9 w-9 border border-line-strong hover:ring-2 hover:ring-primary/50 transition-all">
-                  {userImgUrl && <AvatarImage src={userImgUrl} alt="" className="object-cover" />}
-                  <AvatarFallback className="bg-raised text-ink-muted rounded-full">
-                    <UserRound className="h-4 w-4" aria-hidden />
-                  </AvatarFallback>
-                </Avatar>
+                <CosmeticFrame frame={cosmeticsOf(myId)?.avatar}>
+                  <Avatar className="h-9 w-9 border border-line-strong hover:ring-2 hover:ring-primary/50 transition-all">
+                    {userImgUrl && <AvatarImage src={userImgUrl} alt="" className="object-cover" />}
+                    <AvatarFallback className="bg-raised text-ink-muted rounded-full">
+                      <UserRound className="h-4 w-4" aria-hidden />
+                    </AvatarFallback>
+                  </Avatar>
+                </CosmeticFrame>
               </Link>
               <button
                 type="button"
