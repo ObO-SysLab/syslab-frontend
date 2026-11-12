@@ -8,6 +8,8 @@ import {
   ArrowRight, Eye, ShieldCheck, Gauge, ChevronRight,
 } from "lucide-react";
 import { Header } from "@/components/Header";
+import { UserTitle } from "@/components/Cosmetics";
+import { themeClass, useCosmetics } from "@/lib/cosmetics";
 import { ActivityLog } from "@/components/home/ActivityLog";
 import { DepthBadge, DivoBubble, TierBadge, TypeChip, StatusIcon, Bubbles } from "@/components/dv";
 import { problemApi } from "@/lib/problemApi";
@@ -73,6 +75,7 @@ export default function HomePage() {
 
   // [STATE] 유저 프로필
   const [nickname, setNickname] = useState("");
+  const [myUserId, setMyUserId] = useState<number | null>(null);
   const [tier, setTier] = useState("");
   const [userImgUrl, setUserImgUrl] = useState("");
 
@@ -96,6 +99,8 @@ export default function HomePage() {
   const [latestProblems, setLatestProblems] = useState<HomeProblem[]>([]);
   const [stats, setStats] = useState<DiverStats>({ solved: null, rank: null, score: null });
   const [liveContests, setLiveContests] = useState<HomeContest[]>([]);
+  // 상점에서 착용한 칭호·카드 배경
+  const myCosmetics = useCosmetics([myUserId])(myUserId);
 
   // 추천이 비었거나(게스트 포함) 못 받았을 때: 실제 공개 문제 목록 앞의 3개
   useEffect(() => {
@@ -182,6 +187,7 @@ export default function HomePage() {
             setUserImgUrl(userInfo.profileImgUrl);
           }
           setNickname(userInfo?.nickname || "대원");
+          if (typeof userInfo?.userId === "number") setMyUserId(userInfo.userId);
           setTier(userInfo?.tier || "1");
         }
 
@@ -299,7 +305,7 @@ export default function HomePage() {
               </div>
 
               {/* 대원 HUD 카드 */}
-              <div className="rounded-3xl border border-line bg-panel/80 backdrop-blur-md p-6 shadow-dv space-y-5 dv-descend">
+              <div className={`rounded-3xl border border-line bg-panel/80 backdrop-blur-md p-6 shadow-dv space-y-5 dv-descend ${themeClass(myCosmetics?.theme)}`}>
                 <div className="flex items-center justify-between">
                   <span className="dv-hud text-ink-muted">DIVER STATUS</span>
                   <TierBadge tier={tier} size="sm" showRank={false} />
@@ -307,7 +313,10 @@ export default function HomePage() {
                 <div className="flex items-center gap-4">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/images/divo.webp" alt="" className="w-16 h-auto shrink-0" />
-                  <p className="text-lg font-bold text-ink truncate">{nickname || "대원"}</p>
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-lg font-bold text-ink truncate">{nickname || "대원"}</p>
+                    <UserTitle title={myCosmetics?.title} name={myCosmetics?.titleName} />
+                  </div>
                 </div>
                 {(stats.solved !== null || stats.rank !== null || stats.score !== null) && (
                   <dl className="flex divide-x divide-line rounded-2xl border border-line bg-canvas/60">
