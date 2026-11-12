@@ -371,9 +371,11 @@
   [data-theme="abyss"] ::-webkit-scrollbar-thumb:hover {
     background: var(--dv-line-200);
   }
-  [data-theme="abyss"]:not([data-mode="light"]) input[type="date"]::-webkit-calendar-picker-indicator,
-  [data-theme="abyss"]:not([data-mode="light"]) input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.8);
+  /* 다크에서는 color-scheme: dark가 이미 밝은 달력 아이콘을 그린다. 예전 invert(0.8)는 그것을 다시 어둡게 뒤집어
+     아이콘이 사라지고 입력란이 비활성처럼 보였다(2026-11-12 QA). 반전하지 않고 누를 수 있다는 것만 보여 준다. */
+  [data-theme="abyss"] input[type="date"]::-webkit-calendar-picker-indicator,
+  [data-theme="abyss"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
   }
 }
 

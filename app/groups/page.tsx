@@ -16,15 +16,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Header } from "@/components/Header";
 import { AdSlot } from "@/components/AdSlot";
+import { groupInvitePath } from "@/lib/utils";
 
 
 function GroupListContent() {
   const searchParams = useSearchParams();
 
+  // 예전 초대 링크(/groups?code=...)도 바로 가입 화면으로 보낸다. 전에는 숨은 입력란에 코드만 넣고 아무 일도 없었다.
   useEffect(() => {
     const codeFromUrl = searchParams.get("code");
     if (codeFromUrl) {
-      setInviteInput(codeFromUrl);
+      window.location.replace(groupInvitePath(codeFromUrl));
     }
   }, [searchParams]);
   
