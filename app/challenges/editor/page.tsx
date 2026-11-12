@@ -187,7 +187,7 @@ function MonacoSubmitContent() {
                 <Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
               </Link>
               <Link href="/signup">
-                <Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
+                <Button className="bg-raised border border-line-strong text-ink text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
                   Get Started
                 </Button>
               </Link>

@@ -282,7 +282,7 @@ export default function SignUpPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md mb-8 text-center">
         <Link href="/" className="inline-flex items-center gap-2">
           <div className="bg-raised border border-line-strong text-ink p-1.5 rounded-lg shadow-lg">
-            <Shield className="w-6 h-6 text-white" />
+            <Shield className="w-6 h-6 text-ink" />
           </div>
           <BrandMark size="lg" />
         </Link>

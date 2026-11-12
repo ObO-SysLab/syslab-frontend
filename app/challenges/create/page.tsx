@@ -978,7 +978,7 @@ function ProblemCreateContent() {
                           {/* 상단 헤더: 번호 및 삭제 버튼 */}
                           <div className="flex justify-between items-center border-b border-line pb-3">
                             <div className="flex items-center gap-2">
-                              <span className="flex items-center justify-center w-6 h-6 bg-raised border border-line-strong text-white text-xs font-black rounded-md shadow-sm">
+                              <span className="flex items-center justify-center w-6 h-6 bg-raised border border-line-strong text-ink text-xs font-black rounded-md shadow-sm">
                                 #{idx + 1}
                               </span>
                               <span className="text-sm font-bold text-ink">Testcase</span>

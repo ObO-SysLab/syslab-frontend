@@ -45,7 +45,7 @@ export function ActivityLog() {
       <h2 className="text-2xl font-bold flex items-center gap-2">
         <Flame className="w-5 h-5 text-warning" /> 실시간 탐사 로그
       </h2>
-      <div className="overflow-hidden rounded-xl border border-line bg-term font-mono text-[13px] leading-6">
+      <div className="dv-dark-scope overflow-hidden rounded-xl border border-line bg-term font-mono text-[13px] leading-6">
         <div className="flex items-center h-9 px-4 bg-panel border-b border-line text-ink-muted text-xs">
           <span className="truncate">diveon@abyss:~/events</span>
         </div>

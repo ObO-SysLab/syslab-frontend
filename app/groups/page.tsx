@@ -332,7 +332,7 @@ function GroupListContent() {
               <Button
                 variant={showMyGroups ? "default" : "outline"}
                 size="sm"
-                className={`rounded-xl font-bold transition-all ${showMyGroups ? "bg-raised border border-line-strong text-white shadow-md" : "text-ink-muted hover:bg-raised"
+                className={`rounded-xl font-bold transition-all ${showMyGroups ? "bg-raised border border-line-strong text-ink shadow-md" : "text-ink-muted hover:bg-raised"
                   }`}
                 onClick={() => setShowMyGroups(!showMyGroups)}
               >
@@ -463,7 +463,7 @@ function GroupListContent() {
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(i + 1)}
-                  className={`rounded-lg ${currentPage === i + 1 ? 'bg-deep text-white border-line' : ''}`}
+                  className={`rounded-lg ${currentPage === i + 1 ? 'bg-deep text-ink border-line' : ''}`}
                 >
                   {i + 1}
                 </Button>
@@ -498,11 +498,11 @@ function TagItem({ icon, label, active, onClick }: { icon: React.ReactNode; labe
     <div
       onClick={onClick}
       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${active
-        ? "bg-raised border border-line-strong text-white shadow-lg shadow-black/40"
+        ? "bg-raised border border-line-strong text-ink shadow-lg shadow-black/40"
         : "text-ink-muted hover:bg-raised hover:text-ink"
         }`}
     >
-      <span className={active ? "text-white" : "text-ink-subtle group-hover:text-ink"}>{icon}</span>
+      <span className={active ? "text-ink" : "text-ink-subtle group-hover:text-ink"}>{icon}</span>
       <span>{label}</span>
     </div>
   );

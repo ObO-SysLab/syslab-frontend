@@ -16,7 +16,7 @@
  * → html[data-theme="abyss"]가 없거나 .obo-scope 안이면 shadcn 변수가 라이트 값으로 돌아간다.
  */
 
-@custom-variant dark (&:where([data-theme="abyss"], [data-theme="abyss"] *):not(:where(.obo-scope, .obo-scope *)));
+@custom-variant dark (&:where([data-theme="abyss"]:not([data-mode="light"]), [data-theme="abyss"]:not([data-mode="light"]) *, [data-mode="light"] .dv-dark-scope, [data-mode="light"] .dv-dark-scope *, [data-mode="light"] .dv-hero, [data-mode="light"] .dv-hero *, [data-mode="light"] .dv-theme-dark-kernel, [data-mode="light"] .dv-theme-dark-kernel *):not(:where(.obo-scope, .obo-scope *)));
 
 @theme inline {
   --color-background: var(--background);
@@ -184,6 +184,8 @@
 /* ---------- shadcn 변수 → Abyss 매핑 ---------- */
 [data-theme="abyss"] {
   color-scheme: dark;
+  /* 페이지 바탕색. html에서 계산되므로 어둡게 유지하는 영역(.dv-hero 등) 안에서도 실제 페이지 색이다. */
+  --dv-page-canvas: var(--dv-bg-100);
   --background: var(--dv-bg-100);
   --foreground: var(--dv-ink);
   --card: var(--dv-bg-200);
@@ -215,6 +217,114 @@
   --sidebar-accent-foreground: var(--dv-ink);
   --sidebar-border: var(--dv-line-100);
   --sidebar-ring: var(--dv-primary);
+}
+
+/* ---------- 라이트 모드 '해수면' (설정 > 테마 및 외관) ----------
+ * html[data-theme="abyss"][data-mode="light"]. 구조와 클래스는 그대로 두고 토큰 값만 밝게 바꾼다.
+ * 글자 대비는 흰 면(#FFFFFF·#F4F8FB) 기준 본문 4.5:1 이상, 신호색은 3:1 이상으로 골랐다.
+ */
+[data-theme="abyss"][data-mode="light"] {
+  color-scheme: light;
+  --dv-bg-000: #E6EEF5;
+  --dv-bg-100: #F4F8FB;
+  --dv-bg-200: #FFFFFF;
+  --dv-bg-300: #EAF1F7;
+  --dv-line-100: #D6E1EB;
+  --dv-line-200: #9FB3C6;
+  --dv-ink: #0B1B2B;
+  --dv-ink-muted: #4A5F75;
+  --dv-ink-subtle: #566A7F;
+  --dv-primary: #0077B6;
+  --dv-primary-hover: #005A8C;
+  --dv-primary-ink: #FFFFFF;
+  --dv-primary-soft: rgba(0, 119, 182, 0.1);
+  --dv-accent: #00875A;
+  --dv-accent-ink: #FFFFFF;
+  --dv-accent-soft: rgba(0, 135, 90, 0.12);
+  --dv-success: #077D50;
+  --dv-success-soft: rgba(10, 138, 92, 0.12);
+  --dv-warning: #A85F00;
+  --dv-warning-soft: rgba(214, 135, 0, 0.14);
+  --dv-danger: #C8324F;
+  --dv-danger-soft: rgba(200, 50, 79, 0.1);
+  --dv-coral: #6E4FCF;
+  --dv-coral-soft: rgba(110, 79, 207, 0.1);
+  --dv-tier-bronze: #A0602F;
+  --dv-tier-silver: #5F7385;
+  --dv-tier-gold: #8A6600;
+  --dv-tier-platinum: #0A786D;
+  --dv-tier-diamond: #2471C4;
+  --dv-tier-master: #8346C9;
+  --dv-tier-challenger: #CC3458;
+  --dv-shadow-1: 0 1px 2px rgba(16, 42, 67, 0.08), 0 8px 24px rgba(16, 42, 67, 0.08);
+  --dv-glow-primary: 0 0 0 1px rgba(0, 119, 182, 0.35), 0 0 18px rgba(0, 119, 182, 0.18);
+  --dv-glow-accent: 0 0 0 1px rgba(0, 135, 90, 0.35), 0 0 14px rgba(0, 135, 90, 0.18);
+  --chart-1: #0077B6;
+  --chart-2: #00875A;
+  --chart-3: #2471C4;
+  --chart-4: #6E4FCF;
+  --chart-5: #A85F00;
+}
+
+/* 라이트 모드에서도 어둡게 두는 영역: 심해 일러스트 히어로, 터미널 상자, '다크 커널' 카드 배경.
+ * 토큰과 shadcn 변수를 이 요소에서 다시 선언해야 안쪽 글자·카드가 어두운 값으로 계산된다. */
+[data-mode="light"] .dv-dark-scope,
+[data-mode="light"] .dv-hero,
+[data-mode="light"] .dv-theme-dark-kernel {
+  color-scheme: dark;
+  --dv-bg-000: #070A0F;
+  --dv-bg-100: #0B0F14;
+  --dv-bg-200: #111823;
+  --dv-bg-300: #182233;
+  --dv-line-100: #1E2A3C;
+  --dv-line-200: #4F6684;
+  --dv-ink: #E6F4FF;
+  --dv-ink-muted: #93A9C2;
+  --dv-ink-subtle: #6B819C;
+  --dv-primary: #00D1FF;
+  --dv-primary-hover: #5CE1FF;
+  --dv-primary-ink: #04121A;
+  --dv-primary-soft: rgba(0, 209, 255, 0.12);
+  --dv-accent: #00FFA3;
+  --dv-accent-ink: #04121A;
+  --dv-accent-soft: rgba(0, 255, 163, 0.12);
+  --dv-success: #2EE59D;
+  --dv-success-soft: rgba(46, 229, 157, 0.14);
+  --dv-warning: #FFB547;
+  --dv-warning-soft: rgba(255, 181, 71, 0.14);
+  --dv-danger: #FF6B86;
+  --dv-danger-soft: rgba(255, 107, 134, 0.14);
+  --dv-coral: #B79CFF;
+  --dv-coral-soft: rgba(183, 156, 255, 0.14);
+  --dv-tier-bronze: #D9986A;
+  --dv-tier-silver: #C3D0DC;
+  --dv-tier-gold: #F2C94C;
+  --dv-tier-platinum: #5EEAD4;
+  --dv-tier-diamond: #7CC4FF;
+  --dv-tier-master: #C792FF;
+  --dv-tier-challenger: #FF7A95;
+  --dv-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.32);
+  --dv-glow-primary: 0 0 0 1px rgba(0, 209, 255, 0.45), 0 0 24px rgba(0, 209, 255, 0.28);
+  --dv-glow-accent: 0 0 0 1px rgba(0, 255, 163, 0.5), 0 0 16px rgba(0, 255, 163, 0.35);
+  --background: var(--dv-bg-100);
+  --foreground: var(--dv-ink);
+  --card: var(--dv-bg-200);
+  --card-foreground: var(--dv-ink);
+  --popover: var(--dv-bg-200);
+  --popover-foreground: var(--dv-ink);
+  --primary: var(--dv-primary);
+  --primary-foreground: var(--dv-primary-ink);
+  --secondary: var(--dv-bg-300);
+  --secondary-foreground: var(--dv-ink);
+  --muted: var(--dv-bg-300);
+  --muted-foreground: var(--dv-ink-muted);
+  --accent: var(--dv-bg-300);
+  --accent-foreground: var(--dv-ink);
+  --destructive: var(--dv-danger);
+  --border: var(--dv-line-100);
+  --input: var(--dv-line-200);
+  --ring: var(--dv-primary);
+  color: var(--dv-ink);
 }
 
 /* OBO 임베드 영역: 라이트 글자색·배경 복원 */
@@ -261,8 +371,8 @@
   [data-theme="abyss"] ::-webkit-scrollbar-thumb:hover {
     background: var(--dv-line-200);
   }
-  [data-theme="abyss"] input[type="date"]::-webkit-calendar-picker-indicator,
-  [data-theme="abyss"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  [data-theme="abyss"]:not([data-mode="light"]) input[type="date"]::-webkit-calendar-picker-indicator,
+  [data-theme="abyss"]:not([data-mode="light"]) input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     filter: invert(0.8);
   }
 }
@@ -438,6 +548,12 @@
       linear-gradient(180deg, rgba(11, 15, 20, 0.25) 0%, rgba(11, 15, 20, 0.55) 55%, var(--dv-bg-100) 100%),
       url("/images/hero-abyss.webp") center / cover no-repeat;
   }
+  /* 라이트: 히어로는 어둡게 두고 맨 아래만 밝은 페이지 색으로 이어 준다(본문이 -mt-6만큼 겹친다). */
+  [data-mode="light"] .dv-hero {
+    background:
+      linear-gradient(180deg, rgba(11, 15, 20, 0.25) 0%, rgba(11, 15, 20, 0.55) 55%, rgba(11, 15, 20, 0.7) 88%, var(--dv-page-canvas) 100%),
+      url("/images/hero-abyss.webp") center / cover no-repeat;
+  }
 
   /* 기포 — 유일한 장식 모티프 */
   .dv-bubble {
@@ -484,3 +600,9 @@
 /* 프로필 카드 배경 */
 .dv-theme-ocean-drive { background: linear-gradient(135deg, rgba(0, 209, 255, 0.2), transparent 55%), linear-gradient(315deg, rgba(0, 255, 163, 0.14), transparent 60%), var(--dv-bg-200); }
 .dv-theme-dark-kernel { background-color: #05080C; background-image: linear-gradient(rgba(0, 255, 163, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 163, 0.07) 1px, transparent 1px); background-size: 16px 16px; }
+
+/* 설정 > 능력치 차트(recharts 레이더). 속성으로 들어간 색보다 CSS가 우선한다. */
+.dv-radar .recharts-polar-grid line,
+.dv-radar .recharts-polar-grid path { stroke: var(--dv-line-200); stroke-opacity: 0.55; }
+.dv-radar .recharts-polar-angle-axis-tick text { fill: var(--dv-ink-muted); }
+.dv-radar .recharts-radar-polygon path { stroke: var(--dv-primary); fill: var(--dv-primary); fill-opacity: 0.18; stroke-width: 2; }

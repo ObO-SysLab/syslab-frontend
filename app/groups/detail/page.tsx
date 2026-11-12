@@ -1866,7 +1866,7 @@ function GroupDetailPage() {
 
                       {/* 비공개 그룹인 경우만 보게 되는 시크릿 통로 */}
                       {isPrivate && inviteCode && (
-                        <div className="p-4 bg-deep border border-line rounded-xl space-y-3 text-white shadow-inner animate-in">
+                        <div className="p-4 bg-deep border border-line rounded-xl space-y-3 text-ink shadow-inner animate-in">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-black text-primary uppercase tracking-widest">Secret Invitation Link</span>
                             <span className="text-xs text-ink-subtle font-medium">만료일: {inviteExpiresAt?.replace("T", " ")}</span>
@@ -1897,7 +1897,7 @@ function GroupDetailPage() {
                             type="button"
                             variant="outline"
                             onClick={handleRegenerateInviteCode}
-                            className="w-full text-xs font-bold text-ink-subtle border-white/5 bg-white/5 hover:bg-white/10 hover:text-white h-8 rounded-lg"
+                            className="w-full text-xs font-bold text-ink-subtle border-white/5 bg-white/5 hover:bg-white/10 hover:text-ink h-8 rounded-lg"
                           >
                             🔄 초대 링크 재발급 (기존 링크 폐기)
                           </Button>
@@ -2042,7 +2042,7 @@ function PaginationUI({ currentPage, totalPages, onPageChange }: { currentPage: 
         <Button
           key={i} variant="outline" size="sm"
           onClick={() => onPageChange(i + 1)}
-          className={`rounded-lg ${currentPage === i + 1 ? "bg-deep text-white border-line" : ""}`}
+          className={`rounded-lg ${currentPage === i + 1 ? "bg-deep text-ink border-line" : ""}`}
         >
           {i + 1}
         </Button>
