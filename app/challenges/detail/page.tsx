@@ -7,7 +7,6 @@ import {problemApi,problemToken} from "@/lib/problemApi";
 
 import Link from "next/link";
 import { isSubmissionPending, submissionVerdict } from "@/lib/submission-status";
-import { submissionTierLabel } from "@/lib/submission-display";
 import { readPracticeBuild, practiceBuildPresentation, watchPracticeBuild } from "@/lib/practice-build";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -561,29 +560,6 @@ function ProblemDetailContent() {
     window.location.reload(); // 상태 초기화를 위해 새로고침
   };
 
-  // 티어 명칭에 따라 배경/글자/테두리 색상 클래스를 리턴하는 함수
-  const getTierColor = (tier: number | null | undefined) => {
-    const tierName = submissionTierLabel(tier);
-
-    switch (tierName) {
-      case "Challenger":
-        return "bg-danger/15 text-danger border-danger/30";
-      case "Master":
-        return "bg-coral/10 text-coral border-coral/30";
-      case "Diamond":
-        return "bg-primary/10 text-primary border-primary/30";
-      case "Platinum":
-        return "bg-success/10 text-success border-success/30";
-      case "Gold":
-        return "bg-warning/10 text-warning border-warning/30";
-      case "Silver":
-        return "bg-raised text-ink-muted border-line";
-      case "Bronze":
-      default:
-        return "bg-canvas text-ink-muted border-line";
-    }
-  };
-
   if(!probId)return <main className="p-8"><RequestError issue={httpIssue(404)}/></main>;
   if(detailQuery.loading&&!problemData)return <main role="status" className="p-8">문제를 불러오는 중…</main>;
   if(detailQuery.error&&!problemData)return <main className="mx-auto max-w-3xl p-8"><h1 className="text-xl font-bold">문제 조회</h1><RequestError issue={detailQuery.error} retry={detailQuery.retry} busy={detailQuery.loading}/></main>;
@@ -1068,11 +1044,8 @@ function ProblemDetailContent() {
                           <div className="flex items-center gap-3">
                             <CosmeticFrame frame={cosmeticsOf(rank.userId)?.avatar}>
                             <Avatar className="h-7 w-7 border border-line">
-                              {/* 백엔드 규칙에 맞게 확장자 떼고 쿼리스트링 매핑 우회 적용 */}
-                              <AvatarImage
-                                src={`https://d3ghudecvdi62z.cloudfront.net/profiles/users/${rank.userId}?v=${Date.now()}`}
-                                className="object-cover"
-                              />
+                              {/* 서버가 준 주소만 쓴다: 사진을 지운 사용자는 기본 모양, 구글 사진도 그대로 보인다. */}
+                              {rank.profileImgUrl && <AvatarImage src={rank.profileImgUrl} className="object-cover" />}
                               <AvatarFallback className="bg-raised text-xs text-ink-muted font-bold">
                                 {rank.nickname[0]}
                               </AvatarFallback>
@@ -1085,12 +1058,7 @@ function ProblemDetailContent() {
 
                         {/* 티어 표시 컬럼 */}
                         <TableCell className="text-center">
-                          <Badge
-                            variant="outline"
-                            className={`font-mono text-xs font-bold border ${getTierColor(rank.userTier)}`}
-                          >
-                            {submissionTierLabel(rank.userTier)}
-                          </Badge>
+                          <TierBadge tier={rank.userTier} size="sm" showRank={false} />
                         </TableCell>
 
                         {/* 코딩 문제일 경우에만 해당 언어 노출 가드 기입 */}

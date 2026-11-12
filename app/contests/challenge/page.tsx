@@ -235,7 +235,7 @@ function ProblemDetailContent() {
 				isLoggedIn={isLoggedIn}
 				userImgUrl={userImgUrl}
 				activeMenu="contest"
-				onLogout={() => { if (logout()) setIsLoggedIn(false); }}
+				onLogout={() => { if (logout()) window.location.replace("/"); }}
 			/>
 
 			{/* 2. 메인 레이아웃 (Grid 12분할) */}

@@ -26,8 +26,8 @@ import { desc } from "framer-motion/client";
 
 function ContestDetailPage() {
   // [STATE] 페이지
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const [isContestHost, setIsContestHost] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isContestHost, setIsContestHost] = useState(false);
   const [activeTab, setActiveTab] = useState("poster");
   const [isJoined, setIsJoined] = useState(false);
   const router = useRouter();

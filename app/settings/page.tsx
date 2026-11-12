@@ -1,5 +1,6 @@
 "use client";
 import { logout } from "@/lib/authSession";
+import { loginHref } from "@/lib/request";
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -16,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge"
 import { getLevelLabel } from "@/lib/utils";
+import { TierBadge } from "@/components/dv";
 import { Header } from "@/components/Header";
 import { readPref, savePref, type ThemePref } from "@/lib/theme";
 import { mergeCategoryScores } from "@/lib/categoryScores";
@@ -45,11 +47,17 @@ function SettingsContent() {
     }
   }, [tabParam]);
 
-  useEffect(() => {
-    const fetchProfileImage = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
+  // 설정은 내 계정 화면이다. 로그인하지 않았거나 토큰이 만료됐으면 빈 프로필 대신 로그인 화면으로 보낸다.
+  const goSignIn = () => window.location.replace(loginHref());
 
+  // 페이지 로드 시 토큰을 사용하여 데이터 요청
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = localStorage.getItem("token"); // 저장된 토큰 가져오기
+      if (!token) {
+        goSignIn();
+        return;
+      }
       setIsLoggedIn(true);
 
       try {
@@ -61,44 +69,14 @@ function SettingsContent() {
           }
         });
 
-        if (response.ok) {
-          const result = await response.json();
-          const userInfo = result?.data?.userInfo;
-
-          // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
-          if (userInfo?.profileImgUrl) {
-            setUserImgUrl(userInfo.profileImgUrl);
-          }
+        if (response.status === 401) {
+          goSignIn();
+          return;
         }
-      } catch (error) {
-        console.error("홈페이지 초기 데이터 로드 실패:", error);
-      }
-    };
-
-    fetchProfileImage();
-  }, [userImgUrl]);
-
-  // 페이지 로드 시 토큰을 사용하여 데이터 요청
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const token = localStorage.getItem("token"); // 저장된 토큰 가져오기
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch("https://diveon.net/api/profile/show", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          }
-        });
-
         if (response.ok) {
           const result = await response.json();
           setProfileData(result); // 서버에서 받은 데이터 저장
+          setUserImgUrl(result?.data?.userInfo?.profileImgUrl || "");
         }
       } catch (error) {
         console.error("데이터 로드 실패:", error);
@@ -117,9 +95,12 @@ function SettingsContent() {
         isLoggedIn={isLoggedIn}
         userImgUrl={userImgUrl}
         activeMenu="none"
-        onLogout={() => { if (logout()) setIsLoggedIn(false); }}
+        onLogout={() => { if (logout()) window.location.replace("/"); }}
       />
 
+      {!isLoggedIn ? (
+        <div className="py-20 text-center text-ink-subtle font-bold" role="status">로그인 화면으로 이동 중...</div>
+      ) : (
       <main className="dv-shell pt-10 grid grid-cols-1 md:grid-cols-12 gap-10 pb-20">
 
         {/* [A] 좌측 사이드바 메뉴 (4칸) */}
@@ -194,6 +175,7 @@ function SettingsContent() {
         </section>
 
       </main>
+      )}
 
       <WithdrawDialog
         open={withdrawOpen}
@@ -220,7 +202,7 @@ function ProfileSection({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formattedDate = info?.createdAt
     ? new Date(info.createdAt).toLocaleDateString("ko-KR", { year: 'numeric', month: 'long', day: 'numeric' })
-    : "0000년 00월 00일";
+    : "-";
   const [nickname, setNickname] = useState(info?.nickname || "");
   const [bio, setBio] = useState(info?.selfComment || "");
   const [org, setOrg] = useState(info?.belong || "");
@@ -279,34 +261,6 @@ function ProfileSection({
     setPendingImageFile(file);
     setRemoveImage(false);
     setProfileImgUrl(URL.createObjectURL(file));
-  };
-
-  // 숫자 티어를 문자열로 매핑하는 변환기
-  const getTierLabel = (tier: string | number) => {
-    const tierStr = String(tier);
-    if (tierStr === "7") return "Challenger";
-    if (tierStr === "6") return "Master";
-    if (tierStr === "5") return "Diamond";
-    if (tierStr === "4") return "Platinum";
-    if (tierStr === "3") return "Gold";
-    if (tierStr === "2") return "Silver";
-    if (tierStr === "1") return "Bronze";
-    return tier || "Unranked";
-  };
-
-  // 7단계 명예 티어 스킨 테마
-  const getTierBadgeStyle = (tier: string | number) => {
-    const label = getTierLabel(tier);
-    switch (label) {
-      case 'Challenger': return 'bg-danger/15 text-danger border-danger/30 font-black animate-pulse';
-      case 'Master': return 'bg-coral/10 text-coral border-coral/30';
-      case 'Diamond': return 'bg-primary/10 text-primary border-primary/30';
-      case 'Platinum': return 'bg-success/10 text-success border-success/30';
-      case 'Gold': return 'bg-warning/10 text-warning border-warning/30';
-      case 'Silver': return 'bg-raised text-ink-muted border-line';
-      case 'Bronze': return 'bg-warning/10 text-warning border-warning/30';
-      default: return 'bg-canvas text-ink-muted border-line';
-    }
   };
 
   const handleUpdateProfile = async () => {
@@ -475,13 +429,9 @@ function ProfileSection({
             <Label className="text-ink-subtle flex items-center gap-2 ml-1">
               티어 <Lock size={12} />
             </Label>
-            <div className="h-11 px-4 bg-raised border border-line rounded-xl flex items-center justify-between cursor-not-allowed">
-              <span className="text-ink text-sm font-bold">
-                {getTierLabel(info?.tier)} Tier
-              </span>
-              <Badge variant="outline" className={`font-black text-xs uppercase tracking-tight py-0.5 px-2 rounded-full ${getTierBadgeStyle(info?.tier ?? "")}`}>
-                Active
-              </Badge>
+            {/* 홈·랭킹·그룹과 같은 티어 배지 */}
+            <div className="h-11 px-2 bg-raised border border-line rounded-xl flex items-center cursor-not-allowed">
+              <TierBadge tier={info?.tier} size="sm" />
             </div>
           </div>
 
@@ -497,7 +447,7 @@ function ProfileSection({
           <div className="space-y-2">
             <Label className="text-ink-subtle flex items-center gap-2 ml-1">이메일 <Lock size={12} /></Label>
             <div className="h-11 px-4 bg-raised border border-line rounded-xl flex items-center text-ink-muted text-sm font-medium cursor-not-allowed">
-              {info?.email || "dy.park@dankook.ac.kr"}
+              {info?.email || "-"}
             </div>
           </div>
 
