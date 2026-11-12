@@ -24,7 +24,7 @@ const sourceExtensions = new Map([
 function SubmissionDetailContent() {
   const searchParams = useSearchParams(); // URL 쿼리 파라미터 가져오기
   const router = useRouter();
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
   // The server shows a result only to its submitter, so the submitter is the signed-in user (2026-11-10 QA #9).
   const [nickname, setNickname] = useState("");
 
@@ -122,7 +122,7 @@ function SubmissionDetailContent() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="flex items-center gap-3 bg-panel px-4 py-2 rounded-2xl border border-line shadow-sm">
               <Avatar className="h-8 w-8">
-                {userImgUrl !== "/avatar.png" && <AvatarImage src={userImgUrl} alt="" className="object-cover" />}
+                {userImgUrl !== "" && <AvatarImage src={userImgUrl} alt="" className="object-cover" />}
                 <AvatarFallback className="bg-primary/15 text-primary text-xs font-bold">
                   {nickname[0] ?? ""}
                 </AvatarFallback>

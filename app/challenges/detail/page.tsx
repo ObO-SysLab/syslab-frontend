@@ -83,11 +83,11 @@ function ProblemDetailContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [showMySubmissions, setShowMySubmissions] = useState(false);
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
   const [myNickname, setMyNickname] = useState("");
   // Servers before 2026-11-10 send no author picture; my own comments can still use my profile picture.
   const commentAvatar = (comment: { authorNickname?: string; authorProfileImgUrl?: string | null }) =>
-    comment.authorProfileImgUrl ?? (myNickname && comment.authorNickname === myNickname && userImgUrl !== "/avatar.png" ? userImgUrl : null);
+    comment.authorProfileImgUrl ?? (myNickname && comment.authorNickname === myNickname && userImgUrl !== "" ? userImgUrl : null);
   // The server refuses edits to other people's comments; only show the buttons on my own (2026-11-10).
   const isMyComment = (comment: { authorNickname?: string }) => !!myNickname && comment.authorNickname === myNickname;
 

@@ -49,14 +49,14 @@ function MonacoSubmitContent() {
   const submission = useRef<AbortController | null>(null);
   useEffect(() => {
     setIsLoggedIn(!!codeDraft.account);
-    setUserImgUrl('/avatar.png');
+    setUserImgUrl('');
     setSubmitNotice(''); setSubmitIssue(null); setIsSubmitting(false);
     submission.current?.abort(); submission.current = null;
     return () => { submission.current?.abort(); submission.current = null; };
   }, [codeDraft.generation, codeDraft.account]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const editorRef = useRef(null);
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {

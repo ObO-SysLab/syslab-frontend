@@ -43,7 +43,7 @@ function ProblemCreateContent() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("id"); // URL의 ?id=... 값을 가져옴
   const isEditMode = !!editId; // id가 있으면 수정 모드(true)
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
 
   useEffect(() => {
     const token = problemToken();

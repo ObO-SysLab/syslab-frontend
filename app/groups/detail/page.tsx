@@ -19,7 +19,8 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { mockTopRankers } from "@/lib/mockData";
+import { hallOfFame, memberRanks } from "@/lib/groupMembers";
+import { TierBadge } from "@/components/dv";
 import { Header } from "@/components/Header";
 
 
@@ -32,7 +33,7 @@ function GroupDetailPage() {
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
   const [isGroupLeader, setIsGroupLeader] = useState(false);
   const [myStatus, setMyStatus] = useState<"none" | "pending" | "member">("none");
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
 
   // [STATE] 데이터
@@ -53,6 +54,9 @@ function GroupDetailPage() {
 
   // [STATE] 멤버 탭
   const [members, setMembers] = useState<any[]>([]);
+  // 명예의 전당·멤버 순위: 멤버의 사이트 전체 점수 기준
+  const topMembers = hallOfFame(members);
+  const memberRankById = memberRanks(members);
   const [selectedMemberId, setSelectedMemberId] = useState(0);
 
   // [STATE] 게시판 탭
@@ -87,7 +91,7 @@ function GroupDetailPage() {
   const [inviteExpiresAt, setInviteExpiresAt] = useState("");
 
   const groupFileInputRef = useRef<HTMLInputElement>(null);
-  const [groupImgUrl, setGroupImgUrl] = useState("/avatar.png"); // 기본 껍데기 이미지
+  const [groupImgUrl, setGroupImgUrl] = useState(""); // 기본 껍데기 이미지
   const [isGroupImgUploading, setIsGroupImgUploading] = useState(false);
 
   useEffect(() => {
@@ -205,7 +209,7 @@ function GroupDetailPage() {
         if (groupId) {
           setGroupImgUrl(`https://d3ghudecvdi62z.cloudfront.net/profiles/groups/${groupId}?v=${Date.now()}`);
         } else {
-          setGroupImgUrl("/avatar.png");
+          setGroupImgUrl("");
         }
       }
     } catch (error) {
@@ -968,24 +972,26 @@ function GroupDetailPage() {
 
         {/* [A] 좌측 정보 패널 (2칸) */}
         <aside className="col-span-12 md:col-span-2 space-y-4">
-          <Card className="shadow-none border-line overflow-hidden">
-            <CardHeader className="bg-canvas pb-3">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-warning" /> 명예의 전당
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              {mockTopRankers.map((ranker) => (
-                <div key={ranker.rank} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className={`font-black ${ranker.rank === 1 ? "text-warning" : "text-ink-subtle"}`}># {ranker.rank}</span>
-                    <span className="font-medium text-ink">{ranker.name}</span>
+          {topMembers.length > 0 && (
+            <Card className="shadow-none border-line overflow-hidden">
+              <CardHeader className="bg-canvas pb-3">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-warning" /> 명예의 전당
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                {topMembers.map((ranker) => (
+                  <div key={ranker.userId} className="flex items-center justify-between gap-2 text-sm">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`font-black shrink-0 ${ranker.rank === 1 ? "text-warning" : "text-ink-subtle"}`}># {ranker.rank}</span>
+                      <span className="font-medium text-ink truncate">{ranker.nickname}</span>
+                    </div>
+                    <span className="text-ink-subtle text-xs font-mono shrink-0">{Number(ranker.score).toLocaleString()}</span>
                   </div>
-                  <span className="text-ink-subtle text-xs font-mono">{ranker.score}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="shadow-none border-line">
             <CardHeader className="pb-2 border-b">
@@ -1321,7 +1327,7 @@ function GroupDetailPage() {
                         .sort((a, b) => {
                           if (a.role === "그룹장") return -1;
                           if (b.role === "그룹장") return 1;
-                          return a.rank - b.rank; // 나머지는 원래 순위대로
+                          return (memberRankById.get(a.userId) ?? 0) - (memberRankById.get(b.userId) ?? 0); // 나머지는 점수 순위대로
                         })
                         .map((member, index) => {
                           const isLeader = member.role === "그룹장";
@@ -1336,7 +1342,7 @@ function GroupDetailPage() {
                                 {isLeader ? (
                                   <Crown className="w-5 h-5 text-warning mx-auto drop-shadow-sm" />
                                 ) : (
-                                  member.rank <= 3 ? <span className="text-warning">{member.rank}</span> : member.rank
+                                  (memberRankById.get(member.userId) ?? 0) <= 3 ? <span className="text-warning">{memberRankById.get(member.userId)}</span> : memberRankById.get(member.userId)
                                 )}
                               </TableCell>
 
@@ -1371,9 +1377,7 @@ function GroupDetailPage() {
 
                               {/* 티어 */}
                               <TableCell>
-                                <span className={`text-xs font-bold ${member.tier === "마스터" ? "text-coral" : "text-ink-muted"}`}>
-                                  {member.tier}
-                                </span>
+                                {member.tier ? <TierBadge tier={member.tier} size="sm" showRank={false} /> : <span className="text-xs text-ink-subtle">-</span>}
                               </TableCell>
 
                               {/* 가입 날짜 */}
@@ -1459,7 +1463,7 @@ function GroupDetailPage() {
                               .sort((a, b) => {
                                 if (a.role === "그룹장") return -1;
                                 if (b.role === "그룹장") return 1;
-                                return a.rank - b.rank;
+                                return (memberRankById.get(a.userId) ?? 0) - (memberRankById.get(b.userId) ?? 0);
                               })
                               .map((member, index) => {
                                 const isLeader = member.role === "그룹장";
@@ -1467,11 +1471,11 @@ function GroupDetailPage() {
                                   <TableRow key={index} className={isLeader ? "bg-warning/6" : ""}>
                                     {/* ... (이전 단계에서 작성한 TableCell 내용들 그대로 복사/붙여넣기) ... */}
                                     <TableCell className="text-center font-bold text-ink-subtle pl-4">
-                                      {isLeader ? <Crown className="w-4 h-4 text-warning mx-auto" /> : member.rank}
+                                      {isLeader ? <Crown className="w-4 h-4 text-warning mx-auto" /> : memberRankById.get(member.userId)}
                                     </TableCell>
                                     <TableCell className="font-semibold text-ink">{member.nickname}</TableCell>
                                     <TableCell><Badge variant="secondary" className="text-xs">{member.role}</Badge></TableCell>
-                                    <TableCell><span className="text-xs font-bold text-ink-muted">{member.tier}</span></TableCell>
+                                    <TableCell>{member.tier ? <TierBadge tier={member.tier} size="sm" showRank={false} /> : <span className="text-xs text-ink-subtle">-</span>}</TableCell>
 
                                     {isGroupLeader && (
                                       <TableCell className="text-right pr-4">
@@ -1961,7 +1965,7 @@ function GroupDetailPage() {
                               pendingMembers.map((m) => (
                                 <TableRow key={m.userId}>
                                   <TableCell className="font-bold text-ink pl-6">{m.nickname}</TableCell>
-                                  <TableCell><Badge variant="outline" className="text-xs">{m.tier ? m.tier : "Diamond"}</Badge></TableCell>
+                                  <TableCell>{m.tier ? <TierBadge tier={m.tier} size="sm" showRank={false} /> : <span className="text-xs text-ink-subtle">-</span>}</TableCell>
                                   <TableCell className="text-xs text-ink-subtle font-mono">{m.appliedAt?.split("T")[0]}</TableCell>
                                   <TableCell className="text-right pr-6 space-x-2">
                                     <Button

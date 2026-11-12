@@ -21,7 +21,7 @@ export default function ContestCreatePage() {
   // [STATE] 페이지
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [groupId, setGroupId] = useState("");
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
 
   // [STATE] 폼 데이터 
   const [isRewardEnabled, setIsRewardEnabled] = useState(false);
