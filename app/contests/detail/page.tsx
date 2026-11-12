@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { OxygenGauge } from "@/components/dv";
+import { AddOwnProblemModal } from "@/components/contest/AddOwnProblemModal";
 import { desc } from "framer-motion/client";
 
 
@@ -768,62 +769,13 @@ function ContestDetailPage() {
           {activeTab === "settings" && <ContestSettingsTab contestInfo={contestInfo} handleEditSettings={handleEditSettings} handleDeleteContest={handleDeleteContest} />}
         </section>
 
-        {showAddChallengeModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
-              {/* 모달 헤더 */}
-              <CardHeader className="flex flex-row items-center justify-between border-b pb-4 shrink-0 bg-panel rounded-t-xl">
-                <div className="space-y-1">
-                  <CardTitle className="text-lg">기존 문제 추가</CardTitle>
-                  <CardDescription>공개된 문제나 그룹 내 문제를 검색하여 대회에 추가합니다.</CardDescription>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setShowAddChallengeModal(false)}>
-                  <X className="w-5 h-5 text-ink-muted" />
-                </Button>
-              </CardHeader>
-
-              {/* 검색창 */}
-              <div className="p-4 border-b bg-canvas shrink-0">
-                <div className="relative">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-subtle" />
-                  <Input placeholder="문제 제목, 카테고리 또는 작성자 검색..." className="pl-9 bg-panel" />
-                </div>
-              </div>
-
-              {/* 검색 결과 리스트 */}
-              <CardContent className="overflow-y-auto p-0 flex-1 hide-scrollbar">
-                <Table>
-                  <TableHeader className="bg-canvas sticky top-0 z-10 shadow-sm">
-                    <TableRow>
-                      <TableHead className="pl-6 w-24">ID</TableHead>
-                      <TableHead>문제명</TableHead>
-                      <TableHead>카테고리</TableHead>
-                      <TableHead className="text-right pr-6">액션</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {/* Mock 데이터 렌더링 */}
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <TableRow key={i}>
-                        <TableCell className="font-mono text-xs text-ink-muted pl-6">P-10{i}</TableCell>
-                        <TableCell className="font-bold text-ink">커널 동작 기초 {i}</TableCell>
-                        <TableCell><Badge variant="outline" className="text-xs">Kernel</Badge></TableCell>
-                        <TableCell className="text-right pr-6">
-                          <Button
-                            size="sm"
-                            className="bg-raised border border-line-strong text-white hover:bg-line h-8 text-xs"
-                            onClick={() => alert(`문제 P-10${i}가 대회에 추가되었습니다.`)}
-                          >
-                            추가하기
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
+        {showAddChallengeModal && contestId && (
+          <AddOwnProblemModal
+            contestId={contestId}
+            existingProblemIds={allChallenges.map((c) => Number(c.problemId)).filter(Number.isFinite)}
+            onClose={() => setShowAddChallengeModal(false)}
+            onAdded={fetchChallenges}
+          />
         )}
       </main>
     </div>

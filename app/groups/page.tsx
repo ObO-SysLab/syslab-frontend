@@ -34,12 +34,11 @@ function GroupListContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
   const [inviteInput, setInviteInput] = useState("");
   const [isJoiningWithCode, setIsJoiningWithCode] = useState(false);
 
   // [STATE] 필터
-  const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState("All");
   const [showMyGroups, setShowMyGroups] = useState(false);
   const [keyword, setKeyword] = useState("");
@@ -135,7 +134,6 @@ function GroupListContent() {
       } else {
         if (selectedTag !== "All") params.append("tag", selectedTag);
         if (showMyGroups) params.append("isJoined", "true");
-        // if (selectedTier) params.append("tier", selectedTier);
       }
 
       try {
@@ -158,7 +156,7 @@ function GroupListContent() {
     };
 
     fetchGroups();
-  }, [selectedTag, selectedTier, showMyGroups, currentPage, keyword]);
+  }, [selectedTag, showMyGroups, currentPage, keyword]);
 
   // [HANDLER] 검색창 핸들러
   const handleSearch = (keyword: string) => {
@@ -169,12 +167,6 @@ function GroupListContent() {
   // [HANDLER] 좌측 사이드 태그 패널 핸들러
   const handleTagChange = (tag: string) => {
     setSelectedTag(tag);
-    setCurrentPage(1);
-  };
-
-  // [HANDLER] 좌측 사이드 티어 패널 핸들러
-  const handleTierChange = (tier: string) => {
-    setSelectedTier(selectedTier === tier ? null : tier);
     setCurrentPage(1);
   };
 
@@ -305,30 +297,6 @@ function GroupListContent() {
             </nav>
           </div>
 
-          <div className="pt-4 border-t">
-            <h3 className="text-sm font-bold text-ink-subtle uppercase tracking-widest mb-4 px-1">Tier</h3>
-            <div className="flex flex-wrap gap-2">
-              {["1", "2", "3", "4", "5", "6", "7"].map(tier => {
-                const tierNameMap: Record<string, string> = {
-                  "1": "Bronze", "2": "Silver", "3": "Gold",
-                  "4": "Platinum", "5": "Diamond", "6": "Master", "7": "Challenger"
-                };
-                const label = tierNameMap[tier] || "Tier";
-
-                return (
-                  <Badge
-                    key={tier}
-                    variant={selectedTier === tier ? "default" : "outline"}
-                    className={`cursor-pointer px-3 py-1 transition-all capitalize ${selectedTier === tier ? "bg-raised border border-line-strong text-white" : "hover:bg-raised"
-                      }`}
-                    onClick={() => handleTierChange(tier)}
-                  >
-                    {label}
-                  </Badge>
-                );
-              })}
-            </div>
-          </div>
         </aside>
 
         {/* [B] 중앙 콘텐츠 영역 (8칸) */}

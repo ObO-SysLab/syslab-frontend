@@ -143,6 +143,18 @@ const routes: Route[] = [
   { method: "PATCH", pattern: /^\/api\/profile$/, handler: () => json(profile.mockProfileUpdateResponse) },
   { method: "PATCH", pattern: /^\/api\/profile\/password$/, handler: () => json(profile.mockPasswordUpdateResponse) },
   { method: "POST", pattern: /^\/api\/users\/me\/profile-image$/, handler: () => json(profile.mockProfileImageResponse) },
+  { method: "DELETE", pattern: /^\/api\/users\/me\/profile-image$/, handler: () => json(ok(null, "프로필 이미지 삭제 성공")) },
+  {
+    method: "GET",
+    pattern: /^\/api\/activity\/recent$/,
+    public: true, // 실제 서버도 로그인 없이 연다
+    handler: () =>
+      json(ok({ activities: [
+        { resultId: 905, resultStatus: "CORRECT", submittedAt: fromNow(-0.01), userId: 12, nickname: "Torvalds", probId: 1, title: "라운드로빈 스케줄링 구현" },
+        { resultId: 904, resultStatus: "WRONG", submittedAt: fromNow(-0.05), userId: 21, nickname: "DanKook", probId: 11, title: "페이지 교체 LRU 구현" },
+        { resultId: 903, resultStatus: "ERROR", submittedAt: fromNow(-0.2), userId: 30, nickname: "CodeNewbie", probId: 7, title: "식사하는 철학자 문제" },
+      ] }, "최근 채점 결과 조회 성공")),
+  },
   { method: "GET", pattern: /^\/api\/profile\/category-stats$/, handler: () => json(profile.mockCategoryStatsResponse) },
   { method: "GET", pattern: /^\/api\/profile\/problems\/solved$/, handler: () => json(profile.mockProfileSolvedResponse) },
   { method: "GET", pattern: /^\/api\/profile\/problems\/failed$/, handler: () => json(profile.mockProfileFailedResponse) },
@@ -455,6 +467,7 @@ const routes: Route[] = [
     },
   },
   { method: "GET", pattern: /^\/api\/contests\/(\d+)\/problems$/, handler: () => json(contests.mockContestProblemsResponse) },
+  { method: "POST", pattern: /^\/api\/contests\/(\d+)\/problems$/, handler: () => json(ok(null, "문제가 대회에 추가되었습니다.")) },
   { method: "PATCH", pattern: /^\/api\/contests\/(\d+)\/problems\/(\d+)\/points$/, handler: () => json(contests.mockContestPointsUpdateResponse) },
   { method: "DELETE", pattern: /^\/api\/contests\/(\d+)\/problems\/(\d+)$/, handler: () => json(contests.mockContestProblemRemoveResponse) },
   {

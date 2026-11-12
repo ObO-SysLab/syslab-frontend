@@ -31,7 +31,7 @@ export default function GroupCreatePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(""); // 화면 미리보기용 임시 URL
   const [isUploading, setIsUploading] = useState(false);
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
 
   // [STATE] 데이터
   const [title, setTitle] = useState("");

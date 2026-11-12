@@ -34,7 +34,7 @@ function ProblemDetailContent() {
 	// 페이지 상태
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
 	const [activeTab, setActiveTab] = useState(searchParams.get("tab") === "grading" ? "grading" : "problem");
-	const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+	const [userImgUrl, setUserImgUrl] = useState("");
 
 	// API 연동용 상태
 	const [problemData, setProblemData] = useState<any>(null);

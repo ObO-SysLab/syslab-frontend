@@ -35,7 +35,7 @@ export default function StorePage() {
   const [userPoints, setUserPoints] = useState(12500); // 사용자 보유 포인트
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [userImgUrl, setUserImgUrl] = useState("/avatar.png");
+  const [userImgUrl, setUserImgUrl] = useState("");
 
   // 구매 다이얼로그 상태
   const [isPurchaseOpen, setIsPurchaseOpen] = useState(false);

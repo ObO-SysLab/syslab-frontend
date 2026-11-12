@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "radix-ui";
-import { LogOut, Menu, Trophy, Users, BarChart3, ShoppingBag, Flag, Search, X } from "lucide-react";
+import { LogOut, Menu, Trophy, Users, BarChart3, ShoppingBag, Flag, Search, UserRound, X } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { BrandMark } from "@/components/BrandMark";
@@ -97,8 +97,10 @@ export function Header({
             <>
               <Link href="/settings" aria-label="내 프로필" className="rounded-full">
                 <Avatar className="h-9 w-9 border border-line-strong hover:ring-2 hover:ring-primary/50 transition-all">
-                  <AvatarImage src={userImgUrl} alt="" className="object-cover" />
-                  <AvatarFallback className="bg-raised text-xs font-bold text-ink-muted rounded-full" />
+                  {userImgUrl && <AvatarImage src={userImgUrl} alt="" className="object-cover" />}
+                  <AvatarFallback className="bg-raised text-ink-muted rounded-full">
+                    <UserRound className="h-4 w-4" aria-hidden />
+                  </AvatarFallback>
                 </Avatar>
               </Link>
               <button

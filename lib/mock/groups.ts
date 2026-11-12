@@ -162,12 +162,13 @@ export const mockGroupMembersResponse = ok(
     totalPages: 1,
     currentPage: 1,
     members: [
-      { userId: ME.userId, nickname: ME.nickname, role: "LEADER", joinedAt: "2026-03-01T09:00:00" },
-      { userId: 12, nickname: "Torvalds", role: "MEMBER", joinedAt: "2026-03-02T10:00:00" },
-      { userId: 7, nickname: "Guido", role: "MEMBER", joinedAt: "2026-03-05T21:00:00" },
-      { userId: 15, nickname: "Gosling", role: "MEMBER", joinedAt: "2026-04-11T13:00:00" },
-      { userId: 21, nickname: "DanKook", role: "MEMBER", joinedAt: "2026-06-18T18:30:00" },
-      { userId: 30, nickname: "CodeNewbie", role: "MEMBER", joinedAt: "2026-10-01T08:00:00" },
+      // 실제 API처럼 역할은 한글("그룹장"/"멤버"), 티어·점수는 사이트 전체 값
+      { userId: ME.userId, nickname: ME.nickname, role: "그룹장", joinedAt: "2026-03-01T09:00:00", tier: ME.tier, score: ME.score, profileImgUrl: ME.profileImgUrl },
+      { userId: 12, nickname: "Torvalds", role: "멤버", joinedAt: "2026-03-02T10:00:00", tier: 5, score: 2400, profileImgUrl: null },
+      { userId: 7, nickname: "Guido", role: "멤버", joinedAt: "2026-03-05T21:00:00", tier: 3, score: 900, profileImgUrl: null },
+      { userId: 15, nickname: "Gosling", role: "멤버", joinedAt: "2026-04-11T13:00:00", tier: 3, score: 900, profileImgUrl: null },
+      { userId: 21, nickname: "DanKook", role: "멤버", joinedAt: "2026-06-18T18:30:00", tier: 2, score: 160, profileImgUrl: null },
+      { userId: 30, nickname: "CodeNewbie", role: "멤버", joinedAt: "2026-10-01T08:00:00", tier: 1, score: 0, profileImgUrl: null },
     ],
   },
   "멤버 목록 조회 성공"
@@ -180,9 +181,9 @@ export const mockGroupPendingResponse = ok(
     totalPages: 1,
     currentPage: 1,
     pendingMembers: [
-      { userId: 41, nickname: "ThreadLover", appliedAt: "2026-10-27T10:00:00" },
-      { userId: 42, nickname: "MutexLock", appliedAt: "2026-10-28T15:20:00" },
-      { userId: 43, nickname: "DevBeginner", appliedAt: "2026-10-29T09:05:00" },
+      { userId: 41, nickname: "ThreadLover", appliedAt: "2026-10-27T10:00:00", tier: 2 },
+      { userId: 42, nickname: "MutexLock", appliedAt: "2026-10-28T15:20:00", tier: 1 },
+      { userId: 43, nickname: "DevBeginner", appliedAt: "2026-10-29T09:05:00", tier: 1 },
     ],
   },
   "가입 대기자 목록 조회 성공"
