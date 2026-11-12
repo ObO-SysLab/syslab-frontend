@@ -29,6 +29,8 @@ export default function SignUpPage() {
     belong: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const passwordMismatch = passwordConfirm.length > 0 && passwordConfirm !== formData.password;
 
   // API 및 검증 상태 관리 그룹
   const [isEmailVerified, setIsEmailVerified] = useState(false);
@@ -199,6 +201,10 @@ export default function SignUpPage() {
       alert("닉네임 중복 확인을 먼저 완료해주세요.");
       return;
     }
+    if (formData.password !== passwordConfirm) {
+      alert("비밀번호 확인이 일치하지 않습니다.");
+      return;
+    }
 
     setIsLoading(true);
 
@@ -287,7 +293,7 @@ export default function SignUpPage() {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-[550px]">
         <Card className="border-none shadow-2xl shadow-black/40 rounded-[2.5rem] overflow-hidden bg-panel">
-          <CardHeader className="pt-10 pb-6 px-10 border-b border-line bg-panel">
+          <CardHeader className="pt-8 sm:pt-10 pb-6 px-6 sm:px-10 border-b border-line bg-panel">
             <CardTitle className="text-2xl font-black flex items-center gap-2 text-ink">
               <UserPlus className="w-6 h-6 text-primary" /> 계정 생성
             </CardTitle>
@@ -295,12 +301,12 @@ export default function SignUpPage() {
           </CardHeader>
 
           <form onSubmit={handleSignUp}>
-            <CardContent className="p-10 space-y-10">
+            <CardContent className="p-6 sm:p-10 space-y-10">
 
               <section className="space-y-6">
                 <div className="flex items-center gap-2 text-primary">
                   <ShieldCheck size={16} />
-                  <span className="text-[11px] font-black uppercase tracking-widest">Personal Info & Security</span>
+                  <span className="text-sm font-bold">계정 정보</span>
                 </div>
 
                 <div className="grid gap-3">
@@ -325,9 +331,10 @@ export default function SignUpPage() {
                         type="button"
                         onClick={handleSendEmailCode}
                         disabled={isEmailVerified}
-                        className={`h-12 px-5 rounded-xl font-bold text-xs transition-all ${isEmailVerified ? "bg-raised text-ink-subtle border" : "bg-primary hover:bg-primary-hover text-primary-ink"}`}
+                        variant="outline"
+                        className={`h-12 px-5 rounded-xl font-bold text-sm transition-all ${isEmailVerified ? "bg-success/10 text-success border-success/30" : "border-line-strong text-ink hover:bg-raised"}`}
                       >
-                        {isEmailVerified ? "인증 완결" : isEmailSent ? "코드 재발송" : "인증하기"}
+                        {isEmailVerified ? "인증 완료" : isEmailSent ? "코드 재발송" : "인증하기"}
                       </Button>
                     </div>
                   </div>
@@ -336,7 +343,7 @@ export default function SignUpPage() {
                   {isEmailSent && !isEmailVerified && (
                     <div className="space-y-2 animate-in slide-in-from-top-2 duration-300 w-full">
                       <div className="flex justify-between items-center px-1">
-                        <Label className="text-[11px] font-black uppercase tracking-widest text-ink-subtle">인증 코드 입력</Label>
+                        <Label className="text-xs font-bold text-ink-muted">인증 코드</Label>
                         {timeLeft > 0 ? (
                           <span className="text-xs font-bold text-danger font-mono">
                             남은 시간 {formatTime(timeLeft)}
@@ -365,7 +372,7 @@ export default function SignUpPage() {
                           type="button"
                           onClick={handleVerifyEmailCode}
                           disabled={timeLeft <= 0}
-                          className="h-12 px-6 rounded-xl bg-deep text-white font-black text-xs hover:bg-line shrink-0 disabled:opacity-50"
+                          className="h-12 px-6 rounded-xl bg-raised border border-line-strong text-ink font-bold text-sm hover:bg-line shrink-0 disabled:opacity-50"
                         >
                           코드 확인
                         </Button>
@@ -392,7 +399,7 @@ export default function SignUpPage() {
                         type="button"
                         variant={isIdChecked ? "secondary" : "outline"}
                         onClick={handleCheckId}
-                        className={`h-12 px-5 rounded-xl border-line font-bold text-xs transition-all ${isIdChecked ? "bg-success/10 text-success border-success/30" : "hover:bg-raised/60"}`}
+                        className={`h-12 px-5 rounded-xl border-line font-bold text-sm transition-all ${isIdChecked ? "bg-success/10 text-success border-success/30" : "hover:bg-raised/60"}`}
                       >
                         {isIdChecked ? "확인 완료" : "중복 확인"}
                       </Button>
@@ -416,11 +423,24 @@ export default function SignUpPage() {
                       </div>
                     </div>
                     <div className="grid gap-2">
-                      <Label className="text-xs font-bold text-ink-muted ml-1">비밀번호 확인</Label>
+                      <Label htmlFor="passwordConfirm" className="text-xs font-bold text-ink-muted ml-1">비밀번호 확인</Label>
                       <div className="relative">
                         <Lock className="absolute left-4 top-3.5 h-4 w-4 text-ink-subtle" />
-                        <Input type="password" placeholder="••••••••" className="pl-11 h-12 rounded-xl border-line bg-raised/50" />
+                        <Input
+                          id="passwordConfirm"
+                          type="password"
+                          value={passwordConfirm}
+                          onChange={(e) => setPasswordConfirm(e.target.value)}
+                          required
+                          placeholder="••••••••"
+                          aria-invalid={passwordMismatch}
+                          aria-describedby={passwordMismatch ? "password-confirm-error" : undefined}
+                          className={`pl-11 h-12 rounded-xl bg-raised/50 ${passwordMismatch ? "border-danger" : "border-line"}`}
+                        />
                       </div>
+                      {passwordMismatch && (
+                        <p id="password-confirm-error" className="ml-1 text-xs font-medium text-danger">비밀번호가 일치하지 않아요.</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -431,7 +451,7 @@ export default function SignUpPage() {
               <section className="space-y-6">
                 <div className="flex items-center gap-2 text-primary">
                   <User size={16} />
-                  <span className="text-[11px] font-black uppercase tracking-widest">Public Profile</span>
+                  <span className="text-sm font-bold">공개 프로필</span>
                 </div>
 
                 <div className="grid gap-4">
@@ -454,7 +474,7 @@ export default function SignUpPage() {
                         type="button"
                         variant={isNicknameChecked ? "secondary" : "outline"}
                         onClick={handleCheckNickname}
-                        className={`h-12 px-5 rounded-xl border-line font-bold text-xs transition-all ${isNicknameChecked ? "bg-success/10 text-success border-success/30" : "hover:bg-raised/60"}`}
+                        className={`h-12 px-5 rounded-xl border-line font-bold text-sm transition-all ${isNicknameChecked ? "bg-success/10 text-success border-success/30" : "hover:bg-raised/60"}`}
                       >
                         {isNicknameChecked ? "확인 완료" : "중복 확인"}
                       </Button>
@@ -490,7 +510,7 @@ export default function SignUpPage() {
                           className="pl-11 h-12 rounded-xl border-line bg-raised/50"
                         />
                       </div>
-                      <div className="flex flex-wrap gap-2 min-h-[32px]">
+                      <div className="flex flex-wrap gap-2 empty:hidden">
                         {interests.map(tag => (
                           <Badge key={tag} className="pl-3 pr-1 py-1.5 bg-primary/10 text-primary border-none rounded-lg font-bold flex items-center gap-1">
                             {tag}
@@ -505,7 +525,7 @@ export default function SignUpPage() {
                 </div>
               </section>
 
-              <div className="space-y-6 pt-4">
+              <div className="space-y-6">
                 <div className="flex items-start space-x-3 p-4 bg-canvas rounded-2xl border border-line">
                   <Checkbox id="terms" className="mt-1 data-[state=checked]:bg-primary" required />
                   <div className="grid gap-1.5 leading-none">
@@ -513,7 +533,7 @@ export default function SignUpPage() {
                       <Link href="/signup/terms" target="_blank" className="text-primary hover:underline">서비스 이용약관</Link> 및{" "}
                       <Link href="/signup/privacy" target="_blank" className="text-primary hover:underline">개인정보 처리방침</Link>에 동의합니다. (필수)
                     </label>
-                    <p className="text-[10px] text-ink-subtle">
+                    <p className="text-xs leading-5 text-ink-subtle">
                       어뷰징, 답안 공유, 플랫폼 대상 공격 등 부정행위 적발 시 계정이 영구 중단되며 소속에 통보될 수 있습니다.
                     </p>
                   </div>
@@ -521,8 +541,8 @@ export default function SignUpPage() {
 
                 <Button
                   type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-deep hover:bg-line h-14 rounded-2xl text-lg font-black shadow-xl shadow-black/40 transition-all active:scale-[0.98]"
+                  disabled={isLoading || passwordMismatch}
+                  className="w-full h-14 rounded-full bg-primary text-primary-ink hover:bg-primary-hover text-lg font-bold transition-all active:scale-[0.98] disabled:bg-raised disabled:text-ink-subtle disabled:opacity-100"
                 >
                   {isLoading ? <Loader2 className="animate-spin mr-2" /> : "회원가입하기"}
                   {!isLoading && <ArrowRight className="ml-2 w-5 h-5" />}

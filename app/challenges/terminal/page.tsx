@@ -272,7 +272,7 @@ function PracticeContent() {
               <div>
                 {/*  동적으로 받아온 제목과 OS 이미지 렌더링 */}
                 <h1 className="text-xl font-bold text-ink tracking-tight">{problemTitle}</h1>
-                <p className="text-[11px] text-ink-subtle font-bold uppercase tracking-wider">Instance: {osImage}</p>
+                <p className="text-xs text-ink-subtle font-bold uppercase tracking-wider">Instance: {osImage}</p>
               </div>
             </div>
 

@@ -29,6 +29,7 @@ import { OboPlayer } from "@/components/obo/OboPlayer";
 import { CodingRules } from '@/components/obo/simulation/CodingRules';
 import { resolveOboBlob, type OboBlob, type ProblemOboData } from "@/components/obo/types";
 import { Header } from "@/components/Header";
+import { AdSlot } from "@/components/AdSlot";
 import { TierBadge } from "@/components/dv";
 import { ProblemTags } from "@/components/problem/ProblemTags";
 import { ChoiceList } from "@/components/problem/ChoiceList";
@@ -102,6 +103,16 @@ function ProblemDetailContent() {
   const [rankings, setRankings] = useState<any[]>([]);
   const [firstBlood, setFirstBlood] = useState<any>({ user: "", prifile_url: "", date: "" });
   const [ads, setAds] = useState<any[]>([]);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      window.prompt("이 주소를 복사하세요", window.location.href);
+    }
+  };
 
   // 객관식 문제 관련 상태
   const [selectedChoices, setSelectedChoices] = useState<number[]>([]);
@@ -585,10 +596,10 @@ function ProblemDetailContent() {
       />
 
       {/* 2. 메인 레이아웃 (Grid 12분할) */}
-      <main className="container mx-auto max-w-[1600px] pt-6 grid grid-cols-1 md:grid-cols-12 gap-6 px-4 pb-12">
+      <main className="dv-shell dv-shell--wide pt-6 grid grid-cols-1 md:grid-cols-12 gap-6 pb-12">
 
         {/* [A] 좌측 정보 패널 (2칸) */}
-        <aside className="col-span-12 md:col-span-2 space-y-4">
+        <aside className="col-span-12 md:col-span-2 space-y-4 order-last md:order-none">
 
           {/* First Blood 패널 */}
           <Card className="shadow-none border-line overflow-hidden">
@@ -615,7 +626,7 @@ function ProblemDetailContent() {
                       {firstBlood.user}
                     </span>
                   </div>
-                  <span className="text-[11px] text-ink-subtle font-medium tracking-tight">
+                  <span className="text-xs text-ink-subtle font-medium tracking-tight">
                     {firstBlood.date}
                   </span>
                 </div>
@@ -639,17 +650,17 @@ function ProblemDetailContent() {
                 {rankings.slice(0, 3).map((ranker) => (
                   <div key={ranker.userId} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="h-5 w-5 flex items-center justify-center p-0 rounded-full font-black text-[10px]">
+                      <Badge variant="secondary" className="h-5 w-5 flex items-center justify-center p-0 rounded-full font-black text-xs">
                         {ranker.rank}
                       </Badge>
                       <span className="font-semibold text-ink">{ranker.nickname}</span>
                     </div>
                     {ranker.language ? (
-                      <Badge variant="outline" className="text-[10px] uppercase font-mono px-1.5 h-4 border-line text-ink-subtle">
+                      <Badge variant="outline" className="text-xs uppercase font-mono px-1.5 h-4 border-line text-ink-subtle">
                         {ranker.language}
                       </Badge>
                     ) : (
-                      <span className="text-ink-subtle text-[11px] font-medium">
+                      <span className="text-ink-subtle text-xs font-medium">
                         {new Date(ranker.firstSolvedAt).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })}
                       </span>
                     )}
@@ -674,7 +685,7 @@ function ProblemDetailContent() {
                 <div key={comment.commentId} className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-ink">{comment.authorNickname}</span>
-                    <span className="text-[10px] text-ink-subtle">
+                    <span className="text-xs text-ink-subtle">
                       {formatTime(comment.createdAt, true)}
                     </span>
                   </div>
@@ -690,7 +701,7 @@ function ProblemDetailContent() {
         </aside>
 
         {/* [B] 중앙 콘텐츠 영역 (6칸) */}
-        <section className="col-span-12 md:col-span-8 space-y-6">
+        <section className="col-span-12 md:col-span-10 xl:col-span-8 space-y-6">
 
           {/* 탭 컨트롤러 */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -729,9 +740,9 @@ function ProblemDetailContent() {
                   <Button variant="outline" size="sm" className="mt-3" onClick={() => setPracticeStatusRetry(value => value + 1)}>다시 확인</Button>}
               </div>}
 
-              <div className="flex items-center justify-between w-full">
+              <div className="flex flex-wrap items-center justify-between gap-2 w-full">
                 {/* 왼쪽 버튼 그룹 (제출, 공유) */}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {/* 문제 유형에 따른 동작 버튼 변경 */}
                   {problemData?.type === "coding" ? (
                     <Link href={`/challenges/editor?id=${probId}`}>
@@ -741,7 +752,7 @@ function ProblemDetailContent() {
                     </Link>
                   ) : problemData?.type === "objective" ? (
                     <Button
-                      className="bg-raised border border-line-strong text-ink hover:bg-line font-bold disabled:opacity-50"
+                      className="bg-primary hover:bg-primary-hover text-primary-ink font-bold disabled:bg-raised disabled:text-ink-subtle disabled:opacity-100"
                       onClick={handleObjectiveSubmit}
                       disabled={isSubmittingAnswer || selectedChoices.length === 0} // 선택된 게 없으면 비활성화
                     >
@@ -767,14 +778,15 @@ function ProblemDetailContent() {
                     </Button>
                   )}
 
-                  <Button variant="outline" size="icon">
+                  <Button variant="outline" size="icon" onClick={handleCopyLink} aria-label="문제 링크 복사">
                     <Share2 className="h-4 w-4" />
                   </Button>
+                  {linkCopied && <span role="status" className="text-sm text-success">링크를 복사했어요</span>}
                 </div>
 
                 {/* 오른쪽 버튼 그룹 (작성자일 때만 노출) */}
                 {isOwner && (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {/* 문제 수정 버튼 */}
                     <Button
                       variant="outline"
@@ -839,7 +851,7 @@ function ProblemDetailContent() {
                   {/* 허용된 명령어 목록 (안전하게 배열 체크) */}
                   {Array.isArray(problemData?.vm_info?.allowed_commands) && problemData.vm_info.allowed_commands.length > 0 && (
                     <div className="bg-deep border border-line p-4 rounded-xl">
-                      <span className="text-[10px] font-bold text-ink-muted mb-2 block uppercase tracking-widest">
+                      <span className="text-xs font-bold text-ink-muted mb-2 block uppercase tracking-widest">
                         Allowed Commands
                       </span>
                       <div className="flex flex-wrap gap-2">
@@ -949,7 +961,7 @@ function ProblemDetailContent() {
                                   {/* 판정 코드 라벨 + 문구 (디자인 시스템 Verdict 축약형) */}
                                   <span className="inline-flex items-center gap-2">
                                     <span
-                                      className={`min-w-[40px] text-center px-1.5 py-1 rounded-md font-mono text-[11px] font-bold tracking-[0.08em] ${
+                                      className={`min-w-[40px] text-center px-1.5 py-1 rounded-md font-mono text-xs font-bold tracking-[0.08em] ${
                                         isSuccess ? "bg-success-soft text-success" : verdict.kind === "wrong" ? "bg-danger-soft text-danger" : verdict.kind === "error" ? "bg-warning-soft text-warning" : "bg-raised text-ink-muted"
                                       }`}
                                     >
@@ -1052,7 +1064,7 @@ function ProblemDetailContent() {
                                 src={`https://d3ghudecvdi62z.cloudfront.net/profiles/users/${rank.userId}?v=${Date.now()}`}
                                 className="object-cover"
                               />
-                              <AvatarFallback className="bg-raised text-[10px] text-ink-muted font-bold">
+                              <AvatarFallback className="bg-raised text-xs text-ink-muted font-bold">
                                 {rank.nickname[0]}
                               </AvatarFallback>
                             </Avatar>
@@ -1064,7 +1076,7 @@ function ProblemDetailContent() {
                         <TableCell className="text-center">
                           <Badge
                             variant="outline"
-                            className={`font-mono text-[10px] font-bold border ${getTierColor(rank.userTier)}`}
+                            className={`font-mono text-xs font-bold border ${getTierColor(rank.userTier)}`}
                           >
                             {submissionTierLabel(rank.userTier)}
                           </Badge>
@@ -1250,7 +1262,7 @@ function ProblemDetailContent() {
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-sm text-ink">{reply.authorNickname}</span>
                             <div className="flex items-center gap-3">
-                              <span className="text-[10px] text-ink-subtle">
+                              <span className="text-xs text-ink-subtle">
                                 {formatTime(reply.createdAt, false)}
                               </span>
                               {/* 대댓글 수정·삭제 버튼: 내 답글에만 */}
@@ -1300,21 +1312,9 @@ function ProblemDetailContent() {
           </Tabs>
         </section>
 
-        {/* [C] 우측 광고 패널 (2칸) */}
-        <aside className="col-span-12 md:col-span-2">
-          <div className="sticky top-24 space-y-4">
-            {ads.length > 0 ? (
-              ads.map((ad) => (
-                <a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-xl border border-line shadow-sm transition-transform hover:scale-105">
-                  <img src={ad.image_url} alt={ad.alt_text} className="w-full object-cover" />
-                </a>
-              ))
-            ) : (
-              <div className="border border-line rounded-xl bg-canvas h-[500px] flex flex-col items-center justify-center text-ink-subtle text-sm font-medium">
-                AD Area
-              </div>
-            )}
-          </div>
+        {/* [C] 우측 광고 칸 — 광고가 있을 때만 그림 (1280px 이상) */}
+        <aside className="hidden xl:block xl:col-span-2">
+          <AdSlot ads={ads} />
         </aside>
 
         {showGroupModal && (

@@ -28,7 +28,7 @@ export function AuthoringChecklist({ steps, onGo }: { steps: AuthoringStep[]; on
             className="flex w-full items-start gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-raised/60 focus-visible:bg-raised focus-visible:outline-none">
             <Icon aria-hidden className={`mt-0.5 h-4 w-4 shrink-0 ${color}`} />
             <span className="min-w-0">
-              <span className="block text-sm font-semibold text-ink">{i + 1}. {step.label} <span className={`text-[11px] font-medium ${color}`}>{word}</span></span>
+              <span className="block text-sm font-semibold text-ink">{i + 1}. {step.label} <span className={`text-xs font-medium ${color}`}>{word}</span></span>
               <span className="block break-words text-xs leading-relaxed text-ink-muted">{step.hint}</span>
             </span>
           </button>

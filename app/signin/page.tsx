@@ -92,7 +92,7 @@ function LoginContent() {
             <CardContent className="pt-12 pb-12 px-10 space-y-8 text-center">
               {/* 소셜 로그인 안내 헤딩 */}
               <div className="space-y-2">
-                <h2 className="text-xl font-black tracking-tight text-ink">Diveon 시작하기</h2>
+                <h2 className="text-xl font-black tracking-tight text-ink">DiveOn 시작하기</h2>
                 <p className="text-xs text-ink-subtle font-medium">구글 계정 연동을 통해 운영체제 바다 탐사를 시작합니다.</p>
               </div>
 
@@ -118,8 +118,8 @@ function LoginContent() {
             </CardContent>
           </Card>
 
-          <p className="text-center text-[10px] text-ink-subtle font-medium uppercase tracking-[0.2em]">
-            Secured by Diveon Protection System
+          <p className="text-center text-xs text-ink-subtle font-medium uppercase tracking-[0.2em]">
+            Secured by DiveOn
           </p>
         </div>
       </main>

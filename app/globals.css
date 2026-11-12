@@ -233,6 +233,15 @@
   html {
     @apply font-sans;
   }
+  /* 한글은 어절 단위로 줄바꿈 ("샌/드박스" 방지). 긴 영문·URL만 칸 안에서 끊는다.
+     OBO 영역은 이번 정리 범위 밖이라 기존 줄바꿈을 그대로 둔다. */
+  [data-theme="abyss"] body {
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  [data-theme="abyss"] .obo-scope {
+    word-break: normal;
+  }
   [data-theme="abyss"] ::selection {
     background: rgba(0, 209, 255, 0.28);
     color: var(--dv-ink);
@@ -263,6 +272,22 @@
  * React 래퍼는 components/dv/ 참고
  * ==================================================================== */
 @layer components {
+  /* 페이지 틀: 한 단 화면은 dv-shell(1280), 사이드바·광고가 있는 3단 화면은 dv-shell--wide(1440) */
+  .dv-shell {
+    width: 100%;
+    max-width: 1280px;
+    margin-inline: auto;
+    padding-inline: 24px;
+  }
+  .dv-shell--wide {
+    max-width: 1440px;
+  }
+  @media (max-width: 639px) {
+    .dv-shell {
+      padding-inline: 16px;
+    }
+  }
+
   /* HUD 라벨: 11px mono 대문자. 한글에는 쓰지 않는다 */
   .dv-hud {
     font: 600 11px/16px var(--font-mono);
@@ -306,7 +331,7 @@
     white-space: nowrap;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
   }
-  .dv-depth--sm { height: 20px; padding: 0 8px 0 6px; font-size: 11px; }
+  .dv-depth--sm { height: 22px; padding: 0 8px 0 6px; font-size: 12px; }
   .dv-depth__ticks { display: inline-flex; align-items: flex-end; gap: 1px; height: 10px; }
   .dv-depth__ticks i { display: block; width: 2px; background: currentColor; opacity: 0.28; border-radius: 1px; }
   .dv-depth__ticks i:nth-child(1) { height: 4px; }

@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Header } from "@/components/Header";
+import { AdSlot } from "@/components/AdSlot";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toApiCategory } from "@/lib/utils";
 import { DepthBadge, StatusIcon, TypeChip, DivoBubble } from "@/components/dv";
@@ -149,7 +150,7 @@ export default function ProblemListPage() {
       />
 
       {/* 2. 메인 컨텐츠 영역 */}
-      <main className="mx-auto w-full max-w-[1500px] pt-8 grid grid-cols-1 md:grid-cols-12 gap-8 px-4 md:px-6 pb-16">
+      <main className="dv-shell dv-shell--wide pt-8 grid grid-cols-1 md:grid-cols-12 gap-8 pb-16">
 
         {/* [A] 좌측 필터: 수심·유형·카테고리 */}
         <aside className="hidden md:block col-span-2 space-y-7">
@@ -235,7 +236,7 @@ export default function ProblemListPage() {
         </aside>
 
         {/* [B] 중앙 문제 리스트 */}
-        <section className="col-span-12 md:col-span-8 space-y-6">
+        <section className="col-span-12 md:col-span-10 xl:col-span-8 space-y-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="space-y-1">
               <h1 className="text-[32px] leading-10 font-bold tracking-[-0.01em]">다이브 포인트</h1>
@@ -400,23 +401,9 @@ export default function ProblemListPage() {
           )}
         </section>
 
-        {/* [C] 우측 광고 패널 */}
-        <aside className="hidden md:block col-span-2">
-          <div className="sticky top-24 space-y-4">
-            {ads.length > 0 ? (
-              ads.map((ad) => (
-                <a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-2xl border border-line transition-colors hover:border-line-strong">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={ad.image_url} alt={ad.alt_text} className="w-full object-cover" />
-                </a>
-              ))
-            ) : (
-              <div className="border border-dashed border-line rounded-2xl h-[600px] flex flex-col items-center justify-center text-ink-subtle text-xs p-6 text-center">
-                <ShoppingBag className="mb-2 h-6 w-6 opacity-40" />
-                광고 영역
-              </div>
-            )}
-          </div>
+        {/* [C] 우측 광고 칸 — 광고가 있을 때만 그림 (1280px 이상) */}
+        <aside className="hidden xl:block xl:col-span-2">
+          <AdSlot ads={ads} />
         </aside>
 
       </main>

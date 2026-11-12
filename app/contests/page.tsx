@@ -1,11 +1,12 @@
 "use client";
+import { formatPeriod } from "@/lib/utils";
 import { logout } from "@/lib/authSession";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   Search, Settings, LogOut, User, Menu, Trophy, Calendar, Users, ShieldAlert, Award,
-  LayoutGrid, BarChart3, ShoppingBag, Bell, CheckCircle2, Plus, Flag
+  LayoutGrid, BarChart3, ShoppingBag, Bell, CheckCircle2, Plus, Flag, ChevronRight
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Header } from "@/components/Header";
+import { AdSlot } from "@/components/AdSlot";
 
 
 export default function ContestListPage() {
@@ -161,17 +163,17 @@ export default function ContestListPage() {
       />
 
       {/* 2. 메인 레이아웃 (Grid 12분할) */}
-      <main className="container mx-auto max-w-[1500px] pt-8 grid grid-cols-1 md:grid-cols-12 gap-6 px-4 pb-12">
+      <main className="dv-shell dv-shell--wide pt-8 grid grid-cols-1 md:grid-cols-12 gap-6 pb-12">
 
         {/* [A] 좌측 사이드바 (2칸) */}
-        <aside className="col-span-12 md:col-span-2 space-y-4">
-          <Card className="border-line shadow-none bg-raised/50">
+        <aside className="col-span-12 md:col-span-2 space-y-4 order-last md:order-none">
+          <Card className="gap-2 border-line shadow-none bg-raised/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold flex items-center gap-2 uppercase tracking-wider text-ink-muted">
                 <ShieldAlert className="w-4 h-4" /> 주의사항
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-[11px] leading-relaxed text-ink-muted space-y-2">
+            <CardContent className="text-xs leading-relaxed text-ink-muted space-y-2">
               <p>• 다중 계정 사용 시 영구 제재 처리됩니다.</p>
               <p>• 문제 풀이 공유는 대회 종료 후 공식 게시판에서만 가능합니다.</p>
               <p>• 시스템 공격 행위는 즉시 실격 사유입니다.</p>
@@ -180,7 +182,7 @@ export default function ContestListPage() {
         </aside>
 
         {/* [B] 중앙 콘텐츠 영역 (8칸) */}
-        <section className="col-span-12 md:col-span-8 space-y-4">
+        <section className="col-span-12 md:col-span-10 xl:col-span-8 space-y-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6">
             <div className="space-y-1">
               <p className="dv-hud text-coral">Expeditions</p>
@@ -223,7 +225,7 @@ export default function ContestListPage() {
                   href={`/contests/detail?id=${contest.contestId}`}
                   className="block group"
                 >
-                  <Card className={`overflow-hidden border-line bg-panel transition-colors shadow-none ${contest.status === "진행 중" ? "hover:border-coral/60" : "hover:border-line-strong"} ${contest.status === "종료" ? "opacity-75" : ""}`}>
+                  <Card className={`py-0 gap-0 overflow-hidden border-line bg-panel transition-colors shadow-none ${contest.status === "진행 중" ? "hover:border-coral/60" : "hover:border-line-strong"} ${contest.status === "종료" ? "opacity-75" : ""}`}>
                     <CardContent className="p-0">
                       <div className="flex flex-col md:flex-row">
                         <div className="flex-1 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -243,22 +245,22 @@ export default function ContestListPage() {
                                 </span>
                               )}
                               {contest.isHot && (
-                                <span className="inline-flex items-center h-[22px] px-2 rounded-md bg-danger-soft text-danger font-mono text-[11px] font-bold tracking-[0.08em]">HOT</span>
+                                <span className="inline-flex items-center h-[22px] px-2 rounded-md bg-danger-soft text-danger font-mono text-xs font-bold tracking-[0.08em]">HOT</span>
                               )}
                               <span className="inline-flex items-center h-[22px] px-2 rounded-md bg-raised text-ink-muted text-xs">{contest.type}</span>
                             </div>
                             <h3 className="text-xl font-bold text-ink">{contest.title}</h3>
                             <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-sm text-ink-muted font-medium">
-                              <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(contest.startTime).toLocaleString()}/{new Date(contest.endTime).toLocaleString()}</span>
+                              <span className="flex items-center gap-1.5"><Calendar size={14} /> {formatPeriod(contest.startTime, contest.endTime)}</span>
                               <span className="flex items-center gap-1.5"><Users size={14} /> {contest.participants}명 참여 중</span>
-                              <span className="flex items-center gap-1.5 text-warning"><Award size={14} /> {contest.prize}</span>
+                              {contest.prize && contest.prize !== "없음" && (
+                                <span className="flex items-center gap-1.5"><Award size={14} /> {contest.prize}</span>
+                              )}
                             </div>
                           </div>
-                          <div className="w-full md:w-auto">
-                            <Button className={`w-full md:w-32 h-10 rounded-[10px] font-semibold ${contest.status === "진행 중" ? "bg-coral text-primary-ink hover:bg-coral/85" : "bg-panel border border-line-strong text-ink hover:bg-raised"}`} disabled={contest.status === "종료"}>
-                              {contest.status === "종료" ? "원정 종료" : contest.status === "진행 중" ? "원정 합류" : "참가하기"}
-                            </Button>
-                          </div>
+                          <span className="inline-flex shrink-0 items-center gap-1 h-10 px-4 rounded-[10px] border border-line-strong text-sm font-semibold text-ink group-hover:bg-raised transition-colors">
+                            {contest.status === "종료" ? "결과 보기" : "자세히 보기"} <ChevronRight size={16} />
+                          </span>
                         </div>
                       </div>
                     </CardContent>
@@ -306,22 +308,9 @@ export default function ContestListPage() {
           )}
         </section>
 
-        {/* [C] 우측 광고 패널 (2칸) */}
-        <aside className="hidden md:block col-span-2">
-          <div className="sticky top-24 space-y-4">
-            {ads.length > 0 ? (
-              ads.map((ad) => (
-                <a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-xl border border-line shadow-sm transition-transform hover:scale-105">
-                  <img src={ad.image_url} alt={ad.alt_text} className="w-full object-cover" />
-                </a>
-              ))
-            ) : (
-              <div className="border border-line rounded-xl bg-canvas h-[600px] flex flex-col items-center justify-center text-ink-subtle text-xs font-bold p-6 text-center leading-relaxed">
-                <ShoppingBag className="mb-2 h-6 w-6 opacity-20" />
-                광고 영역입니다.
-              </div>
-            )}
-          </div>
+        {/* [C] 우측 광고 칸 — 광고가 있을 때만 그림 (1280px 이상) */}
+        <aside className="hidden xl:block xl:col-span-2">
+          <AdSlot ads={ads} />
         </aside>
 
       </main>

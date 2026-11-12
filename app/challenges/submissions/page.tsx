@@ -7,19 +7,14 @@ import { problemApi, problemToken } from "@/lib/problemApi";
 import { submissionVerdict } from "@/lib/submission-status";
 
 import { useState, useEffect, Suspense } from "react";
-import { BrandMark } from "@/components/BrandMark";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import {
-  Menu, LogOut, Bell, LayoutGrid, Trophy, Users, BarChart3, ShoppingBag,
-  ChevronLeft, CheckCircle2, XCircle, Clock, Cpu, Database, Code2, Copy, Check,
-  Search
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { ChevronLeft, CheckCircle2, XCircle, Clock, Cpu, Database, Code2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Header } from "@/components/Header";
 
 const sourceExtensions = new Map([
   ["python", "py"], ["python3", "py"],
@@ -110,75 +105,14 @@ function SubmissionDetailContent() {
 
   return (
     <div className="min-h-screen bg-canvas text-ink font-sans">
-      {/* 1. 고정 헤더 */}
-      <header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-        { /* [A] Diveon 로고 영역 */}
-        <div className="flex items-center gap-8">
-          <Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
-          <Link href="/" className="mr-4" aria-label="DiveOn 홈"><BrandMark /></Link>
+      <Header
+        isLoggedIn={isLoggedIn}
+        userImgUrl={userImgUrl}
+        activeMenu="challenge"
+        onLogout={() => { if (logout()) setIsLoggedIn(false); }}
+      />
 
-          {/* [B] 중앙 네비게이션 메뉴 영역 */}
-          <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<LayoutGrid size={18} />} label="챌린지" active />
-            <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
-            <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
-            <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
-            <NavMenuLink href="/store" icon={<ShoppingBag size={18} />} label="스토어" />
-          </nav>
-        </div>
-
-        { /* [C] 검색창 영역 */}
-        <div className="flex-1 max-w-sm px-4">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-ink-muted" />
-            <Input type="search" placeholder="검색..." className="pl-9 bg-canvas border-line rounded-full h-9 text-sm" />
-          </div>
-        </div>
-
-        { /* [D] 우측 사용자 영역 */}
-        <div className="flex items-center gap-3">
-          {isLoggedIn ? (
-            /* --- 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
-            <>
-              <button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
-              </button>
-              <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
-                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-ink-muted rounded-full">
-                    {/* 공백 상태 유지 */}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-              <button
-                onClick={() => {
-                  if (!logout()) return;
-                  setIsLoggedIn(false);
-                }}
-                className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors group"
-              >
-                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
-              </button>
-            </>
-          ) : (
-            /* --- 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
-            <div className="flex items-center gap-2">
-              <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
-              </Link>
-              <Link href="/signup">
-                <Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-      </header>
-
-      <main className="container mx-auto max-w-[1000px] pt-8 px-6 pb-24 space-y-6">
+      <main className="dv-shell pt-8 pb-24 space-y-6">
         {/* 뒤로 가기 및 요약 헤더 */}
         <div>
           <Button variant="ghost" onClick={() => router.back()} className="mb-4 -ml-4 text-ink-muted hover:text-ink hover:bg-raised">
@@ -285,18 +219,6 @@ function SubmissionDetailContent() {
   );
 }
 
-function NavMenuLink({ href, icon, label, active = false }: { href: string; icon: React.ReactNode; label: string; active?: boolean }) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active ? "text-primary bg-primary/10" : "text-ink-muted hover:text-ink hover:bg-raised/60"
-        }`}
-    >
-      <span>{icon}</span>
-      {label}
-    </Link>
-  );
-}
 
 export default function SubmissionDetailPage() {
   return (

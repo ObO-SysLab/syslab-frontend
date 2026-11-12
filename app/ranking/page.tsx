@@ -2,12 +2,10 @@
 import { logout } from "@/lib/authSession";
 
 import { useState, useEffect } from "react";
-import { BrandMark } from "@/components/BrandMark";
+import { Header } from "@/components/Header";
 import { TierBadge } from "@/components/dv";
-import Link from "next/link";
 import {
-  Search, Bell, LogOut, Menu, Trophy, Users, BarChart3, ShoppingBag,
-  Crown, Flag, ChevronLeft, ChevronRight
+  Search, BarChart3, Crown, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,12 +15,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const cacheBuster = Date.now();
+const PAGE_SIZE = 20; // GET /api/users/ranking, /api/groups/ranking 모두 페이지당 20개
 
 export default function GlobalRankingPage() {
 
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [timeFilter, setTimeFilter] = useState("all-time"); // all-time, monthly, weekly
 
   // 유저 랭킹과 그룹 랭킹 상태를 전환하는 컨트롤러 스위치
   const [rankType, setRankType] = useState<"user" | "group">("user");
@@ -212,60 +210,24 @@ export default function GlobalRankingPage() {
   return (
     <div className="min-h-screen bg-canvas text-ink font-sans">
 
-      {/* 1. 고정 헤더 */}
-      <header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
-          <Link href="/" className="mr-4" aria-label="DiveOn 홈"><BrandMark /></Link>
-          <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
-            <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
-            <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
-            <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" active />
-            <NavMenuLink href="/store" icon={<ShoppingBag size={18} />} label="스토어" />
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {isLoggedIn ? (
-            <>
-              <button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
-                <Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
-              </button>
-              <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
-                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent" />
-                </Avatar>
-              </Link>
-              <button
-                onClick={() => { if (logout()) setIsLoggedIn(false); }}
-                className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors group"
-              >
-                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
-              </button>
-            </>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/signin"><Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button></Link>
-              <Link href="/signup"><Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">Get Started</Button></Link>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header
+        isLoggedIn={isLoggedIn}
+        userImgUrl={userImgUrl}
+        activeMenu="ranking"
+        onLogout={() => { if (logout()) setIsLoggedIn(false); }}
+      />
 
       {/* 2. 메인 컨텐츠 영역 */}
-      <main className="container mx-auto max-w-[1200px] pt-10 px-4 pb-20 space-y-12">
+      <main className="dv-shell pt-10 pb-20 space-y-12">
 
         {/* 상단 타이틀 및 필터 */}
         <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-line pb-6">
           <div className="space-y-4 w-full md:w-auto">
             <div className="space-y-2">
-              <h1 className="text-4xl font-black tracking-tighter text-ink uppercase flex items-center gap-3">
-                <BarChart3 className="h-8 w-8 text-primary" /> Ranking
+              <h1 className="text-3xl font-bold tracking-[-0.02em] text-ink flex items-center gap-3">
+                <BarChart3 className="h-7 w-7 text-primary" /> 랭킹
               </h1>
-              <p className="text-ink-muted font-medium">Diveon 최고의 명예를 거머쥔 주인공들을 확인하세요.</p>
+              <p className="text-ink-muted">점수 순으로 대원과 그룹의 순위를 보여 줘요.</p>
             </div>
 
             <div className="inline-flex p-1 bg-line/70 border border-line rounded-xl">
@@ -296,11 +258,6 @@ export default function GlobalRankingPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="flex bg-panel border border-line rounded-xl p-1 shrink-0">
-              <Button variant={timeFilter === "weekly" ? "secondary" : "ghost"} size="sm" onClick={() => setTimeFilter("weekly")} className="rounded-lg h-8 text-xs font-bold">주간</Button>
-              <Button variant={timeFilter === "monthly" ? "secondary" : "ghost"} size="sm" onClick={() => setTimeFilter("monthly")} className="rounded-lg h-8 text-xs font-bold">월간</Button>
-              <Button variant={timeFilter === "all-time" ? "default" : "ghost"} size="sm" onClick={() => setTimeFilter("all-time")} className="rounded-lg h-8 text-xs font-bold bg-raised border border-line-strong text-white">전체</Button>
-            </div>
           </div>
         </div>
 
@@ -322,10 +279,10 @@ export default function GlobalRankingPage() {
                   <AvatarImage src={rankType === "group" && currentTop3[1].image ? currentTop3[1].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[1].userId : currentTop3[1].groupId}?v=${cacheBuster}`} className="object-cover" />
                   <AvatarFallback className="bg-line text-ink-muted font-bold text-lg">{currentTop3[1].avatar}</AvatarFallback>
                 </Avatar>
-                <h3 className="font-black text-base text-ink text-center px-2 line-clamp-1">{currentTop3[1].nickname}</h3>
-                <p className="text-sm font-bold text-ink-muted mt-1">{currentTop3[1].score.toLocaleString()} PTS</p>
+                <h3 className="shrink-0 font-black text-base leading-6 text-ink text-center px-2 line-clamp-1">{currentTop3[1].nickname}</h3>
+                <p className="text-sm font-bold text-ink-muted mt-1">{currentTop3[1].score.toLocaleString()}점</p>
                 {"memberCount" in currentTop3[1] && (
-                  <p className="text-[11px] text-ink-subtle font-medium">멤버 {currentTop3[1].memberCount}명</p>
+                  <p className="text-xs text-ink-subtle font-medium">멤버 {currentTop3[1].memberCount}명</p>
                 )}
               </Card>
             </div>
@@ -345,10 +302,10 @@ export default function GlobalRankingPage() {
                   <AvatarImage src={rankType === "group" && currentTop3[0].image ? currentTop3[0].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[0].userId : currentTop3[0].groupId}?v=${cacheBuster}`} className="object-cover" />
                   <AvatarFallback className="bg-warning/25 text-warning font-black text-xl">{currentTop3[0].avatar}</AvatarFallback>
                 </Avatar>
-                <h3 className="font-black text-lg text-ink text-center px-2 line-clamp-1">{currentTop3[0].nickname}</h3>
-                <p className="text-sm font-black text-warning bg-warning/15 px-3 py-0.5 rounded-full mt-1.5">{currentTop3[0].score.toLocaleString()} PTS</p>
+                <h3 className="shrink-0 font-black text-lg leading-7 text-ink text-center px-2 line-clamp-1">{currentTop3[0].nickname}</h3>
+                <p className="text-sm font-black text-warning bg-warning/15 px-3 py-0.5 rounded-full mt-1.5">{currentTop3[0].score.toLocaleString()}점</p>
                 {"memberCount" in currentTop3[0] && (
-                  <p className="text-[11px] text-ink-subtle font-medium mt-1">멤버 {currentTop3[0].memberCount}명</p>
+                  <p className="text-xs text-ink-subtle font-medium mt-1">멤버 {currentTop3[0].memberCount}명</p>
                 )}
               </Card>
             </div>
@@ -365,10 +322,10 @@ export default function GlobalRankingPage() {
                   <AvatarImage src={rankType === "group" && currentTop3[2].image ? currentTop3[2].image : `https://d3ghudecvdi62z.cloudfront.net/profiles/${rankType === "user" ? "users" : "groups"}/${rankType === "user" ? currentTop3[2].userId : currentTop3[2].groupId}?v=${cacheBuster}`} className="object-cover" />
                   <AvatarFallback className="bg-warning/15 text-warning font-bold text-base">{currentTop3[2].avatar}</AvatarFallback>
                 </Avatar>
-                <h3 className="font-black text-base text-ink text-center px-2 line-clamp-1">{currentTop3[2].nickname}</h3>
-                <p className="text-sm font-bold text-ink-muted mt-1">{currentTop3[2].score.toLocaleString()} PTS</p>
+                <h3 className="shrink-0 font-black text-base leading-6 text-ink text-center px-2 line-clamp-1">{currentTop3[2].nickname}</h3>
+                <p className="text-sm font-bold text-ink-muted mt-1">{currentTop3[2].score.toLocaleString()}점</p>
                 {"memberCount" in currentTop3[2] && (
-                  <p className="text-[11px] text-ink-subtle font-medium">멤버 {currentTop3[2].memberCount}명</p>
+                  <p className="text-xs text-ink-subtle font-medium">멤버 {currentTop3[2].memberCount}명</p>
                 )}
               </Card>
             </div>
@@ -381,19 +338,18 @@ export default function GlobalRankingPage() {
           <Table>
             <TableHeader className="bg-canvas border-b border-line">
               <TableRow>
-                <TableHead className="w-[80px] text-center font-black">순위</TableHead>
-                <TableHead className="font-black">{rankType === "user" ? "사용자" : "그룹명"}</TableHead>
-                <TableHead className="w-[120px] text-center font-black">티어</TableHead>
-                <TableHead className="w-[140px] text-right font-black">{rankType === "user" ? "해결한 문제" : "소속 멤버 수"}</TableHead>
-                <TableHead className="w-[120px] text-right font-black">총 점수</TableHead>
-                <TableHead className="w-[180px] text-right font-black pr-6">{rankType === "user" ? "최근 활동" : "연동 활성 상태"}</TableHead>
+                <TableHead className="w-[80px] text-center font-bold">순위</TableHead>
+                <TableHead className="font-bold">{rankType === "user" ? "대원" : "그룹"}</TableHead>
+                <TableHead className="w-[140px] text-center font-bold">티어</TableHead>
+                {rankType === "group" && <TableHead className="w-[140px] text-right font-bold">소속 멤버</TableHead>}
+                <TableHead className="w-[140px] text-right font-bold pr-6">총 점수</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-ink-subtle text-sm font-bold animate-pulse">
-                    랭킹 데이터 파이프라인 동기화 중...
+                  <TableCell colSpan={rankType === "group" ? 5 : 4} className="text-center py-12 text-ink-subtle text-sm font-medium animate-pulse">
+                    순위를 불러오는 중…
                   </TableCell>
                 </TableRow>
               ) : currentRankings
@@ -402,9 +358,6 @@ export default function GlobalRankingPage() {
                   const displayName = rankType === "user" ? item.nickname : item.title;
                   const displayId = rankType === "user" ? item.userId : item.groupId;
                   const displayTier = rankType === "user" ? item.tier : calculateGroupTier(item.score);
-                  const subCount = rankType === "user"
-                    ? `${(item.score || 0).toLocaleString()} PTS`
-                    : `${(item.memberCount || 0).toLocaleString()}명`;
 
                   return (
                     <TableRow key={`table-row-${rankType}-${displayId}`} className="hover:bg-raised/50 transition-colors group">
@@ -425,14 +378,13 @@ export default function GlobalRankingPage() {
                       <TableCell className="text-center">
                         <TierBadge tier={displayTier} size="sm" showRank={false} />
                       </TableCell>
-                      <TableCell className="text-right font-medium text-ink-muted">
-                        {subCount}
-                      </TableCell>
-                      <TableCell className="text-right font-black text-ink">
-                        {item.score.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right text-xs text-ink-subtle font-medium pr-6">
-                        {rankType === "user" ? item.recentActivity : "LIVE"}
+                      {rankType === "group" && (
+                        <TableCell className="text-right font-medium text-ink-muted">
+                          {(item.memberCount || 0).toLocaleString()}명
+                        </TableCell>
+                      )}
+                      <TableCell className="text-right font-mono font-semibold text-ink pr-6">
+                        {(item.score || 0).toLocaleString()}
                       </TableCell>
                     </TableRow>
                   );
@@ -443,10 +395,9 @@ export default function GlobalRankingPage() {
           {/* 하단 페이지네이션 디바이스 */}
           <div className="p-4 border-t border-line flex items-center justify-between bg-raised/50">
             <p className="text-xs text-ink-muted font-medium ml-2">
-              {rankType === "user"
-                ? `전체 ${totalElements}명 중 ${(currentPage - 1) * 10 + 1}-${Math.min(currentPage * 10, totalElements)}위 표시`
-                : `전체 ${totalElements}개 그룹 중 1-${totalElements}위 표시`
-              }
+              {totalElements > 0
+                ? `전체 ${totalElements.toLocaleString()}${rankType === "user" ? "명" : "개 그룹"} 중 ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, totalElements)}위`
+                : ""}
             </p>
             <div className="flex gap-1">
               <Button
@@ -460,7 +411,7 @@ export default function GlobalRankingPage() {
               <Button variant="outline" size="sm" className="h-8 w-8 rounded-lg bg-raised text-white border-line">{currentPage}</Button>
               <Button
                 variant="outline" size="icon"
-                disabled={currentPage * (rankType === "user" ? 10 : 20) >= totalElements}
+                disabled={currentPage * PAGE_SIZE >= totalElements}
                 onClick={() => rankType === "user" ? setUserPage(prev => prev + 1) : setGroupPage(prev => prev + 1)}
                 className="h-8 w-8 rounded-lg"
               >
@@ -472,19 +423,5 @@ export default function GlobalRankingPage() {
 
       </main>
     </div>
-  );
-}
-
-// 보조 컴포넌트: 네비게이션 링크
-function NavMenuLink({ href, icon, label, active = false }: { href: string; icon: React.ReactNode; label: string; active?: boolean }) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active ? "text-primary bg-primary/10" : "text-ink-muted hover:text-ink hover:bg-raised/60"
-        }`}
-    >
-      <span>{icon}</span>
-      {label}
-    </Link>
   );
 }
