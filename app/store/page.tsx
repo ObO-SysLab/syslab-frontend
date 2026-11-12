@@ -2,19 +2,12 @@
 import { logout } from "@/lib/authSession";
 
 import { useState, useEffect } from "react";
-import { BrandMark } from "@/components/BrandMark";
-import Link from "next/link";
-import {
-  Search, Bell, LogOut, Menu, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag,
-  Coins, Sparkles, UserCircle2, Palette, ShieldCheck, Tag, ShoppingCart, Flag,
-  Check, Info, Filter, ArrowUpRight
-} from "lucide-react";
+import { Search, Coins, Sparkles, UserCircle2, Palette, ShieldCheck, Tag, ShoppingCart, Check, Info, Filter, ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Header } from "@/components/Header";
 
 // --- [Mock Data] 스토어 아이템 목록 ---
 const STORE_ITEMS = [
@@ -33,11 +27,11 @@ const STORE_ITEMS = [
   { id: 5, category: "theme", name: "오션 드라이브", desc: "시원한 파란색 포인트 테마", price: 3000, rarity: "Rare", icon: <Palette className="w-10 h-10 text-primary" /> },
   { id: 6, category: "avatar", name: "어셈블리 장인", desc: "로우레벨 느낌이 물씬 풍기는 아바타", price: 4500, rarity: "Rare", icon: <UserCircle2 className="w-10 h-10 text-warning" /> },
   { id: 7, category: "title", name: "Root Access", desc: "모든 권한을 가진 자의 칭호", price: 10000, rarity: "Legendary", icon: <Tag className="w-10 h-10 text-danger" /> },
-  { id: 8, category: "avatar", name: "기본 요원", desc: "Diveon의 기본 제공 아바타", price: 0, rarity: "Common", icon: <UserCircle2 className="w-10 h-10 text-ink-subtle" /> },
+  { id: 8, category: "avatar", name: "기본 요원", desc: "DiveOn의 기본 제공 아바타", price: 0, rarity: "Common", icon: <UserCircle2 className="w-10 h-10 text-ink-subtle" /> },
 ];
 
 export default function StorePage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userPoints, setUserPoints] = useState(12500); // 사용자 보유 포인트
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -114,60 +108,22 @@ export default function StorePage() {
   return (
     <div className="min-h-screen bg-canvas text-ink font-sans">
 
-      {/* 1. 고정 헤더 */}
-      <header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
-          <Link href="/" className="mr-4" aria-label="DiveOn 홈"><BrandMark /></Link>
-          <nav className="hidden lg:flex items-center gap-1">
-            <NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
-            <NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
-            <NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
-            <NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
-            <NavMenuLink href="/store" icon={<ShoppingBag size={18} />} label="스토어" active />
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {isLoggedIn ? (
-            <>
-              {/* 포인트 표시 영역 */}
-              <div className="hidden md:flex items-center gap-2 bg-primary/10 px-4 py-1.5 rounded-full border border-primary/20">
-                <Coins className="w-4 h-4 text-primary" />
-                <span className="text-sm font-black text-primary">{userPoints.toLocaleString()} P</span>
-              </div>
-              <button className="p-2 hover:bg-raised rounded-full relative group">
-                <Bell className="h-5 w-5 text-ink-muted" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
-              </button>
-              <Link href="/settings">
-                <Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
-                  <AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-                  <AvatarFallback className="bg-transparent text-xs font-bold text-ink-muted rounded-full">
-                    {/* 공백 상태 유지 */}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-              <button onClick={() => { if (logout()) setIsLoggedIn(false); }} className="p-2 hover:bg-danger/10 rounded-full text-danger"><LogOut className="h-5 w-5" /></button>
-            </>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/signin"><Button variant="ghost" className="text-sm font-bold">Sign In</Button></Link>
-              <Link href="/signup"><Button className="bg-raised border border-line-strong text-white rounded-full px-5">Get Started</Button></Link>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header
+        isLoggedIn={isLoggedIn}
+        userImgUrl={userImgUrl}
+        activeMenu="store"
+        onLogout={() => { if (logout()) setIsLoggedIn(false); }}
+      />
 
       {/* 2. 메인 스토어 컨텐츠 */}
-      <main className="container mx-auto max-w-[1200px] pt-10 px-4 pb-20 space-y-10">
+      <main className="dv-shell pt-10 pb-20 space-y-10">
 
         {/* 상단 배너 영역 */}
         <section className="relative w-full h-48 rounded-[2.5rem] overflow-hidden bg-raised border border-line-strong text-ink shadow-2xl flex items-center px-12">
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
           <div className="relative z-10 space-y-2">
             <Badge className="bg-primary hover:bg-primary text-primary-ink border-none px-3">SEASON SPECIAL</Badge>
-            <h2 className="text-3xl font-black text-white tracking-tight italic">Diveon Premium Store</h2>
+            <h1 className="text-3xl font-bold text-ink tracking-[-0.02em]">스토어</h1>
             <p className="text-ink-subtle text-sm font-medium">문제를 풀고 얻은 포인트로 당신의 능력을 시각화하세요.</p>
           </div>
           <Sparkles className="absolute right-12 w-24 h-24 text-primary/20" />
@@ -203,7 +159,7 @@ export default function StorePage() {
                 <div className="p-6 bg-panel rounded-[1.5rem] shadow-sm group-hover:scale-110 transition-transform duration-500">
                   {item.icon}
                 </div>
-                <Badge className={`mt-6 rounded-full px-3 py-0.5 text-[10px] font-black uppercase tracking-tighter ${getRarityColor(item.rarity)}`}>
+                <Badge className={`mt-6 rounded-full px-3 py-0.5 text-xs font-black uppercase tracking-tighter ${getRarityColor(item.rarity)}`}>
                   {item.rarity}
                 </Badge>
               </CardHeader>
@@ -265,19 +221,6 @@ export default function StorePage() {
   );
 }
 
-// 보조 컴포넌트: 네비게이션 링크
-function NavMenuLink({ href, icon, label, active = false }: { href: string; icon: React.ReactNode; label: string; active?: boolean }) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active ? "text-primary bg-primary/10" : "text-ink-muted hover:text-ink hover:bg-raised/60"
-        }`}
-    >
-      <span>{icon}</span>
-      {label}
-    </Link>
-  );
-}
 
 // 아이콘: 검색 결과 없음용
 function SearchCode({ className }: { className?: string }) {

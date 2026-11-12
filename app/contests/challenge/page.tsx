@@ -6,17 +6,11 @@ import { ChoiceList } from "@/components/problem/ChoiceList";
 import { SampleCases } from "@/components/problem/SampleCases";
 
 import Link from "next/link";
-import { BrandMark } from "@/components/BrandMark";
 import { submissionVerdict } from "@/lib/submission-status";
 import { watchContestBoard, contestCodingLinks, type ContestSubmission } from "@/lib/contest-submissions";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import {
-	Search, Settings, LogOut, User, Menu, MessageSquare, Bell, Share2,
-	CheckCircle2, XCircle, Clock, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag, Trash2,
-	ChevronLeft, MessageCircle, Edit2, Flame, Zap, Flag
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Settings, User, MessageSquare, Share2, CheckCircle2, XCircle, Clock, Trash2, ChevronLeft, MessageCircle, Edit2, Flame, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +18,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Header } from "@/components/Header";
+import { AdSlot } from "@/components/AdSlot";
 
 
 function ProblemDetailContent() {
@@ -236,78 +231,18 @@ function ProblemDetailContent() {
 	return (
 		<div className="min-h-screen bg-panel text-ink font-sans">
 
-			{/* 1. 고정 헤더 (기존 디자인 유지) */}
-			<header className="sticky top-0 z-50 w-full border-b bg-panel/95 backdrop-blur px-6 h-16 flex items-center justify-between">
-				{ /* [A] Diveon 로고 영역 */}
-				<div className="flex items-center gap-8"> {/* gap을 넓혀서 메뉴 공간 확보 */}
-					<Menu className="h-6 w-6 text-ink-muted cursor-pointer lg:hidden" />
-					<Link href="/" className="mr-4" aria-label="DiveOn 홈"><BrandMark /></Link>
-
-					{/* [B] 중앙 네비게이션 메뉴 영역 */}
-					<nav className="hidden lg:flex items-center gap-1">
-						<NavMenuLink href="/challenges" icon={<Flag size={18} />} label="챌린지" />
-						<NavMenuLink href="/contests" icon={<Trophy size={18} />} label="대회" />
-						<NavMenuLink href="/groups" icon={<Users size={18} />} label="그룹" />
-						<NavMenuLink href="/ranking" icon={<BarChart3 size={18} />} label="랭킹" />
-						<NavMenuLink href="/store" icon={<ShoppingBag size={18} />} label="스토어" />
-					</nav>
-				</div>
-
-				{/* [C] 검색창 영역 */}
-				<div className="flex-1 max-w-sm px-4">
-					<div className="relative">
-						<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-ink-muted" />
-						<Input type="search" placeholder="검색..." className="pl-9 bg-canvas border-line rounded-full h-9 text-sm" />
-					</div>
-				</div>
-
-				{/* [D] 우측 사용자 영역 (로그인 상태에 따라 가변적) */}
-				<div className="flex items-center gap-3">
-					{isLoggedIn ? (
-						/* --- 로그인된 상태: 알림 + 프로필(동글) + 로그아웃 --- */
-						<>
-							<button className="p-2 hover:bg-raised rounded-full transition-colors relative group">
-								<Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
-								<span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-panel"></span>
-							</button>
-
-							<Link href="/settings">
-								<Avatar className="h-9 w-9 border border-line hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer">
-									<AvatarImage src={userImgUrl} alt="User Profile" className="object-cover" />
-									<AvatarFallback className="bg-transparent text-xs font-bold text-ink-muted rounded-full">
-										{/* 공백 상태 유지 */}
-									</AvatarFallback>
-								</Avatar>
-							</Link>
-
-							<button
-								onClick={() => { if (logout()) setIsLoggedIn(false); }}
-								className="p-2 hover:bg-danger/10 rounded-full text-danger transition-colors group"
-							>
-								<LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
-							</button>
-						</>
-					) : (
-						/* --- 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
-						<div className="flex items-center gap-2">
-							<Link href="/signin">
-								<Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
-							</Link>
-							<Link href="/signup">
-								<Button className="bg-raised border border-line-strong text-white text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
-									Get Started
-								</Button>
-							</Link>
-						</div>
-					)}
-				</div>
-			</header>
+			<Header
+				isLoggedIn={isLoggedIn}
+				userImgUrl={userImgUrl}
+				activeMenu="contest"
+				onLogout={() => { if (logout()) setIsLoggedIn(false); }}
+			/>
 
 			{/* 2. 메인 레이아웃 (Grid 12분할) */}
-			<main className="container mx-auto max-w-[1600px] pt-6 grid grid-cols-1 md:grid-cols-12 gap-6 px-4 pb-12">
+			<main className="dv-shell dv-shell--wide pt-6 grid grid-cols-1 md:grid-cols-12 gap-6 pb-12">
 
 				{/* [A] 좌측 정보 패널 (2칸) */}
-				<aside className="col-span-12 md:col-span-2 space-y-4">
+				<aside className="col-span-12 md:col-span-2 space-y-4 order-last md:order-none">
 					<Button
 						variant="outline"
 						className="w-full justify-start border-line text-ink-muted hover:bg-raised/60 font-bold h-11 rounded-xl"
@@ -341,7 +276,7 @@ function ProblemDetailContent() {
 											{firstBlood.user}
 										</span>
 									</div>
-									<span className="text-[11px] text-ink-subtle font-medium tracking-tight">
+									<span className="text-xs text-ink-subtle font-medium tracking-tight">
 										{new Date(firstBlood.date).toLocaleDateString()}
 									</span>
 								</div>
@@ -365,7 +300,7 @@ function ProblemDetailContent() {
 				</aside>
 
 				{/* [B] 중앙 콘텐츠 영역 (6칸) */}
-				<section className="col-span-12 md:col-span-8 space-y-6">
+				<section className="col-span-12 md:col-span-10 xl:col-span-8 space-y-6">
 
 					{/* 탭 컨트롤러 */}
 					<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -462,7 +397,7 @@ function ProblemDetailContent() {
 									{/* 허용된 명령어 목록 (안전하게 배열 체크) */}
 									{Array.isArray(problemData?.vm_info?.allowed_commands) && problemData.vm_info.allowed_commands.length > 0 && (
 										<div className="bg-deep border border-line p-4 rounded-xl">
-											<span className="text-[10px] font-bold text-ink-muted mb-2 block uppercase tracking-widest">
+											<span className="text-xs font-bold text-ink-muted mb-2 block uppercase tracking-widest">
 												Allowed Commands
 											</span>
 											<div className="flex flex-wrap gap-2">
@@ -625,39 +560,15 @@ function ProblemDetailContent() {
 					</Tabs>
 				</section>
 
-				{/* [C] 우측 광고 패널 (2칸) */}
-				<aside className="col-span-12 md:col-span-2">
-					<div className="sticky top-24 space-y-4">
-						{ads.length > 0 ? (
-							ads.map((ad) => (
-								<a key={ad.ad_id} href={ad.link_url} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-xl border border-line shadow-sm transition-transform hover:scale-105">
-									<img src={ad.image_url} alt={ad.alt_text} className="w-full object-cover" />
-								</a>
-							))
-						) : (
-							<div className="border border-line rounded-xl bg-canvas h-[500px] flex flex-col items-center justify-center text-ink-subtle text-sm font-medium">
-								AD Area
-							</div>
-						)}
-					</div>
+				{/* [C] 우측 광고 칸 — 광고가 있을 때만 그림 (1280px 이상) */}
+				<aside className="hidden xl:block xl:col-span-2">
+					<AdSlot ads={ads} />
 				</aside>
 			</main>
 		</div>
 	);
 }
 
-// 2. 헤더 메뉴 전용 보조 컴포넌트
-function NavMenuLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
-	return (
-		<Link
-			href={href}
-			className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-ink-muted hover:text-ink hover:bg-raised/60 transition-all active:scale-95"
-		>
-			<span className="text-ink-subtle group-hover:text-ink">{icon}</span>
-			{label}
-		</Link>
-	);
-}
 
 export default function ProblemDetailPage() {
 	return (

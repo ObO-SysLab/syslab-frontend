@@ -7,11 +7,11 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Users, Settings, Menu, Trophy, Flag, Clock, AlertTriangle, Terminal, BarChart3, MessageSquare,
-  CheckCircle2, PlusCircle, Bell, X, ChevronRight, Edit2, Trash2, Search, Crown
+  CheckCircle2, PlusCircle, Bell, X, ChevronRight, ChevronLeft, Edit2, Trash2, Search, Crown, Calendar
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toApiLocalDateTime } from "@/lib/utils";
+import { toApiLocalDateTime, formatPeriod } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -601,32 +601,33 @@ function ContestDetailPage() {
     <div className="min-h-screen bg-canvas text-ink font-sans">
 
       {/* 1. 대회 전용 헤더 (고정) */}
-      <header className="sticky top-0 z-50 w-full border-b bg-deep px-6 h-16 flex items-center justify-between text-white">
-        <div className="flex items-center gap-4">
-          <Link href="/contests" className="p-2 hover:bg-line rounded-lg transition-colors">
-            <Menu className="h-5 w-5" />
+      <header className="sticky top-0 z-50 w-full border-b border-line bg-canvas/80 backdrop-blur-md px-4 sm:px-6 h-16 flex items-center justify-between gap-4 text-ink">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link href="/contests" className="-ml-2 p-2 hover:bg-raised rounded-lg transition-colors text-ink-muted hover:text-ink" aria-label="대회 목록으로">
+            <ChevronLeft className="h-5 w-5" />
           </Link>
-          <div className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-warning" />
-            <span className="font-bold tracking-tight">{contestInfo.title}</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <Trophy className="h-5 w-5 text-coral shrink-0" />
+            <span className="font-bold tracking-tight truncate">{contestInfo.title}</span>
           </div>
         </div>
 
         {/* 중앙 타이머 */}
         {/* 남은 시간 = 산소(O₂) 게이지 */}
         <div className="hidden md:block w-64">
-          <OxygenGauge percent={o2Percent} value={timeLeft} label="O₂ · 남은 시간" />
+          <OxygenGauge percent={o2Percent} value={timeLeft} />
         </div>
 
         {/* 알림 버튼 */}
         <div className="relative">
           <button
             onClick={() => setShowNotiModal(!showNotiModal)}
-            className="p-2 hover:bg-line rounded-full transition-colors relative group"
+            className="p-2 hover:bg-raised rounded-full transition-colors relative group"
+            aria-label="대회 알림"
           >
-            <Bell className="h-5 w-5 text-ink-subtle group-hover:text-white" />
+            <Bell className="h-5 w-5 text-ink-muted group-hover:text-ink" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-danger text-primary-ink text-[9px] font-bold flex items-center justify-center rounded-full border-2 border-line">
+              <span className="absolute top-1 right-1 w-4 h-4 bg-danger text-primary-ink text-xs font-bold flex items-center justify-center rounded-full border-2 border-line">
                 {unreadCount}
               </span>
             )}
@@ -657,7 +658,7 @@ function ContestDetailPage() {
       </header>
 
       {/* 2. 메인 레이아웃 */}
-      <main className="container mx-auto max-w-[1500px] pt-6 grid grid-cols-1 md:grid-cols-12 gap-6 px-4 pb-12">
+      <main className="dv-shell dv-shell--wide pt-6 grid grid-cols-1 md:grid-cols-12 gap-6 pb-12">
 
         {/* [A] 좌측 사이드바 내비게이션 (2칸) */}
         <aside className="col-span-12 md:col-span-2 space-y-2">
@@ -713,7 +714,7 @@ function ContestDetailPage() {
           <div className="p-4 bg-panel rounded-xl border border-line shadow-sm mt-6">
             <p className="text-xs font-bold text-ink-subtle mb-2 uppercase">진행률</p>
             <Progress value={contestInfo.progress} className="h-2 mb-2" />
-            <p className="text-[10px] text-right text-ink-muted font-mono">{contestInfo.progress}% 진행됨</p>
+            <p className="text-xs text-right text-ink-muted font-mono">{contestInfo.progress}% 진행됨</p>
           </div>
         </aside>
 
@@ -727,6 +728,7 @@ function ContestDetailPage() {
               handleEnterContest={handleEnterContest}
               handleCancelContest={handleCancelContest}
               challengeCount={allChallenges.length}
+              onOpenChallenges={() => setActiveTab("challenges")}
             />
           )}
           {activeTab === "dashboard" && (
@@ -805,7 +807,7 @@ function ContestDetailPage() {
                       <TableRow key={i}>
                         <TableCell className="font-mono text-xs text-ink-muted pl-6">P-10{i}</TableCell>
                         <TableCell className="font-bold text-ink">커널 동작 기초 {i}</TableCell>
-                        <TableCell><Badge variant="outline" className="text-[10px]">Kernel</Badge></TableCell>
+                        <TableCell><Badge variant="outline" className="text-xs">Kernel</Badge></TableCell>
                         <TableCell className="text-right pr-6">
                           <Button
                             size="sm"
@@ -832,28 +834,35 @@ function ContestDetailPage() {
 /* -------------------------------------------------------------------------- */
 /* 1. 포스터 탭 */
 /* -------------------------------------------------------------------------- */
-function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, handleCancelContest, challengeCount }: any) {
+function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, handleCancelContest, challengeCount, onOpenChallenges }: any) {
+  const confirmCancel = () => {
+    if (confirm("정말 대회 참가를 취소하시겠습니까?")) handleCancelContest();
+  };
+  const cancelButton = (
+    <Button variant="ghost" className="h-9 px-3 text-sm font-medium text-ink-muted hover:text-danger hover:bg-danger-soft" onClick={confirmCancel}>
+      참가 취소
+    </Button>
+  );
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl mx-auto">
       {/* 타이틀 및 헤더 영역 */}
-      <div className="text-center space-y-4 py-10 bg-deep rounded-3xl text-white relative overflow-hidden">
-        <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-primary/30 blur-3xl rounded-full"></div>
+      <div className="text-center space-y-4 py-10 px-6 bg-panel border border-line rounded-3xl text-ink relative overflow-hidden">
+        <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-primary/15 blur-3xl rounded-full" aria-hidden="true"></div>
         {/* <Badge className="bg-primary hover:bg-primary-hover mb-2">제 1회 공식 해커톤</Badge> */}
-        <h1 className="text-4xl font-black tracking-tight">{contestInfo.title}</h1>
-        <p className="text-ink-subtle font-medium">주최: -</p>
+        <h1 className="relative text-3xl md:text-4xl font-bold tracking-[-0.02em]">{contestInfo.title}</h1>
 
-        <div className="flex justify-center gap-4 pt-6">
-          <div className="bg-raised/50 p-4 rounded-xl border border-line backdrop-blur text-left">
-            <p className="text-xs text-ink-subtle mb-1">대회 기간</p>
-            <p className="font-bold">{new Date(contestInfo.startTime).toLocaleString()} ~ {new Date(contestInfo.endTime).toLocaleString()}</p>
+        <div className="relative flex flex-wrap justify-center gap-3 pt-4">
+          <div className="bg-canvas/60 p-4 rounded-xl border border-line text-left">
+            <p className="text-xs text-ink-subtle mb-1 flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> 대회 기간</p>
+            <p className="font-semibold">{formatPeriod(contestInfo.startTime, contestInfo.endTime)}</p>
           </div>
-          <div className="bg-raised/50 p-4 rounded-xl border border-line backdrop-blur text-left">
+          <div className="bg-canvas/60 p-4 rounded-xl border border-line text-left">
             <p className="text-xs text-ink-subtle mb-1">현재 상태</p>
             <p className="font-bold flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-success animate-pulse"></span> {contestInfo.status}</p>
           </div>
         </div>
 
-        <div className="mt-8 flex justify-center">
+        <div className="relative mt-6 flex flex-col items-center gap-2">
           {isContestHost ? (
             <div className="bg-raised text-ink-subtle font-bold px-10 py-4 rounded-xl border border-line shadow-inner flex items-center justify-center gap-2">
               <Crown className="w-4 h-4 text-warning mx-auto" /> 이 대회의 운영진 계정으로 접속 중입니다.
@@ -864,28 +873,35 @@ function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, h
               <div className="bg-raised text-ink-subtle font-bold px-8 py-3 rounded-xl border border-line">
                 대회가 종료되었습니다 (참가 완료)
               </div>
+            ) : contestInfo.status === "진행 중" ? (
+              /* 진행 중: 주 동작은 문제 풀기, 취소는 작게 아래 */
+              <>
+                <button type="button" onClick={onOpenChallenges} className="dv-btn-dive">
+                  문제 풀러 가기 <ChevronRight size={18} />
+                </button>
+                {cancelButton}
+              </>
             ) : (
-              <Button
-                variant="default"
-                className="bg-danger hover:bg-danger/85 text-primary-ink px-10 py-6 h-auto shadow-lg shadow-black/40 font-black tracking-tight rounded-xl transition-all active:scale-95 duration-150"
-                onClick={() => {
-                  if (confirm("정말 대회 참가를 취소하시겠습니까?")) handleCancelContest();
-                }}
-              >
-                대회 참가 취소
-              </Button>
+              /* 접수 중: 신청 완료 표시 + 취소 */
+              <>
+                <div className="inline-flex items-center gap-2 bg-success-soft text-success font-semibold px-5 h-12 rounded-full">
+                  <CheckCircle2 className="h-4 w-4" /> 참가 신청 완료
+                </div>
+                {cancelButton}
+              </>
             )
           ) : (
             /* 미가입 유저 상태 분기 */
             contestInfo.status === "접수 중" ? (
-              <Button
-                className="bg-primary hover:bg-primary-hover text-primary-ink font-black text-lg px-10 py-6 h-auto shadow-lg shadow-black/40 transition-all active:scale-95 duration-150"
+              <button
+                type="button"
+                className="dv-btn-dive"
                 onClick={() => {
                   if (confirm("대회에 참가하시겠습니까?")) handleEnterContest();
                 }}
               >
-                지금 참가하기
-              </Button>
+                지금 참가하기 <ChevronRight size={18} />
+              </button>
             ) : contestInfo.status === "진행 중" ? (
               <div className="bg-warning/10 border border-warning/30 text-warning font-bold px-8 py-3 rounded-xl">
                 대회가 진행 중입니다 (신규 참가 접수 마감)
@@ -904,13 +920,13 @@ function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, h
         <Card>
           <CardContent className="p-6 text-center space-y-1">
             <p className="text-ink-muted text-sm font-bold">참여자 수</p>
-            <p className="text-3xl font-black text-primary">{contestInfo.totalUser}<span className="text-sm text-ink-subtle ml-1">명</span></p>
+            <p className="text-3xl font-bold font-mono text-ink">{contestInfo.totalUser}<span className="text-sm font-sans text-ink-subtle ml-1">명</span></p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6 text-center space-y-1">
             <p className="text-ink-muted text-sm font-bold">출제된 문제</p>
-            <p className="text-3xl font-black text-ink">{challengeCount}<span className="text-sm text-ink-subtle ml-1">문제</span></p>
+            <p className="text-3xl font-bold font-mono text-ink">{challengeCount}<span className="text-sm font-sans text-ink-subtle ml-1">문제</span></p>
           </CardContent>
         </Card>
       </div>
@@ -1016,7 +1032,7 @@ function DashboardTab({ contestInfo, notices = [], allChallenges = [], fullRanki
         <Card className="border-line hover:border-line-strong hover:shadow-md transition-all cursor-pointer overflow-hidden" onClick={() => setActiveTab("scoreboard")}>
           <CardHeader className="pb-2 border-b bg-raised/50 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-bold">TOP 5 스코어보드</CardTitle>
-            <span className="text-[11px] text-primary font-bold hover:underline">전체보기</span>
+            <span className="text-xs text-primary font-bold hover:underline">전체보기</span>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -1028,7 +1044,7 @@ function DashboardTab({ contestInfo, notices = [], allChallenges = [], fullRanki
                     <TableRow key={user.userId || index} className={user.isMe ? "bg-primary/6" : ""}>
                       <TableCell className="py-3 font-bold text-ink-subtle w-12 text-center">{index + 1}</TableCell>
                       <TableCell className="py-3 font-medium text-sm">
-                        {user.nickname} {user.isMe && <Badge className="ml-1 text-[9px] bg-primary/15 text-primary">ME</Badge>}
+                        {user.nickname} {user.isMe && <Badge className="ml-1 text-xs bg-primary/15 text-primary">ME</Badge>}
                       </TableCell>
                       <TableCell className="py-3 text-right pr-4 font-mono font-bold text-primary">
                         {user.score?.toLocaleString()}
@@ -1048,11 +1064,11 @@ function DashboardTab({ contestInfo, notices = [], allChallenges = [], fullRanki
           <div className="flex justify-between items-end relative z-10">
             <div>
               <p className="text-3xl font-black">{contestInfo?.userContext?.myScore?.toLocaleString() || 0}</p>
-              <p className="text-[10px] text-ink-subtle font-bold uppercase">Points</p>
+              <p className="text-xs text-ink-subtle font-bold uppercase">Points</p>
             </div>
             <div className="text-right text-primary font-bold">
               <p className="text-xl">#{contestInfo?.userContext?.myRank || "-"} / {contestInfo?.totalUser || 0}</p>
-              <p className="text-[10px] text-ink-subtle uppercase">Rank</p>
+              <p className="text-xs text-ink-subtle uppercase">Rank</p>
             </div>
           </div>
           {/* 내 풀이기록 버튼 클릭 시 스코어보드 탭으로 워프하도록 핸들링 변경 */}
@@ -1154,7 +1170,7 @@ function ChallengesTab({ allChallenges, contestId, isContestHost, setShowAddChal
                     {badgeUI}
 
                     <div className="flex justify-between items-start mt-1 mb-3">
-                      <Badge variant="secondary" className="text-[10px]">{ch.category}</Badge>
+                      <Badge variant="secondary" className="text-xs">{ch.category}</Badge>
                       {ch.isSolved && <CheckCircle2 className="w-5 h-5 text-success" />}
                     </div>
 
@@ -1169,7 +1185,7 @@ function ChallengesTab({ allChallenges, contestId, isContestHost, setShowAddChal
                     </div>
 
                     <div className="space-y-1 mt-4 border-t border-line/50 pt-3">
-                      <div className="flex justify-between text-[10px] font-bold text-ink-subtle">
+                      <div className="flex justify-between text-xs font-bold text-ink-subtle">
                         <span>해결자</span>
                         <span>{ch.solvedCount}명 · 제출 {ch.submittedCount ?? 0}회</span>
                       </div>
@@ -1517,7 +1533,7 @@ function QATab({
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-bold text-ink">{ans.author || "운영진"}</span>
-                              <span className="text-[10px] text-ink-subtle">{new Date(ans.createdAt).toLocaleString()}</span>
+                              <span className="text-xs text-ink-subtle">{new Date(ans.createdAt).toLocaleString()}</span>
                             </div>
                             <p className="text-sm text-ink-muted whitespace-pre-wrap">{ans.content || ans.answer}</p>
                           </div>
@@ -1717,7 +1733,7 @@ function NoticeManageTab({
                     <div className="space-y-2 flex-1">
                       <div>
                         <p className="font-bold text-base text-ink mb-0.5">{n.title}</p>
-                        <p className="text-[10px] text-ink-subtle font-medium">{new Date(n.createdAt).toLocaleString()}</p>
+                        <p className="text-xs text-ink-subtle font-medium">{new Date(n.createdAt).toLocaleString()}</p>
                       </div>
                       <p className="text-sm text-ink-muted whitespace-pre-wrap leading-relaxed bg-raised/50 p-3 rounded-lg border border-line/70">
                         {n.content}
@@ -1892,13 +1908,13 @@ function ChallengeMiniCard({ id, title, points, solved, category }: any) {
     <Card className="hover:border-primary transition-colors cursor-pointer group">
       <CardContent className="p-5 flex justify-between items-center">
         <div className="space-y-1">
-          <Badge variant="outline" className="text-[10px]">{category}</Badge>
+          <Badge variant="outline" className="text-xs">{category}</Badge>
           <h4 className="font-bold text-ink group-hover:text-primary transition-colors">{title}</h4>
           <p className="text-xs text-ink-subtle">{solved}명 해결</p>
         </div>
         <div className="text-right">
           <p className="text-xl font-black text-ink">{points}</p>
-          <p className="text-[10px] text-ink-subtle font-bold uppercase tracking-widest">Points</p>
+          <p className="text-xs text-ink-subtle font-bold uppercase tracking-widest">Points</p>
         </div>
       </CardContent>
     </Card>

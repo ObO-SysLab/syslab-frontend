@@ -23,7 +23,7 @@ export function ChoiceList({ choices, selected = [], ordered = false, onToggle }
           ? 'border-primary bg-primary/10 shadow-sm'
           : `border-line bg-canvas ${onToggle ? 'hover:border-line-strong hover:bg-raised' : ''}`}`;
         const body = <>
-          <span className={`w-5 h-5 shrink-0 rounded-full border flex items-center justify-center text-[10px] font-black transition-all ${isSelected
+          <span className={`w-5 h-5 shrink-0 rounded-full border flex items-center justify-center text-xs font-black transition-all ${isSelected
             ? 'bg-primary text-primary-ink border-primary shadow-inner'
             : 'border-line-strong bg-panel text-ink-subtle'}`}>
             {isSelected && ordered ? order + 1 : choice.index}

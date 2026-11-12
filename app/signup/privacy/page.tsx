@@ -48,7 +48,7 @@ export default function PrivacyPage() {
           <CardContent className="p-10 space-y-8 text-ink-muted leading-relaxed text-sm max-h-[65vh] overflow-y-auto hide-scrollbar">
             
             <p>
-              <strong>Diveon</strong>(이하 "플랫폼")은 관련 법령에 따라 이용자의 개인정보를 보호하고, 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보 처리방침을 수립·공개합니다.
+              <strong>DiveOn</strong>(이하 "플랫폼")은 관련 법령에 따라 이용자의 개인정보를 보호하고, 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보 처리방침을 수립·공개합니다.
             </p>
 
             {/* 제 1 조 */}
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
               <h3 className="text-base font-black text-ink">5. 개인정보 보호책임자 안내</h3>
               <p>
                 플랫폼은 개인정보 처리에 관한 업무를 총괄해서 책임지고, 이용자의 불만처리 및 피해구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.<br />
-                - <strong>담당 부서 / 성명:</strong> Diveon 운영본부 개인정보 보호관<br />
+                - <strong>담당 부서 / 성명:</strong> DiveOn 운영본부 개인정보 보호관<br />
                 - <strong>문의 채널:</strong> 플랫폼 내 질의응답 보드 및 고객 지원 이메일
               </p>
             </section>
