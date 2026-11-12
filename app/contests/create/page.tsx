@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Trophy, Settings, Calendar, Clock, ShieldAlert, Award, Info, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { openNativePicker, toApiLocalDateTime } from "@/lib/utils";
+import { getTierLabel, openNativePicker, toApiLocalDateTime } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Header } from "@/components/Header";
+
+// 백엔드 ContestService.createContest: 티어 3(Gold) 이상만 대회를 열 수 있다. Gold는 600점부터(UserTierService).
+const HOST_MIN_TIER = 3;
+const HOST_MIN_SCORE = 600;
 
 export default function ContestCreatePage() {
   const router = useRouter();
@@ -36,6 +40,9 @@ export default function ContestCreatePage() {
   const [endTime, setEndTime] = useState("");
   const [duration, setDuration] = useState<string>("");
   const [rules, setRules] = useState("");
+  // 내 티어·점수. 개최 자격이 없으면 입력 전에 알려 주고 생성 버튼을 막는다(서버도 막는다).
+  const [host, setHost] = useState<{ tier: number; score: number } | null>(null);
+  const canHost = host === null || host.tier >= HOST_MIN_TIER;
 
   useEffect(() => {
     const fetchProfileImage = async () => {
@@ -60,6 +67,9 @@ export default function ContestCreatePage() {
           // 서버에 저장된 실서버 S3 프로필 주소가 있다면 상태 동기화
           if (userInfo?.profileImgUrl) {
             setUserImgUrl(userInfo.profileImgUrl);
+          }
+          if (typeof userInfo?.tier === "number") {
+            setHost({ tier: userInfo.tier, score: Number(userInfo.score) || 0 });
           }
         }
       } catch (error) {
@@ -248,9 +258,19 @@ export default function ContestCreatePage() {
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="px-6 rounded-xl" onClick={() => router.push("/contests")}>취소</Button>
-              <Button className="px-8 rounded-xl shadow-lg font-bold" onClick={handleCreateContest}>대회 생성</Button>
+              <Button className="px-8 rounded-xl shadow-lg font-bold" onClick={handleCreateContest} disabled={!canHost}>대회 생성</Button>
             </div>
           </div>
+
+          {!canHost && host && (
+            <div role="status" className="flex items-start gap-3 rounded-2xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-ink">
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
+              <p>
+                대회는 <b>Gold 티어({HOST_MIN_SCORE.toLocaleString()}점)</b> 이상부터 열 수 있어요. 지금은{" "}
+                <b>{getTierLabel(host.tier)} · {host.score.toLocaleString()}점</b>이에요.
+              </p>
+            </div>
+          )}
 
           {/* 1. 대회 기본 정보 */}
           <Card className="border-line shadow-sm rounded-2xl">
