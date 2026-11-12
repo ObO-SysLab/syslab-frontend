@@ -106,6 +106,18 @@ export const getTierKey = (tier: string | number) => {
   return keys.includes(label) ? label : null;
 };
 
+// 그룹 티어: 서버에 저장된 값이 없어 그룹 랭킹 점수로 정한다. 점수는 백엔드 GroupRepository.findGroupRanking:
+// 그룹에 넣은 공개 문제를 멤버가 맞힌 횟수 ×1 + 그룹 전용 문제를 맞힌 횟수 ×10 + 그룹 대회 수 ×100.
+// 새 그룹(0점)은 사용자와 같게 Bronze에서 시작한다.
+export const GROUP_TIER_MIN_SCORE: [string, number][] = [
+  ["Challenger", 1000], ["Master", 500], ["Diamond", 300], ["Platinum", 150], ["Gold", 80], ["Silver", 30], ["Bronze", 0],
+];
+
+export const getGroupTier = (score: number | null | undefined) => {
+  const s = Number(score) || 0;
+  return (GROUP_TIER_MIN_SCORE.find(([, min]) => s >= min) ?? GROUP_TIER_MIN_SCORE[GROUP_TIER_MIN_SCORE.length - 1])[0];
+};
+
 // 7단계 명예 티어 스킨 테마 (Abyss: 어두운 면 위 티어 색 글자 + 옅은 테두리)
 export const getTierBadgeStyle = (tier: string | number) => {
   const label = getTierLabel(tier);
