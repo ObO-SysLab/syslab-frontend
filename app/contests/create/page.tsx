@@ -131,7 +131,7 @@ export default function ContestCreatePage() {
 
       if (res.ok) {
         const json = await res.json();
-        alert("대회가 성공적으로 생성되었습니다!");
+        alert("대회를 만들었습니다.");
         // 생성된 대회의 상세 페이지로 이동
         router.push(`/contests/detail?id=${json.data.contestId}`);
       } else {
@@ -219,7 +219,6 @@ export default function ContestCreatePage() {
             <CardHeader className="pb-2">
               <Trophy className="w-8 h-8 text-coral mb-2" />
               <CardTitle className="text-xl font-black">새 대회 설계</CardTitle>
-              <CardDescription className="text-ink-muted text-xs">사용자들을 위한 최상의 경쟁 환경을 구축하세요.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-4 text-sm font-medium">
               <div className="flex items-center gap-3 bg-raised p-3 rounded-xl text-ink-muted">
@@ -266,7 +265,7 @@ export default function ContestCreatePage() {
             <div role="status" className="flex items-start gap-3 rounded-2xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-ink">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
               <p>
-                대회는 <b>Gold 티어({HOST_MIN_SCORE.toLocaleString()}점)</b> 이상부터 열 수 있어요. 지금은{" "}
+                대회는 <b>Gold 티어({HOST_MIN_SCORE.toLocaleString()}점)</b> 이상부터 열 수 있습니다. 지금은{" "}
                 <b>{getTierLabel(host.tier)} · {host.score.toLocaleString()}점</b>이에요.
               </p>
             </div>

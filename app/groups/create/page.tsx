@@ -196,7 +196,7 @@ export default function GroupCreatePage() {
           }
         }
 
-        alert("그룹이 성공적으로 생성되었습니다!");
+        alert("그룹을 만들었습니다.");
         router.push(`/groups/detail?id=${createdGroupId}`);
       } else {
         const errorText = await response.text();

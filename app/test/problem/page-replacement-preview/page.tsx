@@ -24,7 +24,7 @@ export default function PageReplacementPreview() {
   }, []);
   const button = 'rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50';
   return <main className="min-h-screen bg-slate-50 p-4 text-slate-900 md:px-8 md:py-5"><div className="mx-auto max-w-[1440px] space-y-3">
-    <header className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold text-slate-500">OBO · 페이지 교체</p><h1 className="mt-1 text-2xl font-bold">어떤 페이지가 남고, 무엇이 바뀔까?</h1><p className="mt-1 text-sm text-slate-600">현재 참조와 메모리의 변화를 같은 그림에서 따라가 보세요.</p></div>
+    <header className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold text-slate-500">OBO · 페이지 교체</p><h1 className="mt-1 text-2xl font-bold">어떤 페이지가 남고 무엇이 바뀔까?</h1><p className="mt-1 text-sm text-slate-600">현재 참조와 메모리의 변화를 같은 그림에서 따라가 보세요.</p></div>
       <div className="flex gap-2"><button className={button} onClick={() => { if (window.confirm('현재 그림을 기본 FIFO 예제로 바꿀까요? 임시 저장본은 유지됩니다.')) { setBlob(createPageReplacementExample()); setRevision(n => n + 1); setNotice('기본 예제를 불러왔습니다.'); } }}>기본 예제</button>
         <button className={button} onClick={() => { try { localStorage.setItem(storageKey, JSON.stringify(blob)); setNotice('이 브라우저에 임시 저장했습니다.'); } catch { setNotice('브라우저에 저장하지 못했습니다.'); } }}>임시 저장</button></div>
     </header>

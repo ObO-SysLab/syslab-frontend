@@ -27,7 +27,7 @@ export function publicOutputFormat(schema:OboCodingSchema):PublicOutputFormat|nu
 export function describeOutputFormat(f:PublicOutputFormat):string {
   const lead='장면마다 한 줄씩 출력합니다. ';
   switch(f.targetType){
-    case 'slot-grid':return lead+`각 줄에는 칸 ${f.cells??0}개의 값을 왼쪽부터 공백 하나로 구분해 쓰고, 빈 칸은 ${f.blank}로 씁니다.`;
+    case 'slot-grid':return lead+`각 줄에는 칸 ${f.cells??0}개의 값을 왼쪽부터 공백 하나로 구분해 쓰고 빈 칸은 ${f.blank}로 씁니다.`;
     case 'queue-strip':return lead+`각 줄에는 큐에 있는 항목을 먼저 꺼낼 항목부터 공백 하나로 구분해 씁니다. 비어 있으면 ${f.blank} 하나를 씁니다.`;
     case 'counter-badge':return lead+'각 줄에는 숫자 하나를 씁니다.';
     case 'resource-square':return lead+'각 줄에는 사용 중인 자원 개수 하나를 씁니다.';
@@ -94,7 +94,7 @@ export function starterCode(language:string,contract?:CodingContract|null):strin
   if(contract?.ioFormat==='text-v1'&&contract.scenarioId){
     // Baekjoon-style text (2026-11-08): read tokens, print one line per step; no JSON parser needed.
     const help=textHelp(contract.scenarioId),inNote=help.input,outNote=help.output;
-    if(language==='python')return `import sys\n\ndata = sys.stdin.read().split()\npos = 0\ndef read():\n    global pos\n    pos += 1\n    return data[pos - 1]\n\n# 입력: ${inNote}\n# 출력: ${outNote}\n# TODO: read()로 값을 차례로 읽고, 규칙대로 계산해 한 줄씩 print 하세요.\n`;
+    if(language==='python')return `import sys\n\ndata = sys.stdin.read().split()\npos = 0\ndef read():\n    global pos\n    pos += 1\n    return data[pos - 1]\n\n# 입력: ${inNote}\n# 출력: ${outNote}\n# TODO: read()로 값을 차례로 읽고 규칙대로 계산해 한 줄씩 print 하세요.\n`;
     if(language==='c')return `#include <stdio.h>\n\nint main(void) {\n    /* 입력: ${inNote} */\n    /* 출력: ${outNote} */\n    /* TODO: scanf로 값을 읽고 규칙대로 계산해 printf로 한 줄씩 출력하세요. */\n    return 0;\n}\n`;
     return `#include <iostream>\n#include <string>\n\nint main() {\n    // 입력: ${inNote}\n    // 출력: ${outNote}\n    // TODO: std::cin >> 로 값을 읽고 규칙대로 계산해 한 줄씩 출력하세요.\n}\n`;
   }

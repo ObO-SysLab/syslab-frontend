@@ -65,7 +65,7 @@ export function dpSnapshot(instance: SimulationInstance, execution: ModelRun | n
   };
   const ends: Partial<Record<DpStop, string>> = {
     deadlocked: '모든 철학자가 다음 포크를 기다려 아무도 진행할 수 없습니다(교착).',
-    scheduleEnd: '정해진 순서가 끝났습니다. 이 순서에서는 교착이 없었지만, 다른 순서까지 보장한다는 뜻은 아닙니다.',
+    scheduleEnd: '정해진 순서가 끝났습니다. 이 순서에서는 교착이 없었지만 다른 순서까지 보장한다는 뜻은 아닙니다.',
     goalReached: '식사 목표에 도달했습니다.',
   };
   const summary = stop && stop !== 'running' ? `${summaries[phase]} ${ends[stop]}` : summaries[phase];

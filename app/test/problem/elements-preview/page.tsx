@@ -29,7 +29,7 @@ export default function ElementsPreview() {
   },[]);
   const button='rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50';
   return <main className="min-h-screen bg-slate-50 p-4 text-slate-900 md:p-5"><div className="mx-auto max-w-[1600px] space-y-3">
-    <header className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold text-slate-500">OBO · 공통 요소 편집</p><h1 className="mt-1 text-2xl font-bold">요소를 더하고, 장면을 직접 바꿔보세요</h1></div><div className="flex gap-2">
+    <header className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold text-slate-500">OBO · 공통 요소 편집</p><h1 className="mt-1 text-2xl font-bold">요소를 더하고 장면을 직접 바꿔보세요</h1></div><div className="flex gap-2">
       <button className={button} disabled={!ready} onClick={()=>{if(window.confirm('현재 그림을 시작 예제로 바꿀까요? 임시 저장본은 유지됩니다.')){setBlob(initial(id));setRevision(v=>v+1);setNotice('시작 그림을 불러왔습니다.');}}}>시작 그림</button>
       <button className={button} disabled={!ready} onClick={()=>{try{localStorage.setItem(storageKey,JSON.stringify(blob));setNotice('이 브라우저에 임시 저장했습니다.');}catch{setNotice('브라우저에 저장하지 못했습니다.');}}}>임시 저장</button>
     </div></header>

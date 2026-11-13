@@ -30,7 +30,7 @@ function RandomTests({instance,format,mode,existing,onAdd}:{instance:SimulationD
     <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">무작위 숨김 테스트</span>
       <label className="flex items-center gap-1 text-xs text-slate-600">시드<input type="number" aria-label="무작위 시드" className="w-24 rounded border px-2 py-1" value={seed} onChange={e=>setSeed(Number(e.target.value)||0)}/></label>
       {[3,5,10].map(count=><Button key={count} type="button" size="sm" variant="outline" onClick={()=>add(count)}>{count}개 추가</Button>)}</div>
-    <p className="text-xs text-slate-500">현재 모델 입력을 바탕으로 값을 바꾼 입력을 만들고, 같은 엔진이 계산한 기대 출력과 함께 숨김 테스트로 추가합니다. 엔진이 받아들이는 입력만 쓰고, 이미 있는 테스트와 정답이 같은 입력은 넣지 않습니다. 같은 시드·모델 입력·기존 테스트면 같은 테스트가 다시 만들어집니다.</p>
+    <p className="text-xs text-slate-500">현재 모델 입력을 바탕으로 값을 바꾼 입력을 만듭니다. 같은 엔진이 계산한 기대 출력과 함께 숨김 테스트로 추가합니다. 엔진이 받아들이는 입력만 쓰고 이미 있는 테스트와 정답이 같은 입력은 넣지 않습니다. 같은 시드·모델 입력·기존 테스트면 같은 테스트가 다시 만들어집니다.</p>
     {status&&<p role="status" className={status.short?'text-amber-700':'text-indigo-800'}>{status.text}</p>}
   </div>;
 }

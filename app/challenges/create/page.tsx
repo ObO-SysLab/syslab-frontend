@@ -846,7 +846,7 @@ function ProblemCreateContent() {
               <CardHeader className="bg-raised/50 pb-0 border-b">
                 <TabsList className="bg-raised p-0.5 h-auto">
                   <TabsTrigger value="desc" className="px-5 py-2.5 text-xs">문제 설명 (Markdown) <span className="text-danger">*</span></TabsTrigger>
-                  <TabsTrigger value="prev" className="px-5 py-2.5 text-xs">미리보기 (Preview)</TabsTrigger>
+                  <TabsTrigger value="prev" className="px-5 py-2.5 text-xs">미리보기</TabsTrigger>
                 </TabsList>
               </CardHeader>
               <CardContent className="p-6">
@@ -900,7 +900,7 @@ function ProblemCreateContent() {
                 <div className="space-y-5 animate-in fade-in-30 duration-300">
                   <div className="grid md:grid-cols-2 gap-5 text-sm">
                     <div className="space-y-1.5">
-                      <Label>시간 제한 (sec)</Label>
+                      <Label>시간 제한(초)</Label>
                       <Input type="number" min={1} max={30} step={1} value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value))} className="font-mono" />
                       <p className="text-xs text-ink-muted">1~30초, 정수 단위</p>
                     </div>
@@ -1069,7 +1069,7 @@ function ProblemCreateContent() {
                       : <Label>Dockerfile 업로드 (.zip) <span className="text-danger">*</span></Label>}
                     <p className="text-xs text-ink-muted">{isEditMode
                       ? "새 파일을 올리면 실습 환경을 다시 만듭니다."
-                      : "등록 후 실습 환경을 제작합니다. 상세 화면에서 제작 중·완료·실패 상태를 확인할 수 있으며, 제작 완료 후 실습을 시작할 수 있습니다."}</p>
+                      : "등록 후 실습 환경을 제작합니다. 상세 화면에서 제작 중·완료·실패 상태를 확인할 수 있으며 제작 완료 후 실습을 시작할 수 있습니다."}</p>
                     <div className="relative p-5 border-2 border-dashed border-line rounded-2xl text-center bg-canvas hover:bg-raised/50 cursor-pointer transition-colors">
                       <input
                         type="file"

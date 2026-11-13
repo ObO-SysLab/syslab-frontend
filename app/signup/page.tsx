@@ -170,7 +170,7 @@ export default function SignUpPage() {
       });
 
       if (res.ok) {
-        alert("이메일 인증이 완료되었습니다!");
+        alert("이메일 인증을 마쳤습니다.");
         setIsEmailVerified(true);
         setIsTimerActive(false);
       } else if (res.status === 400) {
@@ -223,7 +223,7 @@ export default function SignUpPage() {
       });
 
       if (response.ok) {
-        alert("회원가입 성공!");
+        alert("가입을 마쳤습니다. 로그인해 주세요.");
         router.push("/signin");
       } else {
         alert("가입 실패: 데이터를 확인해주세요.");
@@ -439,7 +439,7 @@ export default function SignUpPage() {
                         />
                       </div>
                       {passwordMismatch && (
-                        <p id="password-confirm-error" className="ml-1 text-xs font-medium text-danger">비밀번호가 일치하지 않아요.</p>
+                        <p id="password-confirm-error" className="ml-1 text-xs font-medium text-danger">비밀번호가 일치하지 않습니다.</p>
                       )}
                     </div>
                   </div>

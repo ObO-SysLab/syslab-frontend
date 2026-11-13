@@ -146,7 +146,7 @@ export function tlbSnapshot(instance: SimulationInstance, execution: ModelRun | 
   else if (phase === 'fault') summary = '페이지 테이블에 프레임이 없어 주소를 변환할 수 없습니다. TLB의 내용은 그대로입니다.';
   else if (phase === 'translate') summary = current?.hit
     ? 'TLB의 매핑으로 물리 주소 변환을 완료했습니다.'
-    : evicted ? '주소 변환을 완료하고, 가장 먼저 들어온 TLB 항목을 새 매핑으로 교체했습니다.'
+    : evicted ? '주소 변환을 완료하고 가장 먼저 들어온 TLB 항목을 새 매핑으로 교체했습니다.'
       : '페이지 테이블의 매핑으로 주소를 변환하고 TLB에 새 항목을 추가했습니다.';
   return { pageSize, capacity, phase, pageTable, tlb, lookupTlb, current, result, inserted, evicted,
     event: events.length ? structuredClone(events[events.length - 1]) : null, summary };
