@@ -173,11 +173,11 @@ export function lineRule(nodes: Node[], format: SimpleOutputFormat): { rule: str
     case 'slot-grid': {
       const n = Number.isInteger(d.slotCount) ? Number(d.slotCount) : Array.isArray(d.slots) ? d.slots.length : 0;
       const sample = [7, 0, 1, 2, 3, 4, 5, 6];
-      return { rule: `칸 ${n}개의 값을 띄어 쓰고, 빈 칸은 ${blank}`, example: Array.from({ length: n }, (_, k) => (k < Math.max(1, n - 1) ? String(sample[k % 8]) : blank)).join(' ') };
+      return { rule: `칸 ${n}개의 값을 띄어 쓰고 빈 칸은 ${blank}`, example: Array.from({ length: n }, (_, k) => (k < Math.max(1, n - 1) ? String(sample[k % 8]) : blank)).join(' ') };
     }
     case 'queue-strip': {
       const items = (Array.isArray(d.items) ? d.items.map(word).filter(Boolean) : []) as string[];
-      return { rule: `큐 항목을 앞에서부터 띄어 쓰고, 비었으면 ${blank}`, example: items.length ? items.join(' ') : 'A B' };
+      return { rule: `큐 항목을 앞에서부터 띄어 쓰고 비었으면 ${blank}`, example: items.length ? items.join(' ') : 'A B' };
     }
     case 'counter-badge': return { rule: '숫자 하나', example: '1' };
     case 'resource-square': return { rule: '사용 중인 개수(숫자 하나)', example: '1' };

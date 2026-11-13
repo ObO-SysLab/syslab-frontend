@@ -16,7 +16,7 @@ export function CodeDraftPanel({ state }: { state: ReturnType<typeof useCodeDraf
     {draft.versionChanged && <p role="alert" className="mt-2 text-amber-800 dark:text-warning">보관 당시와 문제 버전이 다릅니다. 제출 전 문제를 다시 확인해 주세요.</p>}
     {draft.scope && <details className="mt-2" open={draft.candidates.length > 0 ? true : undefined}>
       <summary className="cursor-pointer">복구 가능한 초안 {draft.candidates.length}개 · 공용 기기 보관 안내</summary>
-      <p className="my-2 text-xs text-slate-500 dark:text-ink-subtle">코드는 암호화 없이 이 브라우저에 남고, 같은 계정으로 로그인하면 복구할 수 있습니다. 공용 기기에서는 사용 후 보관본을 삭제하세요.</p>
+      <p className="my-2 text-xs text-slate-500 dark:text-ink-subtle">코드는 암호화 없이 이 브라우저에 남고 같은 계정으로 로그인하면 복구할 수 있습니다. 공용 기기에서는 사용 후 보관본을 삭제하세요.</p>
       <div className="max-h-28 overflow-auto space-y-1">
         {draft.candidates.map(record => <div key={record.id} className="flex flex-wrap items-center gap-2">
           <span>{record.language} · {new Date(record.savedAt).toLocaleString('ko-KR')}{record.version && draft.version && record.version !== draft.version ? ' · 다른 문제 버전' : ''}</span>

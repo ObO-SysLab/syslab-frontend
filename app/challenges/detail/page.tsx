@@ -454,7 +454,7 @@ function ProblemDetailContent() {
       });
 
       if (res.ok) {
-        alert("문제가 성공적으로 삭제되었습니다.");
+        alert("문제를 삭제했습니다.");
         // 삭제 후에는 상세 페이지에 머물 수 없으므로 목록으로 리다이렉트
         window.location.href = "/challenges";
       } else {
@@ -771,7 +771,7 @@ function ProblemDetailContent() {
                   <Button variant="outline" size="icon" onClick={handleCopyLink} aria-label="문제 링크 복사">
                     <Share2 className="h-4 w-4" />
                   </Button>
-                  {linkCopied && <span role="status" className="text-sm text-success">링크를 복사했어요</span>}
+                  {linkCopied && <span role="status" className="text-sm text-success">링크를 복사했습니다</span>}
                 </div>
 
                 {/* 오른쪽 버튼 그룹 (작성자일 때만 노출) */}
@@ -1070,7 +1070,7 @@ function ProblemDetailContent() {
                     {rankings.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={problemData?.type === "coding" ? 4 : 3} className="text-center py-12 text-ink-subtle text-sm font-medium">
-                          이 문제를 해결한 사용자가 아직 없습니다. 최초의 정답자가 되어보세요! 🚀
+                          아직 푼 사람이 없습니다. 처음으로 풀어 보세요.
                         </TableCell>
                       </TableRow>
                     )}

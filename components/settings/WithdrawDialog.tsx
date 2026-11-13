@@ -51,8 +51,8 @@ export function WithdrawDialog({ open, onOpenChange, nickname }: { open: boolean
           <DialogTitle className="text-xl font-black">계정 탈퇴</DialogTitle>
           <DialogDescription asChild>
             <div className="space-y-2 text-sm text-ink-muted">
-              <p>이메일·이름·프로필 사진 등 개인정보와 알림, 포인트를 쓸 수 없게 되고 되돌릴 수 없어요.</p>
-              <p>낸 문제·제출·댓글은 &lsquo;탈퇴한 사용자&rsquo; 이름으로 남아요.</p>
+              <p>이메일·이름·프로필 사진 등 개인정보와 알림, 포인트를 쓸 수 없게 되고 되돌릴 수 없습니다.</p>
+              <p>낸 문제·제출·댓글은 &lsquo;탈퇴한 사용자&rsquo; 이름으로 남습니다.</p>
             </div>
           </DialogDescription>
         </DialogHeader>

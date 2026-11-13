@@ -190,7 +190,7 @@ function SubmissionDetailContent() {
                 }`}
             >
               {isCopied ? <Check className="w-3.5 h-3.5 mr-1.5" /> : <Copy className="w-3.5 h-3.5 mr-1.5" />}
-              {isCopied ? "복사됨!" : "코드 복사"}
+              {isCopied ? "복사됨" : "코드 복사"}
             </Button>
           </div>
 

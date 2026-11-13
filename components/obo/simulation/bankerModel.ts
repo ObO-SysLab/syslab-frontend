@@ -145,8 +145,8 @@ export function bankerSnapshot(instance: SimulationInstance, execution: ModelRun
   if (finalSafety === false || requestPhase === 'denied-unsafe') {
     summary = requestPhase === 'denied-unsafe'
       ? '가정 배정 상태에서 전체 완료 순서를 찾지 못해 요청을 거절했습니다. 표시된 수치는 가정 검사 값이며 교착 확정은 아닙니다.'
-      : '전체 완료 순서를 찾지 못했습니다. 일부 프로세스가 완료 가능해도 전체가 안전하다는 뜻은 아니며, 교착을 확정하지 않습니다.';
-    if (requestPhase === 'denied-unavailable') summary = '추가 요청은 현재 가용량 부족으로 거절되었고, 기존 상태에서도 전체 완료 순서를 찾지 못했습니다. 교착 확정은 아닙니다.';
+      : '전체 완료 순서를 찾지 못했습니다. 일부 프로세스가 완료 가능해도 전체가 안전하다는 뜻은 아닙니다. 교착을 확정하지 않습니다.';
+    if (requestPhase === 'denied-unavailable') summary = '추가 요청은 현재 가용량 부족으로 거절되었습니다. 기존 상태에서도 전체 완료 순서를 찾지 못했습니다. 교착 확정은 아닙니다.';
   } else if (finalSafety === true) {
     summary = granted === false ? '추가 요청은 거절되었지만 기존 상태의 전체 완료 순서는 확인했습니다.'
       : granted === true ? '가정 배정 뒤 전체 완료 순서를 확인해 추가 요청을 허용합니다.'

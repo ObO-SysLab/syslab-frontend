@@ -16,7 +16,7 @@ export default function ResourceAllocationPreview() {
         <span className="font-semibold text-teal-700">R → P &nbsp; 실선: 할당</span>
       </div>
       <div className="h-[max(360px,calc(100dvh-260px))] max-h-[800px]" data-testid="resource-player"><OboPlayer blob={blob} /></div>
-      <p className="text-xs leading-relaxed text-slate-500">이 예제는 R1·R2가 각각 하나이며, 기다리는 동안 가진 자원을 반납하거나 강제로 회수하지 않습니다. 자원이 여러 개라면 순환만으로 교착 상태를 단정할 수 없습니다.</p>
+      <p className="text-xs leading-relaxed text-slate-500">이 예제에서 R1·R2는 각각 하나입니다. 기다리는 동안 가진 자원을 반납하거나 강제로 회수하지 않습니다. 자원이 여러 개라면 순환만으로 교착 상태를 단정할 수 없습니다.</p>
     </div>
   </main>;
 }

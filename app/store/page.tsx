@@ -136,7 +136,7 @@ export default function StorePage() {
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-[-0.02em]">스토어</h1>
             <p className="text-ink-muted text-sm">
-              문제를 처음 맞히면 난이도 × 10P, 오늘의 다이브 포인트를 맞히면 +{me?.dailyBonus ?? 50}P. 하루 최대 {me?.dailyCap ?? 100}P까지 모을 수 있어요.
+              문제를 처음 맞히면 난이도 × 10P, 오늘의 다이브 포인트를 맞히면 +{me?.dailyBonus ?? 50}P. 하루 최대 {me?.dailyCap ?? 100}P까지 모을 수 있습니다.
             </p>
           </div>
           {isLoggedIn && me && (
@@ -218,7 +218,7 @@ export default function StorePage() {
                     <Button
                       onClick={() => { setActionError(""); setSelectedItem(item); }}
                       disabled={busy || action === "short"}
-                      title={action === "short" ? "포인트가 부족해요" : undefined}
+                      title={action === "short" ? "포인트가 부족합니다" : undefined}
                       className="rounded-xl h-10 font-bold bg-raised border border-line-strong text-ink hover:bg-line"
                     >
                       {action === "short" ? "포인트 부족" : "구매"}
@@ -229,7 +229,7 @@ export default function StorePage() {
             );
           })}
           {!loadError && items.length > 0 && filteredItems.length === 0 && (
-            <p className="col-span-full py-20 text-center text-ink-subtle font-bold">조건에 맞는 상품이 없어요.</p>
+            <p className="col-span-full py-20 text-center text-ink-subtle font-bold">조건에 맞는 상품이 없습니다.</p>
           )}
         </section>
 

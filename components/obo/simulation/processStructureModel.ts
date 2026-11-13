@@ -122,7 +122,7 @@ export function processSnapshot(instance: SimulationInstance, execution: ModelRu
     id, label: label(id), nodeKey: `process:${id}`, shared: cells(values, `shared:${id}`),
     threads: threads.filter(thread => thread.process === id),
   }));
-  let summary = '같은 프로세스의 스레드는 공유 영역을 함께 사용하고, 레지스터와 스택은 각자 유지합니다.';
+  let summary = '같은 프로세스의 스레드는 공유 영역을 함께 사용하고 레지스터와 스택은 각자 유지합니다.';
   if (current) {
     const target = current.scope === 'shared' ? `${current.processLabel}의 공유 ${current.key}` : `자신의 레지스터 ${current.key}`;
     const value = JSON.stringify(current.value);

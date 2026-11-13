@@ -32,7 +32,7 @@ export const PRODUCER_CONSUMER: TeachingExample = {
   slug: 'producer-consumer', title: '비었을 때, 가득 찼을 때는 누가 기다릴까?',
   subtitle: '두 칸짜리 버퍼에서 생산과 소비가 서로를 다시 진행시키는 과정을 봅니다.',
   legend: 'empty: 넣기 허용 · full: 꺼내기 허용 · 점선 항목: 아직 버퍼에 넣지 않은 값',
-  note: '각 장면은 작업 완료 또는 대기 시점입니다. 버퍼 변경은 mutex로 보호하며, 빈칸·항목 대기는 mutex를 잡기 전에 합니다. 중간 예약 상태는 생략했습니다.',
+  note: '각 장면은 작업 완료 또는 대기 시점입니다. 버퍼 변경은 mutex로 보호합니다. 빈칸·항목 대기는 mutex를 잡기 전에 합니다. 중간 예약 상태는 생략했습니다.',
   template: { id: 'C1', name: '생산자·소비자', category: 'sync', description: '버퍼 · 대기와 재개',
     defaultNodes: [box('producer', 10, 210, '생산자'), node('buffer', 'queue-strip', 260, 160, { label: '공유 버퍼', capacity: 2, items: [], direction: 'rtl', displayStyle: 'buffer', showCount: true, showDirection: true }), box('consumer', 760, 210, '소비자'),
       node('empty','counter-badge',260,30,{label:'empty',caption:'넣기 허용',value:2,min:0,max:64,displayStyle:'semaphore',showTokens:true}),
@@ -54,9 +54,9 @@ const pageRows = [[0,1,'있음'], [2,5,'있음'], [3,'—','없음']];
 const tlbEmpty = [[0,1], ['—','—']], tlbFilled = [[0,1], [2,5]];
 export const ADDRESS_TRANSLATION: TeachingExample = {
   slug: 'address-translation', title: '가상 주소 9는 실제 어디를 가리킬까?',
-  subtitle: '페이지 번호와 내부 위치를 나누고, TLB와 페이지 표에서 실제 위치를 찾습니다.',
+  subtitle: '페이지 번호와 내부 위치를 나누고 TLB와 페이지 표에서 실제 위치를 찾습니다.',
   legend: '페이지 크기 4 · VPN = 페이지 번호 · PFN = 물리 프레임 번호',
-  note: 'TLB Miss는 변환 기록이 없는 것이고, 페이지 Miss는 페이지가 메모리에 없는 것입니다. 이 예제는 한 프로세스의 올바른 접근 권한을 가정하고, 페이지 Miss를 처리하기 전에서 멈춥니다.',
+  note: 'TLB Miss는 변환 기록이 없는 것이고 페이지 Miss는 페이지가 메모리에 없는 것입니다. 이 예제는 한 프로세스의 올바른 접근 권한을 가정합니다. 페이지 Miss를 처리하기 전에 멈춥니다.',
   template: { id: 'TLB', name: '주소 변환 · TLB', category: 'memory', description: 'TLB Hit · TLB Miss · 페이지 Miss',
     defaultNodes: [node('address','table-grid',0,0,{ label:'가상 주소 나누기', headers:['가상 주소','VPN','내부 위치'], rows:[[9,2,1]], width:300 }),
       box('physical', 390, 15, '물리 주소 · 아직 없음'),
@@ -113,10 +113,10 @@ export const PROCESS_THREADS: TeachingExample = {
     defaultNodes:[node('p1','process-box',0,0,{label:'프로세스 P1',sections:sections(0),threads:threads(0),activeThreadId:null,...processPresentation}),node('p2','process-box',410,0,{label:'프로세스 P2',sections:sections(0),threads:[{id:'t3',label:'T3',pc:'대기',register:'0',stack:'지역값 4'}],activeThreadId:null,...processPresentation})],defaultEdges:[],
     defaultFrames:[
       frame('pt-0','처음 · P1의 T1과 T2는 같은 주소 공간을 사용합니다. P2는 별도의 주소 공간입니다.'),
-      frame('pt-1','T1 실행 · 공유 데이터 x를 1로 바꾸고, 자기 스택의 지역값을 7로 바꿉니다.',{p1:{sections:sections(1),threads:threads(1),activeThreadId:'t1'}},['p1']),
+      frame('pt-1','T1 실행 · 공유 데이터 x를 1로 바꾸고 자기 스택의 지역값을 7로 바꿉니다.',{p1:{sections:sections(1),threads:threads(1),activeThreadId:'t1'}},['p1']),
       frame('pt-2','T2 실행 · 같은 x를 읽으므로 1을 얻습니다. T2의 스택 지역값 9는 그대로입니다.',{p1:{threads:threads(2),activeThreadId:'t2'}},['p1']),
       frame('pt-3','P2 확인 · 이름이 같은 x라도 다른 프로세스의 데이터입니다. P2의 x는 여전히 0입니다.',{p1:{activeThreadId:null},p2:{activeThreadId:'t3'}},['p2']),
-      frame('pt-4','비교 완료 · P1 내부의 데이터는 공유되고, 각 스레드의 실행 위치와 레지스터·스택은 따로 유지됩니다.',{p1:{activeThreadId:null},p2:{activeThreadId:null}},['p1','p2']),
+      frame('pt-4','비교 완료 · P1 내부의 데이터는 공유되고 각 스레드의 실행 위치와 레지스터·스택은 따로 유지됩니다.',{p1:{activeThreadId:null},p2:{activeThreadId:null}},['p1','p2']),
     ],
   },
 };

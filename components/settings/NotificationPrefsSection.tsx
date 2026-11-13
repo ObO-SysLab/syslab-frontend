@@ -7,9 +7,9 @@ import { authHeaders, requestJson, RequestFailure } from "@/lib/request";
 import { DEFAULT_PREFS, NOTIFICATION_API, type NotificationPrefs } from "@/lib/notifications";
 
 const ROWS: { key: keyof NotificationPrefs; title: string; desc: string }[] = [
-  { key: "solveCorrect", title: "정답 알림", desc: "제출한 답이 정답으로 채점되면 알려요." },
-  { key: "comment", title: "댓글 알림", desc: "내 문제·댓글·게시글에 댓글이 달리면 알려요." },
-  { key: "contestStart", title: "대회 시작 알림", desc: "참가한 대회가 시작하기 1시간 전에 알려요." },
+  { key: "solveCorrect", title: "정답 알림", desc: "제출한 답이 정답으로 채점되면 알립니다." },
+  { key: "comment", title: "댓글 알림", desc: "내 문제·댓글·게시글에 댓글이 달리면 알립니다." },
+  { key: "contestStart", title: "대회 시작 알림", desc: "참가한 대회가 시작하기 1시간 전에 알립니다." },
 ];
 
 // 알림 설정: 바꾸면 바로 저장하고, 실패하면 되돌린다.

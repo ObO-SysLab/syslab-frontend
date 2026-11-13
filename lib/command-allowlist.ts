@@ -11,7 +11,7 @@ export function parseCommandAllowlist(input: string): AllowlistInput {
   const names = [...new Set(input.split(/[\s,]+/).filter(Boolean))].sort();
   const invalid = names.find(name => !NAME.test(name));
   if (invalid) return { error: `명령어 이름만 입력해 주세요: ${invalid}` };
-  if (names.length > MAX_COMMANDS) return { error: `허용 명령어는 ${MAX_COMMANDS}개까지 입력할 수 있어요.` };
+  if (names.length > MAX_COMMANDS) return { error: `허용 명령어는 ${MAX_COMMANDS}개까지 입력할 수 있습니다.` };
   return { names };
 }
 

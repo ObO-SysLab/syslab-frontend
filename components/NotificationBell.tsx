@@ -109,11 +109,11 @@ export function NotificationBell() {
         </div>
         <div className="max-h-[360px] overflow-y-auto">
           {error ? (
-            <p className="px-4 py-8 text-center text-sm text-ink-subtle">알림을 불러오지 못했어요.</p>
+            <p className="px-4 py-8 text-center text-sm text-ink-subtle">알림을 불러오지 못했습니다.</p>
           ) : items === null ? (
             <p className="px-4 py-8 text-center text-sm text-ink-subtle">불러오는 중...</p>
           ) : items.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-ink-subtle">새 알림이 없어요.</p>
+            <p className="px-4 py-8 text-center text-sm text-ink-subtle">새 알림이 없습니다.</p>
           ) : (
             <ul className="divide-y divide-line">
               {items.map((n) => (

@@ -53,7 +53,7 @@ export function authoringChecklist(s: AuthoringState): AuthoringStep[] {
   }
   if (s.problemType === 'coding' || s.problemType === 'objective') {
     const obo = errors.obo?.split(' · ')[0];
-    add('obo', '그림 (OBO)', !s.oboEnabled ? 'optional' : obo ? 'required' : 'done', !s.oboEnabled ? '켜면 그림으로 설명하거나 채점할 수 있어요' : obo ?? '그림 준비됨', 'obo-field');
+    add('obo', '그림 (OBO)', !s.oboEnabled ? 'optional' : obo ? 'required' : 'done', !s.oboEnabled ? '켜면 그림으로 설명하거나 채점할 수 있습니다' : obo ?? '그림 준비됨', 'obo-field');
   }
   if (s.problemType === 'coding') {
     const semantic = s.oboEnabled && s.oboData.mode === 'simulation' && s.oboData.simulation?.question.judgeProfile === 'obo-v1';
@@ -61,10 +61,10 @@ export function authoringChecklist(s: AuthoringState): AuthoringStep[] {
     const incomplete = filled.filter(t => !t.input.trim() || (!semantic && !t.output.trim())).length;
     const empty = s.testcases.length - filled.length;
     add('testcases', '테스트케이스', !filled.length ? 'check' : incomplete || empty ? 'check' : 'done',
-      !filled.length ? '테스트케이스를 1개 이상 만드세요' : incomplete ? `${semantic ? '입력' : '입력이나 출력'}이 빈 테스트가 ${incomplete}개 있어요` : empty ? `빈 테스트 ${empty}개는 지우거나 채우세요` : `${filled.length}개`, 'testcases-field');
+      !filled.length ? '테스트케이스를 1개 이상 만드세요' : incomplete ? `${semantic ? '입력' : '입력이나 출력'}이 빈 테스트가 ${incomplete}개 있습니다` : empty ? `빈 테스트 ${empty}개는 지우거나 채우세요` : `${filled.length}개`, 'testcases-field');
     const samples = filled.filter(t => t.is_sample).length, hidden = filled.length - samples;
-    add('samples', '공개 예제', samples ? 'done' : 'check', samples ? `${samples}개 · 학습자가 형식을 확인합니다` : '학습자가 형식을 확인할 공개 예제가 없어요', 'testcases-field');
-    add('hidden', '숨김 테스트', hidden ? 'done' : 'check', hidden ? `${hidden}개` : '공개 예제만으로는 정답을 외워 통과할 수 있어요', 'testcases-field');
+    add('samples', '공개 예제', samples ? 'done' : 'check', samples ? `${samples}개 · 학습자가 형식을 확인합니다` : '학습자가 형식을 확인할 공개 예제가 없습니다', 'testcases-field');
+    add('hidden', '숨김 테스트', hidden ? 'done' : 'check', hidden ? `${hidden}개` : '공개 예제만으로는 정답을 외워 통과할 수 있습니다', 'testcases-field');
   }
   if (s.problemType !== 'practice') add('preview', s.problemType === 'coding' ? '학습자 미리보기 확인' : '문제 미리보기 확인', s.previewed ? 'done' : 'optional', s.previewed ? '확인함' : '학습자가 볼 화면을 한 번 확인하세요', s.problemType === 'coding' ? 'learner-preview' : 'problem-description');
   return steps;

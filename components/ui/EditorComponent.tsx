@@ -23,7 +23,7 @@ export default function EditorComponent({
   const handleSave = () => {
     if (code && onSave) {
       onSave(code);
-      alert("코드가 서버에 저장되었습니다!");
+      alert("코드를 저장했습니다.");
     }
   };
 
