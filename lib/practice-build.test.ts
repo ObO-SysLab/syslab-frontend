@@ -19,6 +19,26 @@ describe('practice readiness', () => {
     expect(practiceBuildPresentation(state).label).toContain('실패');
     expect(practiceBuildPresentation(state).message).not.toContain('private');
   });
+  it('explains the author-facing failure reason with fixed text', () => {
+    const missing = readPracticeBuild({ status: 'FAILED', canStart: false, failure: { code: 'COMMAND_NOT_FOUND', command: 'xxd' } });
+    expect(missing.failure).toEqual({ code: 'COMMAND_NOT_FOUND', command: 'xxd' });
+    expect(practiceBuildPresentation(missing, true).message).toContain('이미지에 xxd 명령어가 없습니다');
+    const docker = readPracticeBuild({ status: 'FAILED', canStart: false, failure: { code: 'DOCKERFILE_FAILED' } });
+    expect(practiceBuildPresentation(docker).message).toContain('Dockerfile 빌드가 실패');
+  });
+  it.each([{ code: '<img src=x>' }, { code: 'COMMAND_NOT_FOUND', command: '$(id)' }, 'COMMAND_NOT_FOUND', null])
+    ('never shows an unknown reason or unsafe command %j', failure => {
+      const state = readPracticeBuild({ status: 'FAILED', canStart: false, failure });
+      expect(practiceBuildPresentation(state, true).message).not.toMatch(/<img|\$\(id\)/);
+    });
+  it('ignores a failure reason on a state that did not fail', () => {
+    expect(readPracticeBuild({ status: 'READY', canStart: true, failure: { code: 'PUSH_FAILED' } })).toEqual({ status: 'READY', canStart: true });
+  });
+  it('points a restricted practice failure at its allowed commands', () => {
+    const state = readPracticeBuild({ status: 'FAILED', canStart: false });
+    expect(practiceBuildPresentation(state, true).message).toContain('허용 명령어');
+    expect(practiceBuildPresentation(state).message).not.toContain('허용 명령어');
+  });
 });
 
 describe('practice build refresh lifecycle', () => {
