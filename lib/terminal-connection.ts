@@ -8,6 +8,23 @@ type TerminalConnectionOptions = {
   onClose: () => void;
 };
 
+const RESIZE_PREFIX = [0x00, 0x44, 0x56, 0x52, 0x53]; // "\0DVRS"
+
+/**
+ * Binary control frame the terminal server applies as a PTY resize instead of typing it into the shell.
+ * Sizes are clamped to the server's accepted range (cols 20-500, rows 5-200).
+ */
+export function resizeFrame(cols: number, rows: number): Uint8Array {
+  const clamp = (value: number, low: number, high: number) =>
+    Math.min(high, Math.max(low, Number.isFinite(value) ? Math.floor(value) : low));
+  const frame = new Uint8Array(RESIZE_PREFIX.length + 4);
+  frame.set(RESIZE_PREFIX);
+  const view = new DataView(frame.buffer);
+  view.setUint16(RESIZE_PREFIX.length, clamp(cols, 20, 500));
+  view.setUint16(RESIZE_PREFIX.length + 2, clamp(rows, 5, 200));
+  return frame;
+}
+
 export async function connectTerminal(options: TerminalConnectionOptions): Promise<WebSocket> {
   const { probId, containerId, token, signal, onReady, onError, onClose } = options;
   if (!token || !Number.isSafeInteger(probId) || probId <= 0 || !/^[a-f0-9]{64}$/.test(containerId)) {

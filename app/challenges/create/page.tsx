@@ -28,6 +28,7 @@ import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { toApiCategory } from "@/lib/utils";
 import {problemApi,problemToken} from '@/lib/problemApi';
+import { parseCommandAllowlist, readCommandAllowlist } from '@/lib/command-allowlist';
 import {useBrowserDraft} from '@/components/obo/authoring/useBrowserDraft';
 import {isProblemDraft,type ProblemDraft} from '@/components/obo/authoring/problemDraft';
 import {StarterCodePreview} from '@/components/coding/StarterCodePreview';
@@ -84,10 +85,9 @@ function ProblemCreateContent() {
   // [STATE] 실습(CTF) 문제 전용
   const [flag, setFlag] = useState("");
   const [dockerfile, setDockerfile] = useState<File | null>(null);
-  const [osImage, setOsImage] = useState("ubuntu:22.04");
-  const [cpuLimit, setCpuLimit] = useState(0.5);
-  const [vmMemoryLimit, setVmMemoryLimit] = useState("512m");
-  const [allowedCommandsInput, setAllowedCommandsInput] = useState("ls, cat, grep, find");
+  const [commandAllowlistInput, setCommandAllowlistInput] = useState("");
+  // The policy the stored image was built with (edit mode); a change rebuilds the image.
+  const [savedAllowlist, setSavedAllowlist] = useState<string[]>([]);
 
   // [STATE] 객관식 문제 전용
   const [choices, setChoices] = useState([
@@ -235,6 +235,11 @@ function ProblemCreateContent() {
     // Same checks the “만드는 순서” list shows (components/problem/authoringChecklist.ts, 2026-11-09).
     const errors=requiredFieldErrors(authoringState());
     if(Object.keys(errors).length){setFieldErrors(errors);focusField(Object.keys(errors)[0]);return;}
+    const allowlist=problemType==='practice'?parseCommandAllowlist(commandAllowlistInput):null;
+    if(allowlist&&'error' in allowlist){setFieldErrors({commandAllowlist:allowlist.error});focusField('commandAllowlist');return;}
+    // Editing a practice saves its text, then rebuilds the image only when the Dockerfile or allowed commands change.
+    const rebuildNames=isEditMode&&allowlist&&'names' in allowlist&&(dockerfile!==null||allowlist.names.join(',')!==savedAllowlist.join(','))?allowlist.names:null;
+    if(rebuildNames&&!confirm('실습 환경을 다시 만듭니다. 만드는 동안에는 실습을 시작할 수 없습니다. 계속할까요?'))return;
     if(isEditMode&&problemType!=='practice'&&!editVersion){setSaveNotice('서버 버전을 확인하지 못했습니다. 초안을 파일로 보관하고 다시 열어 주세요.');return;}
     const token=problemToken();if(!token){setSaveIssue(httpIssue(401));return;}
     // Kept in this browser in case the request fails; removed again by markSaved once the server has it.
@@ -305,13 +310,9 @@ function ProblemCreateContent() {
             formData.append("contestId", String(selectedContestId));
           }
 
-          formData.append("osImage", osImage);
-          formData.append("cpuLimit", String(cpuLimit));
-          formData.append("memoryLimit", vmMemoryLimit);
           formData.append("flag", flag);
 
-          const cmdArray = allowedCommandsInput.split(",").map(c => c.trim()).filter(c => c !== "");
-          cmdArray.forEach(cmd => formData.append("allowedCommands", cmd));
+          if (allowlist && 'names' in allowlist) allowlist.names.forEach(name => formData.append("commandAllowlist", name));
 
           if (dockerfile) {
             formData.append("dockerfile", dockerfile);
@@ -386,7 +387,14 @@ function ProblemCreateContent() {
       const savedId=isEditMode?editId:savedResponse?.data?.probId;
       if(!savedId)throw new RequestFailure({kind:'format',message:'서버의 저장 확인 정보를 읽지 못했습니다.',retryable:true,uncertain:true});
       draft.markSaved();
-      setSaveNotice('서버에 저장되었습니다. 문제 화면으로 이동합니다.');
+      if(rebuildNames){
+        const rebuild=new FormData();
+        if(dockerfile)rebuild.append('dockerfile',dockerfile);
+        rebuildNames.forEach(name=>rebuild.append('commandAllowlist',name));
+        await requestJson(problemApi(`/api/problems/practice/${savedId}/rebuild`),{method:'POST',headers:{Authorization:`Bearer ${token}`},body:rebuild},{allowEmpty:true});
+        if(problemToken()!==token)return;
+      }
+      setSaveNotice(rebuildNames?'저장했습니다. 실습 환경을 다시 만드는 중입니다. 문제 화면으로 이동합니다.':'서버에 저장되었습니다. 문제 화면으로 이동합니다.');
       window.location.href=`/challenges/detail?id=${savedId}`;
     }catch(error){
       if(problemToken()!==token)return;
@@ -434,15 +442,9 @@ function ProblemCreateContent() {
             setIsOrderedAnswer(data.isSeqeuntialAnswer??false);
           } else if (data.type === "practice") {
             setFlag(data.flag || "");
-
-            if (data.vm_config) {
-              setOsImage(data.vm_config.os_image || "ubuntu:22.04");
-              setCpuLimit(data.vm_config.cpu_limit || 0.5);
-              setVmMemoryLimit(data.vm_config.memory_limit || "512m"); // 여기도 수정
-              if (data.vm_config.allowed_commands) {
-                setAllowedCommandsInput(data.vm_config.allowed_commands.join(", "));
-              }
-            }
+            const loadedAllowlist = readCommandAllowlist(data.vmInfo) ?? [];
+            setSavedAllowlist(loadedAllowlist);
+            setCommandAllowlistInput(loadedAllowlist.join(", "));
           }
 
           if (data.oboJson) {
@@ -1060,42 +1062,14 @@ function ProblemCreateContent() {
                     <Input id="flag" value={flag} onChange={(e) => setFlag(e.target.value)} placeholder="DK{Correct_Flag_Here}" className="font-mono text-sm border-primary/30" />
                   </div>
 
-                  {/* [추가] VM 환경 설정 입력란 */}
-                  {/* <div className="p-4 bg-canvas border border-line rounded-xl space-y-4 mt-2">
-                    <h4 className="text-xs font-bold text-ink-muted mb-2">VM 환경 설정</h4>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label>OS 이미지 <span className="text-danger">*</span></Label>
-                        <Input value={osImage} onChange={(e) => setOsImage(e.target.value)} placeholder="ubuntu:22.04" className="font-mono text-sm bg-panel" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>허용 명령어 (쉼표로 구분)</Label>
-                        <Input value={allowedCommandsInput} onChange={(e) => setAllowedCommandsInput(e.target.value)} placeholder="ls, cat, grep" className="font-mono text-sm bg-panel" />
-                      </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label>CPU 제한 (Core)</Label>
-                        <Input type="number" step="0.1" value={cpuLimit} onChange={(e) => setCpuLimit(Number(e.target.value))} className="font-mono text-sm bg-panel" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>메모리 제한</Label>
-                        <Input
-                          value={vmMemoryLimit}
-                          onChange={(e) => setVmMemoryLimit(e.target.value)}
-                          placeholder="512m, 1g"
-                          className="font-mono text-sm bg-panel"
-                        />
-                      </div>
-                    </div>
-                  </div> */}
-
                   <div id="dockerfile-field" className="space-y-2.5 pt-2 scroll-mt-24">
                     {fieldError('dockerfile')}
-                    <Label>Dockerfile 업로드 (.zip) <span className="text-danger">*</span></Label>
-                    <p className="text-xs text-ink-muted">등록 후 실습 환경을 제작합니다. 상세 화면에서 제작 중·완료·실패 상태를 확인할 수 있으며, 제작 완료 후 실습을 시작할 수 있습니다.</p>
+                    {isEditMode
+                      ? <Label>Dockerfile 다시 올리기 (.zip, 바꿀 때만)</Label>
+                      : <Label>Dockerfile 업로드 (.zip) <span className="text-danger">*</span></Label>}
+                    <p className="text-xs text-ink-muted">{isEditMode
+                      ? "새 파일을 올리면 실습 환경을 다시 만듭니다."
+                      : "등록 후 실습 환경을 제작합니다. 상세 화면에서 제작 중·완료·실패 상태를 확인할 수 있으며, 제작 완료 후 실습을 시작할 수 있습니다."}</p>
                     <div className="relative p-5 border-2 border-dashed border-line rounded-2xl text-center bg-canvas hover:bg-raised/50 cursor-pointer transition-colors">
                       <input
                         type="file"
@@ -1112,6 +1086,17 @@ function ProblemCreateContent() {
                         {dockerfile ? dockerfile.name : "끌어다 놓거나 눌러서 선택 (dockerfile.zip)"}
                       </span>
                     </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    {fieldError('commandAllowlist')}
+                    <Label htmlFor="commandAllowlist">허용 명령어</Label>
+                    <Input id="commandAllowlist" value={commandAllowlistInput} onChange={(e) => setCommandAllowlistInput(e.target.value)}
+                      aria-describedby="commandAllowlist-help"
+                      placeholder="비우면 제한 없음 · 예: ls, cat, strings" className="font-mono text-sm" />
+                    <p id="commandAllowlist-help" className="text-xs text-ink-muted">
+                      {isEditMode ? "바꾸면 실습 환경을 다시 만듭니다." : "입력하면 lab 계정으로 접속합니다. 문제 파일은 /home/lab에 두세요."}
+                    </p>
                   </div>
                 </div>
               )}
