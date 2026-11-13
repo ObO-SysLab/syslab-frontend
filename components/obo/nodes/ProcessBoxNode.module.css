@@ -11,7 +11,7 @@
 .fieldName { font-size: 11px; color: #667988; line-height: 1.5; }
 .cell strong { font-size: 16px; font-weight: 650; line-height: 1.6; white-space: pre-wrap; }
 .shared .cell strong { font-size: 22px; color: #11594e; }
-.cell[data-changed=true] { border-color: #099c7e; background: #d6f7e9; box-shadow: inset 3px 0 #087f68; }
+.cell[data-changed=true] { border-color: #099c7e; background: #d6f7e9; }
 .cell[data-changed=true] strong { color: #065f46; }
 .changeMark { position: absolute; width: 6px; height: 6px; top: 5px; right: 5px; background: #087f68; border-radius: 50%; }
 .threads { display: grid; gap: 12px; }

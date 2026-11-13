@@ -13,6 +13,7 @@ import { themeClass, useCosmetics } from "@/lib/cosmetics";
 import { ActivityLog } from "@/components/home/ActivityLog";
 import { DepthBadge, DivoBubble, TierBadge, TypeChip, StatusIcon, Bubbles } from "@/components/dv";
 import { problemApi } from "@/lib/problemApi";
+import { discardBody } from "@/lib/request";
 import { formatPeriod } from "@/lib/utils";
 
 type HomeProblem = {
@@ -42,7 +43,7 @@ const getJson = async (url: string, token?: string | null) => {
   const res = await fetch(url, {
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   });
-  if (!res.ok) return null;
+  if (!res.ok) { discardBody(res); return null; }
   return res.json().catch(() => null);
 };
 
@@ -271,7 +272,6 @@ export default function HomePage() {
             /* ---------- CASE 1. 로그인 대원 ---------- */
             <>
               <div className="space-y-6 dv-descend">
-                <p className="dv-hud text-primary">DIVE LOG · ACTIVE</p>
                 <h1 className="text-4xl md:text-[56px] md:leading-[64px] font-extrabold tracking-[-0.02em]">
                   반가워요, <span className="text-primary">{nickname}</span> 대원님.<br />
                   오늘은 어디까지 내려가 볼까요?
@@ -343,7 +343,6 @@ export default function HomePage() {
             /* ---------- CASE 2. 게스트 온보딩 ---------- */
             <>
               <div className="space-y-6 dv-descend">
-                <p className="dv-hud text-primary">OS LEARNING · DIVE 0m</p>
                 <h1 className="text-4xl md:text-[56px] md:leading-[64px] font-extrabold tracking-[-0.02em]">
                   운영체제의 깊은 바다로<br />
                   <span className="text-primary">다이브</span>하세요.
@@ -404,7 +403,7 @@ export default function HomePage() {
                   <span className="grid place-items-center w-10 h-10 rounded-xl bg-primary-soft text-primary">{v.icon}</span>
                   <DepthBadge level={v.lv} size="sm" />
                 </div>
-                <h3 className="text-lg font-semibold">{v.title}</h3>
+                <h2 className="text-lg font-semibold">{v.title}</h2>
                 <p className="text-sm text-ink-muted leading-6">{v.desc}</p>
               </div>
             ))}
