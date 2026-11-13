@@ -180,8 +180,9 @@ export function PracticeLab({ probId, activeMenu, exitHref, doneHref, checkBuild
                 className="h-10 border-line text-ink-muted rounded-xl px-4 font-bold hover:bg-raised/60">
                 <RefreshCw className={`w-4 h-4 mr-2 ${isResetting ? "animate-spin" : ""}`} /> 실습 환경 초기화
               </Button>
-              <Button onClick={handleEnd} disabled={!session} variant="destructive" size="sm"
-                className="h-10 bg-danger hover:bg-danger/85 text-primary-ink rounded-xl px-6 font-bold shadow-lg shadow-black/40">
+              {/* Default variant: "destructive" adds dark:bg-destructive/20, which dims this solid button in the dark scope. */}
+              <Button onClick={handleEnd} disabled={!session} size="sm"
+                className="h-10 bg-danger hover:bg-danger/85 text-white rounded-xl px-6 font-bold shadow-lg shadow-black/40">
                 실습 종료
               </Button>
             </div>
