@@ -8,12 +8,14 @@ import {problemApi,problemToken} from "@/lib/problemApi";
 import Link from "next/link";
 import { isSubmissionPending, submissionVerdict } from "@/lib/submission-status";
 import { readPracticeBuild, practiceBuildPresentation, watchPracticeBuild } from "@/lib/practice-build";
+import { readCommandAllowlist } from "@/lib/command-allowlist";
+import { CommandAllowlistBox } from "@/components/problem/CommandAllowlistBox";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Search, Settings, LogOut, Menu, MessageSquare, Bell, Share2,
   CheckCircle2, XCircle, Clock, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag, Trash2,
-  ChevronLeft, MessageCircle, Edit2, Flame, Zap, Flag, Activity
+  ChevronLeft, MessageCircle, Edit2, Flame, Flag, Activity
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -102,7 +104,8 @@ function ProblemDetailContent() {
   const [practiceStatusRetry, setPracticeStatusRetry] = useState(0);
   const practiceStatusRequested = useRef(0);
   const practiceBuild = readPracticeBuild(isLoading ? null : problemData?.practiceBuild);
-  const practiceStatus = practiceBuildPresentation(practiceBuild);
+  const commandAllowlist = readCommandAllowlist(problemData?.vmInfo);
+  const practiceStatus = practiceBuildPresentation(practiceBuild, commandAllowlist !== null);
   const [comments, setComments] = useState<any[]>([]);
   const [rankings, setRankings] = useState<any[]>([]);
   const [firstBlood, setFirstBlood] = useState<any>({ user: "", prifile_url: "", date: "" });
@@ -821,36 +824,9 @@ function ProblemDetailContent() {
                 />
               )}
 
-              {/* 실습형(CTF) VM 환경 동적 렌더링 */}
-              {problemData?.type === "practice" && (
-                <div className="mt-8 p-6 bg-deep rounded-2xl space-y-6 shadow-lg border border-line">
-
-                  {/* 상단 헤더 및 OS 이미지 정보 */}
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-black text-ink flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-success fill-success" /> VM 실습 환경
-                    </h3>
-                    <Badge variant="outline" className="text-ink-subtle border-line font-mono text-xs bg-raised">
-                      OS: {problemData?.vm_info?.os_image || "ubuntu:latest"}
-                    </Badge>
-                  </div>
-
-                  {/* 허용된 명령어 목록 (안전하게 배열 체크) */}
-                  {Array.isArray(problemData?.vm_info?.allowed_commands) && problemData.vm_info.allowed_commands.length > 0 && (
-                    <div className="bg-deep border border-line p-4 rounded-xl">
-                      <span className="text-xs font-bold text-ink-muted mb-2 block uppercase tracking-widest">
-                        Allowed Commands
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        {problemData.vm_info.allowed_commands.map((cmd: string, idx: number) => (
-                          <code key={idx} className="bg-raised text-success px-2 py-1 rounded text-xs font-mono border border-line">
-                            {`> ${cmd}`}
-                          </code>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+              {/* 실습 이미지가 허용하는 명령어 (제한이 있을 때만) */}
+              {problemData?.type === "practice" && commandAllowlist && (
+                <CommandAllowlistBox commands={commandAllowlist} />
               )}
             </TabsContent>
 

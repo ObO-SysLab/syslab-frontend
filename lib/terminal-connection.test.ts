@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { connectTerminal } from './terminal-connection';
+import { connectTerminal, resizeFrame } from './terminal-connection';
 
 class FakeSocket {
   static instances: FakeSocket[] = [];
@@ -67,5 +67,17 @@ describe('terminal authentication contract shared by practice and contest', () =
     opts.controller.abort(); ws.onopen?.(); ws.onmessage?.({ data: '{"type":"ready"}' });
     expect(ws.send).not.toHaveBeenCalled(); expect(opts.onReady).not.toHaveBeenCalled();
     expect(opts.onClose).not.toHaveBeenCalled(); expect(ws.close).toHaveBeenCalled();
+  });
+});
+
+describe('terminal resize control frame', () => {
+  it('encodes the prefix and big-endian size the terminal server reads', () => {
+    expect([...resizeFrame(132, 40)]).toEqual([0, 0x44, 0x56, 0x52, 0x53, 0, 132, 0, 40]);
+  });
+  it('clamps to the server range so the frame is never ignored', () => {
+    const size = (frame: Uint8Array) => [new DataView(frame.buffer).getUint16(5), new DataView(frame.buffer).getUint16(7)];
+    expect(size(resizeFrame(5, 1))).toEqual([20, 5]);
+    expect(size(resizeFrame(9999, 9999))).toEqual([500, 200]);
+    expect(size(resizeFrame(Number.NaN, 30.7))).toEqual([20, 30]);
   });
 });
