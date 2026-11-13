@@ -1,6 +1,7 @@
 'use client';
 import {catalog,describeOutputFormat,outputSkeleton,type CodingContract} from '../guidance/codingContract';
 import {textHelp} from '../runtime/textFormats.mjs';
+import {ProblemText} from '../../problem/ProblemText';
 
 // Abyss pages get theme colors through dark: (light inside .obo-scope and /test, 2026-11-10).
 // The language starter used to sit here behind a fold; since 2026-11-10 the submission editor opens with it.
@@ -17,8 +18,8 @@ export function CodingRules({contract,inputDescription,outputDescription}:Props)
     <h3 className="font-semibold text-base">입력·출력 및 제출 안내</h3>
     <p>선택한 언어의 <b>소스 코드</b>를 제출하세요. 프로그램은 표준 입력(stdin)을 읽고 표준 출력(stdout)에 답을 출력합니다. 안내 문구나 디버그 로그를 답과 함께 출력하지 마세요.</p>
     <div className="grid gap-4 md:grid-cols-2">
-      <div><h4 className="font-semibold">입력 형식</h4><p className="mt-1 whitespace-pre-wrap break-words">{inputDescription?.trim()||'출제자가 입력 설명을 작성하지 않았습니다. 본문과 공개 예제를 확인하세요.'}</p></div>
-      <div><h4 className="font-semibold">출력 형식</h4><p className="mt-1 whitespace-pre-wrap break-words">{outputDescription?.trim()||'출제자가 출력 설명을 작성하지 않았습니다. 본문과 공개 예제를 확인하세요.'}</p></div>
+      <div><h4 className="font-semibold">입력 형식</h4><ProblemText className="mt-1 space-y-2" text={inputDescription?.trim()||'출제자가 입력 설명을 작성하지 않았습니다. 본문과 공개 예제를 확인하세요.'}/></div>
+      <div><h4 className="font-semibold">출력 형식</h4><ProblemText className="mt-1 space-y-2" text={outputDescription?.trim()||'출제자가 출력 설명을 작성하지 않았습니다. 본문과 공개 예제를 확인하세요.'}/></div>
     </div>
     <div className="rounded-lg bg-white p-3 space-y-2 dark:bg-raised">
       <h4 className="font-semibold">채점 방식 · {rr?'RR 실행 구간 검사':text?'백준식 텍스트 결과 검사':semantic?(contract?.assessmentMode==='process'?'결과와 과정 검사':'최종 결과 검사'):'기존 출력 비교'}</h4>
