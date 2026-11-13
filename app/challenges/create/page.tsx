@@ -35,6 +35,7 @@ import {StarterCodePreview} from '@/components/coding/StarterCodePreview';
 import {SampleCases} from '@/components/problem/SampleCases';
 import {ChoiceList} from '@/components/problem/ChoiceList';
 import {ProblemTags} from '@/components/problem/ProblemTags';
+import {ProblemText} from '@/components/problem/ProblemText';
 import { Header } from "@/components/Header";
 
 function ProblemCreateContent() {
@@ -84,6 +85,7 @@ function ProblemCreateContent() {
 
   // [STATE] 실습(CTF) 문제 전용
   const [flag, setFlag] = useState("");
+  const [hint, setHint] = useState("");
   const [dockerfile, setDockerfile] = useState<File | null>(null);
   const [commandAllowlistInput, setCommandAllowlistInput] = useState("");
   // The policy the stored image was built with (edit mode); a change rebuilds the image.
@@ -271,6 +273,7 @@ function ProblemCreateContent() {
           oboAction: oboEnabled ? 'replace' : 'remove',
           oboJson: oboEnabled ? oboData : null,
           ...(problemType==='objective'?{choices,answer:selectedAnswers,isSeqeuntialAnswer:orderedSelection}:{}),
+          ...(problemType==='practice'?{hint}:{}),
           ...(problemType==='coding'?{
             constraints:{timeLimitMs:timeLimit*1000,memoryLimitMb:memoryLimit,allowedLanguages},
             inputDescription:inputDesc,outputDescription:outputDesc,
@@ -311,6 +314,7 @@ function ProblemCreateContent() {
           }
 
           formData.append("flag", flag);
+          if (hint.trim()) formData.append("hint", hint);
 
           if (allowlist && 'names' in allowlist) allowlist.names.forEach(name => formData.append("commandAllowlist", name));
 
@@ -442,6 +446,7 @@ function ProblemCreateContent() {
             setIsOrderedAnswer(data.isSeqeuntialAnswer??false);
           } else if (data.type === "practice") {
             setFlag(data.flag || "");
+            setHint(data.hint || "");
             const loadedAllowlist = readCommandAllowlist(data.vmInfo) ?? [];
             setSavedAllowlist(loadedAllowlist);
             setCommandAllowlistInput(loadedAllowlist.join(", "));
@@ -865,7 +870,7 @@ function ProblemCreateContent() {
                     <ProblemTags difficulty={difficulty} type={problemType} category={category} />
                     <h3 className="text-2xl font-bold text-ink">{title || '문제 제목'}</h3>
                     {summary.trim() && <p className="text-sm text-ink-muted leading-relaxed whitespace-pre-wrap">{summary}</p>}
-                    <p className="text-ink whitespace-pre-wrap break-words">{description || "작성된 설명이 없습니다."}</p>
+                    <ProblemText className="space-y-3 text-ink" text={description || "작성된 설명이 없습니다."} />
                     {problemType === 'objective' && <ChoiceList choices={choices.map((c, i) => ({ index: i + 1, content: c.content || `보기 ${i + 1}` }))} ordered={orderedSelection} />}
                   </div>
                 </TabsContent>
@@ -1060,6 +1065,11 @@ function ProblemCreateContent() {
                   <div className="space-y-2 pt-1">
                     <Label htmlFor="flag">Secret Flag 인증 문자열 <span className="text-danger">*</span></Label>
                     <Input id="flag" value={flag} onChange={(e) => setFlag(e.target.value)} placeholder="DK{Correct_Flag_Here}" className="font-mono text-sm border-primary/30" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="practice-hint">힌트 (선택)</Label>
+                    <Textarea id="practice-hint" value={hint} onChange={(e) => setHint(e.target.value)} className="min-h-[72px] text-sm" />
                   </div>
 
                   <div id="dockerfile-field" className="space-y-2.5 pt-2 scroll-mt-24">
@@ -1286,7 +1296,7 @@ function ProblemCreateContent() {
                   <ProblemTags difficulty={difficulty} type={problemType} category={category} />
                   <h3 className="text-2xl font-bold text-ink">{title||'문제 제목'}</h3>
                   {summary.trim()&&<p className="text-sm text-ink-muted leading-relaxed whitespace-pre-wrap">{summary}</p>}
-                  <p className="whitespace-pre-wrap break-words text-ink">{description||'문제 설명을 작성하세요.'}</p>
+                  <ProblemText className="space-y-3 text-ink" text={description||'문제 설명을 작성하세요.'}/>
                   <CodingRules contract={describeCodingContract(oboEnabled?oboData:null)} inputDescription={inputDesc} outputDescription={outputDesc} allowedLanguages={allowedLanguages}/>
                   {testcases.some(tc=>tc.is_sample)?<SampleCases cases={testcases.filter(tc=>tc.is_sample)}/>:<p className="text-sm text-warning">공개 예제가 없습니다.</p>}
                 </div>
