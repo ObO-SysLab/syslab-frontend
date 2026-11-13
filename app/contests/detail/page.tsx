@@ -833,13 +833,10 @@ function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, h
                 대회가 종료되었습니다 (참가 완료)
               </div>
             ) : contestInfo.status === "진행 중" ? (
-              /* 진행 중: 주 동작은 문제 풀기, 취소는 작게 아래 */
-              <>
-                <button type="button" onClick={onOpenChallenges} className="dv-btn-dive">
-                  문제 풀러 가기 <ChevronRight size={18} />
-                </button>
-                {cancelButton}
-              </>
+              /* 진행 중: 문제 풀기. 시작된 대회는 참가를 취소할 수 없다(서버가 409). */
+              <button type="button" onClick={onOpenChallenges} className="dv-btn-dive">
+                문제 풀러 가기 <ChevronRight size={18} />
+              </button>
             ) : (
               /* 접수 중: 신청 완료 표시 + 취소 */
               <>
@@ -850,8 +847,8 @@ function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, h
               </>
             )
           ) : (
-            /* 미가입 유저 상태 분기 */
-            contestInfo.status === "접수 중" ? (
+            /* 미가입 유저 상태 분기. 진행 중에도 참가할 수 있다(2026-11-13). */
+            contestInfo.status === "접수 중" || contestInfo.status === "진행 중" ? (
               <button
                 type="button"
                 className="dv-btn-dive"
@@ -861,10 +858,6 @@ function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, h
               >
                 지금 참가하기 <ChevronRight size={18} />
               </button>
-            ) : contestInfo.status === "진행 중" ? (
-              <div className="bg-warning/10 border border-warning/30 text-warning font-bold px-8 py-3 rounded-xl">
-                대회가 진행 중입니다 (신규 참가 접수 마감)
-              </div>
             ) : (
               <div className="bg-raised text-ink-subtle font-bold px-8 py-3 rounded-xl border border-line">
                 종료된 대회입니다

@@ -35,6 +35,8 @@ import { TierBadge } from "@/components/dv";
 import { ProblemTags } from "@/components/problem/ProblemTags";
 import { ChoiceList } from "@/components/problem/ChoiceList";
 import { SampleCases } from "@/components/problem/SampleCases";
+import { ProblemText } from "@/components/problem/ProblemText";
+import { PracticeHint } from "@/components/problem/PracticeHint";
 import { CosmeticFrame, UserTitle } from "@/components/Cosmetics";
 import { useCosmetics } from "@/lib/cosmetics";
 
@@ -802,9 +804,7 @@ function ProblemDetailContent() {
               <Separator />
 
               <div className="prose prose-slate max-w-none">
-                <p className="text-ink whitespace-pre-wrap">
-                  {problemData?.description}
-                </p>
+                <ProblemText className="space-y-3 text-ink" text={problemData?.description} />
 
                 {/* 객관식 보기 동적 렌더링 (순서 일치 문제는 누른 순서 번호를 보여 준다) */}
                 {problemData?.type === "objective" && problemData?.choices && (
@@ -828,6 +828,7 @@ function ProblemDetailContent() {
               {problemData?.type === "practice" && commandAllowlist && (
                 <CommandAllowlistBox commands={commandAllowlist} />
               )}
+              {problemData?.type === "practice" && <PracticeHint hint={problemData?.hint} />}
             </TabsContent>
 
             {/* 2. 채점 탭 */}

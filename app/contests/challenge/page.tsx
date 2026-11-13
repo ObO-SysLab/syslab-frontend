@@ -22,6 +22,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Header } from "@/components/Header";
 import { AdSlot } from "@/components/AdSlot";
+import { ProblemText } from "@/components/problem/ProblemText";
+import { PracticeHint } from "@/components/problem/PracticeHint";
 
 
 function ProblemDetailContent() {
@@ -369,9 +371,7 @@ function ProblemDetailContent() {
 							<Separator />
 
 							<div className="prose prose-slate max-w-none">
-								<p className="text-ink whitespace-pre-wrap">
-									{problemData?.description}
-								</p>
+								<ProblemText className="space-y-3 text-ink" text={problemData?.description} />
 
 								{/* 객관식 보기 동적 렌더링 */}
 								{problemData?.type === "objective" && problemData?.choices && (
@@ -387,6 +387,7 @@ function ProblemDetailContent() {
 							{problemData?.type === "practice" && commandAllowlist && (
 								<CommandAllowlistBox commands={commandAllowlist} />
 							)}
+							{problemData?.type === "practice" && <PracticeHint hint={problemData?.hint} />}
 						</TabsContent>
 
 						{/* 2. 채점 탭 */}
