@@ -201,11 +201,11 @@ const codingExtras: Record<number, object> = {
 
 const practiceExtras: Record<number, object> = {
   // commandAllowlist: commands the practice image allows; null = unrestricted (like the real API).
-  3: { vmInfo: { osImage: "ubuntu:22.04", commandAllowlist: ["cat", "grep", "ls", "strings", "xxd"] } },
-  6: { vmInfo: { osImage: "ubuntu:22.04", commandAllowlist: ["cat", "dmesg", "find", "grep", "ls", "lsmod", "ps"] } },
-  8: { vmInfo: { osImage: "ubuntu:20.04", commandAllowlist: ["cat", "gdb", "ls", "objdump", "python3"] } },
-  12: { vmInfo: { osImage: "debian:12", commandAllowlist: ["cat", "debugfs", "dumpe2fs", "ls", "xxd"] } },
-  15: { vmInfo: { osImage: "ubuntu:22.04", commandAllowlist: null } },
+  3: { vmInfo: { commandAllowlist: ["cat", "grep", "ls", "strings", "xxd"] } },
+  6: { vmInfo: { commandAllowlist: ["cat", "dmesg", "find", "grep", "ls", "lsmod", "ps"] } },
+  8: { vmInfo: { commandAllowlist: ["cat", "gdb", "ls", "objdump", "python3"] } },
+  12: { vmInfo: { commandAllowlist: ["cat", "debugfs", "dumpe2fs", "ls", "xxd"] } },
+  15: { vmInfo: { commandAllowlist: null } },
 };
 
 // GET /api/problems/{probId} — 없거나 남의 비공개 문제면 null(실제 서버는 404)
