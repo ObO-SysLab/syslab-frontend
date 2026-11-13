@@ -799,7 +799,6 @@ function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, h
     <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl mx-auto">
       {/* 타이틀 및 헤더 영역 */}
       <div className="text-center space-y-4 py-10 px-6 bg-panel border border-line rounded-3xl text-ink relative overflow-hidden">
-        <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-primary/15 blur-3xl rounded-full" aria-hidden="true"></div>
         {/* <Badge className="bg-primary hover:bg-primary-hover mb-2">제 1회 공식 해커톤</Badge> */}
         <h1 className="relative text-3xl md:text-4xl font-bold tracking-[-0.02em]">{contestInfo.title}</h1>
 
@@ -1011,7 +1010,6 @@ function DashboardTab({ contestInfo, notices = [], allChallenges = [], fullRanki
 
         {/* 4. 내 상태(My Status) 동적 연동 */}
         <Card className="bg-deep text-ink border-none overflow-hidden p-6 space-y-4 relative">
-          <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-primary/20 rounded-full blur-3xl" />
           <p className="text-xs font-bold text-primary uppercase tracking-widest relative z-10">My Status</p>
           <div className="flex justify-between items-end relative z-10">
             <div>

@@ -215,9 +215,6 @@ export default function FindAccountPage() {
         <div className="w-full max-w-[450px] space-y-6">
 
           <div className="text-center space-y-2 mb-8">
-            <div className="bg-primary w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-black/40">
-              <Fingerprint className="text-white w-7 h-7" />
-            </div>
             <h2 className="text-3xl font-black text-ink tracking-tight">계정 정보 찾기</h2>
             <p className="text-ink-subtle text-sm font-medium">가입 시 등록한 정보로 본인 인증을 진행해 주세요.</p>
           </div>

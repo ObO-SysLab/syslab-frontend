@@ -18,7 +18,7 @@ export function UserTitle({ title, name, className = "" }: { title?: string | nu
   if (!title || !name) return null;
   const tone = TITLE_TONE[title] ?? "border-line-strong bg-raised text-ink-muted";
   return (
-    <span className={`inline-flex items-center h-[18px] px-1.5 rounded border text-[10px] font-bold font-mono tracking-tight whitespace-nowrap ${tone} ${className}`}>
+    <span className={`inline-flex items-center h-[18px] px-1.5 rounded border text-[11px] font-bold font-mono tracking-tight whitespace-nowrap ${tone} ${className}`}>
       {name}
     </span>
   );

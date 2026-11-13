@@ -95,7 +95,7 @@ export function Header({
                 aria-label="검색"
                 value={searchTerm ?? ""}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-9 bg-panel border-line text-ink placeholder:text-ink-subtle rounded-full h-9 text-sm focus-visible:ring-primary"
+                className="pl-9 bg-panel border-line text-ink placeholder:text-ink-muted rounded-full h-9 text-sm focus-visible:ring-primary"
               />
             </div>
           </div>
@@ -207,7 +207,7 @@ function MobileDrawer({
                 value={searchTerm ?? ""}
                 onChange={(e) => onSearchChange(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") onOpenChange(false); }}
-                className="pl-9 h-10 bg-canvas border-line text-ink placeholder:text-ink-subtle rounded-full text-sm focus-visible:ring-primary"
+                className="pl-9 h-10 bg-canvas border-line text-ink placeholder:text-ink-muted rounded-full text-sm focus-visible:ring-primary"
               />
             </div>
           )}

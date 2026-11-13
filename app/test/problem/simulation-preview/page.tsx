@@ -18,7 +18,7 @@ export default function SimulationPreview(){
   },[]);
   const button='rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50';
   return <main className="min-h-screen bg-slate-50 p-4 text-slate-900 md:p-6"><div className="mx-auto max-w-[1500px] space-y-4">
-    <header className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold text-indigo-600">OBO · {registry[model]?.metadata.name}</p><h1 className="mt-1 text-2xl font-bold">{document?.instances[0]?.name??'시뮬레이션'}</h1></div>
+    <header className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold text-slate-500">OBO · {registry[model]?.metadata.name}</p><h1 className="mt-1 text-2xl font-bold">{document?.instances[0]?.name??'시뮬레이션'}</h1></div>
       <div className="flex flex-wrap items-center gap-2"><label className="text-sm">주제 <select aria-label="점검할 주제" className={button} value={model} onChange={e=>{window.location.href=`?model=${encodeURIComponent(e.target.value)}`;}}>{Object.entries(registry).map(([id,entry])=><option key={id} value={id}>{entry.metadata.name}</option>)}</select></label>
       <button className={button} disabled={!document} onClick={()=>{try{validateDocument(document,{execute:false});localStorage.setItem(`obo:simulation-preview:v1:${model}`,JSON.stringify(document));setNotice('이 브라우저에 임시 저장했습니다.');}catch(e){setNotice(e instanceof Error?e.message:'저장할 수 없습니다.');}}}>임시 저장</button></div>
     </header>

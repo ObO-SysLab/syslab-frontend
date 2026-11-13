@@ -38,6 +38,11 @@ export function requestIssue(error: unknown, mutation = false): RequestIssue {
 }
 export const isRequestCancelled = (error: unknown) => error instanceof Error && error.name === 'AbortError';
 
+/** 읽지 않을 응답 본문을 닫는다. 닫지 않으면 브라우저가 요청을 계속 진행 중으로 둔다. */
+export function discardBody(response: Response) {
+  try { void response.body?.cancel().catch(() => {}); } catch { /* 본문이 없거나 테스트 대역 */ }
+}
+
 /** One request only. No automatic retries, including POST/PATCH. Never display server bodies. */
 export async function requestJson<T = any>(url: string, init: RequestInit = {}, options: { timeoutMs?: number; allowEmpty?: boolean } = {}): Promise<T> {
   const mutation = !['GET', 'HEAD'].includes((init.method ?? 'GET').toUpperCase());
@@ -55,7 +60,7 @@ export async function requestJson<T = any>(url: string, init: RequestInit = {}, 
   });
   const request = async () => {
     const response = await fetch(url, { ...init, signal: controller.signal });
-    if (!response.ok) throw new RequestFailure(httpIssue(response.status, mutation, response.headers.get('retry-after')));
+    if (!response.ok) { discardBody(response); throw new RequestFailure(httpIssue(response.status, mutation, response.headers.get('retry-after'))); }
     const text = await response.text();
     if (!text && options.allowEmpty) return null as T;
     try { return JSON.parse(text) as T; }

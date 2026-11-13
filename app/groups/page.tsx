@@ -305,7 +305,6 @@ function GroupListContent() {
         <section className="col-span-12 md:col-span-10 xl:col-span-8 space-y-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6">
             <div className="space-y-1">
-              <p className="dv-hud text-primary">Crews</p>
               <h1 className="text-[32px] leading-10 font-bold tracking-[-0.01em] text-ink">탐사대</h1>
               <p className="text-sm text-ink-muted">찾은 탐사대 <span className="font-mono text-ink">{totalGroups}</span>개</p>
             </div>
@@ -372,9 +371,9 @@ function GroupListContent() {
                         <div className="flex flex-col justify-center">
                           <div className="flex items-center gap-2 flex-wrap">
                             {/* 그룹명 */}
-                            <h3 className="font-bold text-ink group-hover:text-primary transition-colors">
+                            <h2 className="font-bold text-ink group-hover:text-primary transition-colors">
                               {grp.title}
-                            </h3>
+                            </h2>
 
                             {/* 비공개 상태 스캔 시 자물쇠 배지 UI 동적 장착 */}
                             {grp.isPrivate && (

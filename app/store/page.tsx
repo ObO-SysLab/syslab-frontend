@@ -193,7 +193,7 @@ export default function StorePage() {
                 </CardHeader>
                 <CardContent className="p-6 space-y-1.5 flex-1">
                   <p className="text-xs text-ink-subtle">{CATEGORY_LABEL[item.category] ?? item.category}</p>
-                  <h3 className="text-lg font-black text-ink">{item.name}</h3>
+                  <h2 className="text-lg font-black text-ink">{item.name}</h2>
                   <p className="text-xs text-ink-muted leading-relaxed">{item.description}</p>
                 </CardContent>
                 <CardFooter className="p-6 pt-0 flex items-center justify-between gap-2">
