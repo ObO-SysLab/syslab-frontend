@@ -7,6 +7,7 @@ import { CosmeticFrame, UserTitle } from "@/components/Cosmetics";
 import { themeClass, useCosmetics } from "@/lib/cosmetics";
 import { TierBadge } from "@/components/dv";
 import { getGroupTier } from "@/lib/utils";
+import { discardBody } from "@/lib/request";
 import {
   Search, BarChart3, Crown, ChevronLeft, ChevronRight
 } from "lucide-react";
@@ -62,6 +63,7 @@ export default function GlobalRankingPage() {
           }
         });
 
+        if (!response.ok) discardBody(response);
         if (response.ok) {
           const result = await response.json();
           const userInfo = result?.data?.userInfo;
@@ -90,6 +92,7 @@ export default function GlobalRankingPage() {
         headers
       });
 
+      if (!res.ok) discardBody(res);
       if (res.ok) {
         const json = await res.json();
         const apiRankings = json?.data?.rankings || [];
@@ -136,6 +139,7 @@ export default function GlobalRankingPage() {
         headers
       });
 
+      if (!res.ok) discardBody(res);
       if (res.ok) {
         const json = await res.json();
         const apiRankings = json?.data?.rankings || [];
@@ -259,7 +263,7 @@ export default function GlobalRankingPage() {
                     <AvatarFallback className="bg-line text-ink-muted font-bold text-lg">{currentTop3[1].avatar}</AvatarFallback>
                   </Avatar>
                 </CosmeticFrame>
-                <h3 className="shrink-0 font-black text-base leading-6 text-ink text-center px-2 line-clamp-1">{currentTop3[1].nickname}</h3>
+                <h2 className="shrink-0 font-black text-base leading-6 text-ink text-center px-2 line-clamp-1">{currentTop3[1].nickname}</h2>
                 {rankType === "user" && <UserTitle title={podiumCosmetics(1)?.title} name={podiumCosmetics(1)?.titleName} className="mt-1" />}
                 <p className="text-sm font-bold text-ink-muted mt-1">{currentTop3[1].score.toLocaleString()}점</p>
                 {"memberCount" in currentTop3[1] && (
@@ -273,7 +277,7 @@ export default function GlobalRankingPage() {
               key={`podium-gold-${rankType}-${currentTop3[0].userId || currentTop3[0].groupId}`}
               className="order-1 md:order-2 transform transition-transform hover:-translate-y-2 z-10 relative"
             >
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20 animate-bounce">
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
                 <Crown className="h-8 w-8 text-warning fill-warning" />
               </div>
               <Card className={`border-warning/30 bg-gradient-to-b from-warning/10 to-panel shadow-xl relative overflow-hidden h-[270px] flex flex-col items-center justify-center pt-6 border-2 ${themeClass(podiumCosmetics(0)?.theme)}`}>
@@ -285,7 +289,7 @@ export default function GlobalRankingPage() {
                     <AvatarFallback className="bg-warning/25 text-warning font-black text-xl">{currentTop3[0].avatar}</AvatarFallback>
                   </Avatar>
                 </CosmeticFrame>
-                <h3 className="shrink-0 font-black text-lg leading-7 text-ink text-center px-2 line-clamp-1">{currentTop3[0].nickname}</h3>
+                <h2 className="shrink-0 font-black text-lg leading-7 text-ink text-center px-2 line-clamp-1">{currentTop3[0].nickname}</h2>
                 {rankType === "user" && <UserTitle title={podiumCosmetics(0)?.title} name={podiumCosmetics(0)?.titleName} className="mt-1" />}
                 <p className="text-sm font-black text-warning bg-warning/15 px-3 py-0.5 rounded-full mt-1.5">{currentTop3[0].score.toLocaleString()}점</p>
                 {"memberCount" in currentTop3[0] && (
@@ -308,7 +312,7 @@ export default function GlobalRankingPage() {
                     <AvatarFallback className="bg-warning/15 text-warning font-bold text-base">{currentTop3[2].avatar}</AvatarFallback>
                   </Avatar>
                 </CosmeticFrame>
-                <h3 className="shrink-0 font-black text-base leading-6 text-ink text-center px-2 line-clamp-1">{currentTop3[2].nickname}</h3>
+                <h2 className="shrink-0 font-black text-base leading-6 text-ink text-center px-2 line-clamp-1">{currentTop3[2].nickname}</h2>
                 {rankType === "user" && <UserTitle title={podiumCosmetics(2)?.title} name={podiumCosmetics(2)?.titleName} className="mt-1" />}
                 <p className="text-sm font-bold text-ink-muted mt-1">{currentTop3[2].score.toLocaleString()}점</p>
                 {"memberCount" in currentTop3[2] && (

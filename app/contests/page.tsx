@@ -185,7 +185,6 @@ export default function ContestListPage() {
         <section className="col-span-12 md:col-span-10 xl:col-span-8 space-y-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6">
             <div className="space-y-1">
-              <p className="dv-hud text-coral">Expeditions</p>
               <h1 className="text-[32px] leading-10 font-bold tracking-[-0.01em] text-ink">원정</h1>
               <p className="text-sm text-ink-muted">찾은 원정 <span className="font-mono text-ink">{totalContests}</span>개</p>
             </div>
@@ -249,7 +248,7 @@ export default function ContestListPage() {
                               )}
                               <span className="inline-flex items-center h-[22px] px-2 rounded-md bg-raised text-ink-muted text-xs">{contest.type}</span>
                             </div>
-                            <h3 className="text-xl font-bold text-ink">{contest.title}</h3>
+                            <h2 className="text-xl font-bold text-ink">{contest.title}</h2>
                             <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-sm text-ink-muted font-medium">
                               <span className="flex items-center gap-1.5"><Calendar size={14} /> {formatPeriod(contest.startTime, contest.endTime)}</span>
                               <span className="flex items-center gap-1.5"><Users size={14} /> {contest.participants}명 참여 중</span>

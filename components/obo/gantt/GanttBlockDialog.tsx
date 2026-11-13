@@ -17,7 +17,7 @@ export function GanttBlockDialog({ block, title, editLabel, onSave, onClose }: {
     <dialog ref={ref} aria-label="간트 구간" onCancel={onClose} onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); if (event.target === event.currentTarget) onClose(); }}
       className="m-auto w-[min(420px,calc(100vw-32px))] rounded-2xl border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-900/25">
       <form className="space-y-4 p-5 text-slate-800" onSubmit={event => { event.preventDefault(); if (onSave && valid) { onSave(next); onClose(); } }}>
-        <div><p className="text-xs font-semibold text-indigo-600">{onSave ? editLabel : '구간 정보'}</p><h2 className="mt-1 break-words text-lg font-bold">{title}</h2></div>
+        <div><p className="text-xs font-semibold text-slate-500">{onSave ? editLabel : '구간 정보'}</p><h2 className="mt-1 break-words text-lg font-bold">{title}</h2></div>
         <div className="grid grid-cols-2 gap-3">
           <label className="space-y-1 text-sm">시작 시간<input autoFocus type="number" step="any" min="0" value={start} readOnly={!onSave} onChange={e => setStart(e.target.value)} className="block w-full rounded-lg border border-slate-200 p-2" /></label>
           <label className="space-y-1 text-sm">종료 시간<input type="number" step="any" min="0" value={end} readOnly={!onSave} onChange={e => setEnd(e.target.value)} className="block w-full rounded-lg border border-slate-200 p-2" /></label>

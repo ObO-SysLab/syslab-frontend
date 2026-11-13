@@ -122,7 +122,6 @@ function GroupInviteContent() {
                 <ShieldCheck className="h-6 w-6 text-success" />
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-success font-bold uppercase tracking-wider">Join Completed</p>
                 <h2 className="text-xl font-black tracking-tight text-ink">
                   <span className="text-primary">[{groupInfo?.title}]</span><br />그룹 참여 완료!
                 </h2>
@@ -137,7 +136,6 @@ function GroupInviteContent() {
                 <Users className="h-6 w-6 text-primary" />
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-primary font-bold uppercase tracking-wider">Already a Member</p>
                 <h2 className="text-xl font-black tracking-tight text-ink">
                   이미 가입된 대원입니다.
                 </h2>
@@ -152,7 +150,6 @@ function GroupInviteContent() {
                 <XCircle className="h-6 w-6 text-danger" />
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-danger font-bold uppercase tracking-wider">Access Denied</p>
                 <h2 className="text-xl font-black tracking-tight text-ink">초대 가입 실패</h2>
                 <p className="text-xs text-ink-muted font-medium pt-1 leading-relaxed max-w-xs mx-auto">
                   {errorMessage}
