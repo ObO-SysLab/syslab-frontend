@@ -21,7 +21,7 @@ describe('author allowlist input', () => {
 
 describe('allowlist from a problem response', () => {
   it('reads the restricted commands', () => {
-    expect(readCommandAllowlist({ osImage: 'ubuntu:22.04', commandAllowlist: ['cat', 'ls'] })).toEqual(['cat', 'ls']);
+    expect(readCommandAllowlist({ commandAllowlist: ['cat', 'ls'] })).toEqual(['cat', 'ls']);
   });
   it.each([undefined, null, {}, { commandAllowlist: null }, { commandAllowlist: [] }, { allowedCommands: ['ls'] },
     { commandAllowlist: ['ls', 7] }, { commandAllowlist: ['<b>x</b>'] }])('is unrestricted for %j', value => {
