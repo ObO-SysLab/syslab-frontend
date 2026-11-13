@@ -396,7 +396,7 @@ export default function HomePage() {
           <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               { icon: <Eye size={20} />, lv: 1, title: "시각적 체험", desc: "Context Switch, Page Fault가 일어나는 순간을 노드 그래프로 한 단계씩 재생해요." },
-              { icon: <ShieldCheck size={20} />, lv: 3, title: "안전한 격리 실행", desc: "gVisor·seccomp로 격리된 VM에서 커널 실습을 마음껏 해 볼 수 있어요." },
+              { icon: <ShieldCheck size={20} />, lv: 3, title: "안전한 격리 실행", desc: "네트워크가 막힌 격리 컨테이너에서 리눅스 실습을 마음껏 해 볼 수 있어요." },
               { icon: <Gauge size={20} />, lv: 5, title: "즉시 피드백", desc: "제출하면 바로 채점하고, 무엇이 달랐는지 테스트 단위로 알려 줘요." },
             ].map((v) => (
               <div key={v.title} className="rounded-2xl border border-line bg-panel p-6 space-y-3">
