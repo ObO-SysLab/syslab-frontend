@@ -41,7 +41,7 @@ export default function FindAccountPage() {
       });
 
       if (res.ok) {
-        alert("가입하신 이메일로 아이디가 성공적으로 발송되었습니다.");
+        alert("가입하신 이메일로 아이디를 보냈습니다.");
         setEmailForId("");
       } else if (res.status === 404) {
         alert("가입되지 않은 이메일 주소입니다.");
@@ -112,7 +112,7 @@ export default function FindAccountPage() {
       });
 
       if (res.ok) {
-        alert("이메일 인증이 완료되었습니다! 이제 새 비밀번호를 설정할 수 있습니다.");
+        alert("이메일 인증을 마쳤습니다. 이제 새 비밀번호를 설정할 수 있습니다.");
         setIsCodeVerified(true);
         setIsTimerActive(false);
       } else if (res.status === 400) {
@@ -156,7 +156,7 @@ export default function FindAccountPage() {
       });
 
       if (res.ok) {
-        alert("비밀번호가 성공적으로 변경되었습니다! 변경된 비밀번호로 로그인해 주세요.");
+        alert("비밀번호를 바꿨습니다. 새 비밀번호로 로그인해 주세요.");
         router.push("/signin");
       } else {
         alert("비밀번호 재설정에 실패했습니다. 인증 코드 또는 비밀번호 규격을 확인해 주세요.");
@@ -350,7 +350,7 @@ export default function FindAccountPage() {
                   {isCodeVerified && (
                     <div className="space-y-6 animate-in zoom-in-95 duration-300">
                       <div className="p-4 bg-success/10 border border-success/20 rounded-2xl text-xs font-bold text-success leading-normal flex items-center gap-2">
-                        <span>이메일 인증이 성공적으로 확인되었습니다.</span>
+                        <span>이메일 인증을 확인했습니다.</span>
                       </div>
 
                       {/* 새로운 비밀번호 입력 */}

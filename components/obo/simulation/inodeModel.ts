@@ -105,7 +105,7 @@ export function inodeSnapshot(instance: SimulationInstance, execution: ModelRun 
     blockSize, nodes, links, activeNodeKeys: [], activeLinkKeys: [], currentNodeKey: null,
     current: null, access: null, result: null,
     summary: Object.keys(directory).length
-      ? '파일 이름에서 inode를 찾고, 직접 또는 간접 포인터를 따라 데이터 블록에 접근합니다.'
+      ? '파일 이름에서 inode를 찾고 직접 또는 간접 포인터를 따라 데이터 블록에 접근합니다.'
       : '등록된 파일 이름이 없습니다.',
   };
 

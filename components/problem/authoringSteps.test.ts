@@ -39,7 +39,7 @@ describe('create page steps (2026-11-09)', () => {
     const ready = state({ title: 'T', description: 'D', previewed: true, testcases: [{ input: '1', output: '1', is_sample: true }, { input: '2', output: '2', is_sample: false }] });
     expect(status(ready)).toEqual({ basic: 'done', description: 'done', obo: 'optional', testcases: 'done', samples: 'done', hidden: 'done', preview: 'done' });
     const missing = authoringChecklist(state({ testcases: [{ input: '1', output: '', is_sample: true }, { input: '', output: '', is_sample: false }] })).find(s => s.id === 'testcases')!;
-    expect(missing).toMatchObject({ status: 'check', hint: '입력이나 출력이 빈 테스트가 1개 있어요', target: 'testcases-field' });
+    expect(missing).toMatchObject({ status: 'check', hint: '입력이나 출력이 빈 테스트가 1개 있습니다', target: 'testcases-field' });
   });
 
   it('semantic grading needs inputs only, since the engine computes the answer', () => {

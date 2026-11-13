@@ -17,7 +17,7 @@ export function AuthoringChecklist({ steps, onGo }: { steps: AuthoringStep[]; on
     <div className="border-b border-line bg-deep px-5 py-4">
       <p className="text-lg font-bold text-ink">만드는 순서</p>
       <p role="status" aria-live="polite" className="mt-0.5 text-xs text-ink-muted" data-required-left={required}>
-        {required ? `필수 ${required}개 남음` : '필수 항목을 모두 채웠어요'}{checks ? ` · 확인 ${checks}개` : ''}
+        {required ? `필수 ${required}개 남음` : '필수 항목을 모두 채웠습니다'}{checks ? ` · 확인 ${checks}개` : ''}
       </p>
     </div>
     <ol className="max-h-[calc(100dvh-14rem)] divide-y divide-line overflow-y-auto">

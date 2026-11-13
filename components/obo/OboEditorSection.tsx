@@ -74,8 +74,8 @@ export const OboEditorSection = React.memo(function OboEditorSection(props: Prop
     <div className="shrink-0 space-y-2 border-b bg-slate-50 px-4 py-2" aria-label="만드는 방식">
       <div className="grid gap-2 md:grid-cols-[1fr_1fr_minmax(200px,0.8fr)]">
         {/* Plain mode names chosen by the user (2026-11-08): 간편 모드 = rule-based simulation, 자유 모드 = free drawing. */}
-        {card(true, '간편 모드', coding ? '값만 넣으면 그림·정답·숨김 테스트를 자동으로 만들어요. 운영체제 개념 21개를 지원해요.' : '값만 넣으면 과정과 그림을 자동으로 만들어요. 운영체제 개념 21개를 지원해요.')}
-        {card(false, '자유 모드', coding ? '그림과 정답 장면을 직접 만들어요. 학생 출력(한 줄에 한 장면)을 같은 그림으로 재생해 채점해요. 어떤 개념이든 표현할 수 있어요.' : '그림과 장면을 직접 만들어요. 어떤 개념이든 설명에 맞춰 마음대로 꾸밀 수 있어요.')}
+        {card(true, '간편 모드', coding ? '값만 넣으면 그림·정답·숨김 테스트를 자동으로 만듭니다. 운영체제 개념 21개를 지원합니다.' : '값만 넣으면 과정과 그림을 자동으로 만듭니다. 운영체제 개념 21개를 지원합니다.')}
+        {card(false, '자유 모드', coding ? '그림과 정답 장면을 직접 만듭니다. 학생 출력(한 줄에 한 장면)을 같은 그림으로 재생해 채점합니다. 어떤 개념이든 표현할 수 있습니다.' : '그림과 장면을 직접 만듭니다. 어떤 개념이든 설명에 맞춰 마음대로 꾸밀 수 있습니다.')}
         <label className="block text-xs text-slate-600">주제로 추천 받기
           <select aria-label="주제로 추천 받기" value={topicId} onChange={e => setTopicId(e.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm">
             <option value="">주제를 고르세요</option>
@@ -543,7 +543,7 @@ export const LegacyOboEditorSection = React.memo(function LegacyOboEditorSection
                 <p className="text-[10px] text-slate-400 mb-1">현재 보기를 복사 →</p>
                 {nodes.length === 0 ? (
                   <p className="text-[10px] text-slate-300 leading-snug">
-                    현재 보기에 다이어그램을 먼저 그리면 다른 보기로 복사할 수 있어요.
+                    현재 보기에 다이어그램을 먼저 그리면 다른 보기로 복사할 수 있습니다.
                   </p>
                 ) : (
                   <div className="flex flex-wrap gap-1">

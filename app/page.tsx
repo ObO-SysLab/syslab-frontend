@@ -348,7 +348,7 @@ export default function HomePage() {
                   <span className="text-primary">다이브</span>하세요.
                 </h1>
                 <p className="text-ink-muted text-[17px] leading-7 max-w-[60ch]">
-                  교과서로만 보던 스케줄링·가상 메모리·동기화를 단계별 시각화로 직접 조작하고,
+                  교과서로만 보던 스케줄링·가상 메모리·동기화를 단계별 시각화로 직접 조작하고
                   격리된 샌드박스에서 안전하게 실습해요.
                 </p>
                 <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -396,7 +396,7 @@ export default function HomePage() {
             {[
               { icon: <Eye size={20} />, lv: 1, title: "시각적 체험", desc: "Context Switch, Page Fault가 일어나는 순간을 노드 그래프로 한 단계씩 재생해요." },
               { icon: <ShieldCheck size={20} />, lv: 3, title: "안전한 격리 실행", desc: "네트워크가 막힌 격리 컨테이너에서 리눅스 실습을 마음껏 해 볼 수 있어요." },
-              { icon: <Gauge size={20} />, lv: 5, title: "즉시 피드백", desc: "제출하면 바로 채점하고, 무엇이 달랐는지 테스트 단위로 알려 줘요." },
+              { icon: <Gauge size={20} />, lv: 5, title: "즉시 피드백", desc: "제출하면 바로 채점하고 무엇이 달랐는지 테스트 단위로 알려 줘요." },
             ].map((v) => (
               <div key={v.title} className="rounded-2xl border border-line bg-panel p-6 space-y-3">
                 <div className="flex items-center justify-between">

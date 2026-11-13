@@ -7,7 +7,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Users, Settings, Menu, Trophy, Flag, Clock, AlertTriangle, Terminal, BarChart3, MessageSquare,
-  CheckCircle2, PlusCircle, Bell, X, ChevronRight, ChevronLeft, Edit2, Trash2, Search, Crown, Calendar
+  CheckCircle2, PlusCircle, Bell, X, ChevronRight, ChevronLeft, Edit2, Trash2, Search, Crown, Calendar, Droplet, Flame
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,14 @@ import { OxygenGauge } from "@/components/dv";
 import { AddOwnProblemModal } from "@/components/contest/AddOwnProblemModal";
 import { desc } from "framer-motion/client";
 
+
+// 1~3위는 랭킹 페이지 시상대와 같은 색의 원형 숫자로 표시
+const RANK_TONE: Record<number, string> = { 1: "bg-warning/15 text-warning", 2: "bg-raised text-ink-muted", 3: "bg-warning/10 text-warning" };
+function RankMark({ rank }: { rank: number }) {
+  const tone = RANK_TONE[rank];
+  if (!tone) return <>{rank}</>;
+  return <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full font-black ${tone}`}>{rank}</span>;
+}
 
 function ContestDetailPage() {
   // [STATE] 페이지
@@ -696,7 +704,7 @@ function ContestDetailPage() {
 
                   {/* 대회 종료 시 출력 X */}
                   {!isEnded && (
-                    <ContestSideBtn icon={<MessageSquare size={18} />} label="질의응답(Q&A)" active={activeTab === "qa"} onClick={() => setActiveTab("qa")} />
+                    <ContestSideBtn icon={<MessageSquare size={18} />} label="질의응답" active={activeTab === "qa"} onClick={() => setActiveTab("qa")} />
                   )}
 
                   {/* 운영자 전용 탭 (종료 시에도 관리 목적 접근 유지 가능) */}
@@ -945,7 +953,7 @@ function DashboardTab({ contestInfo, notices = [], allChallenges = [], fullRanki
               <Link href={`/contests/challenge/?probId=${firstBloodChallenge.problemId}&contestProblemId=${firstBloodChallenge.contestProblemId}&contestId=${contestId}`} className="block">
                 <Card className="border-danger/30 bg-danger/6 hover:border-danger/50 hover:shadow-md transition-all cursor-pointer">
                   <CardContent className="p-5 space-y-2">
-                    <Badge className="bg-danger">First Blood 대기중 🩸</Badge>
+                    <Badge className="bg-danger"><Droplet className="size-3" />First Blood 대기 중</Badge>
                     <h4 className="font-bold text-ink group-hover:text-primary">{firstBloodChallenge.title}</h4>
                     <div className="flex justify-between items-end pt-2 text-danger">
                       <span className="text-xs font-bold">해결: {firstBloodChallenge.solvedCount}명</span>
@@ -963,7 +971,7 @@ function DashboardTab({ contestInfo, notices = [], allChallenges = [], fullRanki
               <Link href={`/contests/challenge/?probId=${hotChallenge.problemId}&contestProblemId=${hotChallenge.contestProblemId}&contestId=${contestId}`} className="block">
                 <Card className="border-warning/30 bg-warning/6 hover:border-warning/50 hover:shadow-md transition-all cursor-pointer">
                   <CardContent className="p-5 space-y-2">
-                    <Badge className="bg-warning">챌린지 맛집 🔥</Badge>
+                    <Badge className="bg-warning"><Flame className="size-3" />챌린지 맛집</Badge>
                     <h4 className="font-bold text-ink">{hotChallenge.title}</h4>
                     <div className="flex justify-between items-end pt-2 text-warning">
                       <span className="text-xs font-bold">해결: {hotChallenge.solvedCount}명</span>
@@ -1094,7 +1102,7 @@ function ChallengesTab({ allChallenges, contestId, isContestHost, setShowAddChal
             </div>
             <p className="font-bold text-ink">등록된 챌린지가 없습니다.</p>
             <p className="text-xs text-ink-subtle mt-1">
-              {isContestHost ? "우측 상단의 문제 관리 메뉴를 통해 대회의 문제를 구성해 보세요!" : "운영진이 문제를 준비 중입니다. 잠시만 기다려주세요."}
+              {isContestHost ? "오른쪽 위 문제 관리에서 문제를 추가해 보세요." : "운영진이 문제를 준비 중입니다. 잠시만 기다려주세요."}
             </p>
           </div>
         ) : (
@@ -1104,10 +1112,10 @@ function ChallengesTab({ allChallenges, contestId, isContestHost, setShowAddChal
 
             if (ch.solvedCount === 0) {
               cardColorClass = "border-danger/50 bg-danger/6";
-              badgeUI = <Badge className="bg-danger w-fit mb-1">First Blood 대기중 🩸</Badge>;
+              badgeUI = <Badge className="bg-danger w-fit mb-1"><Droplet className="size-3" />First Blood 대기 중</Badge>;
             } else if (ch.solvedCount > 50) {
               cardColorClass = "border-warning/50 bg-warning/6";
-              badgeUI = <Badge className="bg-warning w-fit mb-1">많이 푼 문제 🔥</Badge>;
+              badgeUI = <Badge className="bg-warning w-fit mb-1"><Flame className="size-3" />많이 푼 문제</Badge>;
             } else if (ch.isSolved) {
               cardColorClass = "border-success/50 bg-success/6";
             }
@@ -1269,7 +1277,7 @@ function ScoreboardTab({ myRank, fullRankings, scoreBoardTotalPages, scoreBoardC
             {fullRankings.slice(0, 10).map((user) => (
               <TableRow key={user.rank} className={user.isMe ? "bg-primary/10" : ""}>
                 <TableCell className="text-center font-black text-ink-muted">
-                  {user.rank === 1 ? "🥇" : user.rank === 2 ? "🥈" : user.rank === 3 ? "🥉" : user.rank}
+                  <RankMark rank={user.rank} />
                 </TableCell>
                 <TableCell className="font-bold text-ink">
                   {user.nickname} {user.isMe && <Badge className="ml-2 bg-primary/15 text-primary hover:bg-primary/20">ME</Badge>}
@@ -1313,7 +1321,7 @@ function ScoreboardTab({ myRank, fullRankings, scoreBoardTotalPages, scoreBoardC
                   {currentRankings.map((user) => (
                     <TableRow key={user.rank} className={user.isMe ? "bg-primary/10" : ""}>
                       <TableCell className="text-center font-black text-ink-muted pl-4">
-                        {user.rank === 1 ? "🥇" : user.rank === 2 ? "🥈" : user.rank === 3 ? "🥉" : user.rank}
+                        <RankMark rank={user.rank} />
                       </TableCell>
                       <TableCell className="font-bold text-ink">
                         {user.nickname} {user.isMe && <Badge className="ml-2 bg-primary/15 text-primary">ME</Badge>}
@@ -1434,7 +1442,7 @@ function QATab({
               <MessageSquare className="text-ink-subtle h-5 w-5" />
             </div>
             <p className="font-bold text-ink">등록된 질문이 없습니다.</p>
-            <p className="text-xs text-ink-subtle mt-1">대회 진행 중 궁금한 점이 있다면 첫 번째로 질문을 등록해 보세요!</p>
+            <p className="text-xs text-ink-subtle mt-1">대회 진행 중 궁금한 점이 있으면 질문을 남겨 보세요.</p>
           </div>
         ) : (
           faqs.map((faq) => (
@@ -1731,7 +1739,7 @@ function ParticipantsManageTab({ participants, handleBan }: { participants: any[
               <TableHead>참가자 명</TableHead>
               <TableHead>참가일</TableHead>
               <TableHead className="text-center">현재 점수</TableHead>
-              <TableHead className="text-right">관리 (Ban)</TableHead>
+              <TableHead className="text-right">관리</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1745,7 +1753,7 @@ function ParticipantsManageTab({ participants, handleBan }: { participants: any[
                 <TableCell className="text-right">
                   {!p.isBanned ? (
                     <Button variant="ghost" size="sm" className="text-danger" onClick={() => handleBan(p.userId, true)}>
-                      실격(Ban) 처리
+                      실격 처리
                     </Button>
                   ) : (
                     <Button variant="ghost" size="sm" className="text-ink-muted" onClick={() => handleBan(p.userId, false)}>

@@ -25,17 +25,17 @@ export function CodingRules({contract,inputDescription,outputDescription}:Props)
       {rr?<div className="space-y-2">
         <p>입력 첫 줄은 <code>N Q</code>(프로세스 수·시간 할당량), 다음 N줄은 <code>ID 도착시각 CPU실행량</code>입니다. 출력은 한 줄에 <code>ID 시작 종료</code>입니다. JSON이나 화면 설정은 출력하지 않습니다.</p>
         <p>시간은 0부터 시작하고 종료 시각은 구간에 포함하지 않습니다. 유휴 구간은 ID를 <code>IDLE</code>로 적으세요. 모든 구간을 빈틈이나 겹침 없이 순서대로 출력합니다.</p>
-        <p>같은 시각 도착은 입력 순서대로 처리합니다. 할당량이 끝나는 시각에 새로 도착한 프로세스를 먼저 큐에 넣고, 실행하던 프로세스를 뒤에 넣습니다. I/O는 없습니다.</p>
+        <p>같은 시각 도착은 입력 순서대로 처리합니다. 할당량이 끝나는 시각에 새로 도착한 프로세스를 먼저 큐에 넣고 실행하던 프로세스를 뒤에 넣습니다. I/O는 없습니다.</p>
         <p>인접한 같은 프로세스 구간은 합치거나 나누어 출력해도 됩니다. 여러 공백·탭·빈 줄은 허용합니다. 대기·응답·반환 시간은 답안에 요구하지 않습니다.</p>
         <p className="text-xs">N 1~32, Q 1~2000, 도착 0~2000, 실행량 1~2000. 최대 도착시각+총 실행량 ≤ 2000. ID는 영문자로 시작하는 영숫자·밑줄·하이픈 32자 이하이며 중복 또는 예약 ID는 허용하지 않습니다. 출력은 1MiB·4096구간 이하입니다.</p>
       </div>:text?<div className="space-y-2" data-text-io>
         <p><b>입력</b> {text.input}</p>
         <p><b>출력</b> {text.output}</p>
-        <p>정답은 서버가 같은 규칙의 엔진으로 계산해 비교합니다. 줄 앞뒤 공백·여러 칸 공백·빈 줄은 무시하고, 값과 순서는 정확해야 합니다. 정답이 여러 개일 수 있는 문제(실행 구간 나누기, 안전 순서 등)는 의미로 비교합니다. JSON이나 화면 설정은 출력하지 않습니다.</p>
+        <p>정답은 서버가 같은 규칙의 엔진으로 계산해 비교합니다. 줄 앞뒤 공백·여러 칸 공백·빈 줄은 무시합니다. 값과 순서는 정확해야 합니다. 정답이 여러 개일 수 있는 문제(실행 구간 나누기, 안전 순서 등)는 의미로 비교합니다. JSON이나 화면 설정은 출력하지 않습니다.</p>
       </div>:semantic?<><p>입력은 모델 설정 JSON입니다. 출력은 <code>v: 1</code>과 <code>result</code>를 가진 JSON 객체 하나입니다.{contract?.assessmentMode==='process'?' events 배열에 필수 사건 기록도 넣어야 합니다.':' 최종 결과가 올바른지 검사합니다.'} 모델: {contract?.scenarioId}</p>
         {!!resultSchema?.properties&&<div className="overflow-x-auto"><table className="w-full text-left text-xs"><caption className="text-left font-medium py-2">result에 출력할 필드</caption><thead><tr><th className="p-1">이름</th><th>자료형</th><th>필수</th></tr></thead><tbody>{Object.entries(resultSchema.properties).map(([key,value])=><tr key={key} className="border-t dark:border-line"><td className="p-1 font-mono">{key}</td><td>{value.enum?value.enum.join(' / '):value.type??'상세 형식 참고'}</td><td>{resultSchema.required?.includes(key)?'필수':'선택'}</td></tr>)}</tbody></table></div>}
         <details><summary className="cursor-pointer font-medium">상세 입력·출력 형식 보기</summary><p className="mt-2">입력 JSON Schema</p><pre className="max-h-72 overflow-auto bg-slate-50 p-3 text-xs dark:bg-deep">{JSON.stringify(contract?.inputSchema,null,2)}</pre><p>출력 JSON Schema</p><pre className="max-h-72 overflow-auto bg-slate-50 p-3 text-xs dark:bg-deep">{JSON.stringify(contract?.outputSchema,null,2)}</pre></details>
-      </>:plain?<p>기대 출력과 줄 단위로 비교합니다(백준과 같은 방식). 줄 끝 공백과 마지막 빈 줄은 무시하지만, 줄 안에서는 값 사이를 공백 하나로 띄우세요.</p>
+      </>:plain?<p>기대 출력과 줄 단위로 비교합니다(백준과 같은 방식). 줄 끝 공백과 마지막 빈 줄은 무시하지만 줄 안에서는 값 사이를 공백 하나로 띄우세요.</p>
         :<p>기대 출력과 줄 단위로 비교합니다. 줄 안의 공백과 JSON 키 순서도 비교 대상이므로 공개 예제의 형식을 따르세요.</p>}
     </div>
     {diagram&&<div className="space-y-3 rounded-lg bg-white p-3 dark:bg-raised">

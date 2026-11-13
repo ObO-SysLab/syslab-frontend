@@ -25,7 +25,7 @@ export const PAGE_REPLACEMENT_TEMPLATE: OBOTemplate = {
   defaultFrames: [
     { id: 'page-start', label: '빈 메모리에서 시작합니다. 위의 참조 순서와 아래 메모리 칸을 함께 살펴보세요.', highlightNodes: [], highlightEdges: [], nodeDataOverrides: { status: { text: '시작' } } },
     ...PAGE_SCENES.map((scene, i) => ({
-      id: `page-${i + 1}`, label: `참조 ${PAGE_REFERENCES[i]} · ${scene.reason}${i === 0 ? ' 메모리에 없는 페이지를 참조하면 Miss이며, 빈칸이 남아 있으면 교체하지 않고 빈칸부터 채웁니다.' : ''}`, highlightNodes: [], highlightEdges: [],
+      id: `page-${i + 1}`, label: `참조 ${PAGE_REFERENCES[i]} · ${scene.reason}${i === 0 ? ' 메모리에 없는 페이지를 참조하면 Miss입니다. 빈칸이 남아 있으면 교체하지 않고 빈칸부터 채웁니다.' : ''}`, highlightNodes: [], highlightEdges: [],
       nodeDataOverrides: {
         'ref-string': { activeSlotIndex: i },
         frames: { slots: scene.slots, [scene.hit ? 'hitSlotIndex' : 'faultSlotIndex']: scene.index, pointerSlotIndex: scene.pointer },

@@ -825,7 +825,7 @@ function GroupDetailPage() {
           }
         }
 
-        alert("그룹 설정 및 프로필 이미지가 성공적으로 저장되었습니다!");
+        alert("그룹 설정과 프로필 이미지를 저장했습니다.");
         setPendingImageFile(null); // 캐시 비우기
         window.location.reload(); // 화면 완전 갱신
       } else {
@@ -870,7 +870,7 @@ function GroupDetailPage() {
         const json = await res.json();
         setInviteCode(json.data.invitationCode);
         setInviteExpiresAt(json.data.expiresAt);
-        alert("새로운 초대코드가 발급되었습니다!");
+        alert("새 초대 코드를 발급했습니다.");
       }
     } catch (e) {
       console.error("초대코드 재발급 중 장애 발생:", e);
@@ -934,7 +934,7 @@ function GroupDetailPage() {
 
         alert(joined?.newStatus === "already_member"
           ? "이미 가입된 그룹입니다."
-          : "비공개 그룹 검증이 완료되어 그룹에 가입되었습니다!");
+          : "그룹에 가입했습니다.");
         fetchGroupData(); // 그룹 정보 재로드 -> 멤버 상태(myStatus="member")로 변경됨
         fetchMembers();
       } else if (res.status === 404) {
@@ -1886,7 +1886,7 @@ function GroupDetailPage() {
                               onClick={() => {
                                 const shareUrl = `${window.location.origin}${groupInvitePath(inviteCode)}`;
                                 navigator.clipboard.writeText(shareUrl);
-                                alert("초대 가입 링크가 클립보드에 복사되었습니다!");
+                                alert("초대 링크를 복사했습니다.");
                               }}
                             >
                               복사
@@ -1900,7 +1900,7 @@ function GroupDetailPage() {
                             onClick={handleRegenerateInviteCode}
                             className="w-full text-xs font-bold text-ink-subtle border-white/5 bg-white/5 hover:bg-white/10 hover:text-ink h-8 rounded-lg"
                           >
-                            🔄 초대 링크 재발급 (기존 링크 폐기)
+                            초대 링크 재발급 (기존 링크 폐기)
                           </Button>
                         </div>
                       )}

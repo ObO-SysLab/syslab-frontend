@@ -57,7 +57,7 @@ export default function St2PreviewPage() {
       </div>
       {notice && <p role="status" className="rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-2 text-sm text-indigo-700">{notice}</p>}
       {editing ? <>
-        <p className="text-sm text-slate-600">동그라미를 끌면 위치가 바뀌고, 빈 공간을 끌면 화면이 이동합니다. 마우스 휠로 확대·축소하고, 왼쪽 아래 자물쇠로 화면 이동을 잠글 수 있습니다. 오른쪽 ‘프레임’ 탭에서는 장면을 고른 뒤 동그라미와 화살표를 눌러 강조를 바꿀 수 있습니다.</p>
+        <p className="text-sm text-slate-600">동그라미를 끌면 위치가 바뀌고 빈 공간을 끌면 화면이 이동합니다. 마우스 휠로 확대·축소하고 왼쪽 아래 자물쇠로 화면 이동을 잠글 수 있습니다. 오른쪽 ‘프레임’ 탭에서는 장면을 고른 뒤 동그라미와 화살표를 눌러 강조를 바꿀 수 있습니다.</p>
         <div className="h-[760px] min-h-[580px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <LegacyOboEditorSection key={revision} value={{mode:'single',single:blob}} onChange={next => {if(next.single)setBlob(next.single);}} />
         </div>

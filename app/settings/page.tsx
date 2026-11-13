@@ -5,7 +5,7 @@ import { loginHref } from "@/lib/request";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { User, Lock, Bell, Paintbrush, Trash2, X, ShieldCheck, Laptop, Moon, Sun, BarChart3, Camera } from "lucide-react";
+import { User, Lock, Bell, Paintbrush, Trash2, X, ShieldCheck, Laptop, Moon, Sun, BarChart3, Camera, Users } from "lucide-react";
 import { BarChart, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -871,11 +871,11 @@ function ChartSection({ data }: { data: any }) {
       {/* [하단 대시보드 통합 허브] 문제/그룹/대회 5단 스위처 팩 */}
       <div className="space-y-6">
         <div className="flex flex-wrap gap-1 bg-raised p-1.5 rounded-xl border border-line/50">
-          <button onClick={() => { setSubTab("solved"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "solved" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>🌊 푼 문제</button>
-          <button onClick={() => { setSubTab("failed"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "failed" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>❌ 못 푼 문제</button>
-          <button onClick={() => { setSubTab("authored"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "authored" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>🛠️ 출제한 문제</button>
-          <button onClick={() => { setSubTab("groups"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "groups" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>👥 속한 그룹</button>
-          <button onClick={() => { setSubTab("contests"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "contests" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>🏆 참여 대회</button>
+          <button onClick={() => { setSubTab("solved"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "solved" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>푼 문제</button>
+          <button onClick={() => { setSubTab("failed"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "failed" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>못 푼 문제</button>
+          <button onClick={() => { setSubTab("authored"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "authored" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>출제한 문제</button>
+          <button onClick={() => { setSubTab("groups"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "groups" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>속한 그룹</button>
+          <button onClick={() => { setSubTab("contests"); setVisibility(""); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${subTab === "contests" ? "bg-raised border border-line-strong text-ink shadow-sm" : "text-ink-muted hover:bg-raised/50"}`}>참여 대회</button>
         </div>
 
         {["solved", "failed", "authored"].includes(subTab) && (
@@ -948,7 +948,7 @@ function ChartSection({ data }: { data: any }) {
                         <div className="flex items-center gap-3 min-w-0">
                           <Avatar className="h-9 w-9 border border-line rounded-xl">
                             <AvatarImage src={item.image} alt={item.title} className="object-cover" />
-                            <AvatarFallback className="bg-raised text-ink-muted text-xs font-bold rounded-xl">👥</AvatarFallback>
+                            <AvatarFallback className="bg-raised text-ink-muted text-xs font-bold rounded-xl"><Users className="h-4 w-4" /></AvatarFallback>
                           </Avatar>
                           <div className="space-y-0.5 min-w-0">
                             <div className="flex items-center gap-2">
@@ -959,7 +959,7 @@ function ChartSection({ data }: { data: any }) {
                           </div>
                         </div>
                         <Badge variant="outline" className="text-xs rounded-full font-bold px-2 py-0.5 border-line text-ink-subtle">
-                          {item.isPrivate ? "🔒 비공개" : "🌐 공개"}
+                          {item.isPrivate ? "비공개" : "공개"}
                         </Badge>
                       </Link>
                     );

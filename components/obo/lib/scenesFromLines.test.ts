@@ -184,6 +184,6 @@ describe('the dialog opens with the current scenes written as lines (2026-11-09)
     expect(checked).toBeGreaterThanOrEqual(45);
     const g1 = OBO_TEMPLATES.find(t => t.id === 'G1')!;
     expect(lineRule(g1.defaultNodes, { kind: 'lines-v1', target: 'track-p2' })).toEqual({ rule: 'ID 시작 종료 (ID: P1, P2, P3)', example: 'P1 0 3' });
-    expect(lineRule(s1.defaultNodes, { kind: 'lines-v1', target: 'frames' })).toEqual({ rule: '칸 3개의 값을 띄어 쓰고, 빈 칸은 -', example: '7 0 -' });
+    expect(lineRule(s1.defaultNodes, { kind: 'lines-v1', target: 'frames' })).toEqual({ rule: '칸 3개의 값을 띄어 쓰고 빈 칸은 -', example: '7 0 -' });
   });
 });
