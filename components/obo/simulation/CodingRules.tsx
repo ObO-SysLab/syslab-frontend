@@ -3,8 +3,8 @@ import {catalog,describeOutputFormat,outputSkeleton,type CodingContract} from '.
 import {textHelp} from '../runtime/textFormats.mjs';
 import {ProblemText} from '../../problem/ProblemText';
 
-// Abyss pages get theme colors through dark: (light inside .obo-scope and /test, 2026-11-10).
-// The language starter used to sit here behind a fold; since 2026-11-10 the submission editor opens with it.
+// Abyss pages get theme colors through dark: (light inside .obo-scope and /test).
+// The language starter used to sit here behind a fold; now the submission editor opens with it.
 type Props={contract?:CodingContract|null;inputDescription?:string;outputDescription?:string;allowedLanguages?:string[]};
 export function CodingRules({contract,inputDescription,outputDescription}:Props) {
   const plain=contract?.outputFormat;

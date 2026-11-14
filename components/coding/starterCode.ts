@@ -1,7 +1,7 @@
 import { CODE_SNIPPETS } from '@/lib/codeDraft';
 import { starterCode, type CodingContract } from '@/components/obo/guidance/codingContract';
 
-/** Language order of the submission editor's picker; the author preview uses the same order (2026-11-10). */
+/** Language order of the submission editor's picker; the author preview uses the same order. */
 export const EDITOR_LANGUAGES = ['c', 'cpp', 'python'] as const;
 export const LANGUAGE_LABEL: Record<string, string> = { c: 'C', cpp: 'C++', python: 'Python' };
 

@@ -10,7 +10,7 @@ const LOOK = {
   optional: { Icon: Circle, color: 'text-ink-subtle', word: '선택' },
 } as const;
 
-/** Live “what is left” list for the create page (2026-11-09); each row jumps to its field. */
+/** Live “what is left” list for the create page; each row jumps to its field. */
 export function AuthoringChecklist({ steps, onGo }: { steps: AuthoringStep[]; onGo: (target: string) => void }) {
   const required = steps.filter(s => s.status === 'required').length, checks = steps.filter(s => s.status === 'check').length;
   return <Card aria-label="만드는 순서" className="overflow-hidden rounded-2xl border-line bg-panel shadow-sm" data-authoring-checklist>

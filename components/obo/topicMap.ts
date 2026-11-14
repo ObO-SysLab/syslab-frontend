@@ -2,7 +2,7 @@ import { registry } from './runtime/index.mjs';
 import { OBO_TEMPLATES } from './templates';
 
 /**
- * Teaching topics shared by the two independent authoring paths (2026-11-08).
+ * Teaching topics shared by the two independent authoring paths.
  * `rule` are rule-model IDs, `free` are free-drawing starting templates. IDs are internal:
  * free `G2` is Round Robin while rule `G2` is SJF·FCFS, so the UI always shows names.
  */

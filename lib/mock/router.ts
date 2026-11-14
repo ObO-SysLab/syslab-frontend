@@ -145,7 +145,7 @@ const routes: Route[] = [
   { method: "PATCH", pattern: /^\/api\/profile\/password$/, handler: () => json(profile.mockPasswordUpdateResponse) },
   { method: "POST", pattern: /^\/api\/users\/me\/profile-image$/, handler: () => json(profile.mockProfileImageResponse) },
   { method: "DELETE", pattern: /^\/api\/users\/me\/profile-image$/, handler: () => json(ok(null, "프로필 이미지 삭제 성공")) },
-  // ----- 계정 탈퇴 · 상점 · 알림 (2026-11-12) -----
+  // ----- 계정 탈퇴 · 상점 · 알림 -----
   { method: "POST", pattern: /^\/api\/users\/me\/withdraw$/, handler: (req) => storeNotify.withdraw(req.body) },
   { method: "GET", pattern: /^\/api\/store\/items$/, public: true, handler: () => json(storeNotify.storeItems()) },
   { method: "GET", pattern: /^\/api\/store\/me$/, handler: () => json(storeNotify.storeMe()) },

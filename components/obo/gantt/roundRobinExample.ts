@@ -32,7 +32,7 @@ const rowId = (id: string) => `rr-${id.toLowerCase()}`;
 export const ROUND_ROBIN_TEMPLATE: OBOTemplate = {
   id: 'G2', name: 'CPU 스케줄링 (라운드 로빈)', category: 'cpu', description: '간트 차트',
   defaultNodes: [
-    // One short condition line above the gantt; the inputs and the idle-gap meaning live in the scene captions (2026-11-08).
+    // One short condition line above the gantt; the inputs and the idle-gap meaning live in the scene captions.
     { id: 'rr-title', type: 'text-label', position: { x: 40, y: 0 }, data: { text: `라운드 로빈 · 시간 할당량 ${RR_QUANTUM} · 문맥 교환 비용 0`, variant: 'plain', color: '#334155' } },
     ...RR_INPUTS.map((process, i) => ({
       id: rowId(process.id), type: 'gantt-lane', position: { x: 40, y: 44 + i * 128 },

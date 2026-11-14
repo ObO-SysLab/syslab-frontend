@@ -847,7 +847,7 @@ function PosterTab({ contestInfo, isJoined, isContestHost, handleEnterContest, h
               </>
             )
           ) : (
-            /* 미가입 유저 상태 분기. 진행 중에도 참가할 수 있다(2026-11-13). */
+            /* 미가입 유저 상태 분기. 진행 중에도 참가할 수 있다. */
             contestInfo.status === "접수 중" || contestInfo.status === "진행 중" ? (
               <button
                 type="button"

@@ -1,4 +1,4 @@
-/* Shared by the MF/S3/DP/DS rule visuals (2026-11-08). */
+/* Shared by the MF/S3/DP/DS rule visuals. */
 .visual { container-type: inline-size; display: flex; flex-direction: column; gap: 12px; min-width: 0; color: #20334a; }
 .visual > *, .context > *, .main > *, .side > * { min-width: 0; }
 .context { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }

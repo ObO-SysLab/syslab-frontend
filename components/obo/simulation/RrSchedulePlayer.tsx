@@ -8,7 +8,7 @@ import {usePlayback} from '../playback';
 
 /**
  * RR public example (rr-segments-v1). Right answer: my output and the answer side by side on one time axis.
- * Wrong answer (2026-11-09 learner-playback): only my output, stopping and marked at the first different time;
+ * Wrong answer: only my output, stopping and marked at the first different time;
  * neither the answer's segments nor its time boundaries are shown.
  */
 export function RrSchedulePlayer({record}:{record:PublicCase}) {

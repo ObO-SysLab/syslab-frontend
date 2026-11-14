@@ -16,7 +16,7 @@ const text: CodingContract = { kind: 'simulation', modelVersion: 1, scenarioId: 
 let n = 0;
 const open = () => new CodeDraftSession({ account: 'alice', kind: 'challenge', problem: '7' }, () => new MemoryStorage(), () => `v${n++}`);
 
-// 2026-11-10 user QA #6–#7: the author preview's first code and the submission editor's first code are one function.
+// The author preview's first code and the submission editor's first code are one function.
 describe('submission editor first code', () => {
   it('uses the problem skeleton when the problem has a public contract, else the bare main', () => {
     expect(editorStarterCode('python', text)).toBe(starterCode('python', text));

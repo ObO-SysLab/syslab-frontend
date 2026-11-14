@@ -1,5 +1,5 @@
 /**
- * Expired sign-ins (2026-11-14). The site treats a stored token as "signed in", so an access token
+ * Expired sign-ins. The site treats a stored token as "signed in", so an access token
  * that expired overnight kept showing the profile menu on the next visit while every request failed.
  * Only tokens whose JWT exp can be read and has passed are dropped; anything else (mock tokens,
  * tokens without exp) is left for the server to judge.

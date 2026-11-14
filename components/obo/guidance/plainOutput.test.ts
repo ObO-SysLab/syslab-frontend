@@ -5,7 +5,7 @@ import type { ProblemOboData } from '../types';
 import { CodingRules } from '../simulation/CodingRules';
 import { describeCodingContract, describeOutputFormat, outputSkeleton, sameJudgedOutput, starterCode } from './codingContract';
 
-// Same document as the backend OboPublicContractTest.plainOutputPublishesOnlyTheLineShape (2026-11-08).
+// Same document as the backend OboPublicContractTest.plainOutputPublishesOnlyTheLineShape.
 const document = {
   mode: 'coding_diff',
   codingDiff: {

@@ -72,7 +72,7 @@ export default function ProblemListPage() {
   useEffect(() => {
     setIsLoggedIn(!!problemToken());
   }, []);
-  // My place in the user ranking (2026-11-14: the card only ever showed "#- / -"). Users added after
+  // My place in the user ranking (the card used to show only "#- / -"). Users added after
   // the latest ranking snapshot get 404 and keep "-".
   const rankQuery=useRemoteData('my-rank',async signal=>{
     if(!problemToken())return null;

@@ -1,7 +1,7 @@
 'use client';
 import { ProblemInline } from './ProblemText';
 /**
- * Objective choices as learners see them (2026-11-10). With onToggle the rows are buttons (problem pages);
+ * Objective choices as learners see them. With onToggle the rows are buttons (problem pages);
  * without it they are a still copy for the author's preview. ordered: the answer must be picked in order,
  * so selected rows show their pick number.
  */

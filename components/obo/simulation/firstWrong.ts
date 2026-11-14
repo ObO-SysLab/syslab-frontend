@@ -2,7 +2,7 @@ import { run, type Json, type ModelRun, type SemanticEvent } from '../runtime/in
 import { equal } from '../runtime/validation.mjs';
 
 /**
- * Where a wrong answer first goes wrong (2026-11-09 learner-playback), so the learner's own record can stop and be
+ * Where a wrong answer first goes wrong, so the learner's own record can stop and be
  * marked there without showing the expected answer. Frontend only: grading itself is unchanged.
  */
 

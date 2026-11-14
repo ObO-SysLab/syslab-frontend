@@ -214,7 +214,7 @@ function ProblemCreateContent() {
     }
   };
 
-  // “만드는 순서” (2026-11-09): live state of what registration needs; rows jump to their field.
+  // “만드는 순서”: live state of what registration needs; rows jump to their field.
   const [previewed,setPreviewed]=useState(false);
   // A function: group/contest selections are declared further down this component.
   const authoringState=():AuthoringState=>({title,category,description,isEditMode,visibility,selectedGroupId,selectedContestId,problemType,choices,selectedAnswers,
@@ -234,7 +234,7 @@ function ProblemCreateContent() {
     if(saving.current)return;
     setSaveNotice('');setSaveIssue(null);setFieldErrors({});
     if(!editLoaded)return;
-    // Same checks the “만드는 순서” list shows (components/problem/authoringChecklist.ts, 2026-11-09).
+    // Same checks the “만드는 순서” list shows (components/problem/authoringChecklist.ts).
     const errors=requiredFieldErrors(authoringState());
     if(Object.keys(errors).length){setFieldErrors(errors);focusField(Object.keys(errors)[0]);return;}
     const allowlist=problemType==='practice'?parseCommandAllowlist(commandAllowlistInput):null;
@@ -865,7 +865,7 @@ function ProblemCreateContent() {
                   />
                 </TabsContent>
                 <TabsContent value="prev" className="space-y-2 mt-0">
-                  {/* The learner's problem page: same tags, choices and order notice (2026-11-10). */}
+                  {/* The learner's problem page: same tags, choices and order notice. */}
                   <div className="min-h-[300px] space-y-3 rounded-lg border border-line bg-canvas p-5" data-problem-preview>
                     <ProblemTags difficulty={difficulty} type={problemType} category={category} />
                     <h3 className="text-2xl font-bold text-ink">{title || '문제 제목'}</h3>
@@ -1281,7 +1281,7 @@ function ProblemCreateContent() {
             )}
           </Card>}
 
-          {/* Learner preview (2026-11-10 QA #5–#7): heading in the page theme; inside, the problem page and the
+          {/* Learner preview: heading in the page theme; inside, the problem page and the
               submission editor's first code exactly as learners get them. */}
           {problemType==='coding'&&<Card id="learner-preview" className="scroll-mt-20 border-line shadow-sm rounded-2xl">
             <CardHeader>

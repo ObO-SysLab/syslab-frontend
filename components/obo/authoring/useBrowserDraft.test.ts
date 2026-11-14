@@ -8,7 +8,7 @@ const click = (href: string | null, patch: Partial<MouseEvent> = {}, link: { tar
   ...patch,
 }) as unknown as MouseEvent;
 
-// 2026-11-10 user QA #1: leaving the create page with unkept edits asks first instead of storing them silently.
+// Leaving the create page with unkept edits asks first instead of storing them silently.
 describe('create page leave guard', () => {
   it('asks for links that leave the page in this tab (출제 취소, logo, profile)', () => {
     expect(leavesPage(click('/challenges'), here)).toBe(true);

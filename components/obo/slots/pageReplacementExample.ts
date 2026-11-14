@@ -18,7 +18,7 @@ export const PAGE_REPLACEMENT_TEMPLATE: OBOTemplate = {
   defaultNodes: [
     { id: 'ref-string', type: 'slot-grid', position: { x: 40, y: 0 }, data: { label: '참조순서', slotCount: 8, slots: PAGE_REFERENCES, activeSlotIndex: null } },
     { id: 'frames', type: 'slot-grid', position: { x: 40, y: 160 }, data: { label: '메모리', slotCount: 3, slots: [null, null, null], pointerLabel: '다음 교체', faultSlotIndex: null, hitSlotIndex: null, pointerSlotIndex: null } },
-    // A short status beside memory; the Miss/Hit/empty-slot meanings are told once in the scene captions below (2026-11-08).
+    // A short status beside memory; the Miss/Hit/empty-slot meanings are told once in the scene captions below.
     { id: 'status', type: 'text-label', position: { x: 320, y: 196 }, data: { text: 'FIFO', variant: 'pill', color: '#4338ca' } },
   ],
   defaultEdges: [],

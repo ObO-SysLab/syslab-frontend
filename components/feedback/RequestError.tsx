@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { loginHref, type RequestIssue } from '@/lib/request';
 
-// Abyss pages get theme colors through dark: (light inside .obo-scope and /test, 2026-11-10).
+// Abyss pages get theme colors through dark: (light inside .obo-scope and /test).
 export function RequestError({ issue, retry, busy = false, stale = false, checkHref, checkLabel = '제출 내역 확인' }: {
   issue: RequestIssue | null; retry?: () => void; busy?: boolean; stale?: boolean; checkHref?: string; checkLabel?: string;
 }) {

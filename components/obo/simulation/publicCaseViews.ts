@@ -2,7 +2,7 @@ import type { Json } from '../runtime/index.mjs';
 import { createInstance, createView, semanticEntities, type SimulationDocument, type SimulationInstance } from '../runtime/document.mjs';
 
 /**
- * Which drawing the public-case comparison uses (2026-11-08). The author's graded simulation keeps its views,
+ * Which drawing the public-case comparison uses. The author's graded simulation keeps its views,
  * names and layout; cards aimed at an actor/resource the test input does not have are left out. Without the
  * author's document (or for another model) the previous generic per-role cards remain.
  */

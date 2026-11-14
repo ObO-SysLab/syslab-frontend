@@ -55,7 +55,7 @@ interface PropertyPanelProps {
   traceText: string;
   onTraceTextChange: (text: string) => void;
   testcaseOutputs?: { index: number; output: string }[];
-  // coding_diff (2026-11-08): reference built from scenes (default) or written as records; learner output format
+  // coding_diff: reference built from scenes (default) or written as records; learner output format
   codingSource?: 'scenes' | 'text';
   onCodingSourceChange?: (source: 'scenes' | 'text') => void;
   outputFormat?: SimpleOutputFormat | null;
