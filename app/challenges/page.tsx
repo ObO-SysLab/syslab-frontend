@@ -22,6 +22,7 @@ import { AdSlot } from "@/components/AdSlot";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toApiCategory } from "@/lib/utils";
 import { DepthBadge, StatusIcon, TypeChip, DivoBubble } from "@/components/dv";
+import { Divo } from "@/components/dv/DivoMotion";
 import { pageWindow } from "@/lib/pagination";
 
 export default function ProblemListPage() {
@@ -285,8 +286,7 @@ export default function ProblemListPage() {
           {randomProblem && (
             <div className="relative overflow-hidden rounded-2xl border border-line bg-panel p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 dv-descend">
               <div className="flex items-center gap-4 min-w-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/images/divo.webp" alt="" className="w-14 h-auto shrink-0" />
+                <Divo size={56} diving={isRandomLoading} />
                 <div className="space-y-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="dv-hud text-primary">Today&apos;s Dive</span>

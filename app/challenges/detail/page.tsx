@@ -6,7 +6,7 @@ import { logout, pendingSubmission, forgetSubmission } from "@/lib/authSession";
 import {problemApi,problemToken} from "@/lib/problemApi";
 
 import Link from "next/link";
-import { isSubmissionPending, submissionVerdict } from "@/lib/submission-status";
+import { isSubmissionPending, settledSubmissions, submissionVerdict } from "@/lib/submission-status";
 import { readPracticeBuild, practiceBuildPresentation, watchPracticeBuild } from "@/lib/practice-build";
 import { readCommandAllowlist } from "@/lib/command-allowlist";
 import { CommandAllowlistBox } from "@/components/problem/CommandAllowlistBox";
@@ -32,6 +32,7 @@ import { resolveOboBlob, type OboBlob, type ProblemOboData } from "@/components/
 import { Header } from "@/components/Header";
 import { AdSlot } from "@/components/AdSlot";
 import { SeaCritter, TierBadge } from "@/components/dv";
+import { DivoCheer } from "@/components/dv/DivoMotion";
 import { ProblemTags } from "@/components/problem/ProblemTags";
 import { ChoiceList } from "@/components/problem/ChoiceList";
 import { SampleCases } from "@/components/problem/SampleCases";
@@ -151,6 +152,9 @@ function ProblemDetailContent() {
   const pollStarted=useRef(0);
   const [answerIssue,setAnswerIssue]=useState<RequestIssue|null>(null);
   const [answerNotice,setAnswerNotice]=useState('');
+  // 채점 중에 본 내 제출. 이 중 하나가 정답으로 끝나면 디보가 나온다.
+  const watchedSubmissions=useRef(new Set<string>());
+  const [cheer,setCheer]=useState(0);
 
   // [STATE] 그룹 추가 관련 상태
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -209,7 +213,7 @@ function ProblemDetailContent() {
     const first=rankQuery.data?.[0];
     setFirstBlood(first?{user:first.nickname,date:new Date(first.firstSolvedAt).toLocaleDateString('ko-KR',{month:'short',day:'numeric'})}:{user:'',date:''});
   },[rankQuery.data]);
-  useEffect(()=>{setSubmissions([]);setSelectedChoices([]);setPollError(null);setPollStopped(false);pollStarted.current=0;},[probId]);
+  useEffect(()=>{setSubmissions([]);setSelectedChoices([]);setPollError(null);setPollStopped(false);pollStarted.current=0;watchedSubmissions.current.clear();setCheer(0);},[probId]);
 
   useEffect(() => {
     if (isLoading || !probId || problemData?.type !== 'practice') return;
@@ -237,11 +241,19 @@ function ProblemDetailContent() {
     const items=boardQuery.data.map(item=>({...item,_isPending:isSubmissionPending(item)}));
     const pendingId=pendingSubmission(String(probId));
     if(pendingId){
-      if(items.some(item=>String(item.submissionId)===pendingId))forgetSubmission(String(probId));
+      const mine=items.find(item=>String(item.submissionId)===pendingId);
+      if(mine)forgetSubmission(String(probId));
       else items.unshift({submissionId:pendingId,nickname:'내 제출',submissionStatus:'PENDING',progress:0,submittedAt:new Date().toISOString(),_isPending:true});
+      if(!mine||mine._isPending)watchedSubmissions.current.add(pendingId);
     }
     setSubmissions(items);
   },[boardQuery.data,probId]);
+  useEffect(()=>{
+    if(!watchedSubmissions.current.size)return;
+    const {settled,solved}=settledSubmissions(watchedSubmissions.current,submissions);
+    settled.forEach(id=>watchedSubmissions.current.delete(id));
+    if(solved)setCheer(count=>count+1);
+  },[submissions]);
   const fetchSubmissions=()=>{setPollError(null);setPollStopped(false);pollStarted.current=0;boardQuery.retry();};
   useEffect(()=>{
     const pending=submissions.filter(sub=>sub._isPending);
@@ -307,6 +319,7 @@ function ProblemDetailContent() {
         };
 
         setPollError(null);setPollStopped(false);pollStarted.current=0;
+        watchedSubmissions.current.add(String(newSubmissionId));
         setSubmissions(prev => [pendingSub, ...prev]);
 
         setActiveTab("grading");
@@ -1283,6 +1296,7 @@ function ProblemDetailContent() {
           </div>
         )}
       </main>
+      <DivoCheer play={cheer} />
     </div>
   );
 }

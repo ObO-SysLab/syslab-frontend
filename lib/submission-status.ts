@@ -33,3 +33,22 @@ export function submissionVerdict(item: SubmissionResult | null | undefined): Su
   if (item?.isCorrect === false) return {kind: "wrong", label: "오답"};
   return {kind: "unknown", label: "결과 확인 필요"};
 }
+
+/**
+ * Watched submissions (the user's own, seen while still grading) that now have a final verdict.
+ * `settled` can stop being watched; `solved` is whether any of them is correct.
+ */
+export function settledSubmissions(watched: ReadonlySet<string>,
+    items: readonly (SubmissionResult & { submissionId?: string | number })[]) {
+  const settled: string[] = [];
+  let solved = false;
+  for (const id of watched) {
+    const item = items.find(entry => String(entry.submissionId) === id);
+    if (!item) continue;
+    const kind = submissionVerdict(item).kind;
+    if (kind === "pending" || kind === "unknown") continue;
+    settled.push(id);
+    if (kind === "correct") solved = true;
+  }
+  return { settled, solved };
+}
