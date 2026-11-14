@@ -17,7 +17,7 @@ import { usePlayback } from '../playback';
 
 const domains:Record<string,string>={process:'프로세스·스레드',cpu:'CPU',sync:'동기화·교착',memory:'메모리',filesystem:'파일·디스크',kernel:'커널·I/O'};
 const fieldClass='w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs';
-/** Simple-mode playback (2026-11-09 learner-playback): the shared bar, a start state before the first scene. */
+/** Simple-mode playback: the shared bar, a start state before the first scene. */
 export function Playback({execution,cursor,setCursor,stopAt,wrongAt}:{execution:ModelRun|null;cursor:number;setCursor:(cursor:number)=>void;stopAt?:number;wrongAt?:number|null}) {
   const last=(execution?.events.length??0)-1;
   const pb=usePlayback({index:cursor,setIndex:setCursor,first:-1,last,stopAt});
@@ -137,7 +137,7 @@ export function SimulationEditor({value,onChange,choices=[],allowCoding=false,on
         {panel==='question'&&<div className="space-y-4">
           {allowCoding?<><label className="block text-xs">코딩 채점<select aria-label="코딩 채점" className={fieldClass} value={value.question.judgeProfile} onChange={e=>commit({...value,question:{...value.question,judgeProfile:e.target.value as 'text-v1'|'obo-v1',ioFormat:e.target.value==='obo-v1'?'text-v1':'json-v1',assessmentMode:'result',gradingInstanceId:e.target.value==='obo-v1'?active.id:null}})}><option value="text-v1">기존 출력 비교 · 시각화는 해설용</option><option value="obo-v1">시뮬레이션 의미 검사</option></select></label>
             {value.question.judgeProfile==='obo-v1'&&(()=>{
-              // 2026-11-08: every model can use Baekjoon-style text (recommended); JSON stays for process checks.
+              // Every model can use Baekjoon-style text (recommended); JSON stays for process checks.
               const q=value.question,graded=value.instances.find(i=>i.id===q.gradingInstanceId),format=q.ioFormat??'json-v1';
               return <><label className="block text-xs">채점할 모델<select className={fieldClass} value={q.gradingInstanceId??''} onChange={e=>commit({...value,question:{...q,gradingInstanceId:e.target.value,...(format==='rr-segments-v1'?{ioFormat:'text-v1' as const,assessmentMode:'result' as const}:{})}})}><option value="">선택하세요</option>{value.instances.map(i=><option key={i.id} value={i.id}>{i.name}</option>)}</select></label>
                 <label className="block text-xs">학생 입출력 형식<select aria-label="학생 입출력 형식" className={fieldClass} value={format} onChange={e=>{const next=e.target.value as 'json-v1'|'rr-segments-v1'|'text-v1';commit({...value,question:{...q,ioFormat:next,...(next==='json-v1'?{}:{assessmentMode:'result' as const})}});}}>

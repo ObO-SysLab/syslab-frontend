@@ -4,7 +4,7 @@ import { validateDiagramBlob } from '../runtime/freeDiagram.mjs';
 import { PAGE_REPLACEMENT_TEMPLATE, PAGE_SCENES, createPageReplacementExample } from '../slots/pageReplacementExample';
 import { RR_INPUTS, RR_QUANTUM, ROUND_ROBIN_TEMPLATE } from '../gantt/roundRobinExample';
 
-// 2026-11-08: the free S1/G2 starting examples keep the picture to the core state and move repeated
+// The free S1/G2 starting examples keep the picture to the core state and move repeated
 // explanations into the lower scene captions. Scene values and IDs are covered by slots/model.test.ts
 // and gantt/roundRobinExample.test.ts; these checks cover what moved and that nothing was lost.
 describe('free S1 page replacement example text', () => {
@@ -20,7 +20,7 @@ describe('free S1 page replacement example text', () => {
     expect(texts[0]).toBe('시작');
     expect(texts.at(-1)).toBe('완료');
     PAGE_SCENES.forEach((scene, i) => expect(texts[i + 1]).toMatch(scene.hit ? /^Hit$/ : /^Miss · /));
-    expect(Math.max(...texts.map(t => t.length))).toBeLessThanOrEqual(16); // was up to 31 characters before 2026-11-08
+    expect(Math.max(...texts.map(t => t.length))).toBeLessThanOrEqual(16); // the earlier examples went up to 31 characters
     expect(frames[1].label).toMatch(/메모리에 없는 페이지를 참조하면 Miss/);
     expect(frames[1].label).toMatch(/빈칸부터/);
     expect(frames[PAGE_SCENES.findIndex(s => s.hit) + 1].label).toMatch(/Hit에서는 FIFO 교체 순서가 바뀌지 않습니다/);

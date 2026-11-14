@@ -9,7 +9,7 @@ interface Spec { title: string; label: string; value: string; multiline?: boolea
   toPatch: (raw: string, extra: boolean) => Record<string, unknown>; extra?: { label: string; value: boolean };
   actions?: { label: string; patch: Record<string, unknown> }[]; }
 
-/** What the clicked part edits, per element type (2026-11-08). Scene-allowed fields only. */
+/** What the clicked part edits, per element type. Scene-allowed fields only. */
 function specFor(node: Node, data: Record<string, unknown>, target: EditTarget): Spec | null {
   const name = String(data.label || '요소');
   if (target.kind === 'cell' && node.type === 'table-grid') {

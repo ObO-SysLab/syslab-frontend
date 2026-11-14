@@ -86,7 +86,7 @@ export function ElementFields({ type, data, onApply, scope='base', validatePatch
     </>}
     {type==='table-grid'&&<>
       {numeric('width','표 너비',300)}
-      {/* Grid editing keeps the earlier accessible names (열 N 제목, 행 R · 열 C) used by regressions (2026-11-08). */}
+      {/* Grid editing keeps the accessible names 열 N 제목 and 행 R · 열 C. */}
       <Group title="표 (열 제목과 셀)">
         <div className="overflow-x-auto"><table className="border-collapse text-xs"><thead><tr>
           {Array.from({length:columns},(_,i)=><th key={i} className="p-0.5 align-bottom"><div className="flex items-center gap-0.5"><input aria-label={`열 ${i+1} 제목`} className={`${cellClass} bg-slate-50 font-semibold`} value={headers[i]??''} onChange={e=>set('headers',Array.from({length:columns},(_,j)=>j===i?e.target.value:headers[j]??''))}/><button type="button" aria-label={`열 ${i+1} 삭제`} title="열 삭제" className="px-1 text-rose-500 hover:bg-rose-50" onClick={()=>setDraft(d=>({...d,headers:Array.from({length:columns},(_,j)=>headers[j]??'').filter((_,j)=>j!==i),rows:tableRows.map(row=>row.filter((_,j)=>j!==i))}))}>×</button></div></th>)}

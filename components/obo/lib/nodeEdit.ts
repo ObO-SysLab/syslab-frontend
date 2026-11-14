@@ -6,7 +6,7 @@ import { validateDiagramElement } from '../runtime/freeDiagram.mjs';
 import { collectLabels, makeUniqueLabel } from './label';
 
 /**
- * Click-to-edit on the drawing (2026-11-08). `sceneIndex === null` edits the base drawing (속성 탭);
+ * Click-to-edit on the drawing. `sceneIndex === null` edits the base drawing (속성 탭);
  * a number edits that scene's own values, which carry forward like any other scene value (장면 탭).
  * Same rules as the side-panel editors: element validation plus no broken later scene.
  */

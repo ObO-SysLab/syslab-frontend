@@ -19,7 +19,7 @@ describe('random hidden tests (2026-11-08)', () => {
         else expect(JSON.parse(c.output).result).toEqual(run(id, JSON.parse(c.input)).result);
       }
     }
-  }, 30000); // 10 seeds × 2 formats; took 8 s for P3 when the whole suite ran in parallel (2026-11-08).
+  }, 30000); // 10 seeds × 2 formats; took 8 s for P3 when the whole suite ran in parallel.
 
   it('repeats with the same seed, changes with another, and skips answers that existing tests already have', () => {
     const one = generateHiddenCases('P2', base('P2'), { count: 5, seed: 42, format: 'text-v1' });
@@ -39,7 +39,7 @@ describe('random hidden tests (2026-11-08)', () => {
   });
 
   it('explains why nothing could be made when the model input cannot be written as text', () => {
-    // A context value with a space still needs JSON (DP order finding became text-expressible on 2026-11-09).
+    // A context value with a space still needs JSON (DP order finding is text-expressible).
     const g = generateHiddenCases('K-SYSCALL', { ...base('K-SYSCALL'), contexts: { P: { pc: 42, note: 'a b' }, Q: { pc: 8 } } }, { count: 3, seed: 1, format: 'text-v1' });
     expect(g.cases).toHaveLength(0);
     expect(g.lastError).toMatch(/JSON/);

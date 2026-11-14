@@ -16,7 +16,7 @@ export function problemToken(){
  if(process.env.NODE_ENV==='development'&&['localhost','127.0.0.1'].includes(window.location.hostname)){
   const preview=sessionStorage.getItem('obo:preview:token');if(preview)return preview;
  }
- // A token that expired while the tab stayed open counts as signed out (2026-11-14).
+ // A token that expired while the tab stayed open counts as signed out.
  const token=localStorage.getItem('token');
  return tokenExpired(token)?null:token;
  }catch{return null;}

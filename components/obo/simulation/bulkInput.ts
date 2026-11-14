@@ -2,7 +2,7 @@ import type { Json } from '../runtime/index.mjs';
 import type { FieldSchema } from './InputForm';
 
 /**
- * Bulk entry for schema-driven model inputs (2026-11-08): one-line lists, matrices and record tables.
+ * Bulk entry for schema-driven model inputs: one-line lists, matrices and record tables.
  * Pure text <-> JSON conversion. Results are the same JSON values the per-field form produces; the
  * engine and the server validator remain the authority.
  */

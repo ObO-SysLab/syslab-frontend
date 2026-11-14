@@ -13,7 +13,7 @@ export function textLines(text: string | string[] | undefined): string[] {
   return lines.map(l => l.trim().split(/\s+/).filter(Boolean).join(' ')).filter(Boolean);
 }
 /**
- * What a learner sees of their own text answer (2026-11-09 learner-playback): every line when right; when wrong,
+ * What a learner sees of their own text answer: every line when right; when wrong,
  * the lines up to the first wrong one (marked), never the expected lines.
  */
 export function textResult(record: Pick<PublicCase, 'scenarioId' | 'expected' | 'reported' | 'correct'>) {

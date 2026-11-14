@@ -30,7 +30,7 @@ interface FramePanelProps {
   /** Coding problems built from scenes: each scene can be left out of the learner's output (start/finish explanations). */
   codingOutput?: boolean;
   onUpdateFrameExclude?: (frameId: string, exclude: boolean) => void;
-  /** Lines → scenes (2026-11-09): replaces the scene list in one step. */
+  /** Lines → scenes: replaces the scene list in one step. */
   onReplaceFrames?: (frames: Frame[], selectId: string | null) => void;
   /** Coding problems: the learner's line format, used as the dialog's starting choice. */
   lineFormat?: SimpleOutputFormat | null;

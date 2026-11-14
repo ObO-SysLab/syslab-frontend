@@ -363,7 +363,7 @@ export default function HomePage() {
                   </Link>
                 </div>
 
-                {/* HUD 수치 — 서비스가 실제로 제공하는 것 (2026-11-10: 예시 숫자 대신). 간편 모드 모델은
+                {/* HUD 수치는 서비스가 실제로 제공하는 것을 센다. 간편 모드 모델은
                     components/obo/runtime/contracts.mjs, 자유 모드 템플릿은 templates.ts의 ACTIVE_TEMPLATE_IDS, 언어는 Python·C·C++. */}
                 <dl className="grid grid-cols-3 gap-6 pt-8 max-w-xl">
                   {[

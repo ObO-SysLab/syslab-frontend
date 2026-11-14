@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 
 /**
- * Problem statements as authors write them (2026-11-13): plain text with three Markdown marks.
+ * Problem statements as authors write them: plain text with three Markdown marks.
  * ```fenced``` blocks keep a monospace layout (ASCII diagrams, code), `inline code` and **bold**
  * are styled, and a leading "* " becomes a bullet. Everything else stays literal text, so React
  * still escapes it and old statements without marks render exactly as before.

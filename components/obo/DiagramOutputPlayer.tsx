@@ -6,13 +6,13 @@ import {generateFramesFromTrace} from './lib/trace';
 import {OboPlayer} from './OboPlayer';
 import {Button} from '@/components/ui/button';
 export interface DiagramOutputRecord {kind:'diagram';caseIndex:number;stdout?:string;omitted?:string;
- /** 2026-11-09 learner-playback: whether this example was right and, when not, the first wrong output line (one line = one scene). */
+ /** Whether this example was right and, when not, the first wrong output line (one line = one scene). */
  correct?:boolean;firstWrong?:number|null}
 
 /** Free-mode coding result: my public example output as scenes; a wrong one stops and is marked at its first wrong scene. */
 export function DiagramOutputPlayer({schema,records}:{schema:OboCodingSchema;records:DiagramOutputRecord[]}){
  const [index,setIndex]=useState(0);const record=records[index]??records[0];
- // Plain (Baekjoon-style) output is read with the author's line rule; JSON records keep the existing parser (2026-11-08).
+ // Plain (Baekjoon-style) output is read with the author's line rule; JSON records keep the existing parser.
  const parsed=useMemo(()=>schema.outputFormat?parseSimpleOutput(record?.stdout??'',schema.nodes,schema.edges,schema.outputFormat):parseDiagramTrace(record?.stdout??'',schema.nodes,schema.edges),[record,schema]);
  const frames=useMemo(()=>generateFramesFromTrace(parsed.trace,schema.edges),[parsed,schema]);
  const wrong=record?.correct===false,at=wrong&&Number.isInteger(record?.firstWrong)?record!.firstWrong!:null;

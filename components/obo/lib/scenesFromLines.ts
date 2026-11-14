@@ -5,7 +5,7 @@ import { nextFrameId } from './id';
 import { getEventFields } from './overrideFields';
 
 /**
- * Free mode (2026-11-09): plain lines → scenes, one scene per line. The lines use the same rules as a
+ * Free mode: plain lines → scenes, one scene per line. The lines use the same rules as a
  * learner's plain output (parseSimpleOutput), so turning the scenes back into lines (formatSimpleOutput)
  * gives the same lines.
  */
@@ -124,7 +124,7 @@ export type SkippedScene = { scene: number; why: 'before-start' | 'excluded' | '
 export interface LinesListing { lines: { scene: number; frameId: string; text: string }[]; text: string; skipped: SkippedScene[]; stoppedAt: number | null }
 
 /**
- * The lines the current scenes already show (2026-11-09), paired with their scenes the way fill pairs them back,
+ * The lines the current scenes already show, paired with their scenes the way fill pairs them back,
  * so editing one line changes only that scene. Scenes left out of the output or with no one-line form are skipped;
  * with line-number highlighting the lines start where it starts. Lines that would not come back as the same scenes
  * (e.g. a highlighted table row that is not the n-th row) are not loaded; `stoppedAt` names the first scene left out.

@@ -9,7 +9,7 @@ import { sameJudgedOutput } from './guidance/codingContract';
 type Testcase = { index: number; input: string; output: string; is_sample: boolean };
 
 /**
- * Coding problem from a free drawing with plain output (2026-11-08): the expected output comes from the scenes.
+ * Coding problem from a free drawing with plain output: the expected output comes from the scenes.
  * The author still writes the input; grading compares the program's lines with the test output.
  */
 export function DiagramExampleControl({ schema, testcases, onAdd, onFill }: {

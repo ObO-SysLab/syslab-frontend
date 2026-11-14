@@ -25,7 +25,7 @@ function SubmissionDetailContent() {
   const searchParams = useSearchParams(); // URL 쿼리 파라미터 가져오기
   const router = useRouter();
   const [userImgUrl, setUserImgUrl] = useState("");
-  // The server shows a result only to its submitter, so the submitter is the signed-in user (2026-11-10 QA #9).
+  // The server shows a result only to its submitter, so the submitter is the signed-in user.
   const [nickname, setNickname] = useState("");
 
   const submissionId = searchParams.get("id");

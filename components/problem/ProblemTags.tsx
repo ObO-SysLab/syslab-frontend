@@ -1,6 +1,6 @@
 import { CategoryChip, DepthBadge, TypeChip } from '@/components/dv';
 
-/** Difficulty, type and category above a problem title (problem pages and the author preview, 2026-11-10). */
+/** Difficulty, type and category above a problem title (problem pages and the author preview). */
 export function ProblemTags({ difficulty, type, category }: { difficulty?: string | number | null; type?: string | null; category?: string | null }) {
   if (!difficulty && !type && !category) return null;
   return (

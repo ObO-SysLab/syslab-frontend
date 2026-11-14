@@ -20,8 +20,8 @@ const WHY: Record<SkippedScene['why'], string> = { 'before-start': '줄 번호 �
 const norm = (line: string) => line.trim().split(/\s+/).join(' ');
 
 /**
- * Free mode (2026-11-09): one line per scene instead of editing every scene by hand. The dialog opens with the
- * current scenes already written as lines (2026-11-09 lines-prefill), so the author edits only what changes
+ * Free mode: one line per scene instead of editing every scene by hand. The dialog opens with the
+ * current scenes already written as lines, so the author edits only what changes
  * instead of learning each element's line rule first.
  */
 export function LinesToScenesDialog({ nodes, edges, frames, selectedFrameId, initialFormat, onApply, onClose }: {

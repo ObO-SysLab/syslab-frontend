@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { OboEditorSection } from './OboEditorSection';
 import { createDocument } from './runtime/document.mjs';
 
-// Plain mode names chosen by the user on 2026-11-08: 간편 모드 (rule-based simulation) and 자유 모드 (free drawing).
+// The start cards are named 간편 모드 (rule-based simulation) and 자유 모드 (free drawing).
 describe('mode names on the start cards', () => {
   const render = (coding: boolean) => renderToStaticMarkup(createElement(OboEditorSection, {
     value: { schemaVersion: 2, mode: 'simulation', simulation: createDocument('P2') }, onChange: () => {}, allowCodingDiff: coding,

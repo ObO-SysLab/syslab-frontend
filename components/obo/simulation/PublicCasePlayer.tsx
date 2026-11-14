@@ -15,17 +15,17 @@ export interface PublicCase {
   kind?:string;
   caseIndex:number; scenarioId?:string; input?:Record<string,Json>; reference?:ModelRun;
   reported?:{v:1;result:Record<string,Json>;events?:SemanticEvent[];text?:undefined}|{v:1;text:string[];result?:undefined;events?:undefined}|null;
-  /** text-v1 (2026-11-08): the example's stdin text and expected output lines. */
+  /** text-v1: the example's stdin text and expected output lines. */
   inputText?:string; expected?:string;
   correct?:boolean; traceValid?:boolean; message?:string; omitted?:string;
 }
 
 function Comparison({record,document}:{record:PublicCase;document?:SimulationDocument|null}) {
   const [referenceCursor,setReferenceCursor]=useState(-1),[reportedCursor,setReportedCursor]=useState(-1);
-  // The author's graded simulation keeps its cards and layout (2026-11-08); see instanceForCase.
+  // The author's graded simulation keeps its cards and layout; see instanceForCase.
   const instance=useMemo(()=>record.scenarioId&&record.input?instanceForCase(document,record.scenarioId,record.input):null,[record,document]);
   const reported:ModelRun|null=useMemo(()=>record.reported?.events&&instance?{id:instance.scenarioId,modelVersion:1,result:record.reported.result,events:record.reported.events,stats:{events:record.reported.events.length,bytes:0}}:null,[record,instance]);
-  // A wrong answer stops at its first wrong scene (2026-11-09 learner-playback); the reference stays hidden.
+  // A wrong answer stops at its first wrong scene; the reference stays hidden.
   const wrong=record.correct===false;
   const firstWrong=useMemo(()=>wrong&&reported&&record.scenarioId&&record.input?firstWrongEvent(record.scenarioId,record.input,{result:reported.result,events:reported.events}):null,[wrong,reported,record]);
   if(record.omitted)return <p className="rounded border p-4 text-sm text-slate-500">{record.omitted}</p>;

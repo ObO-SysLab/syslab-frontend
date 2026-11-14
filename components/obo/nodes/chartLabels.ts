@@ -4,7 +4,7 @@ const box = (l: ChartLabel, charWidth: number) => {
   return { left, right: left + w, top: l.y - 13, bottom: l.y + 2 };
 };
 /**
- * Value labels to draw so that none overlaps another (2026-11-08). `priority` labels (the active point, the last drawn point)
+ * Value labels to draw so that none overlaps another. `priority` labels (the active point, the last drawn point)
  * are kept first; the rest are kept in order only if they do not intersect a kept label. Points and lines are never hidden.
  */
 export function keptChartLabels(labels: ChartLabel[], priority: number[] = [], charWidth = 8): Set<number> {

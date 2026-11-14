@@ -1,7 +1,7 @@
 import { Lightbulb } from "lucide-react";
 import { ProblemText } from "./ProblemText";
 
-/** Author hint of a practice problem, closed until the learner opens it (2026-11-13). */
+/** Author hint of a practice problem, closed until the learner opens it. */
 export function PracticeHint({ hint }: { hint?: string | null }) {
   if (!hint?.trim()) return null;
   return (

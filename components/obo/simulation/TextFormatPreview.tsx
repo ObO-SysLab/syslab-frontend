@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import type { SimulationInstance } from '../runtime/document.mjs';
 import { inputToText, textHelp, textReference } from '../runtime/textFormats.mjs';
 
-/** Shows the learner's text input/output for the graded model (text-v1, 2026-11-08). */
+/** Shows the learner's text input/output for the graded model (text-v1). */
 export function TextFormatPreview({ instance }: { instance: SimulationInstance }) {
   const preview = useMemo(() => {
     try {

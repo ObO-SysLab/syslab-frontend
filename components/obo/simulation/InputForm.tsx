@@ -91,7 +91,7 @@ export function InputForm({schema,value,onChange,label='입력',path='input'}:{s
       {items.length>20&&<div className="flex gap-2 text-xs"><button type="button" disabled={page===0} onClick={()=>setPage(p=>p-1)}>이전</button><span>{page+1}/{Math.ceil(items.length/20)}</span><button type="button" disabled={(page+1)*20>=items.length} onClick={()=>setPage(p=>p+1)}>다음</button></div>}
       <button type="button" className="rounded-md bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 disabled:opacity-40" disabled={items.length>=(schema.maxItems??10000)} onClick={()=>onChange([...items,seed(schema.items??{})])}>항목 추가</button>
     </>;
-    // Lists, matrices and record lists get one-line / table entry; the per-field form stays one click away (2026-11-08).
+    // Lists, matrices and record lists get one-line / table entry; the per-field form stays one click away.
     if(bulkKind(schema))return <BulkArrayField schema={schema} value={value} onChange={onChange} label={label} labelOf={key=>Object.hasOwn(labels,key)?labels[key]:key} seedItem={()=>seed(schema.items??{})} classic={<div className="space-y-2">{body}</div>}/>;
     return <fieldset className="min-w-0 space-y-2 rounded-lg border border-slate-200 p-3"><legend className="px-1 text-xs font-bold text-slate-700">{label} · {items.length}</legend>{body}</fieldset>;
   }
