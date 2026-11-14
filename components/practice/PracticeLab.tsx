@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Terminal as TerminalIcon, Shield, RefreshCw, Zap, Clock } from "lucide-react";
 
 import { Header } from "@/components/Header";
+import { DivoCheer } from "@/components/dv/DivoMotion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { logout } from "@/lib/authSession";
@@ -28,7 +29,7 @@ export type PracticeLabProps = {
   submitFlag: (answer: string, token: string | null) => Promise<boolean | null>;
 };
 
-type FlagNotice = { tone: "wrong" | "unknown" | "error"; text: string } | null;
+type FlagNotice = { tone: "solved" | "wrong" | "unknown" | "error"; text: string } | null;
 
 /** Practice screen shared by regular and contest problems: one container session with a web terminal. */
 export function PracticeLab({ probId, activeMenu, exitHref, doneHref, checkBuild, submitFlag }: PracticeLabProps) {
@@ -43,7 +44,11 @@ export function PracticeLab({ probId, activeMenu, exitHref, doneHref, checkBuild
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [flagNotice, setFlagNotice] = useState<FlagNotice>(null);
+  const [cheer, setCheer] = useState(0);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const started = useRef(false);
+
+  useEffect(() => () => { if (leaveTimer.current) clearTimeout(leaveTimer.current); }, []);
 
   useEffect(() => { setIsLoggedIn(!!localStorage.getItem("token")); }, []);
 
@@ -137,8 +142,10 @@ export function PracticeLab({ probId, activeMenu, exitHref, doneHref, checkBuild
         // Only a solved practice ends its environment.
         let stopped = true;
         try { await stopVmSession(probId, session?.sessionId ?? null, token); } catch { stopped = false; }
-        alert(stopped ? "정답입니다! 실습 환경을 종료했습니다." : "정답입니다! 실습 환경 종료는 확인하지 못했으니 잠시 뒤 다시 확인해 주세요.");
-        router.push(doneHref);
+        setFlagNotice({ tone: "solved", text: stopped ? "정답입니다! 실습 환경을 종료했습니다." : "정답입니다! 실습 환경 종료는 확인하지 못했으니 잠시 뒤 다시 확인해 주세요." });
+        setCheer(count => count + 1);
+        // Leave once Divo has gone back down; a failed stop gets more time to read.
+        leaveTimer.current = setTimeout(() => router.push(doneHref), stopped ? 3800 : 6000);
       } else if (correct === false) {
         setFlagNotice({ tone: "wrong", text: "오답입니다. 실습 환경은 그대로 있으니 계속 풀어 보세요." });
       } else {
@@ -151,7 +158,8 @@ export function PracticeLab({ probId, activeMenu, exitHref, doneHref, checkBuild
     }
   };
 
-  const noticeColor = flagNotice?.tone === "wrong" ? "text-danger" : flagNotice?.tone === "unknown" ? "text-warning" : "text-danger";
+  const solved = flagNotice?.tone === "solved";
+  const noticeColor = solved ? "text-success" : flagNotice?.tone === "wrong" ? "text-danger" : flagNotice?.tone === "unknown" ? "text-warning" : "text-danger";
 
   return (
     <div className="dv-dark-scope h-screen flex flex-col bg-canvas overflow-hidden w-full font-sans text-ink">
@@ -228,7 +236,7 @@ export function PracticeLab({ probId, activeMenu, exitHref, doneHref, checkBuild
                 <Input value={flag} onChange={event => setFlag(event.target.value)} aria-label="플래그"
                   placeholder="DK{Enter_The_Flag_Here}"
                   className="h-11 bg-deep border-line text-success font-mono focus-visible:ring-primary rounded-xl" />
-                <Button type="submit" disabled={isSubmitting}
+                <Button type="submit" disabled={isSubmitting || solved}
                   className="h-11 px-8 bg-primary hover:bg-primary-hover text-primary-ink font-black rounded-xl shadow-lg transition-all active:scale-95">
                   {isSubmitting ? "확인 중..." : "인증하기"}
                 </Button>
@@ -238,6 +246,7 @@ export function PracticeLab({ probId, activeMenu, exitHref, doneHref, checkBuild
           </div>
         </main>
       </div>
+      <DivoCheer play={cheer} />
     </div>
   );
 }

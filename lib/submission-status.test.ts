@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSubmissionPending, submissionVerdict } from './submission-status';
+import { isSubmissionPending, settledSubmissions, submissionVerdict } from './submission-status';
 
 describe('submission status', () => {
   it.each(['FAILED', 'COMPLETED'])('stops polling %s even with null verdict and stale local flag', submissionStatus => {
@@ -48,5 +48,31 @@ describe('submission verdict display', () => {
   it('uses a safe explanation without guessing the exact code failure', () => {
     expect(submissionVerdict({resultStatus: 'ERROR'}).hint).toBe('컴파일 또는 실행 중 오류');
     expect(submissionVerdict({resultStatus: 'WRONG'}).hint).toBeUndefined();
+  });
+});
+
+describe('settled submissions', () => {
+  const watched = new Set(['7', '8']);
+  it('reports a watched submission that turned correct', () => {
+    const items = [
+      { submissionId: 7, submissionStatus: 'COMPLETED', resultStatus: 'CORRECT' },
+      { submissionId: 8, submissionStatus: 'JUDGING', resultStatus: null },
+    ];
+    expect(settledSubmissions(watched, items)).toEqual({ settled: ['7'], solved: true });
+  });
+  it('settles wrong answers without solving', () => {
+    const items = [{ submissionId: '8', submissionStatus: 'COMPLETED', resultStatus: 'WRONG' }];
+    expect(settledSubmissions(watched, items)).toEqual({ settled: ['8'], solved: false });
+  });
+  it('keeps watching while the verdict is not known yet', () => {
+    const items = [
+      { submissionId: 7, submissionStatus: 'COMPLETED' },
+      { submissionId: 8, _isPending: true, isCorrect: null },
+    ];
+    expect(settledSubmissions(watched, items)).toEqual({ settled: [], solved: false });
+  });
+  it('ignores correct submissions nobody watched', () => {
+    const items = [{ submissionId: 9, submissionStatus: 'COMPLETED', resultStatus: 'CORRECT' }];
+    expect(settledSubmissions(watched, items)).toEqual({ settled: [], solved: false });
   });
 });

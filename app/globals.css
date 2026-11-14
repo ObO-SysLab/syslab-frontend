@@ -539,6 +539,52 @@
   .dv-divo[data-mood="success"] .dv-divo__name { color: var(--dv-success); }
   .dv-divo[data-mood="fail"] .dv-divo__name { color: var(--dv-warning); }
 
+  /* 움직이는 디보 (components/dv/DivoMotion.tsx) */
+  .dv-mascot { position: relative; flex: none; }
+  .dv-mascot__body { position: relative; transform-origin: 50% 100%; }
+  .dv-mascot__body > img { display: block; width: 100%; height: auto; }
+  .dv-mascot__lids { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+  .dv-mascot__lid { transform-box: fill-box; transform: translateY(-102%); }
+  .dv-mascot__shut, .dv-mascot__smile { fill: none; stroke: #0E2C3B; stroke-linecap: round; opacity: 0; }
+  .dv-mascot__shut { stroke-width: 6; }
+  .dv-mascot__smile { stroke-width: 9; }
+  .dv-mascot[data-idle] .dv-mascot__body { animation: dv-mascot-float 3.6s ease-in-out infinite; }
+  .dv-mascot[data-idle] .dv-mascot__lid { animation: dv-mascot-blink 5s linear infinite; }
+  .dv-mascot[data-idle] .dv-mascot__shut { animation: dv-mascot-shut 5s linear infinite; }
+  .dv-mascot[data-phase="down"] .dv-mascot__body { animation: dv-mascot-sink 0.45s cubic-bezier(0.45, 0, 0.6, 1) forwards; }
+  .dv-mascot[data-phase="up"] .dv-mascot__body { animation: dv-mascot-surface 0.65s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+  .dv-mascot__bubble {
+    position: absolute; left: var(--x); top: 20%;
+    width: var(--s); height: var(--s); border-radius: 999px;
+    border: 1.5px solid color-mix(in srgb, var(--dv-primary) 55%, transparent);
+    background: color-mix(in srgb, var(--dv-primary) 12%, transparent);
+    opacity: 0; pointer-events: none;
+    animation: dv-mascot-bubble var(--d) ease-out var(--delay) forwards;
+  }
+  /* 정답: 화면 오른쪽 아래에서 튀어 올라와 웃고, 3초쯤 뒤 내려간다 */
+  .dv-mascot--cheer {
+    position: fixed; z-index: 60; bottom: 0;
+    right: max(24px, env(safe-area-inset-right, 0px));
+    pointer-events: none;
+  }
+  .dv-mascot--cheer .dv-mascot__body {
+    animation:
+      dv-mascot-pop 0.8s cubic-bezier(0.2, 0.9, 0.3, 1) both,
+      dv-mascot-cheer 0.7s ease-in-out 0.85s 2,
+      dv-mascot-down 0.45s ease-in 3.3s forwards;
+  }
+  .dv-mascot--cheer .dv-mascot__bubble { top: 10%; }
+  .dv-mascot--cheer .dv-mascot__lid { animation: dv-mascot-squint 3.6s linear both; }
+  .dv-mascot--cheer .dv-mascot__smile { animation: dv-mascot-smile 3.6s linear both; }
+  .dv-mascot__say {
+    position: absolute; right: 88%; top: 2%;
+    padding: 6px 12px; border-radius: 14px 14px 4px 14px;
+    background: var(--dv-bg-200); border: 1px solid var(--dv-line-100); box-shadow: var(--dv-shadow-1);
+    font: 700 14px/20px var(--font-sans); color: var(--dv-success); white-space: nowrap;
+    transform-origin: 100% 100%;
+    animation: dv-mascot-say 3.6s ease-out both;
+  }
+
   /* Terminal 틀 */
   .dv-term__guard { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 6px; border-radius: 6px; background: var(--dv-bg-300); font: 600 10px/1 var(--font-mono); letter-spacing: 0.06em; color: var(--dv-ink-muted); }
   .dv-term__guard svg { width: 10px; height: 10px; color: var(--dv-accent); }
@@ -581,9 +627,79 @@
 }
 .dv-descend { animation: dv-descend 0.24s ease-out both; }
 
+@keyframes dv-mascot-float {
+  0%, 100% { transform: translateY(0) scale(1.015, 0.985); }
+  50% { transform: translateY(-7%) scale(0.985, 1.015); }
+}
+@keyframes dv-mascot-blink {
+  0%, 88% { transform: translateY(-102%); }
+  90%, 91% { transform: translateY(0); }
+  93%, 100% { transform: translateY(-102%); }
+}
+@keyframes dv-mascot-shut {
+  0%, 89.5% { opacity: 0; }
+  90%, 91% { opacity: 1; }
+  91.5%, 100% { opacity: 0; }
+}
+@keyframes dv-mascot-sink {
+  0% { transform: none; opacity: 1; }
+  25% { transform: translateY(-6%) scale(0.96, 1.05); opacity: 1; }
+  100% { transform: translateY(70%) rotate(10deg); opacity: 0; }
+}
+@keyframes dv-mascot-surface {
+  0% { transform: translateY(70%) rotate(10deg); opacity: 0; }
+  55% { transform: translateY(-9%) rotate(-3deg) scale(0.97, 1.04); opacity: 1; }
+  80% { transform: translateY(2%) scale(1.03, 0.97); }
+  100% { transform: none; opacity: 1; }
+}
+@keyframes dv-mascot-bubble {
+  0% { transform: translate(-50%, 0) scale(0.4); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), var(--dy)) scale(1); opacity: 0; }
+}
+@keyframes dv-mascot-pop {
+  0% { transform: translateY(135%) scale(0.8); }
+  55% { transform: translateY(-12%) scale(0.95, 1.07); }
+  76% { transform: translateY(3%) scale(1.04, 0.96); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes dv-mascot-cheer {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  35% { transform: translateY(-14%) rotate(-7deg); }
+  55% { transform: translateY(0) scale(1.05, 0.95); }
+  78% { transform: translateY(-6%) rotate(5deg); }
+}
+@keyframes dv-mascot-down {
+  from { transform: translateY(0); }
+  to { transform: translateY(135%); }
+}
+@keyframes dv-mascot-squint {
+  0%, 19% { transform: translateY(-102%); }
+  24%, 82% { transform: translateY(0); }
+  87%, 100% { transform: translateY(-102%); }
+}
+@keyframes dv-mascot-smile {
+  0%, 22% { opacity: 0; }
+  25%, 81% { opacity: 1; }
+  84%, 100% { opacity: 0; }
+}
+@keyframes dv-mascot-say {
+  0%, 22% { opacity: 0; transform: translateY(6px) scale(0.9); }
+  28%, 84% { opacity: 1; transform: none; }
+  90%, 100% { opacity: 0; transform: translateY(-4px); }
+}
+@keyframes dv-mascot-fade {
+  0% { opacity: 0; }
+  8%, 88% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dv-bubble, .dv-descend { animation: none; }
   .dv-btn-dive, .dv-o2__fill { transition: none; }
+  .dv-mascot__body, .dv-mascot__lid, .dv-mascot__shut, .dv-mascot__smile { animation: none !important; }
+  .dv-mascot__bubble { display: none; }
+  .dv-mascot--cheer .dv-mascot__body, .dv-mascot--cheer .dv-mascot__say { transform: none; animation: dv-mascot-fade 3.6s linear both !important; }
 }
 
 /* OBO 박스 노드 강조: 점선이 둘레를 따라 흐르는 marching-ants (도형 회전 없음) */
