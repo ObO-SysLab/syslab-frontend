@@ -208,7 +208,7 @@ function CanvasInner({
 
   const closeMenu = useCallback(() => setMenu(null), []);
 
-  // Click-to-edit for every element (2026-11-08): base drawing in the property tab, the selected scene in the scene tab.
+  // Click-to-edit for every element: base drawing in the property tab, the selected scene in the scene tab.
   const editScene = activeTab === 'frame' && previewFrame && setFrames ? previewIndex : null;
   const canEdit = !traceMode && (activeTab === 'property' || editScene !== null);
   const [dialog, setDialog] = useState<{ id: string; target: EditTarget } | null>(null);

@@ -147,7 +147,7 @@ describe('view placement changes geometry only at explicit authoring actions', (
   });
 
   it('retains the existing DP circle, actor/resource dimensions and sidebar spacing', () => {
-    // Since 2026-11-08 the DP default is one table card; per-philosopher/fork cards still use the ring layout.
+    // The DP default is one table card; per-philosopher/fork cards still use the ring layout.
     const instance = createDocument('DP').instances[0];
     instance.input = clone(registry.DP.inputExample);
     const entities = semanticEntities(instance);

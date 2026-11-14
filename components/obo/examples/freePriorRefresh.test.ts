@@ -6,7 +6,7 @@ import { ALL_OBO_TEMPLATES, OBO_TEMPLATES } from '../templates';
 import { AUTHORING_FIELDS } from '../authoring/model';
 import { INODE_ACCESS, exampleBlob } from './remaining';
 
-// 2026-11-08: free ST2 starts with its scenes everywhere, and a removed state-node reads as removed, not as the active item.
+// Free ST2 starts with its scenes everywhere, and a removed state-node reads as removed, not as the active item.
 describe('free ST2 template scenes', () => {
   const st2 = ALL_OBO_TEMPLATES.find(t => t.id === 'ST2')!;
   it('carries the eight authored scenes on the template itself', () => {

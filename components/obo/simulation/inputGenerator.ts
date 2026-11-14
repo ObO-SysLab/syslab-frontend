@@ -3,7 +3,7 @@ import { inputToText, textReference } from '../runtime/textFormats.mjs';
 import { rrInputText, rrOutputText, type ScheduleSegment } from '../runtime/rrText.mjs';
 
 /**
- * Random hidden tests for rule-based coding problems (2026-11-08, editor only).
+ * Random hidden tests for rule-based coding problems (editor only).
  * Inputs start from the author's model input; numbers are varied for most models and nine structure-heavy
  * models get small generators. Only inputs the real engine accepts are kept, and each kept test has an
  * answer that no existing test already has. The same seed, model input and existing tests give the same tests.

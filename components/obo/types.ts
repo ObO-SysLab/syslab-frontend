@@ -29,7 +29,7 @@ export interface OboCodingSchema {
   edges: OboBlob['edges'];
   referenceTrace: OboTraceStep[]; // 출제자가 공개하는 참고 재생 기록. 의미 정답의 정의가 아니다.
   sourceTraceText?: string; // Preserve incomplete author input in browser drafts; rejected at publish if invalid.
-  /** Scenes the reference record was made from (2026-11-08). Keeps captions, gantt time and edge highlights for explanations. */
+  /** Scenes the reference record was made from. Keeps captions, gantt time and edge highlights for explanations. */
   frames?: Frame[];
   /** Baekjoon-style learner output: one plain line per included scene. Omitted = JSON record lines. */
   outputFormat?: SimpleOutputFormat;

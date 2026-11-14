@@ -56,7 +56,7 @@ function OboResultContent() {
   const blob=explanations.find(item=>item.id===activeExplanation)?.blob??explanations[0]?.blob??null;
   useEffect(()=>setActiveExplanation(''),[query.data]);
   const verdict=submissionVerdict(result),isSuccess=verdict.kind==='correct';
-  // Coding answers that are not right yet keep the author's answer hidden (2026-11-09 learner-playback); objective
+  // Coding answers that are not right yet keep the author's answer hidden; objective
   // explanations stay as they are. Objective submissions carry their choices or selected answers.
   const objective=choices.length>0||selectedAnswers.length>0||(!!oboJson&&'mode' in oboJson&&oboJson.mode==='per_choice');
   const coding=!objective&&(!!codingSchema||publicCases.length>0||diagramRecords.length>0||simulation?.question.judgeProfile==='obo-v1'||!!simulation?.question.ioFormat);

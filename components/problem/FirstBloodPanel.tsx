@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 /**
  * First solver of a problem. Until someone solves it the card invites the reader to be first
- * (2026-11-14: it used to draw an empty avatar because the empty state was an object, not null).
+ * (It used to draw an empty avatar because the empty state was an object, not null.)
  */
 export function FirstBloodPanel({ user, date }: { user?: string | null; date?: string | null }) {
   return (

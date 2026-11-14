@@ -12,7 +12,7 @@ export interface AuthoringState {
   previewed: boolean;
 }
 
-/** Register-time field checks (moved from the create page's handleSubmit on 2026-11-09; messages unchanged). */
+/** Register-time field checks (moved from the create page's handleSubmit; messages unchanged). */
 export function requiredFieldErrors(s: AuthoringState): Record<string, string> {
   const errors: Record<string, string> = {};
   if (!s.title.trim()) errors.title = '문제 제목을 입력해 주세요.';
@@ -28,7 +28,7 @@ export function requiredFieldErrors(s: AuthoringState): Record<string, string> {
 }
 
 /**
- * Step list for the create page (2026-11-09).
+ * Step list for the create page.
  * required: registration stops here (same rules as requiredFieldErrors).
  * check: registration goes through but the server or learners may run into trouble.
  * optional: worth doing.

@@ -47,7 +47,7 @@ export class CodeDraftSession {
     this.language = language;
     this.scan();
   }
-  /** The problem's first code (2026-11-10). Buffers never edited or kept switch to it; written code stays. */
+  /** The problem's first code. Buffers never edited or kept switch to it; written code stays. */
   setStarter(starter: (language: string) => string) {
     const previous = this.starter;
     this.starter = starter;

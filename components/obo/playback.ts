@@ -2,7 +2,7 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
 
 /**
- * Learner playback shared by the free-mode, simple-mode and RR players (2026-11-09 learner-playback).
+ * Learner playback shared by the free-mode, simple-mode and RR players.
  * One fixed time per scene so captions can be read; the speed only scales it.
  */
 export const SCENE_MS = 3000;

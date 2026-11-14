@@ -15,7 +15,7 @@ export function CodingExampleControl({document,onAdd,existing=[]}:{document:Simu
   return <><Example instance={instance} mode={document.question.assessmentMode} rr={format==='rr-segments-v1'} text={format==='text-v1'} onAdd={onAdd}/>
     <RandomTests instance={instance} format={format} mode={document.question.assessmentMode} existing={existing} onAdd={onAdd}/></>;
 }
-/** Random hidden tests (2026-11-08): varied inputs from the current model, each with the engine's expected output. */
+/** Random hidden tests: varied inputs from the current model, each with the engine's expected output. */
 function RandomTests({instance,format,mode,existing,onAdd}:{instance:SimulationDocument['instances'][number];format:CaseFormat;mode:string;existing:string[];onAdd:(input:string,output:string,sample:boolean)=>void}) {
   const [seed,setSeed]=useState(()=>10000+Math.floor(Math.random()*90000));
   const [status,setStatus]=useState<{text:string;short:boolean}|null>(null);
@@ -39,7 +39,7 @@ function Example({instance,mode,rr,text,onAdd}:{instance:SimulationDocument['ins
   const [added,setAdded]=useState<null|'sample'|'hidden'>(null);
   let rrInput='',formatError='';
   if(rr)try{rrInput=rrInputText(instance.input);}catch(error){formatError=error instanceof Error?error.message:String(error);}
-  // Baekjoon-style text (2026-11-08): the input text and the expected lines come from the same engine as grading.
+  // Baekjoon-style text: the input text and the expected lines come from the same engine as grading.
   let textCase:{input:string;expected:string}|null=null;
   if(text)try{const input=inputToText(instance.scenarioId,instance.input);textCase={input,expected:textReference(instance.scenarioId,input).expected};}catch(error){formatError=error instanceof Error?error.message:String(error);}
   return <div className="obo-scope mt-3 space-y-2 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-sm">

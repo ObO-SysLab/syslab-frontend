@@ -1,7 +1,7 @@
 export interface MemorySegment { id: string; start: number; size: number; label: string; free?: boolean; }
 export interface MemoryTick { value: number; left: number; align: 'start' | 'center' | 'end' }
 /**
- * Address boundary labels that do not collide at the drawn width (2026-11-08). The first and last boundaries always show
+ * Address boundary labels that do not collide at the drawn width. The first and last boundaries always show
  * (aligned inward so they stay inside the card); an inner boundary shows only if it is `minGap` px from both neighbours kept.
  */
 export function memoryTicks(values: number[], start: number, size: number, width: number, minGap = 26): MemoryTick[] {

@@ -5,7 +5,7 @@ import { PAGE_REPLACEMENT_TEMPLATE } from './slots/pageReplacementExample';
 import { RESOURCE_ALLOCATION_TEMPLATE } from './resourceAllocationExample';
 import { REMAINING_TEMPLATES } from './examples/remaining';
 
-// ST2 authored example scenes (not a state-transition engine): [from, to, edge, caption]. Shared with the ST2 page (2026-11-08).
+// ST2 authored example scenes (not a state-transition engine): [from, to, edge, caption]. Shared with the ST2 page.
 const ST2_SCENES: [string, string, string, string][] = [
   ['new', 'ready', 'e-new-ready', '프로세스가 만들어져 실행을 기다리는 준비 상태가 됩니다.'],
   ['ready', 'running', 'e-ready-running', '스케줄러가 준비 중인 프로세스를 선택하면 CPU에서 실행을 시작합니다.'],

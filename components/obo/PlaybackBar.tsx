@@ -7,7 +7,7 @@ import { PLAYBACK_SPEEDS, type Playback } from './playback';
 const MAX_DOTS = 30;
 
 /**
- * The one learner playback bar (2026-11-09 learner-playback): same buttons, names, speeds and keys in every player.
+ * The one learner playback bar: same buttons, names, speeds and keys in every player.
  * Scenes past `pb.end` (after a wrong scene) cannot be reached.
  */
 export function PlaybackBar({ pb, index, wrongAt, showPosition = true }: { pb: Playback; index: number; wrongAt?: number | null; showPosition?: boolean }) {

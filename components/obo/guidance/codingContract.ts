@@ -8,7 +8,7 @@ export type CodingContract = {
   assessmentMode?:string; inputSchema?:unknown; outputSchema?:unknown;
   ioFormat?:'json-v1'|'rr-segments-v1'|'text-v1';
   nodes?:{id:string;type:string;fields:Record<string,string>}[]; edgeIds?:string[];
-  /** Baekjoon-style output (2026-11-08). Only the line shape is public: no IDs, labels, values or expected output. */
+  /** Baekjoon-style output. Only the line shape is public: no IDs, labels, values or expected output. */
   outputFormat?:PublicOutputFormat;
 };
 /** Line shape only: cell / column counts are needed to write a line; capacities and values stay in the problem text. */
@@ -92,7 +92,7 @@ export function starterCode(language:string,contract?:CodingContract|null):strin
     return '#include <iostream>\n#include <string>\n#include <vector>\nstruct Job { std::string id; int arrival, burst; };\nint main() {\n    int n, quantum;\n    if (!(std::cin >> n >> quantum) || n < 1 || n > 32) return 1;\n    std::vector<Job> jobs(n);\n    for (auto &job : jobs) std::cin >> job.id >> job.arrival >> job.burst;\n    // TODO: RR 순서를 계산하세요.\n    // 출력 예: std::cout << id << " " << start << " " << end << "\\n";\n}\n';
   }
   if(contract?.ioFormat==='text-v1'&&contract.scenarioId){
-    // Baekjoon-style text (2026-11-08): read tokens, print one line per step; no JSON parser needed.
+    // Baekjoon-style text: read tokens, print one line per step; no JSON parser needed.
     const help=textHelp(contract.scenarioId),inNote=help.input,outNote=help.output;
     if(language==='python')return `import sys\n\ndata = sys.stdin.read().split()\npos = 0\ndef read():\n    global pos\n    pos += 1\n    return data[pos - 1]\n\n# 입력: ${inNote}\n# 출력: ${outNote}\n# TODO: read()로 값을 차례로 읽고 규칙대로 계산해 한 줄씩 print 하세요.\n`;
     if(language==='c')return `#include <stdio.h>\n\nint main(void) {\n    /* 입력: ${inNote} */\n    /* 출력: ${outNote} */\n    /* TODO: scanf로 값을 읽고 규칙대로 계산해 printf로 한 줄씩 출력하세요. */\n    return 0;\n}\n`;

@@ -31,7 +31,7 @@ interface OboPlayerProps {
   maxFrameIndex?: number;
   checkpointStatusByFrame?: Record<string, Record<string, 'correct' | 'incorrect'>>;
   autoPlay?: boolean;
-  /** Learner result (2026-11-09): the first wrong scene; playback stops there and marks it. */
+  /** Learner result: the first wrong scene; playback stops there and marks it. */
   wrongFrameIndex?: number;
 }
 

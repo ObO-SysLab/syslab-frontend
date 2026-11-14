@@ -40,7 +40,7 @@ describe('Baekjoon-style text input/output for every rule model (text-v1, 2026-1
   it('explains input mistakes by line and refuses inputs that only JSON can express', () => {
     expect(() => textReference('P2', '3 3 FIFO\n7 0')).toThrow(/2번째 줄/);
     expect(() => textReference('G2', '2 RR\nP1 0 3\nP2 1 2')).toThrow(/정책/);
-    // Still JSON only (2026-11-09): values with spaces, and strings that would read back as numbers.
+    // Still JSON only: values with spaces, and strings that would read back as numbers.
     expect(() => inputToText('IPC', { ...defaults('IPC'), operations: [{ actor: 'P', op: 'send', value: 'a b' }] })).toThrow(/JSON/);
     expect(() => inputToText('PT', { ...defaults('PT'), spaces: { P: { x: '7' } } })).toThrow(/JSON/);
     expect(gradeText('P2', inputToText('P2', defaults('P2')), 'x'.repeat(10)).correct).toBe(false);

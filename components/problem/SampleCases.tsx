@@ -1,4 +1,4 @@
-/** Public input/output examples as learners see them; the author preview renders the same component (2026-11-10). */
+/** Public input/output examples as learners see them; the author preview renders the same component. */
 export function SampleCases({ cases }: { cases: { input: string; output: string }[] }) {
   if (!cases.length) return null;
   const box = 'min-h-[100px] whitespace-pre-wrap break-words rounded-lg border border-line bg-canvas p-4 font-mono text-sm leading-6 text-ink';

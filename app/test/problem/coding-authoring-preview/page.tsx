@@ -10,7 +10,7 @@ import { OBO_TEMPLATES } from '@/components/obo/templates';
 import { framesToTrace } from '@/components/obo/runtime/freeDiagram.mjs';
 import type { ProblemOboData } from '@/components/obo/types';
 
-/** Local preview of the coding-problem free-drawing flow (2026-11-08). Same components as the problem creation page; nothing is saved. */
+/** Local preview of the coding-problem free-drawing flow. Same components as the problem creation page; nothing is saved. */
 function initial(id: string): ProblemOboData {
   const t = OBO_TEMPLATES.find(t => t.id === id);
   if (!t) return { mode: 'coding_diff', codingDiff: { nodes: [], edges: [], frames: [], referenceTrace: [] } };

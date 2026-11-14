@@ -5,7 +5,7 @@ import type { CodingContract } from '@/components/obo/guidance/codingContract';
 import { editorLanguages, editorStarterCode, LANGUAGE_LABEL } from './starterCode';
 
 /**
- * Read-only copy of the submission editor's first screen for the author's learner preview (2026-11-10).
+ * Read-only copy of the submission editor's first screen for the author's learner preview.
  * Same code (editorStarterCode), language order, theme and font as app/challenges/editor.
  */
 export function StarterCodePreview({ contract, allowedLanguages }: { contract: CodingContract | null; allowedLanguages?: string[] }) {

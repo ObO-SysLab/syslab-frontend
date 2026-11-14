@@ -39,7 +39,7 @@ describe('simulation documents and projections',()=>{
   it('initial projection does not expose future state and an event updates it',()=>{
     const instance=createDocument('ST2').instances[0],execution=run('ST2',instance.input);
     const view=createView('actor');
-    // The ST2 authoring default starts with P1 and P2 in New since 2026-11-08; the first event creates P1.
+    // The ST2 authoring default starts with P1 and P2 in New; the first event creates P1.
     expect(projection(instance,execution,-1,view).rows).toContainEqual(['P1','생성']);
     expect(projection(instance,execution,0,view).rows).toContainEqual(['P1','준비']);
     expect(projection(instance,execution,0,view).rows).toContainEqual(['P2','생성']);

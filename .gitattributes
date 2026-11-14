@@ -106,7 +106,7 @@
 /scripts/export-obo-runtime.mjs text eol=lf
 /tsconfig.json text eol=crlf
 
-# D35: preserve verified integration bytes, including mixed line endings.
+# Keep these files byte-for-byte, including mixed line endings.
 /app/test/problem/service-preview/page.tsx -text
 /components/obo/DiagramOutputPlayer.tsx -text
 /components/obo/authoring/problemDraft.ts -text
@@ -116,7 +116,7 @@
 /components/obo/runtime/freeDiagram.test.mjs -text
 /lib/problemApi.ts -text
 
-# D35: preserve verified integration bytes, including mixed line endings.
+# Keep these files byte-for-byte, including mixed line endings.
 /.gitattributes -text
 
 # Preserve public-contract bytes and reviewed new-source evidence.

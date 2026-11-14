@@ -1,5 +1,5 @@
 /**
- * Page buttons for long lists (2026-11-14): the problem list reached 33 pages and drew every number
+ * Page buttons for long lists: the problem list reached 33 pages and drew every number
  * in one row. Shows the first and last page, a fixed-width window around the current page, and a gap
  * marker where numbers are skipped, so the row never grows with the page count (at most 9 slots).
  */

@@ -16,7 +16,7 @@ const EVENT_FIELDS = ['activeBlockIndex', 'faultSlotIndex', 'hitSlotIndex', 'act
 export const nameOf = (n: Node) => String((n.data as { label?: unknown }).label || n.id);
 
 /**
- * Coding problems from a free drawing (2026-11-08): how a learner's plain output line fills the drawing.
+ * Coding problems from a free drawing: how a learner's plain output line fills the drawing.
  * The expected output shown here is generated from the scenes; grading compares lines with the test output.
  */
 export function OutputFormatPanel({ nodes, frames, format, onChange }: {
@@ -61,7 +61,7 @@ export function OutputFormatPanel({ nodes, frames, format, onChange }: {
   </section>;
 }
 
-/** How one line fills the drawing: shared by the coding output format and lines → scenes (2026-11-09). */
+/** How one line fills the drawing: shared by the coding output format and lines → scenes. */
 export function LineFormatControls({ nodes, format, onChange }: { nodes: Node[]; format: SimpleOutputFormat; onChange: (format: SimpleOutputFormat) => void }) {
   const targets = lineTargets(nodes), target = nodes.find(n => n.id === format.target);
   const others = nodes.filter(n => n.type === 'slot-grid' && n.id !== format.target);
