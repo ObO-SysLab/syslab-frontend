@@ -17,7 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge"
 import { getLevelLabel } from "@/lib/utils";
-import { TierBadge } from "@/components/dv";
+import { SeaCritter, TierBadge } from "@/components/dv";
+import { groupImageUrl } from "@/lib/groupImage";
 import { Header } from "@/components/Header";
 import { readPref, savePref, type ThemePref } from "@/lib/theme";
 import { mergeCategoryScores } from "@/lib/categoryScores";
@@ -685,6 +686,8 @@ function ChartSection({ data }: { data: any }) {
   const listKey = `${subTab}|${visibility}`;
   const isSubLoading = listState?.key !== listKey;
   const listData = isSubLoading ? [] : listState!.items;
+  // 속한 그룹 사진은 그룹 상세와 같은 주소로 받는다
+  const [imageVersion] = useState(() => Date.now());
 
   // [STATE] 오각형 차트용 실시간 API 데이터 풀
   const [categoryStats, setCategoryStats] = useState<Record<string, number>>({
@@ -946,9 +949,11 @@ function ChartSection({ data }: { data: any }) {
                         className="flex items-center justify-between p-4 hover:bg-raised/50 transition-colors group"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <Avatar className="h-9 w-9 border border-line rounded-xl">
-                            <AvatarImage src={item.image} alt={item.title} className="object-cover" />
-                            <AvatarFallback className="bg-raised text-ink-muted text-xs font-bold rounded-xl"><Users className="h-4 w-4" /></AvatarFallback>
+                          <Avatar className="h-9 w-9 overflow-hidden border border-line rounded-xl after:hidden">
+                            {item.image && <AvatarImage src={groupImageUrl(item.groupId, imageVersion)} alt="" className="rounded-none object-cover" />}
+                            <AvatarFallback className="rounded-none bg-transparent">
+                              <SeaCritter id={item.groupId} scope="group" />
+                            </AvatarFallback>
                           </Avatar>
                           <div className="space-y-0.5 min-w-0">
                             <div className="flex items-center gap-2">

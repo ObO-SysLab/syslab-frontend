@@ -31,7 +31,7 @@ import { CodingRules } from '@/components/obo/simulation/CodingRules';
 import { resolveOboBlob, type OboBlob, type ProblemOboData } from "@/components/obo/types";
 import { Header } from "@/components/Header";
 import { AdSlot } from "@/components/AdSlot";
-import { TierBadge } from "@/components/dv";
+import { SeaCritter, TierBadge } from "@/components/dv";
 import { ProblemTags } from "@/components/problem/ProblemTags";
 import { ChoiceList } from "@/components/problem/ChoiceList";
 import { SampleCases } from "@/components/problem/SampleCases";
@@ -676,9 +676,8 @@ function ProblemDetailContent() {
               <RequestError issue={answerIssue} checkHref={`/challenges/detail?id=${probId}&tab=grading`}/>
               {answerNotice&&<p role="status">{answerNotice}</p>}
               <div className="flex gap-6 items-start">
-                <div className="w-24 h-24 bg-deep rounded-2xl grid place-items-center shrink-0 border border-line">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/images/divo.webp" alt="" className="w-16 h-auto" />
+                <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 border border-line">
+                  <SeaCritter id={probId} />
                 </div>
                 <div className="space-y-2 min-w-0">
                   <ProblemTags difficulty={problemData?.difficulty} type={problemData?.type} category={problemData?.category} />

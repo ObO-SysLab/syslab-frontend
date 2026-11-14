@@ -24,6 +24,7 @@ import { Header } from "@/components/Header";
 import { AdSlot } from "@/components/AdSlot";
 import { ProblemText } from "@/components/problem/ProblemText";
 import { PracticeHint } from "@/components/problem/PracticeHint";
+import { SeaCritter } from "@/components/dv";
 
 
 function ProblemDetailContent() {
@@ -282,13 +283,8 @@ function ProblemDetailContent() {
 						{/* 1. 문제 탭 */}
 						<TabsContent value="problem" className="mt-6 space-y-6 animate-in fade-in-50 duration-300">
 							<div className="flex gap-6 items-start">
-								<div className="w-24 h-24 bg-raised rounded-2xl flex items-center justify-center shrink-0 border border-line">
-									<div className="grid grid-cols-2 gap-1 opacity-50">
-										<div className="w-3 h-3 bg-ink-subtle rounded-full" />
-										<div className="w-3 h-3 bg-ink-subtle rounded-sm" />
-										<div className="w-3 h-3 bg-ink-subtle rounded-sm" />
-										<div className="w-3 h-3 bg-ink-subtle rounded-full" />
-									</div>
+								<div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 border border-line">
+									<SeaCritter id={probId} />
 								</div>
 								<div className="space-y-2 min-w-0">
 									<ProblemTags difficulty={problemData?.difficulty} type={problemData?.type} category={problemData?.category} />

@@ -18,6 +18,8 @@ import { Header } from "@/components/Header";
 import { AdSlot } from "@/components/AdSlot";
 import { groupInvitePath } from "@/lib/utils";
 import { pageWindow } from "@/lib/pagination";
+import { groupImageUrl } from "@/lib/groupImage";
+import { SeaCritter } from "@/components/dv";
 
 
 function GroupListContent() {
@@ -50,6 +52,8 @@ function GroupListContent() {
   const [groups, setGroups] = useState<any[]>([]);
   const [totalGroups, setTotalGroups] = useState(0);
   const [ads, setAds] = useState<any[]>([]);
+  // 그룹 상세와 같은 사진을 보이도록 페이지를 열 때마다 새 주소로 받는다
+  const [imageVersion] = useState(() => Date.now());
 
   const TagIcons: Record<string, React.ReactNode> = {
     "All": <Layers size={16} />,
@@ -366,9 +370,12 @@ function GroupListContent() {
                   <Card className="p-4 hover:shadow-md transition-all cursor-pointer border-line rounded-xl overflow-hidden group-hover:border-primary/30 group-hover:bg-primary/6">
                     <div className="flex w-full flex-row items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-canvas border border-line flex items-center justify-center text-ink-subtle group-hover:bg-primary/10 group-hover:text-primary transition-colors capitalize">
-                          {TagIcons[grp.tags[0]] || <Code2 size={20} />}
-                        </div>
+                        <Avatar className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-line after:hidden">
+                          <AvatarImage src={groupImageUrl(grp.groupId, imageVersion)} alt="" className="rounded-none object-cover" />
+                          <AvatarFallback className="rounded-none bg-transparent">
+                            <SeaCritter id={grp.groupId} scope="group" />
+                          </AvatarFallback>
+                        </Avatar>
                         <div className="flex flex-col justify-center">
                           <div className="flex items-center gap-2 flex-wrap">
                             {/* 그룹명 */}

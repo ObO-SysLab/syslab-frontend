@@ -3,6 +3,7 @@
 
 import { Activity, Code2, Cpu, Database, FileCode2, GitBranch } from "lucide-react";
 import { categoryLabel, cn, getDepthZone, getLevelLabel, getTierKey, getTierLabel, toApiCategory } from "@/lib/utils";
+import { critterLayers, pickCritter, type CritterScope } from "@/lib/seaCritter";
 
 /* ---------------- DepthBadge: 난이도 = 수심. 색 + 7칸 눈금 ---------------- */
 export function DepthBadge({
@@ -255,5 +256,36 @@ export function Bubbles({ className }: { className?: string }) {
         />
       ))}
     </div>
+  );
+}
+
+/* ---------------- SeaCritter: 문제·그룹 기본 그림 (번호로 고르는 픽셀 바다 생물) ---------------- */
+export function SeaCritter({
+  id,
+  scope = "problem",
+  round = false,
+  className,
+}: {
+  id: number | string | null | undefined;
+  scope?: CritterScope;
+  /** 원형 틀에 넣을 때 가장자리가 잘리지 않게 여백을 더 준다 */
+  round?: boolean;
+  className?: string;
+}) {
+  const critter = pickCritter(id, scope);
+  const pad = round ? 2.5 : 1;
+  return (
+    <svg
+      viewBox={`${-pad} ${-pad} ${16 + pad * 2} ${16 + pad * 2}`}
+      shapeRendering="crispEdges"
+      aria-hidden="true"
+      data-critter={critter.kind}
+      className={cn("block size-full", className)}
+      style={{ background: critter.color.water }}
+    >
+      {critterLayers(critter).map((layer, i) => (
+        <path key={i} fill={layer.fill} fillOpacity={layer.opacity} d={layer.d} />
+      ))}
+    </svg>
   );
 }
