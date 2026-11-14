@@ -15,7 +15,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Search, Settings, LogOut, Menu, MessageSquare, Bell, Share2,
   CheckCircle2, XCircle, Clock, LayoutGrid, Users, BarChart3, Trophy, ShoppingBag, Trash2,
-  ChevronLeft, MessageCircle, Edit2, Flame, Flag, Activity
+  ChevronLeft, MessageCircle, Edit2, Flag, Activity
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ import { ChoiceList } from "@/components/problem/ChoiceList";
 import { SampleCases } from "@/components/problem/SampleCases";
 import { ProblemText } from "@/components/problem/ProblemText";
 import { PracticeHint } from "@/components/problem/PracticeHint";
+import { FirstBloodPanel } from "@/components/problem/FirstBloodPanel";
 import { CosmeticFrame, UserTitle } from "@/components/Cosmetics";
 import { useCosmetics } from "@/lib/cosmetics";
 
@@ -594,41 +595,7 @@ function ProblemDetailContent() {
         <aside className="col-span-12 md:col-span-2 space-y-4 order-last md:order-none">
 
           {/* First Blood 패널 */}
-          <Card className="shadow-none border-line overflow-hidden">
-            <CardHeader className="pb-2 bg-raised/50">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-ink">
-                <Flame className="h-4 w-4 text-danger" /> First Blood
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {firstBlood ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="h-10 w-10 rounded-full bg-line flex items-center justify-center overflow-hidden border border-line">
-                        <span className="text-xs font-bold text-ink-muted">
-                          {firstBlood.user?.[0]}
-                        </span>
-                      </div>
-                      <div className="absolute -bottom-1 -right-1 bg-danger rounded-full p-0.5 border-2 border-panel">
-                        <Flame className="h-2 w-2 text-white" />
-                      </div>
-                    </div>
-                    <span className="font-semibold text-sm text-ink leading-none mb-1">
-                      {firstBlood.user}
-                    </span>
-                  </div>
-                  <span className="text-xs text-ink-subtle font-medium tracking-tight">
-                    {firstBlood.date}
-                  </span>
-                </div>
-              ) : (
-                <div className="py-4 text-center">
-                  <p className="text-xs text-ink-subtle italic">아직 문제를 해결한 유저가 없습니다.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <FirstBloodPanel user={firstBlood?.user} date={firstBlood?.date} />
 
           {/* Top 3 랭킹 패널 */}
           {problemData?.type !== "objective" && (
