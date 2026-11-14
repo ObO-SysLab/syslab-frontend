@@ -22,6 +22,7 @@ import { AdSlot } from "@/components/AdSlot";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toApiCategory } from "@/lib/utils";
 import { DepthBadge, StatusIcon, TypeChip, DivoBubble } from "@/components/dv";
+import { pageWindow } from "@/lib/pagination";
 
 export default function ProblemListPage() {
   // [STATE] 페이지 상태
@@ -41,7 +42,6 @@ export default function ProblemListPage() {
   // [STATE] 데이터 상태
 
 
-  const [myRank, setMyRank] = useState<any>(null);
   const [ads, setAds] = useState<any[]>([]);
   const [userImgUrl, setUserImgUrl] = useState("");
 
@@ -70,8 +70,16 @@ export default function ProblemListPage() {
   };
 
   useEffect(() => {
-    setIsLoggedIn(!!problemToken()); setMyRank({rank:'-', total:'-'});
+    setIsLoggedIn(!!problemToken());
   }, []);
+  // My place in the user ranking (2026-11-14: the card only ever showed "#- / -"). Users added after
+  // the latest ranking snapshot get 404 and keep "-".
+  const rankQuery=useRemoteData('my-rank',async signal=>{
+    if(!problemToken())return null;
+    const json=await requestJson(problemApi('/api/users/ranking?page=1'),{signal,headers:authHeaders()});
+    return {rank:json?.data?.myRanking?.rank??null,total:json?.data?.totalElements??null} as {rank:number|null;total:number|null};
+  });
+  const myRank={rank:rankQuery.data?.rank??'-',total:rankQuery.data?.total??'-'};
   const profileQuery=useRemoteData('profile',async signal=>{
     if(!problemToken())return null;
     const json=await requestJson(problemApi('/api/profile/show'),{signal,headers:authHeaders()});
@@ -219,7 +227,7 @@ export default function ProblemListPage() {
           </div>
 
           {/* API 연동된 내 랭킹 영역 */}
-          {myRank && (
+          {isLoggedIn && (
             <div className="p-5 bg-panel border border-line rounded-2xl space-y-3">
               <p className="dv-hud text-ink-subtle">My Rank</p>
               <p className="dv-readout text-ink">
@@ -377,15 +385,17 @@ export default function ProblemListPage() {
                 이전
               </button>
 
-              {Array.from({ length: totalPages }).map((_, i) => (
+              {pageWindow(currentPage, totalPages).map(slot => typeof slot !== "number" ? (
+                <span key={slot} aria-hidden="true" className="inline-flex h-8 min-w-6 items-center justify-center font-mono text-[13px] text-ink-subtle">…</span>
+              ) : (
                 <button
                   type="button"
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  aria-current={currentPage === i + 1 ? "page" : undefined}
-                  className={`h-8 min-w-8 px-2 rounded-[10px] font-mono text-[13px] font-semibold transition-colors ${currentPage === i + 1 ? "bg-primary text-primary-ink" : "text-ink-muted hover:bg-raised hover:text-ink"}`}
+                  key={slot}
+                  onClick={() => setCurrentPage(slot)}
+                  aria-current={currentPage === slot ? "page" : undefined}
+                  className={`h-8 min-w-8 px-2 rounded-[10px] font-mono text-[13px] font-semibold transition-colors ${currentPage === slot ? "bg-primary text-primary-ink" : "text-ink-muted hover:bg-raised hover:text-ink"}`}
                 >
-                  {i + 1}
+                  {slot}
                 </button>
               ))}
 

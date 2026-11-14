@@ -25,6 +25,7 @@ import { TierBadge } from "@/components/dv";
 import { UserTitle } from "@/components/Cosmetics";
 import { useCosmetics } from "@/lib/cosmetics";
 import { Header } from "@/components/Header";
+import { pageWindow } from "@/lib/pagination";
 
 
 function GroupDetailPage() {
@@ -2039,13 +2040,16 @@ function PaginationUI({ currentPage, totalPages, onPageChange }: { currentPage: 
         이전
       </Button>
 
-      {Array.from({ length: totalPages }).map((_, i) => (
+      {pageWindow(currentPage, totalPages).map(slot => typeof slot !== "number" ? (
+        <span key={slot} aria-hidden="true" className="inline-flex h-8 items-center px-1 text-xs text-ink-subtle">…</span>
+      ) : (
         <Button
-          key={i} variant="outline" size="sm"
-          onClick={() => onPageChange(i + 1)}
-          className={`rounded-lg ${currentPage === i + 1 ? "bg-deep text-ink border-line" : ""}`}
+          key={slot} variant="outline" size="sm"
+          onClick={() => onPageChange(slot)}
+          aria-current={currentPage === slot ? "page" : undefined}
+          className={`rounded-lg ${currentPage === slot ? "bg-deep text-ink border-line" : ""}`}
         >
-          {i + 1}
+          {slot}
         </Button>
       ))}
 
