@@ -10,11 +10,11 @@ import { submissionVerdict } from "@/lib/submission-status";
 import { watchContestBoard, contestCodingLinks, type ContestSubmission } from "@/lib/contest-submissions";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Settings, User, MessageSquare, Share2, CheckCircle2, XCircle, Clock, Trash2, ChevronLeft, MessageCircle, Edit2, Flame } from "lucide-react";
+import { Settings, User, MessageSquare, Share2, CheckCircle2, XCircle, Clock, Trash2, ChevronLeft, MessageCircle, Edit2 } from "lucide-react";
 import { readCommandAllowlist } from "@/lib/command-allowlist";
 import { CommandAllowlistBox } from "@/components/problem/CommandAllowlistBox";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -44,7 +44,6 @@ function ProblemDetailContent() {
 	const [problemData, setProblemData] = useState<any>(null);
 	const commandAllowlist = readCommandAllowlist(problemData?.vmInfo);
 	const [isLoading, setIsLoading] = useState(true);
-	const [firstBlood, setFirstBlood] = useState<any>({ user: "", prifile_url: "", date: "" });
 	const [ads, setAds] = useState<any[]>([]);
 
 	// 객관식 문제 관련 상태
@@ -256,42 +255,8 @@ function ProblemDetailContent() {
 						<ChevronLeft size={16} className="mr-2" /> 대회로 돌아가기
 					</Button>
 
-					{/* First Blood 패널 */}
-					<Card className="shadow-none border-line overflow-hidden">
-						<CardHeader className="pb-2 bg-raised/50">
-							<CardTitle className="text-sm font-bold flex items-center gap-2 text-ink">
-								<Flame className="h-4 w-4 text-danger" /> First Blood
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="pt-4">
-							{firstBlood ? (
-								<div className="flex items-center justify-between">
-									<div className="flex items-center gap-3">
-										<div className="relative">
-											<div className="h-10 w-10 rounded-full bg-line flex items-center justify-center overflow-hidden border border-line">
-												<span className="text-xs font-bold text-ink-muted">
-													{firstBlood.user?.[0]}
-												</span>
-											</div>
-											<div className="absolute -bottom-1 -right-1 bg-danger rounded-full p-0.5 border-2 border-panel">
-												<Flame className="h-2 w-2 text-white" />
-											</div>
-										</div>
-										<span className="font-semibold text-sm text-ink leading-none mb-1">
-											{firstBlood.user}
-										</span>
-									</div>
-									<span className="text-xs text-ink-subtle font-medium tracking-tight">
-										{new Date(firstBlood.date).toLocaleDateString()}
-									</span>
-								</div>
-							) : (
-								<div className="py-4 text-center">
-									<p className="text-xs text-ink-subtle italic">아직 문제를 해결한 유저가 없습니다.</p>
-								</div>
-							)}
-						</CardContent>
-					</Card>
+					{/* First Blood: this page never loaded the contest's first solver, so the card only ever drew
+					    an empty avatar. Hidden until it has contest data (2026-11-14). */}
 
 					{/* 배점 표시 패널 */}
 					<Card className="shadow-none border-line rounded-xl">
