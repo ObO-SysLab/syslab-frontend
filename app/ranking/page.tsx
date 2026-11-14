@@ -5,7 +5,8 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { CosmeticFrame, UserTitle } from "@/components/Cosmetics";
 import { themeClass, useCosmetics } from "@/lib/cosmetics";
-import { TierBadge } from "@/components/dv";
+import { SeaCritter, TierBadge } from "@/components/dv";
+import { groupImageUrl } from "@/lib/groupImage";
 import { getGroupTier } from "@/lib/utils";
 import { discardBody } from "@/lib/request";
 import {
@@ -19,6 +20,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const cacheBuster = Date.now();
+
+// 그룹 사진이 없을 때 그룹 상세와 같은 바다 생물을 보여 준다
+function GroupCritterFallback({ groupId }: { groupId: number | string | undefined }) {
+  return (
+    <AvatarFallback className="overflow-hidden bg-transparent">
+      <SeaCritter id={groupId} scope="group" round />
+    </AvatarFallback>
+  );
+}
 const PAGE_SIZE = 20; // GET /api/users/ranking, /api/groups/ranking 모두 페이지당 20개
 
 export default function GlobalRankingPage() {
@@ -176,11 +186,12 @@ export default function GlobalRankingPage() {
     }
   }, [rankType, userPage, groupPage]);
 
-  // 사용자는 서버가 준 사진 주소만 쓴다(지운 사진·구글 사진도 서버 값 그대로). 그룹은 대표 이미지 주소를 쓴다.
+  // 사용자는 서버가 준 사진 주소만 쓴다(지운 사진·구글 사진도 서버 값 그대로).
+  // 그룹은 사진을 올린 경우에만 그룹 상세와 같은 대표 사진 주소를 쓴다(없으면 바다 생물).
   const avatarSrc = (entry: any): string | undefined =>
     rankType === "user"
       ? entry?.profileImgUrl || undefined
-      : entry?.image || `https://d3ghudecvdi62z.cloudfront.net/profiles/groups/${entry?.groupId}?v=${cacheBuster}`;
+      : entry?.image ? groupImageUrl(entry.groupId, cacheBuster) : undefined;
 
   const currentTop3 = rankType === "user" ? userTop3 : groupTop3;
   const currentRankings = rankType === "user" ? userRankings : groupRankings;
@@ -260,7 +271,7 @@ export default function GlobalRankingPage() {
                   <Avatar className="h-18 w-18 border-4 border-line shadow-sm">
                     {/* Date.now()를 cacheBuster 변수로 치환하여 Hydration 붕괴를 원천 차단합니다. */}
                     {avatarSrc(currentTop3[1]) && <AvatarImage src={avatarSrc(currentTop3[1])} className="object-cover" />}
-                    <AvatarFallback className="bg-line text-ink-muted font-bold text-lg">{currentTop3[1].avatar}</AvatarFallback>
+                    {rankType === "group" ? <GroupCritterFallback groupId={currentTop3[1].groupId} /> : <AvatarFallback className="bg-line text-ink-muted font-bold text-lg">{currentTop3[1].avatar}</AvatarFallback>}
                   </Avatar>
                 </CosmeticFrame>
                 <h2 className="shrink-0 font-black text-base leading-6 text-ink text-center px-2 line-clamp-1">{currentTop3[1].nickname}</h2>
@@ -286,7 +297,7 @@ export default function GlobalRankingPage() {
                 <CosmeticFrame frame={podiumCosmetics(0)?.avatar} className="mb-3">
                   <Avatar className="h-22 w-22 border-4 border-panel shadow-md">
                     {avatarSrc(currentTop3[0]) && <AvatarImage src={avatarSrc(currentTop3[0])} className="object-cover" />}
-                    <AvatarFallback className="bg-warning/25 text-warning font-black text-xl">{currentTop3[0].avatar}</AvatarFallback>
+                    {rankType === "group" ? <GroupCritterFallback groupId={currentTop3[0].groupId} /> : <AvatarFallback className="bg-warning/25 text-warning font-black text-xl">{currentTop3[0].avatar}</AvatarFallback>}
                   </Avatar>
                 </CosmeticFrame>
                 <h2 className="shrink-0 font-black text-lg leading-7 text-ink text-center px-2 line-clamp-1">{currentTop3[0].nickname}</h2>
@@ -309,7 +320,7 @@ export default function GlobalRankingPage() {
                 <CosmeticFrame frame={podiumCosmetics(2)?.avatar} className="mb-3">
                   <Avatar className="h-16 w-16 border-4 border-warning/20 shadow-sm">
                     {avatarSrc(currentTop3[2]) && <AvatarImage src={avatarSrc(currentTop3[2])} className="object-cover" />}
-                    <AvatarFallback className="bg-warning/15 text-warning font-bold text-base">{currentTop3[2].avatar}</AvatarFallback>
+                    {rankType === "group" ? <GroupCritterFallback groupId={currentTop3[2].groupId} /> : <AvatarFallback className="bg-warning/15 text-warning font-bold text-base">{currentTop3[2].avatar}</AvatarFallback>}
                   </Avatar>
                 </CosmeticFrame>
                 <h2 className="shrink-0 font-black text-base leading-6 text-ink text-center px-2 line-clamp-1">{currentTop3[2].nickname}</h2>
@@ -358,9 +369,11 @@ export default function GlobalRankingPage() {
                           <CosmeticFrame frame={rankType === "user" ? cosmeticsOf(item.userId)?.avatar : null}>
                           <Avatar className="h-8 w-8 border border-line">
                             {avatarSrc(item) && <AvatarImage src={avatarSrc(item)} className="object-cover" />}
-                            <AvatarFallback className={rankType === "user" ? "bg-primary/10 text-primary text-xs font-bold" : "bg-coral/10 text-coral text-xs font-bold"}>
-                              {displayName ? displayName.substring(0, 1).toUpperCase() : ""}
-                            </AvatarFallback>
+                            {rankType === "group" ? <GroupCritterFallback groupId={item.groupId} /> : (
+                              <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                                {displayName ? displayName.substring(0, 1).toUpperCase() : ""}
+                              </AvatarFallback>
+                            )}
                           </Avatar>
                           </CosmeticFrame>
                           <span className="font-bold text-ink group-hover:text-primary transition-colors cursor-pointer">

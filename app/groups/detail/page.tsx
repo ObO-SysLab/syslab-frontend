@@ -21,7 +21,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { hallOfFame, memberRanks } from "@/lib/groupMembers";
 import { groupInvitePath } from "@/lib/utils";
-import { TierBadge } from "@/components/dv";
+import { SeaCritter, TierBadge } from "@/components/dv";
+import { groupImageUrl } from "@/lib/groupImage";
 import { UserTitle } from "@/components/Cosmetics";
 import { useCosmetics } from "@/lib/cosmetics";
 import { Header } from "@/components/Header";
@@ -222,7 +223,7 @@ function GroupDetailPage() {
         setMyStatus(groupInfo?.userContext?.myStatus || "none");
 
         if (groupId) {
-          setGroupImgUrl(`https://d3ghudecvdi62z.cloudfront.net/profiles/groups/${groupId}?v=${Date.now()}`);
+          setGroupImgUrl(groupImageUrl(groupId, Date.now()) ?? "");
         } else {
           setGroupImgUrl("");
         }
@@ -1101,8 +1102,10 @@ function GroupDetailPage() {
                   <Avatar className="w-24 h-24 rounded-full shrink-0 shadow-lg border-4 border-panel bg-raised">
                     <AvatarImage src={groupImgUrl} className="object-cover w-full h-full" alt="Group Profile" />
 
-                    {/* 이미지 로드 실패 시 투명 처리할 대체 폴백 가드 */}
-                    <AvatarFallback className="bg-transparent rounded-full border-none" />
+                    {/* 사진이 없으면 그룹 번호로 고른 바다 생물 */}
+                    <AvatarFallback className="overflow-hidden bg-transparent rounded-full border-none">
+                      <SeaCritter id={groupId} scope="group" round />
+                    </AvatarFallback>
                   </Avatar>
 
                   <div className="space-y-2">
@@ -1225,8 +1228,8 @@ function GroupDetailPage() {
                         <Card key={prob.problemId} className="p-4 hover:border-primary/30 transition-all cursor-pointer group">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                              <div className="h-10 w-10 bg-canvas rounded-lg flex items-center justify-center text-ink-subtle group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                                <Code2 size={20} />
+                              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-line">
+                                <SeaCritter id={prob.problemId} />
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
@@ -1787,7 +1790,9 @@ function GroupDetailPage() {
                         />
                         <Avatar className="w-16 h-16 border rounded-full shadow-sm cursor-pointer" onClick={() => !isGroupImgUploading && groupFileInputRef.current?.click()}>
                           <AvatarImage src={groupImgUrl} className="object-cover" />
-                          <AvatarFallback className="bg-transparent rounded-full" />
+                          <AvatarFallback className="overflow-hidden bg-transparent rounded-full">
+                            <SeaCritter id={groupId} scope="group" round />
+                          </AvatarFallback>
                         </Avatar>
                         <div className="space-y-1">
                           <p className="text-xs font-bold text-ink">
