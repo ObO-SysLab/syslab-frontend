@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import MockApi from "@/components/MockApi";
 import ThemeScope from "@/components/ThemeScope";
 import { themeBootScript } from "@/lib/theme";
+import { authBootScript } from "@/lib/authToken";
 
 // HUD·코드·터미널용 mono. 한글 UI는 Pretendard(아래 <link>)
 const jetbrainsMono = JetBrains_Mono({
@@ -33,6 +34,7 @@ export default function RootLayout({
       className={cn("h-full", "antialiased", jetbrainsMono.variable, "font-sans")}
     >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: authBootScript }} />
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <link
           rel="stylesheet"
