@@ -1,3 +1,5 @@
+import {tokenExpired} from './authToken';
+
 /** Local previews never fall through to the production API. */
 export function problemApi(path:string){
  const configured=process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/,'');
@@ -14,6 +16,8 @@ export function problemToken(){
  if(process.env.NODE_ENV==='development'&&['localhost','127.0.0.1'].includes(window.location.hostname)){
   const preview=sessionStorage.getItem('obo:preview:token');if(preview)return preview;
  }
- return localStorage.getItem('token');
+ // A token that expired while the tab stayed open counts as signed out (2026-11-14).
+ const token=localStorage.getItem('token');
+ return tokenExpired(token)?null:token;
  }catch{return null;}
 }

@@ -25,6 +25,7 @@ import { TierBadge } from "@/components/dv";
 import { UserTitle } from "@/components/Cosmetics";
 import { useCosmetics } from "@/lib/cosmetics";
 import { Header } from "@/components/Header";
+import { pageWindow } from "@/lib/pagination";
 
 
 function GroupDetailPage() {
@@ -54,6 +55,8 @@ function GroupDetailPage() {
   const [groupContests, setGroupContests] = useState<any[]>([]);
   const [activityPage, setActivityPage] = useState(1);
   const [activityTotalPages, setActivityTotalPages] = useState(1);
+  const [contestPage, setContestPage] = useState(1);
+  const [contestTotalPages, setContestTotalPages] = useState(1);
 
   // [STATE] 멤버 탭
   const [members, setMembers] = useState<any[]>([]);
@@ -66,6 +69,9 @@ function GroupDetailPage() {
   // [STATE] 게시판 탭
   const [notifications, setNotifications] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
+  // Newest board posts for the side panel; kept from page 1 so paging the board does not change it.
+  const [recentPosts, setRecentPosts] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("main");
   const [selectedPostId, setSelectedPostId] = useState<number>(0);
   const [postDetail, setPostDetail] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
@@ -183,10 +189,15 @@ function GroupDetailPage() {
     }
   }, [commentPage]);
 
-  // [API] 문제/대회 페이지가 바뀌면 활동 다시 불러오기
+  // [API] 문제/대회 페이지가 바뀌면 각각 다시 불러오기.
+  // 2026-11-14: 둘이 한 페이지 상태를 같이 써서, 나중에 도착한 대회 응답(0쪽)이 문제 33쪽을 덮어 페이지 버튼이 사라지거나
+  // 대회 쪽을 넘겨도 문제 목록만 다시 불러왔다.
   useEffect(() => {
     fetchGroupProblems(activityPage);
   }, [activityPage]);
+  useEffect(() => {
+    fetchGroupContests(contestPage);
+  }, [contestPage]);
 
   // [API] 그룹 메인 데이터 재호출용 함수 추가
   const fetchGroupData = async () => {
@@ -289,7 +300,7 @@ function GroupDetailPage() {
   };
 
   // [API] 그룹 전용 대회 목록 조회
-  const fetchGroupContests = async (page = activityPage) => {
+  const fetchGroupContests = async (page = contestPage) => {
     const token = localStorage.getItem("token");
 
     const params = new URLSearchParams();
@@ -305,8 +316,7 @@ function GroupDetailPage() {
       if (res.ok) {
         const json = await res.json();
         setGroupContests(json.data.contests || []);
-        setActivityPage(json.data.currentPage);
-        setActivityTotalPages(json.data.totalPages);
+        setContestTotalPages(json.data.totalPages);
       }
 
     } catch (error) {
@@ -357,6 +367,7 @@ function GroupDetailPage() {
       if (res.ok) {
         const json = await res.json();
         setPosts(json.data.posts);
+        if (page === 1) setRecentPosts((json.data.posts ?? []).slice(0, 5));
         setBoardTotalPages(json.data.totalPages);
       }
 
@@ -1004,15 +1015,22 @@ function GroupDetailPage() {
               </CardTitle>
             </CardHeader>
             {/* 최근 활동 패널 */}
-            <CardContent className="pt-4 space-y-4">
-              {posts.slice(0, 5).map((post) => (
-                <div key={post.postId} className="border-l-2 border-primary/30 pl-3 py-1 cursor-pointer hover:bg-raised/60">
-                  <p className="text-xs font-bold text-ink flex items-center justify-between">
+            <CardContent className="pt-4 space-y-4" data-recent-activity>
+              {recentPosts.length === 0 ? (
+                <p className="py-2 text-center text-xs text-ink-subtle">아직 활동이 없습니다.</p>
+              ) : recentPosts.map((post) => (
+                <button
+                  type="button"
+                  key={post.postId}
+                  onClick={() => { setActiveTab("board"); setSelectedPostId(post.postId); }}
+                  className="block w-full border-l-2 border-primary/30 pl-3 py-1 text-left hover:bg-raised/60"
+                >
+                  <span className="text-xs font-bold text-ink flex items-center justify-between">
                     {post.author}
                     {post.type === "notice" && <Badge className="text-xs h-5 px-1.5 py-0 bg-coral/15 text-coral">공지</Badge>}
-                  </p>
-                  <p className="text-xs text-ink-muted line-clamp-1 mt-0.5">{post.title}</p>
-                </div>
+                  </span>
+                  <span className="block text-xs text-ink-muted line-clamp-1 mt-0.5">{post.title}</span>
+                </button>
               ))}
             </CardContent>
           </Card>
@@ -1067,7 +1085,7 @@ function GroupDetailPage() {
             </Card>
           ) : (
 
-            <Tabs defaultValue="main" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-5 bg-raised p-1 rounded-lg sticky top-16 z-40">
                 <TabsTrigger value="main">메인</TabsTrigger>
                 <TabsTrigger value="activity">챌린지/대회</TabsTrigger>
@@ -1293,11 +1311,11 @@ function GroupDetailPage() {
                   )}
                 </div>
 
-                <PaginationUI
-                  currentPage={activityPage}
-                  totalPages={activityTotalPages}
-                  onPageChange={setActivityPage}
-                />
+                {contentView === "problem" ? (
+                  <PaginationUI currentPage={activityPage} totalPages={activityTotalPages} onPageChange={setActivityPage} />
+                ) : (
+                  <PaginationUI currentPage={contestPage} totalPages={contestTotalPages} onPageChange={setContestPage} />
+                )}
               </TabsContent>
 
               {/* 3. 멤버 탭 */}
@@ -2039,13 +2057,16 @@ function PaginationUI({ currentPage, totalPages, onPageChange }: { currentPage: 
         이전
       </Button>
 
-      {Array.from({ length: totalPages }).map((_, i) => (
+      {pageWindow(currentPage, totalPages).map(slot => typeof slot !== "number" ? (
+        <span key={slot} aria-hidden="true" className="inline-flex h-8 items-center px-1 text-xs text-ink-subtle">…</span>
+      ) : (
         <Button
-          key={i} variant="outline" size="sm"
-          onClick={() => onPageChange(i + 1)}
-          className={`rounded-lg ${currentPage === i + 1 ? "bg-deep text-ink border-line" : ""}`}
+          key={slot} variant="outline" size="sm"
+          onClick={() => onPageChange(slot)}
+          aria-current={currentPage === slot ? "page" : undefined}
+          className={`rounded-lg ${currentPage === slot ? "bg-deep text-ink border-line" : ""}`}
         >
-          {i + 1}
+          {slot}
         </Button>
       ))}
 

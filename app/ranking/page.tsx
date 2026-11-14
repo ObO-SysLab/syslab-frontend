@@ -253,7 +253,7 @@ export default function GlobalRankingPage() {
               key={`podium-silver-${rankType}-${currentTop3[1].userId || currentTop3[1].groupId}`}
               className="order-2 md:order-1 transform transition-transform hover:-translate-y-2"
             >
-              <Card className={`border-line bg-panel shadow-md relative overflow-hidden h-[230px] flex flex-col items-center justify-center pt-8 ${themeClass(podiumCosmetics(1)?.theme)}`}>
+              <Card className={`border-line bg-panel shadow-md relative overflow-hidden min-h-[230px] gap-0 flex flex-col items-center justify-center pt-8 ${themeClass(podiumCosmetics(1)?.theme)}`}>
                 <div className="absolute top-0 left-0 w-full h-2 bg-line-strong"></div>
                 <div className="absolute top-4 left-4 h-8 w-8 bg-raised rounded-full flex items-center justify-center font-black text-ink-muted">2</div>
                 <CosmeticFrame frame={podiumCosmetics(1)?.avatar} className="mb-3">
@@ -280,11 +280,11 @@ export default function GlobalRankingPage() {
               <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
                 <Crown className="h-8 w-8 text-warning fill-warning" />
               </div>
-              <Card className={`border-warning/30 bg-gradient-to-b from-warning/10 to-panel shadow-xl relative overflow-hidden h-[270px] flex flex-col items-center justify-center pt-6 border-2 ${themeClass(podiumCosmetics(0)?.theme)}`}>
+              <Card className={`border-warning/30 bg-gradient-to-b from-warning/10 to-panel shadow-xl relative overflow-hidden min-h-[270px] gap-0 flex flex-col items-center justify-center pt-6 border-2 ${themeClass(podiumCosmetics(0)?.theme)}`}>
                 <div className="absolute top-0 left-0 w-full h-2 bg-warning"></div>
                 <div className="absolute top-4 left-4 h-8 w-8 bg-warning/15 text-warning rounded-full flex items-center justify-center font-black">1</div>
                 <CosmeticFrame frame={podiumCosmetics(0)?.avatar} className="mb-3">
-                  <Avatar className="h-22 w-24 border-4 border-panel shadow-md">
+                  <Avatar className="h-22 w-22 border-4 border-panel shadow-md">
                     {avatarSrc(currentTop3[0]) && <AvatarImage src={avatarSrc(currentTop3[0])} className="object-cover" />}
                     <AvatarFallback className="bg-warning/25 text-warning font-black text-xl">{currentTop3[0].avatar}</AvatarFallback>
                   </Avatar>
@@ -303,7 +303,7 @@ export default function GlobalRankingPage() {
               key={`podium-bronze-${rankType}-${currentTop3[2].userId || currentTop3[2].groupId}`}
               className="order-3 md:order-3 transform transition-transform hover:-translate-y-2"
             >
-              <Card className={`border-warning/20 bg-panel shadow-md relative overflow-hidden h-[210px] flex flex-col items-center justify-center pt-8 ${themeClass(podiumCosmetics(2)?.theme)}`}>
+              <Card className={`border-warning/20 bg-panel shadow-md relative overflow-hidden min-h-[210px] gap-0 flex flex-col items-center justify-center pt-8 ${themeClass(podiumCosmetics(2)?.theme)}`}>
                 <div className="absolute top-0 left-0 w-full h-2 bg-warning/60"></div>
                 <div className="absolute top-4 left-4 h-8 w-8 bg-warning/10 rounded-full flex items-center justify-center font-black text-warning">3</div>
                 <CosmeticFrame frame={podiumCosmetics(2)?.avatar} className="mb-3">

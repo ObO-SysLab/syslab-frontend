@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Header } from "@/components/Header";
 import { AdSlot } from "@/components/AdSlot";
+import { pageWindow } from "@/lib/pagination";
 
 
 export default function ContestListPage() {
@@ -282,15 +283,18 @@ export default function ContestListPage() {
                 이전
               </Button>
 
-              {Array.from({ length: totalPages }).map((_, i) => (
+              {pageWindow(currentPage, totalPages).map(slot => typeof slot !== 'number' ? (
+                <span key={slot} aria-hidden="true" className="inline-flex h-8 items-center px-1 text-xs text-ink-subtle">…</span>
+              ) : (
                 <Button
-                  key={i}
+                  key={slot}
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`rounded-lg ${currentPage === i + 1 ? 'bg-deep text-ink border-line' : ''}`}
+                  onClick={() => setCurrentPage(slot)}
+                  aria-current={currentPage === slot ? 'page' : undefined}
+                  className={`rounded-lg ${currentPage === slot ? 'bg-deep text-ink border-line' : ''}`}
                 >
-                  {i + 1}
+                  {slot}
                 </Button>
               ))}
 
