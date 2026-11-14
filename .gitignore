@@ -165,8 +165,6 @@ yarn-debug.log*
 yarn-error.log*
 
 ### 추가
-CLAUDE.md
-AGENTS.md
 capture.js
 tmp.txt
 components.json
