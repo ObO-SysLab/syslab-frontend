@@ -13,7 +13,7 @@ import { themeClass, useCosmetics } from "@/lib/cosmetics";
 import { ActivityLog } from "@/components/home/ActivityLog";
 import { DepthBadge, DivoBubble, TierBadge, TypeChip, StatusIcon, Bubbles } from "@/components/dv";
 import { problemApi } from "@/lib/problemApi";
-import { discardBody } from "@/lib/request";
+import { discardBody, loginHref } from "@/lib/request";
 import { formatPeriod } from "@/lib/utils";
 
 type HomeProblem = {
@@ -352,7 +352,7 @@ export default function HomePage() {
                   격리된 샌드박스에서 안전하게 실습해요.
                 </p>
                 <div className="flex flex-wrap items-center gap-3 pt-2">
-                  <Link href="/signin" className="dv-btn-dive">
+                  <Link href={loginHref("/challenges")} className="dv-btn-dive">
                     다이브 시작 <ArrowRight size={18} />
                   </Link>
                   <Link
