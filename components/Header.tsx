@@ -126,20 +126,12 @@ export function Header({
               </button>
             </>
           ) : (
-            <>
-              <Link
-                href="/signin"
-                className="inline-flex h-9 items-center px-3 sm:px-4 rounded-full text-sm font-semibold whitespace-nowrap text-ink-muted hover:text-ink hover:bg-raised transition-colors"
-              >
-                로그인
-              </Link>
-              <Link
-                href="/signup"
-                className="inline-flex h-9 items-center px-3 sm:px-4 rounded-full bg-primary text-primary-ink text-sm font-bold whitespace-nowrap hover:bg-primary-hover transition-colors"
-              >
-                시작하기
-              </Link>
-            </>
+            <Link
+              href="/signin"
+              className="inline-flex h-9 items-center px-3 sm:px-4 rounded-full bg-primary text-primary-ink text-sm font-bold whitespace-nowrap hover:bg-primary-hover transition-colors"
+            >
+              로그인
+            </Link>
           )}
         </div>
       </div>
@@ -248,22 +240,13 @@ function MobileDrawer({
                 </button>
               </>
             ) : (
-              <>
-                <Link
-                  href="/signup"
-                  onClick={() => onOpenChange(false)}
-                  className="inline-flex h-11 items-center justify-center rounded-full bg-primary text-primary-ink text-sm font-bold hover:bg-primary-hover transition-colors"
-                >
-                  시작하기
-                </Link>
-                <Link
-                  href="/signin"
-                  onClick={() => onOpenChange(false)}
-                  className="inline-flex h-11 items-center justify-center rounded-full border border-line-strong text-sm font-semibold text-ink hover:bg-raised transition-colors"
-                >
-                  로그인
-                </Link>
-              </>
+              <Link
+                href="/signin"
+                onClick={() => onOpenChange(false)}
+                className="inline-flex h-11 items-center justify-center rounded-full bg-primary text-primary-ink text-sm font-bold hover:bg-primary-hover transition-colors"
+              >
+                로그인
+              </Link>
             )}
           </div>
         </DialogPrimitive.Content>

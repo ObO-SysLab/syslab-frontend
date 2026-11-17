@@ -13,7 +13,7 @@ DiveOn([diveon.net](https://diveon.net))의 웹 화면이다. Next.js 16(App Rou
 | `/ranking` | 사용자 랭킹 |
 | `/store` | 포인트 상점 |
 | `/settings` | 계정·알림 설정 |
-| `/signin`, `/signup`, `/find-account` | 로그인, 회원가입, 계정 찾기 |
+| `/signin` | 구글 계정 로그인 |
 
 ## OBO
 
