@@ -135,9 +135,6 @@ const routes: Route[] = [
   { method: "POST", pattern: /^\/api\/auth\/logout$/, handler: () => json(profile.mockLogoutResponse) },
   { method: "GET", pattern: /^\/api\/auth\/check-(loginId|nickname)$/, public: true, handler: () => json(ok(null, "사용 가능합니다.")) },
   { method: "POST", pattern: /^\/api\/auth\/email\/(send|send-reset|verify)$/, public: true, handler: () => json(ok(null, "처리되었습니다.")) },
-  { method: "POST", pattern: /^\/api\/auth\/email\/find-id$/, public: true, handler: () => json(ok({ loginId: "dypark" }, "아이디 조회 성공")) },
-  { method: "POST", pattern: /^\/api\/auth\/email\/password\/reset$/, public: true, handler: () => json(ok(null, "비밀번호가 재설정되었습니다.")) },
-  { method: "POST", pattern: /^\/api\/auth\/signup$/, public: true, handler: () => json(ok(null, "회원가입이 완료되었습니다.", 201), 201) },
 
   // ----- 프로필 -----
   { method: "GET", pattern: /^\/api\/profile\/show$/, handler: () => json(profile.mockProfileResponse) },
