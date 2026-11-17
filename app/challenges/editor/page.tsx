@@ -181,17 +181,12 @@ function MonacoSubmitContent() {
               </button>
             </>
           ) : (
-            /* --- 로그아웃된 상태: 로그인 / 시작하기 버튼 --- */
-            <div className="flex items-center gap-2">
-              <Link href="/signin">
-                <Button variant="ghost" className="text-sm font-bold text-ink-muted">Sign In</Button>
-              </Link>
-              <Link href="/signup">
-                <Button className="bg-raised border border-line-strong text-ink text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
+            /* --- 로그아웃된 상태: 로그인 버튼 --- */
+            <Link href="/signin">
+              <Button className="bg-raised border border-line-strong text-ink text-sm font-bold rounded-full px-5 shadow-lg shadow-black/40">
+                로그인
+              </Button>
+            </Link>
           )}
         </div>
       </header>
